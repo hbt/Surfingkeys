@@ -1,3 +1,7 @@
+# hbt ignores
+.idea/
+
+# project ignores
 node_modules/
 dist/
 .DS_Store
