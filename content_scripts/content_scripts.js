@@ -324,6 +324,8 @@ function applySettings(rs) {
         var delta = runScript(rs.snippets);
         if (delta.error !== "") {
             if (window === top) {
+                // works in FF but not chrome https://stackoverflow.com/questions/35252731/find-details-of-syntaxerror-thrown-by-javascript-new-function-constructor
+                console.log("Error found in settings({0}): {1}".format(window.location.href, delta.error));
                 Front.showPopup("Error found in settings: " + delta.error);
             } else {
                 console.log("Error found in settings({0}): {1}".format(window.location.href, delta.error));

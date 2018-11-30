@@ -52,10 +52,8 @@
     ],
     "background": {
         "scripts": [
-            "chrome_bg.js",
             "background.js"
-        ],
-        "persistant": false
+        ]
     },
     "content_scripts": [
         {
@@ -64,18 +62,7 @@
             ],
             "match_about_blank": true,
             "js": [
-
-                "libs/trie.js",
-                "content_scripts/keyboardUtils.js",
-                "content_scripts/utils.js",
-                "content_scripts/runtime.js",
-                "content_scripts/normal.js",
-                "content_scripts/insert.js",
-                "content_scripts/visual.js",
-                "content_scripts/hints.js",
-                "content_scripts/clipboard.js",
-                "content_scripts/chrome_fg.js",
-
+                "content_scripts/common_content.min.js",
                 "content_scripts/front.js",
                 "content_scripts/content_scripts.js",
                 "content_scripts/top.js",
@@ -97,13 +84,5 @@
         "pages/shadow.css",
         "pages/default.css"
     ],
-    "content_security_policy": "script-src 'self' https://www.google-analytics.com; object-src 'self'",
-    "incognito": "split",
-    "options_page": "pages/options.html",
-    "sandbox": {
-        "pages": [
-            "pages/sandbox.html"
-        ]
-    }
-
+    "content_security_policy": "script-src 'self' https://www.google-analytics.com; object-src 'self'"
 }

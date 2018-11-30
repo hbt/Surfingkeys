@@ -23,6 +23,7 @@ gulp.task('lint', () => {
     return gulp.src([
         'gulpfile.js',
         'content_scripts/*.js',
+        '!content_scripts/common_content.min.js',
         'pages/*.js',
         '!node_modules/**'
     ])

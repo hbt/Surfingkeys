@@ -1,5 +1,6 @@
 # hbt ignores
 .idea/
+content_scripts/common_content.min.js
 
 # project ignores
 node_modules/
