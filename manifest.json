@@ -97,6 +97,9 @@
         "pages/shadow.css",
         "pages/default.css"
     ],
+    "chrome_url_overrides": {
+        "newtab": "pages/newtab.html"
+    },
     "content_security_policy": "script-src 'self' https://www.google-analytics.com; object-src 'self'",
     "incognito": "split",
     "options_page": "pages/options.html",
