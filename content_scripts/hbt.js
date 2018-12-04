@@ -10,13 +10,9 @@ var CustomCommands = (function() {
         );
     };
 
-    // TODO(hbt) NEXT
     self.copyTopURL = () => {
-        // mapkey('yy', "#7Copy current page's URL", function() {
-        //     Clipboard.write(window.location.href);
-        // });
+        RUNTIME('copyRootURL')
     };
 
     return self;
 })();
-
