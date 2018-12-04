@@ -11,7 +11,14 @@ var CustomCommands = (function() {
     };
 
     self.copyTopURL = () => {
-        RUNTIME('copyRootURL')
+        runtime.command(
+            {
+                action: "copyTopURL"
+            },
+            function(res) {
+                Front.showBanner(res.url)
+            }
+        );
     };
 
     return self;

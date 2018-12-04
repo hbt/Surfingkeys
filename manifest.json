@@ -56,7 +56,7 @@
             "background.js",
             "bg.js"
         ],
-        "persistant": false
+        "persistent": true
     },
     "content_scripts": [
         {

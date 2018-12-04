@@ -34,7 +34,6 @@ class CustomBackground {
 
     registerListeners() {
         chrome.runtime.onMessage.addListener((_message, _sender, _sendResponse, _port) => {
-            console.log("ll");
             this.handlePortMessage(_message, _sender, _sendResponse, _port);
         });
 
@@ -82,9 +81,11 @@ class CustomBackground {
         this.sendResponse(_message, _sendResponse, { test: "works" });
     }
 
-    copyRootURL(_message, _sender, _sendResponse) {
+    copyTopURL(_message, _sender, _sendResponse) {
         let url = _sender.tab ? _sender.tab.url : ""
         Clipboard.copy(url)
+        this.sendResponse(_message, _sendResponse, { url: url });
+        
     }
     
 }

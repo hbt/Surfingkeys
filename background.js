@@ -226,7 +226,7 @@ var ChromeService = (function() {
                 }
             } else {
                 var type = _port ? "[unexpected port message] " : "[unexpected runtime message] ";
-                console.log(type + JSON.stringify(_message));
+                // console.log(type + JSON.stringify(_message));
             }
         }
     }
