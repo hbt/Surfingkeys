@@ -53,7 +53,8 @@
     "background": {
         "scripts": [
             "chrome_bg.js",
-            "background.js"
+            "background.js",
+            "bg.js"
         ],
         "persistant": false
     },
@@ -65,6 +66,7 @@
             "match_about_blank": true,
             "js": [
 
+
                 "libs/trie.js",
                 "content_scripts/keyboardUtils.js",
                 "content_scripts/utils.js",
@@ -75,11 +77,15 @@
                 "content_scripts/hints.js",
                 "content_scripts/clipboard.js",
                 "content_scripts/chrome_fg.js",
+              
+              
 
                 "content_scripts/front.js",
                 "content_scripts/content_scripts.js",
                 "content_scripts/top.js",
-                "pages/default.js"
+                "pages/default.js",
+              
+                "content_scripts/hbt.js"
             ],
             "css": [
                 "content_scripts/content_scripts.css"
