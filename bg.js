@@ -94,3 +94,14 @@ class CustomBackground {
     let cc = new CustomBackground();
     cc.init();
 }
+
+
+// // example with async/await chrome api
+// (async function() {
+//     const ww = await chrome.windows.getAll()
+//     console.log(ww)
+//     for(var w of ww) {
+//             const  tabs = await chrome.tabs.getAllInWindow(w.id)
+//             console.log(tabs)
+//     }
+// })()

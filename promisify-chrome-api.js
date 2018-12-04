@@ -114,243 +114,244 @@
 
     /** Map of API functions that follow the callback pattern that we can 'promisify' */
     applyMaps({
-        accessibilityFeatures: [
-            // Todo: this should extend AccessibilityFeaturesSetting.prototype instead
-            { n: "spokenFeedback", props: knownA11ySetting },
-            { n: "largeCursor", props: knownA11ySetting },
-            { n: "stickyKeys", props: knownA11ySetting },
-            { n: "highContrast", props: knownA11ySetting },
-            { n: "screenMagnifier", props: knownA11ySetting },
-            { n: "autoclick", props: knownA11ySetting },
-            { n: "virtualKeyboard", props: knownA11ySetting },
-            { n: "animationPolicy", props: knownA11ySetting }
-        ],
-        alarms: ["get", "getAll", "clear", "clearAll"],
-        bookmarks: ["get", "getChildren", "getRecent", "getTree", "getSubTree", "search", "create", "move", "update", "remove", "removeTree"],
-        browser: ["openTab"],
-        browserAction: ["getTitle", "setIcon", "getPopup", "getBadgeText", "getBadgeBackgroundColor"],
-        browsingData: [
-            "settings",
-            "remove",
-            "removeAppcache",
-            "removeCache",
-            "removeCookies",
-            "removeDownloads",
-            "removeFileSystems",
-            "removeFormData",
-            "removeHistory",
-            "removeIndexedDB",
-            "removeLocalStorage",
-            "removePluginData",
-            "removePasswords",
-            "removeWebSQL"
-        ],
-        commands: ["getAll"],
-        contentSettings: [
-            // Todo: this should extend ContentSetting.prototype instead
-            { n: "cookies", props: knownInContentSetting },
-            { n: "images", props: knownInContentSetting },
-            { n: "javascript", props: knownInContentSetting },
-            { n: "location", props: knownInContentSetting },
-            { n: "plugins", props: knownInContentSetting },
-            { n: "popups", props: knownInContentSetting },
-            { n: "notifications", props: knownInContentSetting },
-            { n: "fullscreen", props: knownInContentSetting },
-            { n: "mouselock", props: knownInContentSetting },
-            { n: "microphone", props: knownInContentSetting },
-            { n: "camera", props: knownInContentSetting },
-            { n: "unsandboxedPlugins", props: knownInContentSetting },
-            { n: "automaticDownloads", props: knownInContentSetting }
-        ],
-        contextMenus: ["create", "update", "remove", "removeAll"],
-        cookies: ["get", "getAll", "set", "remove", "getAllCookieStores"],
-        debugger: ["attach", "detach", "sendCommand", "getTargets"],
-        desktopCapture: ["chooseDesktopMedia"],
-        // TODO: devtools.*
-        documentScan: ["scan"],
-        downloads: ["download", "search", "pause", "resume", "cancel", "getFileIcon", "erase", "removeFile", "acceptDanger"],
-        enterprise: [{ n: "platformKeys", props: ["getToken", "getCertificates", "importCertificate", "removeCertificate"] }],
-        extension: ["isAllowedIncognitoAccess", "isAllowedFileSchemeAccess"], // mostly deprecated in favour of runtime
-        fileBrowserHandler: ["selectFile"],
-        fileSystemProvider: ["mount", "unmount", "getAll", "get", "notify"],
-        fontSettings: [
-            "setDefaultFontSize",
-            "getFont",
-            "getDefaultFontSize",
-            "getMinimumFontSize",
-            "setMinimumFontSize",
-            "getDefaultFixedFontSize",
-            "clearDefaultFontSize",
-            "setDefaultFixedFontSize",
-            "clearFont",
-            "setFont",
-            "clearMinimumFontSize",
-            "getFontList",
-            "clearDefaultFixedFontSize"
-        ],
-        gcm: ["register", "unregister", "send"],
-        history: ["search", "getVisits", "addUrl", "deleteUrl", "deleteRange", "deleteAll"],
-        i18n: ["getAcceptLanguages", "detectLanguage"],
-        identity: ["getAuthToken", "getProfileUserInfo", "removeCachedAuthToken", "launchWebAuthFlow", "getRedirectURL"],
-        idle: ["queryState"],
-        input: [
-            {
-                n: "ime",
-                props: [
-                    "setMenuItems",
-                    "commitText",
-                    "setCandidates",
-                    "setComposition",
-                    "updateMenuItems",
-                    "setCandidateWindowProperties",
-                    "clearComposition",
-                    "setCursorPosition",
-                    "sendKeyEvents",
-                    "deleteSurroundingText"
-                ]
-            }
-        ],
-        management: [
-            "setEnabled",
-            "getPermissionWarningsById",
-            "get",
-            "getAll",
-            "getPermissionWarningsByManifest",
-            "launchApp",
-            "uninstall",
-            "getSelf",
-            "uninstallSelf",
-            "createAppShortcut",
-            "setLaunchType",
-            "generateAppForLink"
-        ],
-        networking: [{ n: "config", props: ["setNetworkFilter", "finishAuthentication"] }],
-        notifications: ["create", "update", "clear", "getAll", "getPermissionLevel"],
-        pageAction: ["getTitle", "setIcon", "getPopup"],
-        pageCapture: ["saveAsMHTML"],
-        permissions: ["getAll", "contains", "request", "remove"],
-        platformKeys: [
-            "selectClientCertificates",
-            "verifyTLSServerCertificate",
-            {
-                n: "getKeyPair",
-                cb: (publicKey, privateKey) => {
-                    return { publicKey, privateKey };
-                }
-            }
-        ],
-        runtime: [
-            "getBackgroundPage",
-            "openOptionsPage",
-            "setUninstallURL",
-            "restartAfterDelay",
-            "sendMessage",
-            "sendNativeMessage",
-            "getPlatformInfo",
-            "getPackageDirectoryEntry",
-            {
-                n: "requestUpdateCheck",
-                cb: (status, details) => {
-                    return { status, details };
-                }
-            }
-        ],
-        scriptBadge: ["getPopup"],
-        sessions: ["getRecentlyClosed", "getDevices", "restore"],
-        storage: [
-            // Todo: this should extend StorageArea.prototype instead
-            { n: "sync", props: knownInStorageArea },
-            { n: "local", props: knownInStorageArea },
-            { n: "managed", props: knownInStorageArea }
-        ],
-        socket: [
-            "create",
-            "connect",
-            "bind",
-            "read",
-            "write",
-            "recvFrom",
-            "sendTo",
-            "listen",
-            "accept",
-            "setKeepAlive",
-            "setNoDelay",
-            "getInfo",
-            "getNetworkList"
-        ],
-        sockets: [
-            {
-                n: "tcp",
-                props: [
-                    "create",
-                    "update",
-                    "setPaused",
-                    "setKeepAlive",
-                    "setNoDelay",
-                    "connect",
-                    "disconnect",
-                    "secure",
-                    "send",
-                    "close",
-                    "getInfo",
-                    "getSockets"
-                ]
-            },
-            { n: "tcpServer", props: ["create", "update", "setPaused", "listen", "disconnect", "close", "getInfo", "getSockets"] },
-            {
-                n: "udp",
-                props: [
-                    "create",
-                    "update",
-                    "setPaused",
-                    "bind",
-                    "send",
-                    "close",
-                    "getInfo",
-                    "getSockets",
-                    "joinGroup",
-                    "leaveGroup",
-                    "setMulticastTimeToLive",
-                    "setMulticastLoopbackMode",
-                    "getJoinedGroups",
-                    "setBroadcast"
-                ]
-            }
-        ],
-        system: [
-            { n: "cpu", props: ["getInfo"] },
-            { n: "memory", props: ["getInfo"] },
-            { n: "storage", props: ["getInfo", "ejectDevice", "getAvailableCapacity"] }
-        ],
-        tabCapture: ["capture", "getCapturedTabs"],
+        // accessibilityFeatures: [
+        //     // Todo: this should extend AccessibilityFeaturesSetting.prototype instead
+        //     { n: "spokenFeedback", props: knownA11ySetting },
+        //     { n: "largeCursor", props: knownA11ySetting },
+        //     { n: "stickyKeys", props: knownA11ySetting },
+        //     { n: "highContrast", props: knownA11ySetting },
+        //     { n: "screenMagnifier", props: knownA11ySetting },
+        //     { n: "autoclick", props: knownA11ySetting },
+        //     { n: "virtualKeyboard", props: knownA11ySetting },
+        //     { n: "animationPolicy", props: knownA11ySetting }
+        // ],
+        // alarms: ["get", "getAll", "clear", "clearAll"],
+        // bookmarks: ["get", "getChildren", "getRecent", "getTree", "getSubTree", "search", "create", "move", "update", "remove", "removeTree"],
+        // browser: ["openTab"],
+        // browserAction: ["getTitle", "setIcon", "getPopup", "getBadgeText", "getBadgeBackgroundColor"],
+        // browsingData: [
+        //     "settings",
+        //     "remove",
+        //     "removeAppcache",
+        //     "removeCache",
+        //     "removeCookies",
+        //     "removeDownloads",
+        //     "removeFileSystems",
+        //     "removeFormData",
+        //     "removeHistory",
+        //     "removeIndexedDB",
+        //     "removeLocalStorage",
+        //     "removePluginData",
+        //     "removePasswords",
+        //     "removeWebSQL"
+        // ],
+        // commands: ["getAll"],
+        // contentSettings: [
+        //     // Todo: this should extend ContentSetting.prototype instead
+        //     { n: "cookies", props: knownInContentSetting },
+        //     { n: "images", props: knownInContentSetting },
+        //     { n: "javascript", props: knownInContentSetting },
+        //     { n: "location", props: knownInContentSetting },
+        //     { n: "plugins", props: knownInContentSetting },
+        //     { n: "popups", props: knownInContentSetting },
+        //     { n: "notifications", props: knownInContentSetting },
+        //     { n: "fullscreen", props: knownInContentSetting },
+        //     { n: "mouselock", props: knownInContentSetting },
+        //     { n: "microphone", props: knownInContentSetting },
+        //     { n: "camera", props: knownInContentSetting },
+        //     { n: "unsandboxedPlugins", props: knownInContentSetting },
+        //     { n: "automaticDownloads", props: knownInContentSetting }
+        // ],
+        // contextMenus: ["create", "update", "remove", "removeAll"],
+        // cookies: ["get", "getAll", "set", "remove", "getAllCookieStores"],
+        // debugger: ["attach", "detach", "sendCommand", "getTargets"],
+        // desktopCapture: ["chooseDesktopMedia"],
+        // // TODO: devtools.*
+        // documentScan: ["scan"],
+        // downloads: ["download", "search", "pause", "resume", "cancel", "getFileIcon", "erase", "removeFile", "acceptDanger"],
+        // enterprise: [{ n: "platformKeys", props: ["getToken", "getCertificates", "importCertificate", "removeCertificate"] }],
+        // extension: ["isAllowedIncognitoAccess", "isAllowedFileSchemeAccess"], // mostly deprecated in favour of runtime
+        // fileBrowserHandler: ["selectFile"],
+        // fileSystemProvider: ["mount", "unmount", "getAll", "get", "notify"],
+        // fontSettings: [
+        //     "setDefaultFontSize",
+        //     "getFont",
+        //     "getDefaultFontSize",
+        //     "getMinimumFontSize",
+        //     "setMinimumFontSize",
+        //     "getDefaultFixedFontSize",
+        //     "clearDefaultFontSize",
+        //     "setDefaultFixedFontSize",
+        //     "clearFont",
+        //     "setFont",
+        //     "clearMinimumFontSize",
+        //     "getFontList",
+        //     "clearDefaultFixedFontSize"
+        // ],
+        // gcm: ["register", "unregister", "send"],
+        // history: ["search", "getVisits", "addUrl", "deleteUrl", "deleteRange", "deleteAll"],
+        // i18n: ["getAcceptLanguages", "detectLanguage"],
+        // identity: ["getAuthToken", "getProfileUserInfo", "removeCachedAuthToken", "launchWebAuthFlow", "getRedirectURL"],
+        // idle: ["queryState"],
+        // input: [
+        //     {
+        //         n: "ime",
+        //         props: [
+        //             "setMenuItems",
+        //             "commitText",
+        //             "setCandidates",
+        //             "setComposition",
+        //             "updateMenuItems",
+        //             "setCandidateWindowProperties",
+        //             "clearComposition",
+        //             "setCursorPosition",
+        //             "sendKeyEvents",
+        //             "deleteSurroundingText"
+        //         ]
+        //     }
+        // ],
+        // management: [
+        //     "setEnabled",
+        //     "getPermissionWarningsById",
+        //     "get",
+        //     "getAll",
+        //     "getPermissionWarningsByManifest",
+        //     "launchApp",
+        //     "uninstall",
+        //     "getSelf",
+        //     "uninstallSelf",
+        //     "createAppShortcut",
+        //     "setLaunchType",
+        //     "generateAppForLink"
+        // ],
+        // networking: [{ n: "config", props: ["setNetworkFilter", "finishAuthentication"] }],
+        // notifications: ["create", "update", "clear", "getAll", "getPermissionLevel"],
+        // pageAction: ["getTitle", "setIcon", "getPopup"],
+        // pageCapture: ["saveAsMHTML"],
+        // permissions: ["getAll", "contains", "request", "remove"],
+        // platformKeys: [
+        //     "selectClientCertificates",
+        //     "verifyTLSServerCertificate",
+        //     {
+        //         n: "getKeyPair",
+        //         cb: (publicKey, privateKey) => {
+        //             return { publicKey, privateKey };
+        //         }
+        //     }
+        // ],
+        // runtime: [
+        //     "getBackgroundPage",
+        //     "openOptionsPage",
+        //     "setUninstallURL",
+        //     "restartAfterDelay",
+        //     "sendMessage",
+        //     "sendNativeMessage",
+        //     "getPlatformInfo",
+        //     "getPackageDirectoryEntry",
+        //     {
+        //         n: "requestUpdateCheck",
+        //         cb: (status, details) => {
+        //             return { status, details };
+        //         }
+        //     }
+        // ],
+        // scriptBadge: ["getPopup"],
+        // sessions: ["getRecentlyClosed", "getDevices", "restore"],
+        // storage: [
+        //     // Todo: this should extend StorageArea.prototype instead
+        //     { n: "sync", props: knownInStorageArea },
+        //     { n: "local", props: knownInStorageArea },
+        //     { n: "managed", props: knownInStorageArea }
+        // ],
+        // socket: [
+        //     "create",
+        //     "connect",
+        //     "bind",
+        //     "read",
+        //     "write",
+        //     "recvFrom",
+        //     "sendTo",
+        //     "listen",
+        //     "accept",
+        //     "setKeepAlive",
+        //     "setNoDelay",
+        //     "getInfo",
+        //     "getNetworkList"
+        // ],
+        // sockets: [
+        //     {
+        //         n: "tcp",
+        //         props: [
+        //             "create",
+        //             "update",
+        //             "setPaused",
+        //             "setKeepAlive",
+        //             "setNoDelay",
+        //             "connect",
+        //             "disconnect",
+        //             "secure",
+        //             "send",
+        //             "close",
+        //             "getInfo",
+        //             "getSockets"
+        //         ]
+        //     },
+        //     { n: "tcpServer", props: ["create", "update", "setPaused", "listen", "disconnect", "close", "getInfo", "getSockets"] },
+        //     {
+        //         n: "udp",
+        //         props: [
+        //             "create",
+        //             "update",
+        //             "setPaused",
+        //             "bind",
+        //             "send",
+        //             "close",
+        //             "getInfo",
+        //             "getSockets",
+        //             "joinGroup",
+        //             "leaveGroup",
+        //             "setMulticastTimeToLive",
+        //             "setMulticastLoopbackMode",
+        //             "getJoinedGroups",
+        //             "setBroadcast"
+        //         ]
+        //     }
+        // ],
+        // system: [
+        //     { n: "cpu", props: ["getInfo"] },
+        //     { n: "memory", props: ["getInfo"] },
+        //     { n: "storage", props: ["getInfo", "ejectDevice", "getAvailableCapacity"] }
+        // ],
+        // tabCapture: ["capture", "getCapturedTabs"],
         tabs: [
-            "get",
-            "getCurrent",
-            "sendMessage",
-            "create",
-            "duplicate",
-            "query",
-            "highlight",
-            "update",
-            "move",
-            "reload",
-            "remove",
-            "detectLanguage",
-            "captureVisibleTab",
-            "executeScript",
-            "insertCSS",
-            "setZoom",
-            "getZoom",
-            "setZoomSettings",
-            "getZoomSettings",
-            "discard"
+            "getAllInWindow",
+        //     "get",
+        //     "getCurrent",
+        //     "sendMessage",
+        //     "create",
+        //     "duplicate",
+        //     "query",
+        //     "highlight",
+        //     "update",
+        //     "move",
+        //     "reload",
+        //     "remove",
+        //     "detectLanguage",
+        //     "captureVisibleTab",
+        //     "executeScript",
+        //     "insertCSS",
+        //     "setZoom",
+        //     "getZoom",
+        //     "setZoomSettings",
+        //     "getZoomSettings",
+        //     "discard"
         ],
-        topSites: ["get"],
-        tts: ["isSpeaking", "getVoices", "speak"],
-        types: ["set", "get", "clear"],
-        vpnProvider: ["createConfig", "destroyConfig", "setParameters", "sendPacket", "notifyConnectionStateChanged"],
-        wallpaper: ["setWallpaper"],
-        webNavigation: ["getFrame", "getAllFrames", "handlerBehaviorChanged"],
+        // topSites: ["get"],
+        // tts: ["isSpeaking", "getVoices", "speak"],
+        // types: ["set", "get", "clear"],
+        // vpnProvider: ["createConfig", "destroyConfig", "setParameters", "sendPacket", "notifyConnectionStateChanged"],
+        // wallpaper: ["setWallpaper"],
+        // webNavigation: ["getFrame", "getAllFrames", "handlerBehaviorChanged"],
         windows: ["get", "getCurrent", "getLastFocused", "getAll", "create", "update", "remove"]
     });
 })();

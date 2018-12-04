@@ -52,6 +52,7 @@
     ],
     "background": {
         "scripts": [
+            "promisify-chrome-api.js",
             "chrome_bg.js",
             "background.js",
             "bg.js"
@@ -66,6 +67,7 @@
             "match_about_blank": true,
             "js": [
 
+                "promisify-chrome-api.js",
 
                 "libs/trie.js",
                 "content_scripts/keyboardUtils.js",
