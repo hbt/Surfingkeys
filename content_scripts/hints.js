@@ -171,7 +171,7 @@ var Hints = (function() {
                 matches.push(hint);
             } else if (label.indexOf(prefix) === 0) {
                 hint.style.opacity = 1;
-                setInnerHTML(hint, `<span style="opacity: 0.2;">${prefix}</span>` + label.substr(prefix.length));
+                setInnerHTML(hint, `<span style="opacity: 0.0; display: none;">${prefix}</span>` + label.substr(prefix.length));
                 matches.push(hint);
             } else {
                 hint.style.opacity = 0;
