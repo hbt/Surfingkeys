@@ -91,5 +91,14 @@ var CustomCommands = (function() {
         });
     };
 
+    self.tabDetach = function() {
+        runtime.command(
+            {
+                action: "tabDetach"
+            },
+            function(res) {}
+        );
+    };
+
     return self;
 })();

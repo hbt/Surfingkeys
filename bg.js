@@ -993,6 +993,10 @@ class CustomBackground {
             action: "handleCtrlWFeature"
         });
     }
+
+    async tabDetach(_message, _sender, _sendResponse) {
+        chrome.windows.create({ tabId: _sender.tab.id, state: "maximized" });
+    }
 }
 
 {
