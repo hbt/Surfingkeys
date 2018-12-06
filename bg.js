@@ -1126,6 +1126,18 @@ class CustomBackground {
             }
         );
     }
+
+    copyAllTabsURLsInCurrentWindow(_message, _sender, _sendResponse) {
+        chrome.tabs.query({ currentWindow: true }, tabs => {
+            let text = tabs
+                .map(function(tab) {
+                    return tab.url;
+                })
+                .join("\n");
+            Clipboard.copy(text);
+            this.sendResponse(_message, _sendResponse, { data: text, count: tabs.length });
+        });
+    }
 }
 
 {

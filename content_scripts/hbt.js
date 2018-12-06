@@ -22,6 +22,17 @@ var CustomCommands = (function() {
         );
     };
 
+    self.copyAllTabsURLsInCurrentWindow = () => {
+        runtime.command(
+            {
+                action: "copyAllTabsURLsInCurrentWindow"
+            },
+            function(res) {
+                Front.showBanner(`Copied ${res.count} URLs<br/> ${res.data}`);
+            }
+        );
+    };
+
     self.copyRootURL = async () => {
         const res = await aruntime({ action: "copyTopURL" });
         Front.showBanner(res.url);
