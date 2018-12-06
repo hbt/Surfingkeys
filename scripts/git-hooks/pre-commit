@@ -1,0 +1,15 @@
+#!/bin/sh
+# install 
+# copy this file to .git/hooks/pre-commit 
+# 
+# uses prettier to format JS before commit.
+# limited to my files to avoid conflicts with parent branch
+#
+
+cd $(git rev-parse --show-toplevel)
+/home/hassen/.nvm/versions/node/v7.2.0/bin/prettier --config=.prettierrc.json --write content_scripts/hbt.js
+/home/hassen/.nvm/versions/node/v7.2.0/bin/prettier --config=.prettierrc.json --write bg.js
+
+git add content_scripts/hbt.js
+git add bg.js
+
