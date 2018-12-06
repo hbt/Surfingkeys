@@ -85,5 +85,11 @@ var CustomCommands = (function() {
         }
     });
 
+    self.hintOpenLinkIncognito = function() {
+        Hints.create("*[href]", function(element) {
+            CustomCommands.openLinkIncognito(element.href);
+        });
+    };
+
     return self;
 })();
