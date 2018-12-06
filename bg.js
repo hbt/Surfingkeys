@@ -1007,6 +1007,7 @@ class CustomBackground {
                 repeats: 1
             }
         };
+        ret.request = _message.request || ret.request;
         return ret;
     }
 
@@ -1136,6 +1137,23 @@ class CustomBackground {
                 .join("\n");
             Clipboard.copy(text);
             this.sendResponse(_message, _sendResponse, { data: text, count: tabs.length });
+        });
+    }
+
+    async tabGoto(_message, _sender, _sendResponse) {
+        let o = this.convertMessageArgsToMouselessArg(_message, _sender, _sendResponse);
+        var id = o.request.id,
+            index = o.request.index;
+        chrome.tabs.query({ currentWindow: true }, function(tabs) {
+            if (id) {
+                return chrome.tabs.get(id, function(tabInfo) {
+                    chrome.windows.update(tabInfo.windowId, { focused: true }, function() {
+                        chrome.tabs.update(id, { active: true, highlighted: true });
+                    });
+                });
+            } else if (index !== void 0) {
+                chrome.tabs.update(index < tabs.length ? tabs[index].id : tabs.slice(-1)[0].id, { active: true });
+            }
         });
     }
 }

@@ -170,5 +170,21 @@ var CustomCommands = (function() {
         );
     };
 
+    self.tabGoto = function() {
+        // ignore other repeats and pass the value instead
+        if (RUNTIME.repeats !== parseInt(Normal.repeats)) {
+            return;
+        }
+        runtime.command(
+            {
+                action: "tabGoto",
+                request: {
+                    index: RUNTIME.repeats - 1
+                }
+            },
+            function(res) {}
+        );
+    };
+
     return self;
 })();
