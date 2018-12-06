@@ -27,5 +27,19 @@ var CustomCommands = (function() {
         Front.showBanner(res.url);
     };
 
+
+    self.openLinkIncognito = function(url) {
+        runtime.command(
+            {
+                action: "openLinkIncognito",
+                url: url
+                
+            },
+            function(res) {
+                
+            }
+        );
+    }
+
     return self;
 })();

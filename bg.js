@@ -88,6 +88,15 @@ class CustomBackground {
         Clipboard.copy(url);
         this.sendResponse(_message, _sendResponse, { url: url });
     }
+
+    openLinkIncognito(_message, _sender, _sendResponse) {
+        chrome.windows.create({
+            url: _message.url,
+            focused: true,
+            incognito: true,
+            state: "maximized"
+        });
+    }
 }
 
 {
