@@ -69,5 +69,17 @@ var CustomCommands = (function() {
         });
     };
 
+    self.handleCtrlWFeature = function(msg, sender, cb) {
+        // TODO(hbt) INVESTIGATE view #117  https://github.com/hbt/mouseless/commit/68ec42755f7619ca47b4f5253f5197cf557e0137
+        // Note(hbt) issue is with extension frontend.html and the page. Message gets passed to both
+        // for now, prevent C-w from closing the tab during editing since I tend to use it as a reflex when editing
+    };
+
+    chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
+        if (msg.action && typeof self[msg.action] === "function") {
+            self[msg.action](msg, sender, cb);
+        }
+    });
+
     return self;
 })();

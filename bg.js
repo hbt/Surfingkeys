@@ -983,19 +983,28 @@ class CustomBackground {
             });
         }
     }
+
+    static async handleCtrlWFeature() {
+        const w = await chrome.windows.getCurrent();
+        const tab = await chrome.tabs.getSelected(w.id);
+        console.log(tab);
+
+        chrome.tabs.sendMessage(tab.id, {
+            action: "handleCtrlWFeature"
+        });
+    }
 }
 
 {
     let cc = new CustomBackground();
     cc.init();
+    // setTimeout(CustomBackground.handleCtrlWFeature, 3000)
 }
 
-// // example with async/await chrome api
-// (async function() {
-//     const ww = await chrome.windows.getAll()
-//     console.log(ww)
-//     for(var w of ww) {
-//             const  tabs = await chrome.tabs.getAllInWindow(w.id)
-//             console.log(tabs)
-//     }
-// })()
+chrome.commands.onCommand.addListener(function(command) {
+    switch (command) {
+        case "handlebothcwevents":
+            CustomBackground.handleCtrlWFeature();
+            break;
+    }
+});

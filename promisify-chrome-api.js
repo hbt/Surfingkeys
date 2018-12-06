@@ -325,8 +325,9 @@
         // tabCapture: ["capture", "getCapturedTabs"],
         tabs: [
             "getAllInWindow",
-        //     "get",
-        //     "getCurrent",
+            "get",
+            "getCurrent",
+            "getSelected",
         //     "sendMessage",
             "create",
         //     "duplicate",

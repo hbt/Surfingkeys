@@ -22,6 +22,9 @@
         "closeTab": {
             "description": "Close the current tab."
         },
+        "handlebothcwevents": {
+            "description": "When pressing C-w depending on mode will close the tab or delete backword in insert mode"
+        },
         "proxyThis": {
             "description": "Toggle current site in autoproxy_hosts."
         }
