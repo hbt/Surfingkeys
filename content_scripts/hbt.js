@@ -138,5 +138,26 @@ var CustomCommands = (function() {
         );
     };
 
+    self.tabTogglePinAll = function() {
+        runtime.command(
+            {
+                action: "tabUnpinAll"
+            },
+            function(res) {}
+        );
+    };
+
+    self.windowsTogglePinAll = function() {
+        runtime.command(
+            {
+                action: "tabUnpinAll",
+                msg: {
+                    allWindows: true
+                }
+            },
+            function(res) {}
+        );
+    };
+
     return self;
 })();

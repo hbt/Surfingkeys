@@ -999,6 +999,7 @@ class CustomBackground {
     }
 
     convertMessageArgsToMouselessArg(_message, _sender, _sendResponse) {
+        _message.msg = _message.msg || {};
         let ret = {
             sender: _sender,
             request: {
@@ -1086,6 +1087,44 @@ class CustomBackground {
                 chrome.tabs.remove(tab.id);
             }
         }
+    }
+
+    tabUnpinAll(_message, _sender, _sendResponse) {
+        let o = this.convertMessageArgsToMouselessArg(_message, _sender, _sendResponse);
+        var _ = window._;
+        var msg = o.request.msg;
+        msg.allWindows = msg.allWindows || false;
+
+        var tab = o.sender.tab;
+
+        chrome.windows.getAll(
+            {
+                populate: true
+            },
+            function(windows) {
+                if (!msg.allWindows) {
+                    windows = _.filter(windows, function(w) {
+                        return w.id === tab.windowId;
+                    });
+                }
+                _.each(windows, function(w) {
+                    var tabs = _.filter(w.tabs, function(v) {
+                        return v.pinned;
+                    });
+
+                    // no unpinned, then pin all of them
+                    var pinned = false;
+                    if (tabs.length === 0) {
+                        tabs = w.tabs;
+                        pinned = true;
+                    }
+
+                    _.each(tabs, function(t) {
+                        chrome.tabs.update(t.id, { pinned: pinned }, function(new_tab) {});
+                    });
+                });
+            }
+        );
     }
 }
 
