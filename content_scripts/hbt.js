@@ -45,5 +45,29 @@ var CustomCommands = (function() {
         });
     };
 
+    self.pasteFromClipboard = function() {
+        Clipboard.read(v => {
+            runtime.command(
+                {
+                    action: "pasteFromClipboard",
+                    data: v
+                },
+                function(res) {}
+            );
+        });
+    };
+
+    self.pasteFromClipboardNewTab = function() {
+        Clipboard.read(v => {
+            runtime.command(
+                {
+                    action: "pasteFromClipboardNewTab",
+                    data: v
+                },
+                function(res) {}
+            );
+        });
+    };
+
     return self;
 })();

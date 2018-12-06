@@ -328,7 +328,7 @@
         //     "get",
         //     "getCurrent",
         //     "sendMessage",
-        //     "create",
+            "create",
         //     "duplicate",
         //     "query",
         //     "highlight",
