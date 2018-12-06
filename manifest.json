@@ -55,6 +55,7 @@
     ],
     "background": {
         "scripts": [
+            "libs/underscore.js",
             "promisify-chrome-api.js",
             "chrome_bg.js",
             "background.js",

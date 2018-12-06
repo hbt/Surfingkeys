@@ -77,6 +77,7 @@ var CustomCommands = (function() {
         // TODO(hbt) INVESTIGATE view #117  https://github.com/hbt/mouseless/commit/68ec42755f7619ca47b4f5253f5197cf557e0137
         // Note(hbt) issue is with extension frontend.html and the page. Message gets passed to both
         // for now, prevent C-w from closing the tab during editing since I tend to use it as a reflex when editing
+        // return !domain || domain.test(document.location.href) || domain.test(window.origin);
     };
 
     chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
@@ -95,6 +96,43 @@ var CustomCommands = (function() {
         runtime.command(
             {
                 action: "tabDetach"
+            },
+            function(res) {}
+        );
+    };
+
+    self.tabCloseLeft = function() {
+        self.tabClose("closeLeft");
+    };
+
+    self.tabCloseRight = function() {
+        self.tabClose("closeRight");
+    };
+
+    // tcc
+    self.tabCloseOthersInWindow = function() {
+        self.tabClose("closeOther");
+    };
+
+    // tcw
+    self.windowCloseOtherWindows = function() {
+        // self.tabClose('otherWindows', {otherWindows: true,})
+        self.tabClose("otherWindows");
+    };
+
+    // tcg
+    self.tabCloseOthersInAllWindows = function() {
+        self.tabCloseOthersInAllWindows();
+        self.windowCloseOtherWindows();
+    };
+
+    self.tabClose = function(type) {
+        runtime.command(
+            {
+                action: "tabClose",
+                msg: {
+                    type: type
+                }
             },
             function(res) {}
         );

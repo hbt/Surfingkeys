@@ -997,6 +997,96 @@ class CustomBackground {
     async tabDetach(_message, _sender, _sendResponse) {
         chrome.windows.create({ tabId: _sender.tab.id, state: "maximized" });
     }
+
+    convertMessageArgsToMouselessArg(_message, _sender, _sendResponse) {
+        let ret = {
+            sender: _sender,
+            request: {
+                msg: _message.msg,
+                repeats: 1
+            }
+        };
+        return ret;
+    }
+
+    /**
+     * Migrate from vrome and mouseless
+     * // TODO(hbt) ENHANCE refactor to remove underscore dependency
+     *
+     * refactor myCloseTabXXX implementation -- ref https://github.com/hbt/mouseless/commit/97533a4787a7b50e233fe6879d0c8c5707fd71d6
+     * @param _message
+     * @param _sender
+     * @param _sendResponse
+     */
+    tabClose(_message, _sender, _sendResponse) {
+        let o = this.convertMessageArgsToMouselessArg(_message, _sender, _sendResponse);
+
+        var _ = window._;
+        var tab = o.sender.tab;
+        var cond = o.request.msg.type;
+        var msg = o.request.msg;
+        msg.count = o.request.repeats;
+        if (msg.count == 1) {
+            delete msg.count;
+        }
+        if (cond === "otherWindows") {
+            msg.otherWindows = true;
+        }
+
+        if (cond || msg.count > 1) {
+            chrome.windows.getAll(
+                {
+                    populate: true
+                },
+                function(windows) {
+                    if (msg.otherWindows) {
+                        // filter windows  without pinned tabs
+                        windows = _.filter(windows, function(w) {
+                            if (w.id === tab.windowId) return false;
+                            else {
+                                var noPinned = true;
+                                _.each(w.tabs, function(v) {
+                                    if (v.pinned) {
+                                        noPinned = false;
+                                    }
+                                });
+                                return noPinned;
+                            }
+                        });
+                    } else {
+                        // limit to current window
+                        windows = _.filter(windows, function(w) {
+                            return w.id === tab.windowId;
+                        });
+                    }
+
+                    _.each(windows, function(w) {
+                        var tabs = w.tabs;
+                        tabs = _.filter(tabs, function(v) {
+                            var closeMap = {
+                                closeOther: v.id == tab.id || v.pinned,
+                                closeLeft: v.id == tab.id || v.pinned || tab.index < v.index,
+                                closeRight: v.id == tab.id || v.pinned || tab.index > v.index,
+                                closePinned: !v.pinned,
+                                closeUnPinned: v.pinned,
+                                otherWindows: v.windowId == tab.windowId || v.pinned,
+                                count: v.index >= tab.index
+                            };
+                            return !closeMap[cond];
+                        });
+                        _.each(tabs, function(v, k) {
+                            if (msg.count && k > msg.count) return;
+                            chrome.tabs.remove(v.id);
+                        });
+                    });
+                }
+            );
+        } else {
+            if (!tab.pinned) {
+                chrome.tabs.remove(tab.id);
+            }
+        }
+    }
 }
 
 {
