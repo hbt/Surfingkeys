@@ -40,6 +40,14 @@ var CustomCommands = (function() {
             }
         );
     }
+    
+    self.passSingleKey = function() {
+        PassThrough.enter();
+        PassThrough.addEventListener('keydown', function (event) {
+            event.sk_suppressed = true;
+            PassThrough.exit();
+        })
+    }
 
     return self;
 })();
