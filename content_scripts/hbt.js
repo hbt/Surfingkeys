@@ -165,6 +165,8 @@ var CustomCommands = (function() {
             } else {
                 ret.sk_stopPropagation = true;
             }
+        } else if (mode.name === "Normal" && event instanceof KeyboardEvent && event.key === undefined) {
+            ret.sk_stopPropagation = true;
         }
 
         return ret;
