@@ -81,6 +81,7 @@ var Mode = (function() {
     };
 
     function onAfterHandler(mode, event) {
+        event = CustomCommands.handleKeyPropagation(mode, event)
         if (event.sk_stopPropagation) {
             event.stopImmediatePropagation();
             event.preventDefault();

@@ -156,6 +156,20 @@ var CustomCommands = (function() {
         }
     };
 
+    self.handleKeyPropagation = function(mode, event) {
+        let ret = event;
+        console.log(mode.name, event.key, event.sk_stopPropagation);
+        console.log(event);
+        if (mode.name === "Normal" && event.key === "Escape") {
+            if (event.altKey || event.ctrlKey) {
+            } else {
+                ret.sk_stopPropagation = true;
+            }
+        }
+
+        return ret;
+    };
+
     self.insertGoToFirstInput = function() {
         // TODO(hbt) ENHANCE add repeats support
         var cssSelector = "input";
