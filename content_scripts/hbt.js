@@ -174,7 +174,6 @@ var CustomCommands = (function() {
     };
 
     self.insertGoToFirstInput = function() {
-        // TODO(hbt) ENHANCE add repeats support
         var cssSelector = "input";
 
         var elements = getVisibleElements(function(e, v) {
@@ -278,7 +277,6 @@ var CustomCommands = (function() {
         );
     };
 
-    // TODO(hbt) ENHANCE add option for direction and add support for repeats for all tabs commands e.g map("tc", tabClose) then e/q is passed as option, repeats are passed to indicate nb times
     self.tabGoto = function() {
         // ignore other repeats and pass the value instead
         if (RUNTIME.repeats !== parseInt(Normal.repeats)) {
