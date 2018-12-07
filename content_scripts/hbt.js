@@ -185,6 +185,7 @@ var CustomCommands = (function() {
             settings.disabledDomainKeys &&
             settings.disabledDomainKeys.length > 0 &&
             mode.name === "Normal" &&
+            !DOMUtils.isEditable(document.activeElement) &&
             settings.disabledDomainKeys.includes(event.key) &&
             !event.ignore_stop_propgation_hack
         ) {
