@@ -886,6 +886,10 @@
     };
 }
 
+var State = {
+    tabsMarked: new Map()
+};
+
 class CustomBackground {
     conf() {}
     init() {
@@ -1011,9 +1015,28 @@ class CustomBackground {
         return ret;
     }
 
+    // // TODO(hbt) Refactor (low): fix tabClose and integrate this function there
+    // async windowCloseOtherWindows(_message, _sender, _sendResponse) {
+    //     const ctab = await chrome.tabs.get(_sender.tab.id)
+    //     var cwinId = ctab.windowId
+    //     var ws = await chrome.windows.getAll()
+    //     for(let w of ws) {
+    //         if(w.id === cwinId) {
+    //             continue;
+    //         }
+    //         const pinnedTabs = await chrome.tabs.query({
+    //             pinned: true,
+    //             windowId: w.id
+    //         })
+    //         if(pinnedTabs.length === 0) {
+    //             await chrome.windows.remove(w.id)
+    //         }
+    //     }
+    // }
+
     /**
      * Migrate from vrome and mouseless
-     * // TODO(hbt) ENHANCE refactor to remove underscore dependency
+     * // TODO(hbt) Refactor (low): refactor to remove underscore dependency
      *
      * refactor myCloseTabXXX implementation -- ref https://github.com/hbt/mouseless/commit/97533a4787a7b50e233fe6879d0c8c5707fd71d6
      * @param _message
@@ -1032,6 +1055,7 @@ class CustomBackground {
             delete msg.count;
         }
         if (cond === "otherWindows") {
+            console.log(cond);
             msg.otherWindows = true;
         }
 
@@ -1156,6 +1180,35 @@ class CustomBackground {
             }
         });
     }
+
+    // Note(hbt) remove highlight is a pain in the ass. Use an internal state; if needed save it in local storage
+    async tabToggleHighlight(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+
+        if (State.tabsMarked.has(ctab.id)) {
+            State.tabsMarked.delete(ctab.id);
+        } else {
+            State.tabsMarked.set(ctab.id, ctab.windowId);
+        }
+
+        this.sendResponse(_message, _sendResponse, {
+            state: State.tabsMarked.has(ctab.id),
+            count: State.tabsMarked.size
+        });
+    }
+
+    async tabMoveHighlighted(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        let tabIds = Array.from(State.tabsMarked.keys());
+        if (tabIds.length > 0) chrome.tabs.move(tabIds, { windowId: ctab.windowId, index: ctab.index + 1 });
+    }
+
+    async tabHighlightClearAll(_message, _sender, _sendResponse) {
+        State.tabsMarked = new Map();
+        this.sendResponse(_message, _sendResponse, {
+            count: State.tabsMarked.size
+        });
+    }
 }
 
 {
@@ -1171,3 +1224,5 @@ chrome.commands.onCommand.addListener(function(command) {
             break;
     }
 });
+
+(async () => {})();

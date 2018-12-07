@@ -28,7 +28,7 @@ var CustomCommands = (function() {
                 action: "copyAllTabsURLsInCurrentWindow"
             },
             function(res) {
-                Front.showBanner(`Copied ${res.count} URLs<br/> ${res.data}`);
+                Front.showBanner(`Copied ${res.count} URLs ${res.data}`);
             }
         );
     };
@@ -133,7 +133,7 @@ var CustomCommands = (function() {
 
     // tcg
     self.tabCloseOthersInAllWindows = function() {
-        self.tabCloseOthersInAllWindows();
+        self.tabCloseOthersInWindow();
         self.windowCloseOtherWindows();
     };
 
@@ -170,6 +170,7 @@ var CustomCommands = (function() {
         );
     };
 
+    // TODO(hbt) ENHANCE add option for direction and add support for repeats for all tabs commands e.g map("tc", tabClose) then e/q is passed as option, repeats are passed to indicate nb times
     self.tabGoto = function() {
         // ignore other repeats and pass the value instead
         if (RUNTIME.repeats !== parseInt(Normal.repeats)) {
@@ -183,6 +184,39 @@ var CustomCommands = (function() {
                 }
             },
             function(res) {}
+        );
+    };
+
+    self.tabToggleHighlight = function() {
+        runtime.command(
+            {
+                action: "tabToggleHighlight"
+            },
+            function(res) {
+                let msg = res.state ? "*Highlighted*" : "Removed! Highlight";
+                msg = `${msg} - ${res.count} Highlighted Tabs`;
+                Front.showBanner(msg);
+            }
+        );
+    };
+
+    self.tabMoveHighlighted = function() {
+        runtime.command(
+            {
+                action: "tabMoveHighlighted"
+            },
+            function(res) {}
+        );
+    };
+
+    self.tabHighlightClearAll = function() {
+        runtime.command(
+            {
+                action: "tabHighlightClearAll"
+            },
+            function(res) {
+                Front.showBanner(`${res.count} Highlighted Tabs`);
+            }
         );
     };
 
