@@ -52,6 +52,8 @@ var InsertUtils = (function() {
 var CustomCommands = (function() {
     let self = {};
 
+    runtime.conf.disabledDomainKeys = [];
+
     self.testMyPort = async () => {
         return await aruntime({ action: "testMyPort" });
     };
@@ -106,6 +108,7 @@ var CustomCommands = (function() {
             PassThrough.enter();
             PassThrough.addEventListener("keydown", function(event) {
                 event.sk_suppressed = true;
+                event.ignore_stop_propgation_hack = true;
                 PassThrough.exit();
             });
         }
@@ -156,19 +159,33 @@ var CustomCommands = (function() {
         }
     };
 
+    self.debug = function() {};
+
     self.handleKeyPropagation = function(mode, event) {
+        // Note(hbt) experimental to prevent lightboxes in JS and sites with existing shortcuts from being triggered
         let ret = event;
         // console.log(mode.name, event.key, event.sk_stopPropagation);
         // console.log(event);
+        // ret.sk_stopPropagation = true;
         if (mode.name === "Normal" && event.key === "Escape") {
             if (event.altKey || event.ctrlKey) {
             } else {
                 ret.sk_stopPropagation = true;
             }
-        } else if (mode.name === "Normal" && event instanceof KeyboardEvent && event.key === undefined) {
+        }
+
+        // hack:  Some events still being passed to the page when unmapped keys are triggered e.g map s to scroll press s on github; it goes to search
+        // Note(hbt) it works but there is no focus. i.e will trigger site action but focus stays (for the first time only)
+        let settings = runtime.conf;
+        if (
+            settings.disabledDomainKeys &&
+            settings.disabledDomainKeys.length > 0 &&
+            mode.name === "Normal" &&
+            settings.disabledDomainKeys.includes(event.key) &&
+            !event.ignore_stop_propgation_hack
+        ) {
             ret.sk_stopPropagation = true;
         }
-        // console.log(ret)
 
         return ret;
     };
@@ -328,3 +345,5 @@ var CustomCommands = (function() {
 
     return self;
 })();
+
+// setTimeout(CustomCommands.debug, 2000)
