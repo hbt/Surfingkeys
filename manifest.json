@@ -113,7 +113,7 @@
         "newtab": "pages/newtab.html"
     },
     "content_security_policy": "script-src 'self' https://www.google-analytics.com; object-src 'self'",
-    "incognito": "split",
+    "incognito": "spanning",
     "options_page": "pages/options.html",
     "sandbox": {
         "pages": [
