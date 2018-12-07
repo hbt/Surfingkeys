@@ -161,6 +161,10 @@ var CustomCommands = (function() {
 
     self.debug = function() {};
 
+    self.exampleWithRepeatAndDirection = function(e) {
+        console.log(e, Normal.repeats);
+    };
+
     self.handleKeyPropagation = function(mode, event) {
         // Note(hbt) experimental to prevent lightboxes in JS and sites with existing shortcuts from being triggered
         let ret = event;
