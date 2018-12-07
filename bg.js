@@ -991,7 +991,6 @@ class CustomBackground {
     static async handleCtrlWFeature() {
         const w = await chrome.windows.getCurrent();
         const tab = await chrome.tabs.getSelected(w.id);
-        console.log(tab);
 
         chrome.tabs.sendMessage(tab.id, {
             action: "handleCtrlWFeature"
@@ -1055,7 +1054,6 @@ class CustomBackground {
             delete msg.count;
         }
         if (cond === "otherWindows") {
-            console.log(cond);
             msg.otherWindows = true;
         }
 
