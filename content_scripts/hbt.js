@@ -158,8 +158,8 @@ var CustomCommands = (function() {
 
     self.handleKeyPropagation = function(mode, event) {
         let ret = event;
-        console.log(mode.name, event.key, event.sk_stopPropagation);
-        console.log(event);
+        // console.log(mode.name, event.key, event.sk_stopPropagation);
+        // console.log(event);
         if (mode.name === "Normal" && event.key === "Escape") {
             if (event.altKey || event.ctrlKey) {
             } else {
@@ -168,6 +168,7 @@ var CustomCommands = (function() {
         } else if (mode.name === "Normal" && event instanceof KeyboardEvent && event.key === undefined) {
             ret.sk_stopPropagation = true;
         }
+        // console.log(ret)
 
         return ret;
     };
