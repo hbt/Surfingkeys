@@ -1,3 +1,54 @@
+var DOMUtils = {
+    isEditable: function(element) {
+        if (!element) {
+            return false;
+        }
+        if (element.localName === "textarea" || element.localName === "select" || element.hasAttribute("contenteditable")) return true;
+        if (element.localName !== "input") return false;
+        var type = element.getAttribute("type");
+        switch (type) {
+            case "button":
+            case "checkbox":
+            case "color":
+            case "file":
+            case "hidden":
+            case "image":
+            case "radio":
+            case "reset":
+            case "submit":
+            case "week":
+                return false;
+        }
+        return true;
+    }
+};
+
+var InsertUtils = (function() {
+    var self = {};
+    self.selection = document.getSelection();
+    function modify() {
+        if (arguments.length === 3) {
+            self.selection.modify.apply(self.selection, arguments);
+            return;
+        }
+        self.selection.modify.bind(self.selection, self.selection.type === "Range" ? "extend" : "move").apply(null, arguments);
+    }
+
+    function deleteSelection() {
+        if (self.selection.type === "Range" && self.selection.toString().length !== 0) {
+            document.execCommand("delete", false, 0);
+            return true;
+        }
+        return false;
+    }
+    self.deleteWord = function() {
+        self.selection = document.getSelection();
+        modify("extend", "left", "word");
+        deleteSelection();
+    };
+    return self;
+})();
+
 var CustomCommands = (function() {
     let self = {};
 
@@ -85,10 +136,24 @@ var CustomCommands = (function() {
     };
 
     self.handleCtrlWFeature = function(msg, sender, cb) {
-        // TODO(hbt) INVESTIGATE view #117  https://github.com/hbt/mouseless/commit/68ec42755f7619ca47b4f5253f5197cf557e0137
-        // Note(hbt) issue is with extension frontend.html and the page. Message gets passed to both
-        // for now, prevent C-w from closing the tab during editing since I tend to use it as a reflex when editing
-        // return !domain || domain.test(document.location.href) || domain.test(window.origin);
+        if (!document.location.href.endsWith("pages/frontend.html") && !document.location.href.startsWith("chrome-extension://")) {
+            let el = document.activeElement;
+            if (DOMUtils.isEditable(el)) {
+                InsertUtils.deleteWord();
+            } else {
+                if (document.activeElement && document.activeElement.shadowRoot !== null) {
+                    // TODO(hbt) ENHANCE add shortcut in AceEditor
+                    // InsertUtils.deleteWord()
+                } else {
+                    runtime.command(
+                        {
+                            action: "tabClose"
+                        },
+                        function(res) {}
+                    );
+                }
+            }
+        }
     };
 
     chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
