@@ -1268,6 +1268,14 @@ class CustomBackground {
             });
         }
     }
+
+    static async tabSendMessageOnWhenDoneLoading(changeInfo, tab) {
+        if (changeInfo.status === "complete") {
+            chrome.tabs.sendMessage(tab.id, {
+                action: "tabDoneLoading"
+            });
+        }
+    }
 }
 
 {
@@ -1286,6 +1294,7 @@ chrome.commands.onCommand.addListener(function(command) {
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     CustomBackground.pageStylesheetLoadByDomain(changeInfo, tab);
+    CustomBackground.tabSendMessageOnWhenDoneLoading(changeInfo, tab);
 });
 
 (async () => {})();

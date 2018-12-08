@@ -159,7 +159,21 @@ var CustomCommands = (function() {
         }
     };
 
-    self.debug = function() {};
+    self.debug = function(msg) {};
+
+    /**
+     * HACK for sites like youtube where the window object is the same despite switching URLs.
+     * that means surfingkeys:defaultSettingsLoaded is executed once and custom scripts only once (regardless of the number of URLs we browse)
+     *
+     * This is also useful for Apps
+     * Note: check popstate event on widnow to capture  history/hash changes
+     * @param msg
+     */
+    self.tabDoneLoading = function(msg) {
+        if (window.location.href === window.top.location.href) {
+            document.dispatchEvent(new CustomEvent("surfingkeys:hbt:tabcomplete"));
+        }
+    };
 
     self.exampleWithRepeatAndDirection = function(e) {
         console.log(e, Normal.repeats);
