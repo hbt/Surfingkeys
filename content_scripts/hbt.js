@@ -170,8 +170,8 @@ var CustomCommands = (function() {
      * @param msg
      */
     self.tabDoneLoading = function(msg) {
-        if (window.location.href === window.top.location.href) {
-            document.dispatchEvent(new CustomEvent("surfingkeys:hbt:tabcomplete"));
+        if (window === top) {
+            window.document.dispatchEvent(new CustomEvent("surfingkeys:hbt:tabcomplete"));
         }
     };
 
