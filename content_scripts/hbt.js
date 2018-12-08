@@ -375,6 +375,50 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
+
+    self.addVIMark = function(mark, url) {
+        if (/^[a-z]$/.test(mark)) {
+            // local mark
+            var localMarks = JSON.parse(localStorage["sklocalMarks"] || "{}");
+            let href = CustomCommands.getHostname();
+            localMarks[href] = localMarks[href] || {};
+
+            localMarks[href][mark] = {
+                scrollLeft: document.scrollingElement.scrollLeft,
+                scrollTop: document.scrollingElement.scrollTop
+            };
+            localStorage["sklocalMarks"] = JSON.stringify(localMarks);
+        } else {
+            Normal.addVIMark(mark, url);
+        }
+    };
+
+    self.jumpVIMark = function(mark, newTab) {
+        var localMarks = JSON.parse(localStorage["sklocalMarks"] || "{}");
+
+        let href = CustomCommands.getHostname();
+        if (localMarks.hasOwnProperty(href) && localMarks[href].hasOwnProperty(mark)) {
+            var markInfo = localMarks[href][mark];
+            document.scrollingElement.scrollLeft = markInfo.scrollLeft;
+            document.scrollingElement.scrollTop = markInfo.scrollTop;
+        } else {
+            Normal.jumpVIMark(mark, newTab);
+        }
+    };
+
+    self.getHostname = function(url) {
+        let href = url || window.top.location.href;
+        var res = window.location.host || "file";
+
+        if (href) {
+            var a = document.createElement("a");
+            a.href = href;
+            res = a.host;
+        }
+
+        return res;
+    };
+
     return self;
 })();
 
