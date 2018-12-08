@@ -236,7 +236,11 @@ var CustomCommands = (function() {
 
     chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
         if (msg.action && typeof self[msg.action] === "function") {
-            self[msg.action](msg, sender, cb);
+            try {
+                self[msg.action](msg, sender, cb);
+            } catch (e) {
+                console.error(e);
+            }
         }
     });
 
