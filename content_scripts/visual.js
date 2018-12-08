@@ -573,38 +573,20 @@ var Visual = (function() {
             default:
                 if (ex === "ym") {
                     var textToYank = [];
-                    Hints.create(runtime.conf.textAnchorPat, function (element) {
-                        textToYank.push(element[2].trim());
+                    Hints.create(/./, function(element) {
+                        textToYank.push(element[0].data.trim());
                         Clipboard.write(textToYank.join('\n'));
-                    }, { multipleHits: true });
+                    }, {multipleHits: true});
                 } else {
-                    Hints.create(runtime.conf.textAnchorPat, function (element) {
+                    Hints.create(/./, function(element) {
                         if (ex === "y") {
-                            Clipboard.write(element[1] === 0 ? element[0].data.trim() : element[2].trim());
-                        } else if (ex === "q") {
-                            var word = element[2].trim().replace(/[^A-z].*$/, "");
-                            if (Front.isProvider()) {
-                                Front.contentCommand({
-                                    action: 'updateInlineQuery',
-                                    word: word
-                                });
-                            } else {
-                                var b = getTextNodePos(element[0], element[1], element[2].length);
-                                Front.performInlineQuery(word, function(queryResult) {
-                                    Front.showBubble({
-                                        top: b.top,
-                                        left: b.left,
-                                        height: b.height,
-                                        width: b.width
-                                    }, queryResult, false);
-                                });
-                            }
+                            Clipboard.write(element[0].data.trim());
                         } else {
-                            setTimeout(function () {
+                            setTimeout(function() {
                                 selection.setPosition(element[0], element[1]);
                                 self.enter();
                                 if (ex === "z") {
-                                    selection.extend(element[0], element[1] + element[2].length);
+                                    selection.extend(element[0], element[0].data.length);
                                     _incState();
                                 }
                                 self.showCursor();
@@ -619,7 +601,7 @@ var Visual = (function() {
     self.star = function() {
         if (selection.focusNode && selection.focusNode.nodeValue) {
             var query = self.getWordUnderCursor();
-            if (query.length && query !== ".") {
+            if (query.length) {
                 self.hideCursor();
                 var pos = [selection.focusNode, selection.focusOffset];
                 runtime.updateHistory('find', query);
@@ -717,17 +699,12 @@ var Visual = (function() {
 
     // this is only for finding in frontend.html, like in usage popover.
     self.visualUpdate = function(query) {
-        if (query.length && query !== ".") {
-            self.visualClear();
-            highlight(new RegExp(query, "g" + (runtime.getCaseSensitive(query) ? "" : "i")));
-        }
+        self.visualClear();
+        highlight(new RegExp(query, "g" + (runtime.getCaseSensitive(query) ? "" : "i")));
     };
 
     var registeredScrollNodes = [];
     self.visualEnter = function (query) {
-        if (query.length === 0 || query === ".") {
-            return;
-        }
         self.visualClear();
         highlight(new RegExp(query, "g" + (runtime.getCaseSensitive(query) ? "" : "i")));
         if (matches.length) {

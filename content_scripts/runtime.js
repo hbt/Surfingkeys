@@ -11,7 +11,6 @@ var runtime = window.runtime || (function() {
             cursorAtEndOfInput: true,
             defaultSearchEngine: "g",
             defaultVoice: "Daniel",
-            editableBodyCare: true,
             enableAutoFocus: true,
             experiment: false,
             focusFirstCandidate: false,
@@ -39,7 +38,6 @@ var runtime = window.runtime || (function() {
             startToShowEmoji: 2,
             stealFocusOnLoad: true,
             tabsThreshold: 9,
-            textAnchorPat: /(^[\n\r\s]*\S{3,}|\b\S{5,})/g,
             scrollFriction: 0,
             useLocalMarkdownAPI: true,
         },
@@ -114,9 +112,9 @@ var runtime = window.runtime || (function() {
                     action: 'updateSettings',
                     settings: toUpdate
                 });
-            } else if (cmd.trim().length && cmd !== ".") {
+            } else if (cmd.length) {
                 list = list.filter(function(c) {
-                    return c.trim().length && c !== cmd && c !== ".";
+                    return c.length && c !== cmd;
                 });
                 list.unshift(cmd);
                 if (list.length > 50) {

@@ -42,9 +42,9 @@ var Mode = (function() {
             // }).join('->');
             // console.log('enter {0}, {1}'.format(this.name, modes));
 
-            this.onEnter && this.onEnter();
-
             self.showStatus();
+
+            this.onEnter && this.onEnter();
             return pos;
         };
 
@@ -319,19 +319,9 @@ var Normal = (function() {
                 realTarget.blur();
                 Insert.exit();
             } else {
-                if (runtime.conf.editableBodyCare && realTarget === document.body && event.key !== "i") {
-                    self.statusLine = "Press i to enter Insert mode";
-                    runtime.conf.showModeStatus = true;
-                    if (event.sk_keyName.length) {
-                        Mode.handleMapKey.call(self, event);
-                    }
-                } else {
-                    Normal.passFocus(true);
-                    event.sk_stopPropagation = (runtime.conf.editableBodyCare
-                        && realTarget === document.body && event.key === "i");
-                    // keep cursor where it is
-                    Insert.enter(realTarget, true);
-                }
+                Normal.passFocus(true);
+                // keep cursor where it is
+                Insert.enter(realTarget, true);
             }
         } else if (Mode.isSpecialKeyOf("<Alt-s>", event.sk_keyName)) {
             self.toggleBlacklist();
@@ -995,14 +985,6 @@ var Normal = (function() {
         repeatIgnore: true,
         code: function() {
             Visual.toggle();
-        }
-    });
-    self.mappings.add("qv", {
-        annotation: "Query word in visual mode",
-        feature_group: 7,
-        repeatIgnore: true,
-        code: function() {
-            Visual.toggle("q");
         }
     });
     self.mappings.add("/", {
