@@ -393,21 +393,6 @@ var Hints = (function() {
         return elements.length;
     }
 
-    function getTextNodePos(node, offset) {
-        var selection = document.getSelection();
-        selection.setBaseAndExtent(node, offset, node, node.data.length);
-        var br = selection.getRangeAt(0).getBoundingClientRect();
-        var pos = {
-            left: -1,
-            top: -1
-        };
-        if (br.height > 0 && br.width > 0) {
-            pos.left = br.left;
-            pos.top = br.top;
-        }
-        return pos;
-    }
-
     function createHintsForTextNode(rxp, attrs) {
         for (var attr in attrs) {
             behaviours[attr] = attrs[attr];
@@ -423,14 +408,15 @@ var Hints = (function() {
                 }
             }
         });
-        elements = filterOverlapElements(elements);
-        elements = elements.map(function(e) {
+        elements = elements.flatMap(function (e) {
             var aa = e.childNodes;
+            var bb = [];
             for (var i = 0, len = aa.length; i < len; i++) {
-                if (aa[i].nodeType == Node.TEXT_NODE && aa[i].data.length > 0) {
-                    return aa[i];
+                if (aa[i].nodeType == Node.TEXT_NODE && aa[i].data.trim().length > 1) {
+                    bb.push(aa[i]);
                 }
             }
+            return bb;
         });
 
         var positions;
@@ -456,6 +442,9 @@ var Hints = (function() {
             } else {
                 var z = getZIndex(e[0].parentNode);
                 var link = createElement('<div/>');
+                if (e[1] === 0) {
+                    link.className = "begin";
+                }
                 link.style.position = "fixed";
                 link.style.top = pos.top + "px";
                 link.style.left = pos.left + "px";
@@ -539,6 +528,7 @@ var Hints = (function() {
             _lastCreateAttrs.activeInput = 0;
             var ai = document.querySelector('#sk_hints[mode=input]>div');
             ai.classList.add("activeInput");
+            Normal.passFocus(true);
             ai.link.focus();
         } else if (elements.length === 1) {
             Normal.passFocus(true);
