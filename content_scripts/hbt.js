@@ -348,6 +348,15 @@ var CustomCommands = (function() {
         );
     };
 
+    self.pageStylesheetToggleByDomain = function(fileURL) {
+        runtime.command(
+            {
+                action: "pageStylesheetToggleByDomain",
+                url: fileURL
+            },
+            function(res) {}
+        );
+    };
     return self;
 })();
 

@@ -30,6 +30,17 @@
 
 {
     var Utils = {
+        getHostname: function(href) {
+            var res = window.location.host || "file";
+
+            if (href) {
+                var a = document.createElement("a");
+                a.href = href;
+                res = a.host;
+            }
+
+            return res;
+        },
         defaultSearchEngine: "https://www.google.com/search?q=",
         format: function(string, value) {
             var index = string.lastIndexOf("%s");
@@ -1207,6 +1218,56 @@ class CustomBackground {
             count: State.tabsMarked.size
         });
     }
+
+    async pageStylesheetToggleByDomain(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        var styleurl = _message.url;
+        var hostname = Utils.getHostname(ctab.url);
+        var tab = _sender.tab;
+
+        chrome.storage.local.get("domainStylesheets", data => {
+            let domainStylesheets = data.domainStylesheets || {};
+            let settings = { domainStylesheets };
+            settings.domainStylesheets[hostname] = settings.domainStylesheets[hostname] || {};
+
+            // toggle
+            if (settings.domainStylesheets[hostname] === styleurl) {
+                settings.domainStylesheets[hostname] = "";
+                delete settings.domainStylesheets[hostname];
+            } else {
+                settings.domainStylesheets[hostname] = styleurl;
+            }
+
+            chrome.storage.local.set({ domainStylesheets: settings.domainStylesheets }, function(data) {
+                chrome.tabs.reload(tab.id);
+            });
+        });
+    }
+
+    static async pageStylesheetLoadByDomain(changeInfo, tab) {
+        if (changeInfo.status === "loading") {
+            var hostname = Utils.getHostname(tab.url);
+
+            chrome.storage.local.get("domainStylesheets", data => {
+                let domainStylesheets = data.domainStylesheets || {};
+                if (domainStylesheets.hasOwnProperty(hostname)) {
+                    $.ajax({
+                        url: domainStylesheets[hostname]
+                    }).done(function(data) {
+                        chrome.tabs.insertCSS(
+                            tab.id,
+                            {
+                                code: data,
+                                runAt: "document_start",
+                                allFrames: true
+                            },
+                            function(res) {}
+                        );
+                    });
+                }
+            });
+        }
+    }
 }
 
 {
@@ -1221,6 +1282,10 @@ chrome.commands.onCommand.addListener(function(command) {
             CustomBackground.handleCtrlWFeature();
             break;
     }
+});
+
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+    CustomBackground.pageStylesheetLoadByDomain(changeInfo, tab);
 });
 
 (async () => {})();
