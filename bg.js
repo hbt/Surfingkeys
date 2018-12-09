@@ -957,8 +957,9 @@ class CustomBackground {
         this.sendResponse(_message, _sendResponse, { test: "works" });
     }
 
-    copyTopURL(_message, _sender, _sendResponse) {
-        let url = _sender.tab ? _sender.tab.url : "";
+    async copyTopURL(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        let url = ctab.url;
         Clipboard.copy(url);
         this.sendResponse(_message, _sendResponse, { url: url });
     }
