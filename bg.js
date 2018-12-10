@@ -1026,25 +1026,6 @@ class CustomBackground {
         return ret;
     }
 
-    // // TODO(hbt) Refactor (low): fix tabClose and integrate this function there
-    // async windowCloseOtherWindows(_message, _sender, _sendResponse) {
-    //     const ctab = await chrome.tabs.get(_sender.tab.id)
-    //     var cwinId = ctab.windowId
-    //     var ws = await chrome.windows.getAll()
-    //     for(let w of ws) {
-    //         if(w.id === cwinId) {
-    //             continue;
-    //         }
-    //         const pinnedTabs = await chrome.tabs.query({
-    //             pinned: true,
-    //             windowId: w.id
-    //         })
-    //         if(pinnedTabs.length === 0) {
-    //             await chrome.windows.remove(w.id)
-    //         }
-    //     }
-    // }
-
     /**
      * Migrate from vrome and mouseless
      * // TODO(hbt) Refactor (low): refactor to remove underscore dependency
