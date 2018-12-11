@@ -1010,7 +1010,8 @@ class CustomBackground {
     }
 
     async tabDetach(_message, _sender, _sendResponse) {
-        chrome.windows.create({ tabId: _sender.tab.id, state: "maximized" });
+        const w = await chrome.windows.getCurrent();
+        chrome.windows.create({ tabId: _sender.tab.id, state: "maximized", incognito: w.incognito });
     }
 
     convertMessageArgsToMouselessArg(_message, _sender, _sendResponse) {
