@@ -900,7 +900,14 @@
 var State = {
     tabsMarked: new Map(),
     tabsSettings: new Map()
-    // globalSettings: {}
+    // globalSettings: {
+    //     focusAfterClosed: "right",
+    //     repeatThreshold: 99,
+    //     tabsMRUOrder: true,
+    //     newTabPosition: 'default',
+    //     showTabIndices: false,
+    //     interceptedErrors: []
+    // }
 };
 
 class CustomBackground {
@@ -991,8 +998,57 @@ class CustomBackground {
     }
 
     async updateSettings(message, sender, sendResponse) {
+        this.updateMySettings(message, sender, sendResponse);
+    }
+
+    async updateMySettings(message, sender, sendResponse) {
         State.tabsSettings.set(sender.tab.id, message.settings);
     }
+
+    async insertOpenExternalEditor(message, sender, sendResponse) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://127.0.0.1:8001");
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                this.sendResponse(message, sendResponse, {
+                    type: "editWithVIMCallback",
+                    text: xhr.responseText,
+                    elementId: message.elementId
+                });
+            }
+        };
+        xhr.send(
+            JSON.stringify({
+                data: "" + (message.text || ""),
+                line: message.line || 0,
+                column: message.column || 0
+            })
+        );
+    }
+
+    /**
+     * WIP
+     *
+     * @param message
+     * @param sender
+     * @param sendResponse
+     * @returns {Promise<void>}
+     */
+    async tabToggleSwitchTabNewPosition(message, sender, sendResponse) {
+        // Note(hbt) skipping idea for now. low ROI
+
+        // Note(hbt) only works when using mouse.
+        // TODO(hbt) ENHANCE handle openLink when using hint mode
+
+        let settings = State.tabsSettings.get(sender.tab.id);
+        if (settings.newTabPosition === "right") {
+            settings.newTabPosition = "default";
+        } else {
+            settings.newTabPosition = "right";
+        }
+        State.tabsSettings.set(sender.tab.id, settings);
+    }
+
     testMyPort(_message, _sender, _sendResponse) {
         this.sendResponse(_message, _sendResponse, { test: "works" });
     }

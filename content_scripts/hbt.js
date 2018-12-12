@@ -1,4 +1,15 @@
 var DOMUtils = {
+    isSubmittable: function(element) {
+        if (!element) {
+            return false;
+        }
+        if (element.localName !== "input") return false;
+        if (element.hasAttribute("submit")) return true;
+        while ((element = element.parentElement)) {
+            if (element.localName === "form") return true;
+        }
+        return false;
+    },
     isEditable: function(element) {
         if (!element) {
             return false;
@@ -417,6 +428,58 @@ var CustomCommands = (function() {
         }
 
         return res;
+    };
+
+    /**
+     *  WIP
+     */
+    self.tabToggleSwitchTabNewPosition = function() {
+        // Note(hbt) skipping idea for now. low ROI
+
+        //     runtime.command(
+        //     {
+        //         action: "tabToggleSwitchTabNewPosition",
+        //     },
+        //     function(res) {}
+        // );
+
+        let settings = {
+            snippets: 'settings.newTabPosition = "default"'
+        };
+        applySettings(settings);
+    };
+
+    /**
+     * opens in external editor using mouseless python server
+     */
+    self.insertOpenExternalEditor = function() {
+        var element = document.activeElement;
+        var value = element.value || element.innerHTML;
+        var text = value.substr(0, element.selectionStart);
+        var line = 1 + text.replace(/[^\n]/g, "").length;
+        var column = 1 + text.replace(/[^]*\n/, "").length;
+        var __ = window._;
+        var mid = "mouseless_sfk_" + generateQuickGuid();
+        element.classList.add(mid);
+
+        runtime.command(
+            {
+                action: "insertOpenExternalEditor",
+                text: value,
+                line: line,
+                column: column,
+                elementId: mid
+            },
+            function(res) {
+                var lastInputElement = element;
+                lastInputElement[lastInputElement.value !== void 0 ? "value" : "innerHTML"] = res.text.replace(/\n$/, ""); // remove trailing line left by vim
+                // element.value = res.text;
+
+                if (!DOMUtils.isSubmittable(element)) {
+                    element.blur();
+                }
+            }
+        );
     };
 
     return self;
