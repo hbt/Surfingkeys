@@ -1082,6 +1082,7 @@ class CustomBackground {
     }
 
     async pasteFromClipboardNewTab(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
         var paste = Clipboard.paste();
         if (!paste) {
             return;
@@ -1091,7 +1092,8 @@ class CustomBackground {
         });
         for (var j = 0, l = paste.length; j < l; ++j) {
             await chrome.tabs.create({
-                url: Utils.toSearchURL(paste[j].trim(), Utils.defaultSearchEngine)
+                url: Utils.toSearchURL(paste[j].trim(), Utils.defaultSearchEngine),
+                index: ctab.index + 1
             });
         }
     }
