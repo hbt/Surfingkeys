@@ -159,12 +159,16 @@ var CustomCommands = (function() {
                     // TODO(hbt) ENHANCE add shortcut in AceEditor
                     // InsertUtils.deleteWord()
                 } else {
-                    runtime.command(
-                        {
-                            action: "tabClose"
-                        },
-                        function(res) {}
-                    );
+                    // TODO(hbt) FIXME not working on google
+
+                    if (window.location.href.indexOf("google") === -1) {
+                        runtime.command(
+                            {
+                                action: "tabClose"
+                            },
+                            function(res) {}
+                        );
+                    }
                 }
             }
         }
