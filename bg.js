@@ -1355,6 +1355,48 @@ class CustomBackground {
             });
         }
     }
+
+    async downloadShowLastFile(_message, _sender, _sendResponse) {
+        // TODO(hbt) Refactor (low): merge with downloadOpenLastFile -- use a msg
+        chrome.downloads.search(
+            {
+                exists: true,
+                state: "complete"
+            },
+            function(dlds) {
+                if (!dlds) {
+                    return;
+                }
+                // sort dlds by end time
+                let sortedDlds = window._.sortBy(dlds, v => {
+                    return v.endTime;
+                });
+                let last = sortedDlds.pop();
+                chrome.downloads.show(last.id);
+            }
+        );
+    }
+
+    async downloadOpenLastFile(_message, _sender, _sendResponse) {
+        // Note(hbt) partial implementation - view http://stackoverflow.com/questions/26775564/how-to-open-a-downloaded-file
+        chrome.downloads.search(
+            {
+                exists: true,
+                state: "complete"
+            },
+            function(dlds) {
+                if (!dlds) {
+                    return;
+                }
+                // sort dlds by end time
+                let sortedDlds = window._.sortBy(dlds, v => {
+                    return v.endTime;
+                });
+                let last = sortedDlds.pop();
+                chrome.downloads.open(last.id);
+            }
+        );
+    }
 }
 
 {

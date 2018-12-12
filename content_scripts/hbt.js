@@ -549,6 +549,24 @@ var CustomCommands = (function() {
         self.urlReplaceNumber2(parseInt(inc), repeats);
     };
 
+    self.downloadShowLastFile = function() {
+        runtime.command(
+            {
+                action: "downloadShowLastFile"
+            },
+            function(res) {}
+        );
+    };
+
+    self.downloadOpenLastFile = function() {
+        runtime.command(
+            {
+                action: "downloadOpenLastFile"
+            },
+            function(res) {}
+        );
+    };
+
     return self;
 })();
 
