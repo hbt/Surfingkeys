@@ -486,8 +486,28 @@ var CustomCommands = (function() {
         );
     };
 
-    self.urlIncrementLastPath = function(inc) {
-        self.urlReplaceNumber(parseInt(inc));
+    self.urlReplaceNumber2 = function(inc, repeats) {
+        let matches = document.location.href.match(/\d+/g);
+        if (matches.length < 0) {
+            return;
+        }
+
+        let url = document.location.href;
+        let posi = url.length;
+        matches = matches.reverse();
+        for (var i = 0; i < matches.length; i++) {
+            posi = url.lastIndexOf(matches[i], posi);
+            if (i === repeats - 1) {
+                break;
+            }
+        }
+
+        let nurl = url.substr(0, posi);
+        let ninc = parseInt(url.substr(posi, matches[i].length)) + inc;
+        nurl += ninc;
+        nurl += url.substr(posi + matches[i].length);
+
+        window.location.href = nurl;
     };
 
     self.urlReplaceNumber = function(inc) {
@@ -510,7 +530,23 @@ var CustomCommands = (function() {
     };
 
     self.urlDecrementLastPath = function(inc) {
-        self.urlReplaceNumber(parseInt(inc) * -1);
+        // self.urlReplaceNumber(parseInt(inc) * -1);
+
+        if (isNaN(inc)) {
+            inc = 1;
+        }
+        let repeats = Normal.repeats === "" ? 1 : Normal.repeats;
+        self.urlReplaceNumber2(parseInt(inc) * -1, repeats);
+    };
+
+    self.urlIncrementLastPath = function(inc) {
+        // self.urlReplaceNumber(parseInt(inc))
+
+        if (isNaN(inc)) {
+            inc = 1;
+        }
+        let repeats = Normal.repeats === "" ? 1 : Normal.repeats;
+        self.urlReplaceNumber2(parseInt(inc), repeats);
     };
 
     return self;
