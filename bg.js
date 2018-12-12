@@ -898,11 +898,12 @@
 }
 
 var State = {
-    tabsMarked: new Map()
+    tabsMarked: new Map(),
+    tabsSettings: new Map()
+    // globalSettings: {}
 };
 
 class CustomBackground {
-    conf() {}
     init() {
         this.registerListeners();
     }
@@ -932,6 +933,42 @@ class CustomBackground {
                 );
             });
         });
+
+        chrome.commands.onCommand.addListener(function(command) {
+            switch (command) {
+                case "handlebothcwevents":
+                    CustomBackground.handleCtrlWFeature();
+                    break;
+            }
+        });
+
+        chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+            CustomBackground.pageStylesheetLoadByDomain(changeInfo, tab);
+            CustomBackground.tabSendMessageOnWhenDoneLoading(changeInfo, tab);
+        });
+
+        chrome.tabs.onCreated.addListener(CustomBackground.tabsOnCreatedHandler);
+    }
+
+    /**
+     * open on the right even when clicking with the mouse instead of using hints
+     *
+     * @param tab
+     * @returns {Promise<void>}
+     */
+    static async tabsOnCreatedHandler(tab) {
+        if (tab.openerTabId) {
+            const otab = await chrome.tabs.get(tab.openerTabId);
+            if (State.tabsSettings.has(otab.id)) {
+                if (State.tabsSettings.get(otab.id).newTabPosition === "right") {
+                    chrome.tabs.get(tab.openerTabId, ot => {
+                        chrome.tabs.move(tab.id, {
+                            index: ot.index + 1
+                        });
+                    });
+                }
+            }
+        }
     }
 
     sendResponse(message, sendResponse, result) {
@@ -953,6 +990,9 @@ class CustomBackground {
         }
     }
 
+    async updateSettings(message, sender, sendResponse) {
+        State.tabsSettings.set(sender.tab.id, message.settings);
+    }
     testMyPort(_message, _sender, _sendResponse) {
         this.sendResponse(_message, _sendResponse, { test: "works" });
     }
@@ -1266,18 +1306,5 @@ class CustomBackground {
     cc.init();
     // setTimeout(CustomBackground.handleCtrlWFeature, 3000)
 }
-
-chrome.commands.onCommand.addListener(function(command) {
-    switch (command) {
-        case "handlebothcwevents":
-            CustomBackground.handleCtrlWFeature();
-            break;
-    }
-});
-
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-    CustomBackground.pageStylesheetLoadByDomain(changeInfo, tab);
-    CustomBackground.tabSendMessageOnWhenDoneLoading(changeInfo, tab);
-});
 
 (async () => {})();
