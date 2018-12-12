@@ -486,6 +486,33 @@ var CustomCommands = (function() {
         );
     };
 
+    self.urlIncrementLastPath = function(inc) {
+        self.urlReplaceNumber(parseInt(inc));
+    };
+
+    self.urlReplaceNumber = function(inc) {
+        if (document.location.href.match(/(.*?)(\d+)(\D*)$/)) {
+            var pre = RegExp.$1,
+                number = RegExp.$2,
+                post = RegExp.$3;
+            var newNumber = parseInt(number, 10) + inc;
+            var newNumberStr = String(newNumber > 0 ? newNumber : 0);
+            if (number.match(/^0/)) {
+                // add 0009<C-a> should become 0010
+                while (newNumberStr.length < number.length) {
+                    newNumberStr = "0" + newNumberStr;
+                }
+            }
+
+            var url = pre + newNumberStr + post;
+            window.location.href = url;
+        }
+    };
+
+    self.urlDecrementLastPath = function(inc) {
+        self.urlReplaceNumber(parseInt(inc) * -1);
+    };
+
     return self;
 })();
 
