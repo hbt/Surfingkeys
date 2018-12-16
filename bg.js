@@ -954,7 +954,24 @@ class CustomBackground {
             CustomBackground.tabSendMessageOnWhenDoneLoading(changeInfo, tab);
         });
 
-        chrome.tabs.onCreated.addListener(CustomBackground.tabsOnCreatedHandler);
+        chrome.tabs.onCreated.addListener(function(tab) {
+            CustomBackground.tabsOnCreatedHandler(tab);
+            CustomBackground.tabsMuteByDomain(tab);
+        });
+    }
+
+    async tabUnmute(message, sender, sendResponse) {
+        const ctab = await chrome.tabs.get(sender.tab.id);
+        chrome.tabs.update(ctab.id, {
+            muted: false
+        });
+    }
+
+    static async tabsMuteByDomain(tab) {
+        // Note(hbt) for now mute all tabs and unmute in config file
+        chrome.tabs.update(tab.id, {
+            muted: true
+        });
     }
 
     /**
