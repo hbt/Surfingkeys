@@ -579,6 +579,30 @@ var CustomCommands = (function() {
         );
     };
 
+    self.bookmarkDumpFolder = function(folder) {
+        runtime.command(
+            {
+                action: "bookmarkDumpFolder",
+                folder: folder
+            },
+            function(res) {
+                Front.showBanner(res.msg, 3000);
+            }
+        );
+    };
+
+    self.bookmarkLoadFolder = function(folder) {
+        runtime.command(
+            {
+                action: "bookmarkLoadFolder",
+                folder: folder
+            },
+            function(res) {
+                Front.showBanner(res.msg, 3000);
+            }
+        );
+    };
+
     return self;
 })();
 
