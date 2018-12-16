@@ -486,6 +486,19 @@ var CustomCommands = (function() {
         );
     };
 
+    self.urlEditExternalEditor = function() {
+        runtime.command(
+            {
+                action: "urlEditExternalEditor"
+            },
+            function(res) {
+                if (res.text) {
+                    window.location.href = res.text;
+                }
+            }
+        );
+    };
+
     self.urlReplaceNumber2 = function(inc, repeats) {
         let matches = document.location.href.match(/\d+/g);
         if (matches.length < 0) {
