@@ -314,7 +314,7 @@ var Normal = (function() {
 
     self.addEventListener('keydown', function(event) {
         var realTarget = getRealEdit(event);
-        if (isEditable(realTarget)) {
+        if (isEditable(realTarget) && event.isTrusted) {
             if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
                 realTarget.blur();
                 Insert.exit();
@@ -997,8 +997,8 @@ var Normal = (function() {
             Visual.toggle();
         }
     });
-    self.mappings.add("qv", {
-        annotation: "Query word in visual mode",
+    self.mappings.add("cq", {
+        annotation: "Query word with Hints",
         feature_group: 7,
         repeatIgnore: true,
         code: function() {
