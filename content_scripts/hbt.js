@@ -567,6 +567,18 @@ var CustomCommands = (function() {
         );
     };
 
+    self.bookmarkToggle = function(folder) {
+        runtime.command(
+            {
+                action: "bookmarkToggle",
+                folder: folder
+            },
+            function(res) {
+                Front.showBanner(res.msg, 3000);
+            }
+        );
+    };
+
     return self;
 })();
 

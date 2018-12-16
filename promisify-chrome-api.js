@@ -126,7 +126,7 @@
         //     { n: "animationPolicy", props: knownA11ySetting }
         // ],
         // alarms: ["get", "getAll", "clear", "clearAll"],
-        // bookmarks: ["get", "getChildren", "getRecent", "getTree", "getSubTree", "search", "create", "move", "update", "remove", "removeTree"],
+        bookmarks: ["get", "getChildren", "getRecent", "getTree", "getSubTree", "search", "create", "move", "update", "remove", "removeTree"],
         // browser: ["openTab"],
         // browserAction: ["getTitle", "setIcon", "getPopup", "getBadgeText", "getBadgeBackgroundColor"],
         // browsingData: [
