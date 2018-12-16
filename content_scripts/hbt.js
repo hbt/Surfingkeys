@@ -60,6 +60,134 @@ var InsertUtils = (function() {
     return self;
 })();
 
+let _commandsIndexedByAnnotation = new Map();
+class MyCustomMapping {
+    static get acmds() {
+        return _commandsIndexedByAnnotation;
+    }
+
+    static set acmds(v) {
+        return (_commandsIndexedByAnnotation = v);
+    }
+
+    init() {
+        function mapCommandsByAnnotations(modes) {
+            function mapCommandsFromTrieToFlatArray(modes) {
+                {
+                    let ret = [];
+                    modes.forEach(mode => {
+                        function extractMappingRecursively(mapTrie) {
+                            console.assert(mapTrie instanceof Trie);
+                            Object.getOwnPropertyNames(mapTrie).forEach(pKey => {
+                                if (mapTrie[pKey] instanceof Trie) {
+                                    extractMappingRecursively(mapTrie[pKey]);
+                                } else if (pKey === "meta") {
+                                    let mapping = mapTrie;
+                                    mapping.mode = mode.name;
+                                    ret.push(mapping);
+                                }
+                            });
+                        }
+
+                        let mappings = mode.mappings;
+                        extractMappingRecursively(mappings);
+                    });
+                    return ret;
+                }
+            }
+
+            function indexByAnnotation(commands) {
+                function fixSearchAliasBug(key, v) {
+                    // removeSearchAlias(); is not properly implemented and lacks annotations
+                    let ret = key;
+                    if (v.meta.word.startsWith("so") || (v.meta.code && v.meta.code.toString().indexOf("ssw") !== -1)) {
+                        ret = `${v.mode} Search Selected ${v.meta.word}`;
+                    }
+                    return ret;
+                }
+
+                function fixMissingAnnotation(v) {
+                    let ret = v;
+                    if (!v.meta.hasOwnProperty("annotation")) {
+                        ret.meta.annotation = `${v.mode} Search Selected ${v.meta.word}`;
+                    }
+                    return ret;
+                }
+
+                {
+                    console.assert(commands.length > 0);
+                    let ret = new Map();
+                    commands.forEach(v => {
+                        v = fixMissingAnnotation(v);
+                        console.assert(v.meta.hasOwnProperty("annotation"), v);
+                        let key = v.meta.annotation;
+                        key = key.toLowerCase();
+                        key = fixSearchAliasBug(key, v);
+                        console.assert(key.length > 0, key);
+
+                        if (ret.has(key)) {
+                            key = v.mode + v.meta.annotation;
+
+                            console.assert(ret.has(key) === false, `Annotation duplicated ${key} for shortcut ${v.meta.word}`);
+                        }
+                        ret.set(key, v);
+                    });
+                    console.assert(commands.length == ret.size);
+                    console.assert(ret.has("duplicate current tab"));
+                    return ret;
+                }
+            }
+
+            {
+                let flatCommands = mapCommandsFromTrieToFlatArray(modes);
+                let ret = indexByAnnotation(flatCommands);
+                return ret;
+            }
+        }
+
+        {
+            // let modes = [Disabled, Normal, PassThrough, Insert, Hints, Find, AceEditor, Front, Visual, Omnibar, mappingsEditor, KeyPicker]
+            let modes = [Normal, Insert, Visual];
+            let commands = mapCommandsByAnnotations(modes);
+            MyCustomMapping.acmds = commands;
+        }
+    }
+}
+
+/**
+ * produces mapping in docs/commands-list.txt
+ */
+function printAllCommands() {
+    // for (var key of MyCustomMapping.acmds.keys()) {
+    //     console.log(`Mode: ${MyCustomMapping.acmds.get(key).mode}, Shortcut: ${MyCustomMapping.acmds.get(key).meta.word}, Annotation: ${key}`);
+    // }
+
+    for (var key of MyCustomMapping.acmds.keys()) {
+        console.log(`amap("${MyCustomMapping.acmds.get(key).meta.word}", "${key}");`);
+    }
+}
+
+/**
+ * map keys by annotation
+ *
+ * Example:
+ *
+ * unmapAllExcept([]);
+ * amap("Zr", "zoom reset");
+ *
+ * Rationale: allows better organization of config file
+ *
+ * @param keys
+ * @param annotation
+ */
+function amap(keys, annotation) {
+    let acmds = MyCustomMapping.acmds;
+    console.assert(acmds.has(annotation), `Annotation not found "${annotation}" for keys "${keys}"`);
+    let mapping = MyCustomMapping.acmds.get(annotation);
+
+    _mapkey(window[mapping.mode], keys, mapping.meta.annotation, mapping.meta.code, mapping.meta.options);
+}
+
 var CustomCommands = (function() {
     let self = {};
 
