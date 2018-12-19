@@ -53,4 +53,6 @@ g b -D dev
 * the config file is loaded every time -- even in JS apps if a tab update event is detected
 * Use console > preserve log when coding in config file as the log gets eaten by frontend.html
 * avoid changes to core extension files  to prevent code conflicts. If needed, Work around it (separate files/namespaces) + identify changes (hbtXXX) to ease conflict resolution + encapsulate (call a method, no inline code)
+* If annotation/help message changes (which is used by amap to map commands); look for console errors/failed-asserts e.g "Annotation not found"
+* check docs/commands-list.txt for list of cmds + annotations. produced by `printAllCommands`
 
