@@ -744,6 +744,10 @@ var CustomCommands = (function() {
         );
     };
 
+    self.tabUnique = async () => {
+        return await aruntime({ action: "tabUnique" });
+    };
+
     return self;
 })();
 

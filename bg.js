@@ -1124,6 +1124,32 @@ class CustomBackground {
         });
     }
 
+    async tabUnique(_message, _sender, _sendResponse) {
+        async function getAllTabsInCurrentWindow() {
+            const window = await chrome.windows.getCurrent();
+            const tabs = await chrome.tabs.query({ windowId: window.id });
+            return tabs;
+        }
+
+        async function removeDuplicateTabsByURL(tabs, uniqueTabs) {
+            let diffIds = _.difference(
+                tabs.map(t => {
+                    return t.id;
+                }),
+                uniqueTabs.map(t => {
+                    return t.id;
+                })
+            );
+            if (diffIds) await chrome.tabs.remove(diffIds);
+        }
+
+        const tabs = await getAllTabsInCurrentWindow();
+        const uniqueTabs = _.unique(tabs, t => {
+            return t.url;
+        });
+        await removeDuplicateTabsByURL(tabs, uniqueTabs);
+    }
+
     async tabDetach(_message, _sender, _sendResponse) {
         const w = await chrome.windows.getCurrent();
         chrome.windows.create({ tabId: _sender.tab.id, state: "maximized", incognito: w.incognito });
