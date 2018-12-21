@@ -1451,43 +1451,62 @@ class CustomBackground {
             return url;
         }
 
-        const ctab = await chrome.tabs.get(_sender.tab.id);
+        async function getBookmarkFolder() {
+            let collection = await chrome.bookmarks.search({ title: _message.folder });
+            let folder = collection[0];
+            return folder;
+        }
 
-        let collection = await chrome.bookmarks.search({ title: _message.folder });
-        let folder = collection[0];
-        const bchildren = await chrome.bookmarks.getChildren(folder.id);
+        async function getBookmarkChildren(bookmarkFolder) {
+            const bchildren = await chrome.bookmarks.getChildren(bookmarkFolder.id);
+            let children = _.map(bchildren, child => {
+                child.url = removeTrailingSlash(child.url);
+                return child;
+            });
+            children = _.indexBy(children, "url");
+            return children;
+        }
 
-        let tabUrl = ctab.url;
-        tabUrl = removeTrailingSlash(tabUrl);
+        function isBookmarkedURL(children, currentTabURL) {
+            return _.keys(children).includes(currentTabURL);
+        }
 
-        let children = _.map(bchildren, child => {
-            child.url = removeTrailingSlash(child.url);
-            return child;
-        });
-
-        children = _.indexBy(children, "url");
-
-        if (_.keys(children).includes(tabUrl)) {
-            var b = children[tabUrl];
+        function removeBookmark(children, currentTabURL) {
+            var b = children[currentTabURL];
             chrome.bookmarks.remove(b.id);
             this.sendResponse(_message, _sendResponse, {
-                msg: `Removed ${tabUrl} from bookmark folder ${_message.folder}`
+                msg: `Removed ${currentTabURL} from bookmark folder ${_message.folder}`
             });
-        } else {
-            var title = ctab.title;
+        }
+
+        function addBookmark(currentTab, bookmarkFolder, currentTabURL) {
+            var title = currentTab.title;
             title = title.trim();
             // Note(hbt) remove first word -- assume tab index is on
             title = title.substr(title.indexOf(" ") + 1);
 
             const b = chrome.bookmarks.create({
-                parentId: folder.id,
-                url: tabUrl,
+                parentId: bookmarkFolder.id,
+                url: currentTabURL,
                 title: title
             });
 
             this.sendResponse(_message, _sendResponse, {
-                msg: `Added ${tabUrl} to bookmark folder ${_message.folder}`
+                msg: `Added ${currentTabURL} to bookmark folder ${_message.folder}`
             });
+        }
+
+        {
+            const currentTab = await chrome.tabs.get(_sender.tab.id);
+            let currentTabURL = removeTrailingSlash(currentTab.url);
+            let bookmarkFolder = await getBookmarkFolder();
+            let bookmarkFolderChildren = await getBookmarkChildren(bookmarkFolder);
+
+            if (isBookmarkedURL(bookmarkFolderChildren, currentTabURL)) {
+                removeBookmark.call(this, bookmarkFolderChildren, currentTabURL);
+            } else {
+                addBookmark.call(this, currentTab, bookmarkFolder, currentTabURL);
+            }
         }
     }
 
