@@ -533,7 +533,7 @@ var CustomCommands = (function() {
             magic: magic
         });
         let msg = `Highlighted: ${ret.state.add} \n Removed! : ${ret.state.rm} \n Total: ${ret.count}`;
-        Front.showBanner(msg, 8000);
+        Front.showPopup(msg);
     };
 
     self.tabToggleHighlight = function() {
