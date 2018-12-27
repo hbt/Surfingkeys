@@ -818,6 +818,19 @@ var CustomCommands = (function() {
         Front.showBanner(`Tab Position: ${ret.data}`, 3000);
     };
 
+    self.tabQuickMarkSave = async m => {
+        let ret = await aruntime({ action: "tabQuickMarkSave", mark: m });
+        Front.showBanner(`${ret.msg}`, 3000);
+    };
+
+    self.tabQuickMarkJump = async m => {
+        if (m === "`") {
+            RUNTIME("goToLastTab");
+        } else {
+            let ret = await aruntime({ action: "tabQuickMarkJump", mark: m });
+        }
+    };
+
     return self;
 })();
 

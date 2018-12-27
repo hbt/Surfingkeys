@@ -899,6 +899,7 @@
 
 var State = {
     tabsMarked: new Map(),
+    tabsQuickMarks: new Map(),
     tabsSettings: new Map()
     // globalSettings: {
     //     focusAfterClosed: "right",
@@ -1291,6 +1292,19 @@ class CustomBackground {
         );
     }
 
+    async tabQuickMarkSave(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        State.tabsQuickMarks.set(_message.mark, ctab.id);
+        this.sendResponse(_message, _sendResponse, { msg: "Saved Tab Quickmark: " + _message.mark });
+    }
+
+    async tabQuickMarkJump(_message, _sender, _sendResponse) {
+        if (State.tabsQuickMarks.has(_message.mark)) {
+            let tabId = State.tabsQuickMarks.get(_message.mark);
+            chrome.tabs.update(tabId, { active: true });
+        }
+    }
+
     copyAllTabsURLsInCurrentWindow(_message, _sender, _sendResponse) {
         chrome.tabs.query({ currentWindow: true }, tabs => {
             let text = tabs
@@ -1311,7 +1325,7 @@ class CustomBackground {
             if (id) {
                 return chrome.tabs.get(id, function(tabInfo) {
                     chrome.windows.update(tabInfo.windowId, { focused: true }, function() {
-                        chrome.tabs.update(id, { active: true, highlighted: true });
+                        chrome.tabs.update(id, { active: true });
                     });
                 });
             } else if (index !== void 0) {
