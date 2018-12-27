@@ -10,6 +10,21 @@ var DOMUtils = {
         }
         return false;
     },
+
+    /**
+     * Checks if an element is visible (not necessarily on-screen)
+     */
+    isVisible: function(element) {
+        if (!(element instanceof Element)) return false;
+        return (
+            element.offsetParent &&
+            !element.disabled &&
+            element.getAttribute("type") !== "hidden" &&
+            getComputedStyle(element).visibility !== "hidden" &&
+            element.getAttribute("display") !== "none"
+        );
+    },
+
     isEditable: function(element) {
         if (!element) {
             return false;
@@ -354,28 +369,51 @@ var CustomCommands = (function() {
     };
 
     self.insertGoToFirstInput = function() {
-        var cssSelector = "input";
+        if (RUNTIME.repeats !== 1 && RUNTIME.repeats !== parseInt(Normal.repeats)) {
+            return;
+        }
+        let stealFocusOnLoad = runtime.conf.stealFocusOnLoad;
+        runtime.conf.stealFocusOnLoad = false;
+        let repeats = Normal.repeats || 0;
 
-        var elements = getVisibleElements(function(e, v) {
-            if (e.matches(cssSelector) && !e.disabled && !e.readOnly && (e.type === "text" || e.type === "password")) {
-                v.push(e);
+        this.inputElements = [];
+        var allInput = document.querySelectorAll("input,textarea,*[contenteditable]");
+        for (var i = 0, l = allInput.length; i < l; i++) {
+            if (DOMUtils.isEditable(allInput[i]) && DOMUtils.isVisible(allInput[i]) && allInput[i].id !== "cVim-command-bar-input") {
+                this.inputElements.push(allInput[i]);
             }
-        });
-
-        if (elements.length === 0 && document.querySelector(cssSelector) !== null) {
-            document.querySelector(cssSelector).scrollIntoView();
-            elements = getVisibleElements(function(e, v) {
-                if (e.matches(cssSelector) && !e.disabled && !e.readOnly) {
-                    v.push(e);
-                }
-            });
+        }
+        if (this.inputElements.length === 0) {
+            return false;
+        }
+        this.inputElementsIndex = (repeats % this.inputElements.length) - 1;
+        if (this.inputElementsIndex < 0) {
+            this.inputElementsIndex = 0;
         }
 
-        if (elements.length > 0) {
-            Normal.passFocus(true);
-            elements[0].focus();
-            Insert.enter(elements[0]);
+        // TODO(hbt) INVESTIGATE this makes inputElementsIndex always = 0
+        // for (i = 0, l = this.inputElements.length; i < l; i++) {
+        //     var br = this.inputElements[i].getBoundingClientRect();
+        //     if (br.top + br.height >= 0 &&
+        //         br.left + br.width >= 0 &&
+        //         br.right - br.width <= window.innerWidth &&
+        //         br.top < window.innerHeight) {
+        //         this.inputElementsIndex = i;
+        //         break;
+        //     }
+        // }
+
+        this.inputFocused = true;
+        this.inputElements[this.inputElementsIndex].focus();
+
+        if (document.activeElement.select) {
+            document.activeElement.select();
         }
+        if (!document.activeElement.hasAttribute("readonly")) {
+            document.getSelection().modify("move", "right", "lineboundary");
+        }
+
+        runtime.conf.stealFocusOnLoad = stealFocusOnLoad;
     };
 
     chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
