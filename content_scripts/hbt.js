@@ -813,6 +813,11 @@ var CustomCommands = (function() {
         return await aruntime({ action: "tabUnique" });
     };
 
+    self.tabShowIndexPosition = async () => {
+        let ret = await aruntime({ action: "tabShowIndexPosition" });
+        Front.showBanner(`Tab Position: ${ret.data}`, 3000);
+    };
+
     return self;
 })();
 

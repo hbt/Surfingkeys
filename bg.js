@@ -1247,6 +1247,12 @@ class CustomBackground {
         }
     }
 
+    async tabShowIndexPosition(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        let position = ctab.index + 1;
+        this.sendResponse(_message, _sendResponse, { data: position });
+    }
+
     tabUnpinAll(_message, _sender, _sendResponse) {
         let o = this.convertMessageArgsToMouselessArg(_message, _sender, _sendResponse);
         var _ = window._;
