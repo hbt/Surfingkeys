@@ -62,6 +62,7 @@
             "promisify-chrome-api.js",
             "chrome_bg.js",
             "background.js",
+            "custom-commons.js",
             "bg.js"
         ],
         "persistent": true
@@ -93,7 +94,8 @@
                 "content_scripts/content_scripts.js",
                 "content_scripts/top.js",
                 "pages/default.js",
-              
+
+                "custom-commons.js",
                 "content_scripts/hbt.js"
             ],
             "css": [

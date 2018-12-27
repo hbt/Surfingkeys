@@ -564,7 +564,7 @@ var CustomCommands = (function() {
         );
     };
 
-    self.addVIMark = function(mark, url) {
+    self.addVIMark2 = function(mark, url) {
         if (/^[a-z]$/.test(mark)) {
             // local mark
             var localMarks = JSON.parse(localStorage["sklocalMarks"] || "{}");
@@ -828,6 +828,35 @@ var CustomCommands = (function() {
             RUNTIME("goToLastTab");
         } else {
             let ret = await aruntime({ action: "tabQuickMarkJump", mark: m });
+        }
+    };
+
+    function tabCheckMagicByKey(k) {
+        function mapKeyToName() {
+            let ret = new Map();
+            let magics = CustomCommonConfig.tabMagic;
+            let okeys = Object.keys(magics);
+            okeys.forEach(k => {
+                console.assert(magics[k].hasOwnProperty("key"));
+                ret.set(magics[k].key, k);
+            });
+            return ret;
+        }
+
+        let map = mapKeyToName();
+        console.assert(map.has(k));
+
+        return map.get(k);
+    }
+
+    self.tabCloseM = async k => {
+        let magic = tabCheckMagicByKey(k);
+        if (magic) {
+            let ret = await aruntime({
+                action: "tabCloseM",
+                repeats: Normal.repeats || -1,
+                magic: magic
+            });
         }
     };
 

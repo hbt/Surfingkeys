@@ -1,3 +1,9 @@
+console.sassert = function(cond, text) {
+    if (cond) return;
+    if (console.assert.useDebugger) debugger;
+    throw new Error(text || "Assertion failed!");
+};
+
 {
     var Clipboard = {};
 
@@ -1303,6 +1309,101 @@ class CustomBackground {
             let tabId = State.tabsQuickMarks.get(_message.mark);
             chrome.tabs.update(tabId, { active: true });
         }
+    }
+
+    async tabHandleMagic(_message, _sender, _sendResponse) {
+        console.sassert(CustomCommonConfig.tabMagic.hasOwnProperty(_message.magic));
+
+        let magic = _message.magic;
+        let repeats = _message.repeats;
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        let retTabIds = [];
+        const currentWindowTabs = await chrome.tabs.query({
+            currentWindow: true
+        });
+
+        if (_message.magic === "DirectionRight") {
+            let rightTabs = _.filter(currentWindowTabs, tab => {
+                return tab.index > ctab.index;
+            });
+            rightTabs = _.map(rightTabs, tab => {
+                return tab.id;
+            });
+
+            if (repeats > 0) {
+                rightTabs = rightTabs.slice(0, repeats);
+            }
+
+            retTabIds = rightTabs;
+        } else if (_message.magic === "DirectionLeft") {
+            let leftTabs = _.filter(currentWindowTabs, tab => {
+                return tab.index < ctab.index;
+            });
+            leftTabs = _.map(leftTabs, tab => {
+                return tab.id;
+            });
+
+            if (repeats > 0) {
+                leftTabs = leftTabs.reverse().slice(0, repeats);
+            }
+
+            retTabIds = leftTabs;
+        } else if (_message.magic === "AllTabsInCurrentWindowExceptActiveTab") {
+            let allOthers = _.filter(currentWindowTabs, tab => {
+                return tab.id != ctab.id;
+            });
+            allOthers = _.map(allOthers, tab => {
+                return tab.id;
+            });
+
+            retTabIds = allOthers;
+        } else if (_message.magic === "AllOtherTabsInOtherWindowsExceptAllTabsInCurrentWindow") {
+            const otabs = await chrome.tabs.query({
+                currentWindow: false
+            });
+
+            retTabIds = _.map(otabs, tab => {
+                return tab.id;
+            });
+        } else if (_message.magic === "AllTabsInAllWindowExceptActiveTab") {
+            const otabs = await chrome.tabs.query({});
+
+            retTabIds = _.filter(otabs, tab => {
+                return tab.id != ctab.id;
+            });
+
+            retTabIds = _.map(retTabIds, tab => {
+                return tab.id;
+            });
+        } else if (_message.magic === "currentTab") {
+            retTabIds = [ctab.id];
+        } else if (_message.magic === "highlightedTabs") {
+            retTabIds = Array.from(State.tabsMarked.keys());
+        }
+
+        return retTabIds;
+    }
+
+    async tabsGetFromIds(ids) {
+        let ret = [];
+        for (var i = 0; i < ids.length; i++) {
+            const tab = await chrome.tabs.get(ids[i]);
+            ret.push(tab);
+        }
+        return ret;
+    }
+
+    async tabCloseM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+        const tabs = await this.tabsGetFromIds(tabIds);
+
+        let unpinnedTabs = _.filter(tabs, tab => {
+            return !tab.pinned;
+        });
+        unpinnedTabs = _.map(unpinnedTabs, tab => {
+            return tab.id;
+        });
+        await chrome.tabs.remove(unpinnedTabs);
     }
 
     copyAllTabsURLsInCurrentWindow(_message, _sender, _sendResponse) {
