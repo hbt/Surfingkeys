@@ -544,15 +544,35 @@ var CustomCommands = (function() {
     };
 
     self.jumpVIMark = function(mark, newTab) {
+        function saveLastPosition(href) {
+            var localMarks = JSON.parse(localStorage["sklocalMarks"] || "{}");
+            localMarks[href]["last"] = {
+                scrollLeft: document.scrollingElement.scrollLeft,
+                scrollTop: document.scrollingElement.scrollTop
+            };
+            localStorage["sklocalMarks"] = JSON.stringify(localMarks);
+        }
+
+        function gotoPosition(scrollLeft, scrollTop) {
+            document.scrollingElement.scrollLeft = scrollLeft;
+            document.scrollingElement.scrollTop = scrollTop;
+        }
+
         var localMarks = JSON.parse(localStorage["sklocalMarks"] || "{}");
 
         let href = CustomCommands.getHostname();
         if (localMarks.hasOwnProperty(href) && localMarks[href].hasOwnProperty(mark)) {
             var markInfo = localMarks[href][mark];
-            document.scrollingElement.scrollLeft = markInfo.scrollLeft;
-            document.scrollingElement.scrollTop = markInfo.scrollTop;
+            saveLastPosition(href);
+            gotoPosition(markInfo.scrollLeft, markInfo.scrollTop);
         } else {
-            Normal.jumpVIMark(mark, newTab);
+            if (mark === "'") {
+                var markInfo = localMarks[href]["last"];
+                saveLastPosition(href);
+                gotoPosition(markInfo.scrollLeft, markInfo.scrollTop);
+            } else {
+                Normal.jumpVIMark(mark, newTab);
+            }
         }
     };
 
