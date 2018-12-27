@@ -332,6 +332,7 @@ var CustomCommands = (function() {
             if (event.altKey || event.ctrlKey) {
             } else {
                 ret.sk_stopPropagation = true;
+                document.activeElement && document.activeElement.blur();
             }
         }
 
@@ -390,6 +391,12 @@ var CustomCommands = (function() {
     self.hintOpenLinkIncognito = function() {
         Hints.create("*[href]", function(element) {
             CustomCommands.openLinkIncognito(element.href);
+        });
+    };
+
+    self.hintFocusElement = async () => {
+        Hints.create("", function(element) {
+            element.focus();
         });
     };
 
