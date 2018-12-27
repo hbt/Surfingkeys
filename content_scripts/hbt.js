@@ -521,6 +521,21 @@ var CustomCommands = (function() {
         );
     };
 
+    self.tabToggleHighlightM = async function(k) {
+        let magic = tabCheckMagicByKey(k);
+        if (!magic) {
+            return;
+        }
+
+        let ret = await aruntime({
+            action: "tabToggleHighlightM",
+            repeats: Normal.repeats || -1,
+            magic: magic
+        });
+        let msg = `Highlighted: ${ret.state.add} \n Removed! : ${ret.state.rm} \n Total: ${ret.count}`;
+        Front.showBanner(msg, 8000);
+    };
+
     self.tabToggleHighlight = function() {
         runtime.command(
             {

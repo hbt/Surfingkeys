@@ -1435,8 +1435,32 @@ class CustomBackground {
         });
     }
 
-    // Note(hbt) remove highlight is a pain in the ass. Use an internal state; if needed save it in local storage
+    async tabToggleHighlightM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+        const tabs = await this.tabsGetFromIds(tabIds);
+
+        let ops = {
+            rm: 0,
+            add: 0
+        };
+        tabs.forEach(function(tab) {
+            if (State.tabsMarked.has(tab.id)) {
+                State.tabsMarked.delete(tab.id);
+                ops.rm++;
+            } else {
+                State.tabsMarked.set(tab.id, tab.windowId);
+                ops.add++;
+            }
+        });
+
+        this.sendResponse(_message, _sendResponse, {
+            state: ops,
+            count: State.tabsMarked.size
+        });
+    }
+
     async tabToggleHighlight(_message, _sender, _sendResponse) {
+        // Note(hbt) remove highlight is a pain in the ass. Use an internal state; if needed save it in local storage
         const ctab = await chrome.tabs.get(_sender.tab.id);
 
         if (State.tabsMarked.has(ctab.id)) {
