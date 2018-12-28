@@ -432,6 +432,34 @@ var CustomCommands = (function() {
         });
     };
 
+    self.hintSimulateMiddleClickBackground = function(element) {
+        var event = new MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            ctrlKey: true,
+            view: window,
+            button: 1
+        });
+        element.dispatchEvent(event);
+    };
+
+    self.hintHandleClickNewTabBackground = function(element, event) {
+        Hints.flashPressedLink(element);
+        if (isEditable(element)) {
+            Hints.exit();
+            Normal.passFocus(true);
+            element.focus();
+            Insert.enter(element);
+        } else {
+            Hints.mouseoutLastElement();
+            CustomCommands.hintSimulateMiddleClickBackground(element);
+        }
+    };
+
+    self.hintNewTab = async () => {
+        Hints.create("", CustomCommands.hintHandleClickNewTabBackground);
+    };
+
     self.hintFocusElement = async () => {
         Hints.create("", function(element) {
             element.focus();
