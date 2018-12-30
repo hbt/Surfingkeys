@@ -1655,6 +1655,15 @@ class CustomBackground {
         }
     }
 
+    // TODO(hbt) NEXT 4 clear
+    async bookmarkEmptyFolder(_message, _sender, _sendResponse) {
+        this.bookmarkEmptyFolderContents(_message.folder, () => {
+            this.sendResponse(_message, _sendResponse, {
+                msg: `Emptied bookmark folder ${_message.folder}`
+            });
+        });
+    }
+
     async bookmarkDumpFolder(_message, _sender, _sendResponse) {
         let url = "http://localhost:7077/rest-begin-folder-edit.php?folder_name=" + _message.folder;
         $.ajax({
@@ -1692,29 +1701,7 @@ class CustomBackground {
         }
 
         function emptyExistingFolder(folder, callback) {
-            chrome.bookmarks.search(
-                {
-                    title: folder
-                },
-                function(marks) {
-                    console.assert(marks.length === 1, "folder is the only one with that name");
-
-                    var omark = marks[0];
-
-                    chrome.bookmarks.removeTree(marks[0].id, function() {
-                        chrome.bookmarks.create(
-                            {
-                                parentId: omark.parentId,
-                                title: omark.title,
-                                index: omark.index
-                            },
-                            function() {
-                                callback();
-                            }
-                        );
-                    });
-                }
-            );
+            this.bookmarkEmptyFolderContents(folder, callback);
         }
 
         function loadEditedBookmarks(folder) {
@@ -1799,6 +1786,32 @@ class CustomBackground {
         emptyExistingFolder(_message.folder, function() {
             loadEditedBookmarks(_message.folder);
         });
+    }
+
+    bookmarkEmptyFolderContents(folder, callback) {
+        chrome.bookmarks.search(
+            {
+                title: folder
+            },
+            function(marks) {
+                console.assert(marks.length === 1, "folder is the only one with that name");
+
+                var omark = marks[0];
+
+                chrome.bookmarks.removeTree(marks[0].id, function() {
+                    chrome.bookmarks.create(
+                        {
+                            parentId: omark.parentId,
+                            title: omark.title,
+                            index: omark.index
+                        },
+                        function() {
+                            callback();
+                        }
+                    );
+                });
+            }
+        );
     }
 
     async urlEditExternalEditor(message, sender, sendResponse) {
