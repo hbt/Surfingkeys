@@ -625,7 +625,7 @@ var CustomCommands = (function() {
                 action: "tabHighlightClearAll"
             },
             function(res) {
-                Front.showBanner(`Cleared Highlighted tabs. Total: ${res.count} `);
+                Front.showBanner(`Cleared Highlighted tabs. Total: ${res.count} `, 3000);
             }
         );
     };
