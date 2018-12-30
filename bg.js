@@ -1311,6 +1311,36 @@ class CustomBackground {
     }
 
     async tabHandleMagic(_message, _sender, _sendResponse) {
+        function filterDirectionRight() {
+            let rightTabs = _.filter(currentWindowTabs, tab => {
+                return tab.index > ctab.index;
+            });
+            rightTabs = _.map(rightTabs, tab => {
+                return tab.id;
+            });
+
+            if (repeats > 0) {
+                rightTabs = rightTabs.slice(0, repeats);
+            }
+
+            return rightTabs;
+        }
+
+        function filterDirectionLeft() {
+            let leftTabs = _.filter(currentWindowTabs, tab => {
+                return tab.index < ctab.index;
+            });
+            leftTabs = _.map(leftTabs, tab => {
+                return tab.id;
+            });
+
+            if (repeats > 0) {
+                leftTabs = leftTabs.reverse().slice(0, repeats);
+            }
+
+            return leftTabs;
+        }
+
         console.sassert(CustomCommonConfig.tabMagic.hasOwnProperty(_message.magic));
 
         function getChildrenTabsRecursively(tabId, all) {
@@ -1338,31 +1368,15 @@ class CustomBackground {
         });
 
         if (_message.magic === "DirectionRight") {
-            let rightTabs = _.filter(currentWindowTabs, tab => {
-                return tab.index > ctab.index;
-            });
-            rightTabs = _.map(rightTabs, tab => {
-                return tab.id;
-            });
-
-            if (repeats > 0) {
-                rightTabs = rightTabs.slice(0, repeats);
-            }
-
-            retTabIds = rightTabs;
+            retTabIds = filterDirectionRight();
+        } else if (_message.magic === "DirectionRightInclusive") {
+            retTabIds = filterDirectionRight();
+            retTabIds.push(ctab.id);
         } else if (_message.magic === "DirectionLeft") {
-            let leftTabs = _.filter(currentWindowTabs, tab => {
-                return tab.index < ctab.index;
-            });
-            leftTabs = _.map(leftTabs, tab => {
-                return tab.id;
-            });
-
-            if (repeats > 0) {
-                leftTabs = leftTabs.reverse().slice(0, repeats);
-            }
-
-            retTabIds = leftTabs;
+            retTabIds = filterDirectionLeft();
+        } else if (_message.magic === "DirectionLeftInclusive") {
+            retTabIds = filterDirectionLeft();
+            retTabIds.push(ctab.id);
         } else if (_message.magic === "AllTabsInCurrentWindowExceptActiveTab") {
             let allOthers = _.filter(currentWindowTabs, tab => {
                 return tab.id != ctab.id;

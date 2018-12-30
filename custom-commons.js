@@ -3,8 +3,15 @@ var CustomCommonConfig = {
         DirectionRight: {
             key: 'e'
         },
+        DirectionRightInclusive: {
+            key: 'E'
+        },
         DirectionLeft: {
             key: 'q'
+        },
+
+        DirectionLeftInclusive: {
+            key: 'Q'
         },
         AllTabsInCurrentWindowExceptActiveTab: {
             key: 'c'
