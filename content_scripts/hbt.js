@@ -235,7 +235,7 @@ var CustomCommands = (function() {
                 action: "copyAllTabsURLsInCurrentWindow"
             },
             function(res) {
-                Front.showBanner(`Copied ${res.count} URLs ${res.data}`);
+                Front.showBanner(`Copied ${res.count} URLs ${res.data}`, 2000);
             }
         );
     };
@@ -561,8 +561,7 @@ var CustomCommands = (function() {
             magic: magic
         });
         let msg = `Highlighted: ${ret.state.add} \n Removed! : ${ret.state.rm} \n Total: ${ret.count}`;
-        // TODO(hbt) ENHANCE fix time lapse
-        Front.showBanner(msg);
+        Front.showBanner(msg, 3000);
     };
 
     self.tabToggleHighlight = function() {
@@ -573,7 +572,7 @@ var CustomCommands = (function() {
             function(res) {
                 let msg = res.state ? "*Highlighted*" : "Removed! Highlight";
                 msg = `${msg} - ${res.count} Highlighted Tabs`;
-                Front.showBanner(msg);
+                Front.showBanner(msg, 3000);
             }
         );
     };
@@ -926,6 +925,24 @@ var CustomCommands = (function() {
                 magic: magic
             });
         }
+    };
+
+    self.showBanner = function(banner, content, time) {
+        var banner = document.getElementById("sk_banner");
+        banner.classList.remove("slideInBanner");
+        banner.style.display = "";
+        setInnerHTML(banner, htmlEncode(content));
+        Front.flush();
+
+        let timems = time / 1000 || 1.6;
+
+        banner.style.cssText = `animation: ${timems}s ease-in-out 1 both slideInBanner;`;
+        // banner.classList.add("slideInBanner");
+        banner.one("animationend", function() {
+            banner.classList.remove("slideInBanner");
+            banner.style.display = "none";
+            Front.flush();
+        });
     };
 
     return self;
