@@ -229,6 +229,19 @@ var CustomCommands = (function() {
         );
     };
 
+    self.tabReloadM = async k => {
+        let magic = tabCheckMagicByKey(k);
+        if (!magic) {
+            return;
+        }
+
+        let res = await aruntime({
+            action: "tabReloadM",
+            repeats: Normal.repeats || -1,
+            magic: magic
+        });
+    };
+
     self.copyTabURLsM = async k => {
         let magic = tabCheckMagicByKey(k);
         if (!magic) {

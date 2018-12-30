@@ -1472,6 +1472,13 @@ class CustomBackground {
         this.sendResponse(_message, _sendResponse, { data: text, count: tabs.length });
     }
 
+    async tabReloadM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+        _.each(tabIds, id => {
+            chrome.tabs.reload(id, { bypassCache: true });
+        });
+    }
+
     async tabGotoParent(_message, _sender, _sendResponse) {
         const ctab = await chrome.tabs.get(_sender.tab.id);
         if (ctab.hasOwnProperty("openerTabId")) {
