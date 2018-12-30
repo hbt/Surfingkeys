@@ -1661,7 +1661,10 @@ class CustomBackground {
 
     async bookmarkCopyFolder(_message, _sender, _sendResponse) {
         // get subtree
-        const folders = await chrome.bookmarks.search(_message.folder);
+        const matchedMarks = await chrome.bookmarks.search(_message.folder);
+        const folders = _.filter(matchedMarks, mark => {
+            return !mark.hasOwnProperty("url");
+        });
         const folderId = folders[0].id;
         const bmarks = await chrome.bookmarks.getSubTree(folderId);
         let urls = this._deepPluck(_, bmarks, "url");
