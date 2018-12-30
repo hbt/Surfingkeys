@@ -27,11 +27,11 @@ var CustomCommonConfig = {
         },
 
         childrenTabs: {
-            key: 'k'
+            key: 'K'
         },
 
         childrenTabsRecursively: {
-            key: 'K'
+            key: 'k'
         },
         
     }

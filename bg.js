@@ -1313,6 +1313,22 @@ class CustomBackground {
     async tabHandleMagic(_message, _sender, _sendResponse) {
         console.sassert(CustomCommonConfig.tabMagic.hasOwnProperty(_message.magic));
 
+        function getChildrenTabsRecursively(tabId, all) {
+            let ret = _.filter(all, tab => {
+                return tab.openerTabId == tabId;
+            });
+
+            ret = _.flatten(ret);
+
+            _.each(ret, tab => {
+                ret.push(getChildrenTabsRecursively(tab.id, all));
+            });
+
+            ret = _.flatten(ret);
+
+            return ret;
+        }
+
         let magic = _message.magic;
         let repeats = _message.repeats;
         const ctab = await chrome.tabs.get(_sender.tab.id);
@@ -1384,6 +1400,13 @@ class CustomBackground {
                 return tab.openerTabId == ctab.id;
             });
             retTabIds = _.map(childrenTabs, tab => {
+                return tab.id;
+            });
+        } else if (_message.magic === "childrenTabsRecursively") {
+            const all = await chrome.tabs.query({});
+            let childrenTabsRecursively = getChildrenTabsRecursively(ctab.id, all);
+
+            retTabIds = _.map(childrenTabsRecursively, tab => {
                 return tab.id;
             });
         }
