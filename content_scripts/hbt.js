@@ -229,6 +229,20 @@ var CustomCommands = (function() {
         );
     };
 
+    self.copyTabURLsM = async k => {
+        let magic = tabCheckMagicByKey(k);
+        if (!magic) {
+            return;
+        }
+
+        let res = await aruntime({
+            action: "copyTabURLsM",
+            repeats: Normal.repeats || -1,
+            magic: magic
+        });
+        Front.showBanner(`Copied ${res.count} URLs ${res.data}`, 2000);
+    };
+
     self.copyAllTabsURLsInCurrentWindow = () => {
         runtime.command(
             {

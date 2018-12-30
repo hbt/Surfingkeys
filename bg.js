@@ -1436,16 +1436,26 @@ class CustomBackground {
         await chrome.tabs.remove(unpinnedTabs);
     }
 
+    async copyTabURLsM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+        const tabs = await this.tabsGetFromIds(tabIds);
+        this._copyTabUrlsAndRespond(tabs, _message, _sendResponse);
+    }
+
     copyAllTabsURLsInCurrentWindow(_message, _sender, _sendResponse) {
         chrome.tabs.query({ currentWindow: true }, tabs => {
-            let text = tabs
-                .map(function(tab) {
-                    return tab.url;
-                })
-                .join("\n");
-            Clipboard.copy(text);
-            this.sendResponse(_message, _sendResponse, { data: text, count: tabs.length });
+            this._copyTabUrlsAndRespond(tabs, _message, _sendResponse);
         });
+    }
+
+    _copyTabUrlsAndRespond(tabs, _message, _sendResponse) {
+        let text = tabs
+            .map(function(tab) {
+                return tab.url;
+            })
+            .join("\n");
+        Clipboard.copy(text);
+        this.sendResponse(_message, _sendResponse, { data: text, count: tabs.length });
     }
 
     async tabGotoParent(_message, _sender, _sendResponse) {
