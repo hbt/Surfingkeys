@@ -1476,9 +1476,22 @@ class CustomBackground {
     }
 
     async tabMoveHighlighted(_message, _sender, _sendResponse) {
+        async function filterOutRemovedTabIds(tabIds) {
+            let ret = [];
+            const allTabs = await chrome.tabs.query({});
+            const allTabIds = _.pluck(allTabs, "id");
+            ret = _.filter(tabIds, id => {
+                return allTabIds.includes(id);
+            });
+            return ret;
+        }
         const ctab = await chrome.tabs.get(_sender.tab.id);
         let tabIds = Array.from(State.tabsMarked.keys());
-        if (tabIds.length > 0) chrome.tabs.move(tabIds, { windowId: ctab.windowId, index: ctab.index + 1 });
+
+        if (tabIds.length > 0) {
+            tabIds = await filterOutRemovedTabIds(tabIds);
+            chrome.tabs.move(tabIds, { windowId: ctab.windowId, index: ctab.index + 1 });
+        }
     }
 
     async tabHighlightClearAll(_message, _sender, _sendResponse) {
