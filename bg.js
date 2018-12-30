@@ -1378,6 +1378,14 @@ class CustomBackground {
             retTabIds = [ctab.id];
         } else if (_message.magic === "highlightedTabs") {
             retTabIds = Array.from(State.tabsMarked.keys());
+        } else if (_message.magic === "childrenTabs") {
+            const all = await chrome.tabs.query({});
+            let childrenTabs = _.filter(all, tab => {
+                return tab.openerTabId == ctab.id;
+            });
+            retTabIds = _.map(childrenTabs, tab => {
+                return tab.id;
+            });
         }
 
         return retTabIds;
