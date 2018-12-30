@@ -1177,7 +1177,6 @@ class CustomBackground {
 
     /**
      * Migrate from vrome and mouseless
-     * // TODO(hbt) Refactor (low): refactor to remove underscore dependency
      *
      * refactor myCloseTabXXX implementation -- ref https://github.com/hbt/mouseless/commit/97533a4787a7b50e233fe6879d0c8c5707fd71d6
      * @param _message
