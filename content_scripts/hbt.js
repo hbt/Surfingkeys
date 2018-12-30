@@ -829,7 +829,18 @@ var CustomCommands = (function() {
         );
     };
 
-    // TODO(hbt) NEXT 3 clear
+    self.bookmarkCopyFolder = function(folder) {
+        runtime.command(
+            {
+                action: "bookmarkCopyFolder",
+                folder: folder
+            },
+            function(res) {
+                Front.showBanner(res.msg, 3000);
+            }
+        );
+    };
+
     self.bookmarkEmptyFolder = function(folder) {
         runtime.command(
             {

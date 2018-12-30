@@ -1590,10 +1590,7 @@ class CustomBackground {
 
     async bookmarkToggle(_message, _sender, _sendResponse) {
         function removeTrailingSlash(url) {
-            if (url && url.endsWith("/")) {
-                url = url.substring(0, url.length - 1);
-            }
-            return url;
+            return this._removeTrailingSlash(url);
         }
 
         async function getBookmarkFolder() {
@@ -1655,7 +1652,32 @@ class CustomBackground {
         }
     }
 
-    // TODO(hbt) NEXT 4 clear
+    _removeTrailingSlash(url) {
+        if (url && url.endsWith("/")) {
+            url = url.substring(0, url.length - 1);
+        }
+        return url;
+    }
+
+    async bookmarkCopyFolder(_message, _sender, _sendResponse) {
+        // get subtree
+        const folders = await chrome.bookmarks.search(_message.folder);
+        const folderId = folders[0].id;
+        const bmarks = await chrome.bookmarks.getSubTree(folderId);
+        let urls = this._deepPluck(_, bmarks, "url");
+        urls = _.map(urls, url => {
+            return this._removeTrailingSlash(url);
+        });
+        urls = _.unique(urls);
+        const count = urls.length;
+        urls = urls.join("\n");
+        Clipboard.copy(urls);
+
+        this.sendResponse(_message, _sendResponse, {
+            msg: `Copied ${count} URLS`
+        });
+    }
+
     async bookmarkEmptyFolder(_message, _sender, _sendResponse) {
         this.bookmarkEmptyFolderContents(_message.folder, () => {
             this.sendResponse(_message, _sendResponse, {
@@ -1681,23 +1703,7 @@ class CustomBackground {
         var _ = window._;
 
         function deepPluck(obj, k) {
-            let ret = [];
-
-            if (_.isArray(obj)) {
-                _.each(obj, function(i) {
-                    ret.push(deepPluck(i, k));
-                });
-            } else if (_.isObject(obj) && _.has(obj, k)) {
-                ret.push(obj[k]);
-            }
-
-            if (_.isObject(obj)) {
-                _.each(_.keys(obj), function(key) {
-                    ret.push(deepPluck(obj[key], k));
-                });
-            }
-
-            return _.flatten(ret);
+            return this._deepPluck(_, obj, k);
         }
 
         function emptyExistingFolder(folder, callback) {
@@ -1786,6 +1792,30 @@ class CustomBackground {
         emptyExistingFolder(_message.folder, function() {
             loadEditedBookmarks(_message.folder);
         });
+    }
+
+    _deepPluck(_, obj, k) {
+        function deepPluck(obj, k) {
+            let ret = [];
+
+            if (_.isArray(obj)) {
+                _.each(obj, function(i) {
+                    ret.push(deepPluck(i, k));
+                });
+            } else if (_.isObject(obj) && _.has(obj, k)) {
+                ret.push(obj[k]);
+            }
+
+            if (_.isObject(obj)) {
+                _.each(_.keys(obj), function(key) {
+                    ret.push(deepPluck(obj[key], k));
+                });
+            }
+
+            return _.flatten(ret);
+        }
+
+        return deepPluck(obj, k);
     }
 
     bookmarkEmptyFolderContents(folder, callback) {
