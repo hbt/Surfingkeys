@@ -1417,6 +1417,17 @@ class CustomBackground {
         });
     }
 
+    async tabGotoParent(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        if (ctab.hasOwnProperty("openerTabId")) {
+            const all = await chrome.tabs.query({});
+            let ids = _.pluck(all, "id");
+            if (ids.includes(ctab.openerTabId)) {
+                chrome.tabs.update(ctab.openerTabId, { active: true });
+            }
+        }
+    }
+
     async tabGoto(_message, _sender, _sendResponse) {
         let o = this.convertMessageArgsToMouselessArg(_message, _sender, _sendResponse);
         var id = o.request.id,

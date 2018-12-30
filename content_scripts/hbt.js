@@ -533,6 +533,12 @@ var CustomCommands = (function() {
         );
     };
 
+    self.tabGotoParent = function() {
+        aruntime({
+            action: "tabGotoParent"
+        });
+    };
+
     self.tabGoto = function() {
         // ignore other repeats and pass the value instead
         if (RUNTIME.repeats !== parseInt(Normal.repeats)) {

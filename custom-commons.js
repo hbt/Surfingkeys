@@ -25,6 +25,14 @@ var CustomCommonConfig = {
         highlightedTabs: {
             key: 'h'
         },
+
+        childrenTabs: {
+            key: 'k'
+        },
+
+        childrenTabsRecursively: {
+            key: 'K'
+        },
         
     }
 }
