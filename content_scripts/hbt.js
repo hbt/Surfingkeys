@@ -561,7 +561,8 @@ var CustomCommands = (function() {
             magic: magic
         });
         let msg = `Highlighted: ${ret.state.add} \n Removed! : ${ret.state.rm} \n Total: ${ret.count}`;
-        Front.showPopup(msg);
+        // TODO(hbt) ENHANCE fix time lapse
+        Front.showBanner(msg);
     };
 
     self.tabToggleHighlight = function() {
