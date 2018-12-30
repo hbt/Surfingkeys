@@ -1602,8 +1602,9 @@ class CustomBackground {
     }
 
     async bookmarkToggle(_message, _sender, _sendResponse) {
+        var cbl = this;
         function removeTrailingSlash(url) {
-            return this._removeTrailingSlash(url);
+            return cbl._removeTrailingSlash(url);
         }
 
         async function getBookmarkFolder() {
@@ -1717,13 +1718,14 @@ class CustomBackground {
 
     async bookmarkLoadFolder(_message, _sender, _sendResponse) {
         var _ = window._;
+        var cbl = this;
 
         function deepPluck(obj, k) {
-            return this._deepPluck(_, obj, k);
+            return cbl._deepPluck(_, obj, k);
         }
 
         function emptyExistingFolder(folder, callback) {
-            this.bookmarkEmptyFolderContents(folder, callback);
+            cbl.bookmarkEmptyFolderContents(folder, callback);
         }
 
         function loadEditedBookmarks(folder) {
