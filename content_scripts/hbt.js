@@ -928,13 +928,12 @@ var CustomCommands = (function() {
     };
 
     self.showBanner = function(banner, content, time) {
+        let timems = (time || 1600) / 1000;
         var banner = document.getElementById("sk_banner");
         banner.classList.remove("slideInBanner");
         banner.style.display = "";
         setInnerHTML(banner, htmlEncode(content));
         Front.flush();
-
-        let timems = time / 1000 || 1.6;
 
         banner.style.cssText = `animation: ${timems}s ease-in-out 1 both slideInBanner;`;
         // banner.classList.add("slideInBanner");
