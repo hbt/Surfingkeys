@@ -582,6 +582,19 @@ var CustomCommands = (function() {
         );
     };
 
+    self.tabReverseM = async function(k) {
+        let magic = tabCheckMagicByKey(k);
+        if (!magic) {
+            return;
+        }
+
+        let ret = await aruntime({
+            action: "tabReverseM",
+            repeats: Normal.repeats || -1,
+            magic: magic
+        });
+    };
+
     self.tabToggleHighlightM = async function(k) {
         let magic = tabCheckMagicByKey(k);
         if (!magic) {

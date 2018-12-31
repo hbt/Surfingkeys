@@ -1514,6 +1514,17 @@ class CustomBackground {
         });
     }
 
+    async tabReverseM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+        const tabs = await this.tabsGetFromIds(tabIds);
+        let indices = _.pluck(tabs, "index");
+        let ids = tabIds.reverse();
+
+        for (var i = 0; i < indices.length; i++) {
+            await chrome.tabs.move(ids[i], { index: indices[i] });
+        }
+    }
+
     async tabToggleHighlightM(_message, _sender, _sendResponse) {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
         const tabs = await this.tabsGetFromIds(tabIds);
