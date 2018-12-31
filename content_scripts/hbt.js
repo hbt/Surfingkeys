@@ -1,4 +1,127 @@
 var DOMUtils = {
+    mouseEvent: function(type, element) {
+        var events;
+        switch (type) {
+            case "hover":
+                events = ["mouseover", "mouseenter"];
+                break;
+            case "unhover":
+                events = ["mouseout", "mouseleave"];
+                break;
+            case "click":
+                events = ["mouseover", "mousedown", "mouseup", "click"];
+                break;
+        }
+        events.forEach(function(eventName) {
+            var event = document.createEvent("MouseEvents");
+            event.initMouseEvent(eventName, true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 0, null);
+            element.dispatchEvent(event);
+        });
+    },
+
+    hasAttributes: function(node) {
+        if (arguments.length < 2) return false;
+        for (var i = 1; i < arguments.length; i++) {
+            if (node.hasAttribute(arguments[i])) return true;
+        }
+        return false;
+    },
+
+    traverseDOM: function(root, accept) {
+        var nodes = [root];
+        for (var i = 0; i < nodes.length; i++) {
+            var node = nodes[i];
+            node = node.firstChild;
+            while (node !== null) {
+                nodes.push(node);
+                node = node.nextSibling;
+            }
+        }
+        nodes.shift();
+        return nodes.filter(accept);
+    },
+
+    getLinkableElements: function() {
+        var visible = function(node) {
+            var cs = getComputedStyle(node, null);
+            return cs.opacity !== "0" && cs.visibility === "visible" && cs.display !== "none";
+        };
+        return function() {
+            return DOMUtils.traverseDOM(document.body, function(node) {
+                if (node.nodeType !== Node.ELEMENT_NODE || !visible(node)) return false;
+                switch (node.localName.toLowerCase()) {
+                    case "a":
+                    case "button":
+                        return true;
+                    default:
+                        return DOMUtils.hasAttributes(node, "jsaction", "onclick");
+                }
+            });
+        };
+    },
+
+    findFirstOf: function(array, callback) {
+        for (var i = 0; i < array.length; i++) {
+            if (callback(array[i], i, array)) return array[i];
+        }
+        return null;
+    },
+    compressArray: function(array) {
+        var result = [];
+        // faster than using [].filter
+        for (var i = 0; i < array.length; i++) {
+            if (array[i]) result.push(array[i]);
+        }
+        return result;
+    },
+
+    matchLocation: function(url, pattern) {
+        // Uses @match syntax
+        // See https://code.google.com/p/chromium/codesearch#chromium/src/extensions/common/url_pattern.h&sq=package:chromium
+        if (typeof pattern !== "string" || !pattern.trim()) {
+            return false;
+        }
+        var protocol = (pattern.match(/.*:\/\//) || [""])[0].slice(0, -2),
+            hostname,
+            path,
+            pathMatch,
+            hostMatch;
+        url = new URL(url);
+        if (/\*\*/.test(pattern)) {
+            console.error('cVim Error: Invalid pattern: "%s"', pattern);
+            return false;
+        }
+        if (!protocol.length) {
+            console.error('cVim Error: Invalid protocol in pattern: "%s"', pattern);
+            return false;
+        }
+        pattern = pattern.replace(/.*:\/\//, "");
+        if (protocol !== "*:" && url.protocol !== protocol) {
+            return false;
+        }
+        if (url.protocol !== "file:") {
+            hostname = pattern.match(/^[^\/]+/g);
+            if (!hostname) {
+                console.error('cVim Error: Invalid host in pattern: "%s"', pattern);
+                return false;
+            }
+            var origHostname = hostname;
+            hostname = hostname[0].replace(/([.])/g, "\\$1").replace(/\*/g, ".*");
+            hostMatch = url.hostname.match(new RegExp(hostname, "i"));
+            if (!hostMatch || hostMatch[0].length !== url.hostname.length) {
+                return false;
+            }
+            pattern = pattern.slice(origHostname[0].length);
+        }
+        if (pattern.length) {
+            path = pattern.replace(/([.&\\\/\(\)\[\]!?])/g, "\\$1").replace(/\*/g, ".*");
+            pathMatch = url.pathname.match(new RegExp(path));
+            if (!pathMatch || pathMatch[0].length !== url.pathname.length) {
+                return false;
+            }
+        }
+        return true;
+    },
     isSubmittable: function(element) {
         if (!element) {
             return false;
@@ -478,6 +601,63 @@ var CustomCommands = (function() {
             },
             { statusLine: "Open detected links from text" }
         );
+    };
+
+    self.hintMatchPatterns = function(pattern, direction) {
+        function tryGooglePattern(forward) {
+            if (location.hostname.indexOf("www.google.")) return false;
+            var target = document.getElementById(forward ? "pnnext" : "pnprev");
+            if (target) target.click();
+            return !!target;
+        }
+
+        let matchPatternFilters = {
+            "*://*.ebay.com/*": {
+                next: "td a.next",
+                prev: "td a.prev"
+            },
+            "*://mail.google.com/*": {
+                next: 'div[role="button"][data-tooltip="Older"]:not([aria-disabled="true"])',
+                prev: 'div[role="button"][data-tooltip="Newer"]:not([aria-disabled="true"])'
+            },
+            "*://*.reddit.com/*": {
+                next: 'a[rel$="next"]',
+                prev: 'a[rel$="prev"]'
+            }
+        };
+        var applicableFilters = Object.keys(matchPatternFilters)
+            .filter(function(key) {
+                return DOMUtils.matchLocation(document.URL, key);
+            })
+            .map(function(key) {
+                return matchPatternFilters[key][direction];
+            });
+        applicableFilters = DOMUtils.compressArray(applicableFilters);
+
+        var link = null;
+        for (var i = 0; i < applicableFilters.length; i++) {
+            link = DOMUtils.findFirstOf(document.querySelectorAll(applicableFilters[i]), function(e) {
+                return DOMUtils.isVisible(e);
+            });
+            if (link !== null) break;
+        }
+        if (link === null) {
+            if (tryGooglePattern(direction == "next")) return;
+            if (typeof pattern === "string") pattern = new RegExp("^" + pattern + "$", "i");
+            let els = getElements("a[href]:not([href^=javascript])");
+            els = filterInvisibleElements(els);
+            link = DOMUtils.findFirstOf(els, function(e) {
+                let b = e.textContent.trim() && (pattern.test(e.textContent) || pattern.test(e.getAttribute("value")));
+                if (b) {
+                    // console.log(e.textContent)
+                }
+                return b;
+            });
+        }
+        if (link) {
+            DOMUtils.mouseEvent("hover", link);
+            DOMUtils.mouseEvent("click", link);
+        }
     };
 
     self.hintHandleClickNewTabBackground = function(element, event) {
