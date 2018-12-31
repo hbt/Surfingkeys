@@ -13,8 +13,14 @@ var CustomCommonConfig = {
         DirectionLeftInclusive: {
             key: 'Q'
         },
+
+        
         AllTabsInCurrentWindowExceptActiveTab: {
             key: 'c'
+        },
+
+        AllTabsInCurrentWindow: {
+            key: 'C'
         },
 
         AllOtherTabsInOtherWindowsExceptAllTabsInCurrentWindow: {

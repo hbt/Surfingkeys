@@ -1341,6 +1341,17 @@ class CustomBackground {
             return leftTabs;
         }
 
+        function AllTabsInCurrentWindowExceptActiveTab() {
+            let allOthers = _.filter(currentWindowTabs, tab => {
+                return tab.id != ctab.id;
+            });
+            allOthers = _.map(allOthers, tab => {
+                return tab.id;
+            });
+
+            return allOthers;
+        }
+
         console.sassert(CustomCommonConfig.tabMagic.hasOwnProperty(_message.magic));
 
         function getChildrenTabsRecursively(tabId, all) {
@@ -1378,14 +1389,10 @@ class CustomBackground {
             retTabIds = filterDirectionLeft();
             retTabIds.push(ctab.id);
         } else if (_message.magic === "AllTabsInCurrentWindowExceptActiveTab") {
-            let allOthers = _.filter(currentWindowTabs, tab => {
-                return tab.id != ctab.id;
-            });
-            allOthers = _.map(allOthers, tab => {
-                return tab.id;
-            });
-
-            retTabIds = allOthers;
+            retTabIds = AllTabsInCurrentWindowExceptActiveTab();
+        } else if (_message.magic === "AllTabsInCurrentWindow") {
+            retTabIds = AllTabsInCurrentWindowExceptActiveTab();
+            retTabIds.push(ctab.id);
         } else if (_message.magic === "AllOtherTabsInOtherWindowsExceptAllTabsInCurrentWindow") {
             const otabs = await chrome.tabs.query({
                 currentWindow: false
