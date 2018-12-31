@@ -470,6 +470,16 @@ var CustomCommands = (function() {
         element.dispatchEvent(event);
     };
 
+    self.hintDetectNewTab = function(element) {
+        Hints.create(
+            runtime.conf.clickablePat,
+            function(element) {
+                createElement(`<a href=${element[2]} target="_blank">`).click();
+            },
+            { statusLine: "Open detected links from text" }
+        );
+    };
+
     self.hintHandleClickNewTabBackground = function(element, event) {
         Hints.flashPressedLink(element);
         if (isEditable(element)) {
