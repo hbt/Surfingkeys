@@ -329,6 +329,10 @@ function amap(keys, annotation) {
 var CustomCommands = (function() {
     let self = {};
 
+    function shouldSkipOtherRepeats() {
+        return !isNaN(parseInt(Normal.repeats)) && RUNTIME.repeats !== parseInt(Normal.repeats);
+    }
+
     runtime.conf.disabledDomainKeys = [];
 
     self.testMyPort = async () => {
@@ -717,6 +721,20 @@ var CustomCommands = (function() {
         self.windowCloseOtherWindows();
     };
 
+    self.tabUndo = function() {
+        if (shouldSkipOtherRepeats()) {
+            return;
+        }
+        let repeats = parseInt(Normal.repeats) || 1;
+
+        runtime.command(
+            {
+                action: "tabUndo",
+                repeats: repeats
+            },
+            function(res) {}
+        );
+    };
     self.tabClose = function(type) {
         runtime.command(
             {

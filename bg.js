@@ -906,7 +906,9 @@ console.sassert = function(cond, text) {
 var State = {
     tabsMarked: new Map(),
     tabsQuickMarks: new Map(),
-    tabsSettings: new Map()
+    tabsSettings: new Map(),
+    tabUrls: new Map(),
+    tabsRemoved: []
     // globalSettings: {
     //     focusAfterClosed: "right",
     //     repeatThreshold: 99,
@@ -959,12 +961,25 @@ class CustomBackground {
         chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
             CustomBackground.pageStylesheetLoadByDomain(changeInfo, tab);
             CustomBackground.tabSendMessageOnWhenDoneLoading(changeInfo, tab);
+            CustomBackground.tabUpdateInternalState(tab);
         });
 
         chrome.tabs.onCreated.addListener(function(tab) {
             CustomBackground.tabsOnCreatedHandler(tab);
             CustomBackground.tabsMuteByDomain(tab);
         });
+
+        chrome.tabs.onRemoved.addListener(function(tab) {
+            CustomBackground.tabsOnRemovedSave(tab);
+        });
+    }
+
+    static async tabUpdateInternalState(tab) {
+        State.tabUrls.set(tab.id, tab.url);
+    }
+
+    static async tabsOnRemovedSave(tabId) {
+        State.tabsRemoved.push(tabId);
     }
 
     async tabUnmute(message, sender, sendResponse) {
@@ -1493,6 +1508,22 @@ class CustomBackground {
             let ids = _.pluck(all, "id");
             if (ids.includes(ctab.openerTabId)) {
                 chrome.tabs.update(ctab.openerTabId, { active: true });
+            }
+        }
+    }
+
+    async tabUndo(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        let lastRemoved = State.tabsRemoved.reverse();
+        let repeats = _message.repeats;
+        if (repeats > lastRemoved.length) {
+            repeats = lastRemoved.length;
+        }
+        let undos = lastRemoved.slice(0, repeats);
+
+        for (var i = 0; i < undos.length; i++) {
+            if (State.tabUrls.has(undos[i])) {
+                await chrome.tabs.create({ url: State.tabUrls.get(undos[i]), index: ctab.index + 1 });
             }
         }
     }
