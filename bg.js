@@ -1469,6 +1469,11 @@ class CustomBackground {
         unpinnedTabs = _.map(unpinnedTabs, tab => {
             return tab.id;
         });
+
+        let highlightedIds = Array.from(State.tabsMarked.keys());
+        unpinnedTabs = _.filter(unpinnedTabs, id => {
+            return !highlightedIds.includes(id);
+        });
         await chrome.tabs.remove(unpinnedTabs);
     }
 
