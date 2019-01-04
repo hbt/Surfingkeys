@@ -735,6 +735,16 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
+
+    self.tabOpenInIncognito = function() {
+        runtime.command(
+            {
+                action: "tabOpenInIncognito"
+            },
+            function(res) {}
+        );
+    };
+
     self.tabClose = function(type) {
         runtime.command(
             {
