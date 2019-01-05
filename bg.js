@@ -1807,6 +1807,46 @@ class CustomBackground {
         return url;
     }
 
+    async bookmarkLookupCurrentURL(_message, _sender, _sendResponse) {
+        // // Note(hbt) search with and without slash due to legacy stuff
+
+        async function findBookmarkFoldersFromURL(url) {
+            let marks = await chrome.bookmarks.search({ url: url });
+
+            let folderIds = [];
+            for (let i = 0; i < marks.length; i++) {
+                folderIds.push(marks[i].parentId);
+            }
+
+            let titles = [];
+
+            for (let i = 0; i < folderIds.length; i++) {
+                let folder = null;
+                try {
+                    folder = await chrome.bookmarks.getSubTree(folderIds[i]);
+                } catch (e) {}
+                if (!folder) {
+                    continue;
+                }
+
+                titles.push(folder[0].title);
+            }
+
+            return titles;
+        }
+
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        let url1 = ctab.url;
+        let url2 = this._removeTrailingSlash(ctab.url);
+        let folders1 = await findBookmarkFoldersFromURL(url1);
+        let folders2 = await findBookmarkFoldersFromURL(url2);
+        let folders = _.uniq(_.flatten([folders1, folders2]));
+
+        this.sendResponse(_message, _sendResponse, {
+            msg: folders
+        });
+    }
+
     async bookmarkCopyFolder(_message, _sender, _sendResponse) {
         // get subtree
         const matchedMarks = await chrome.bookmarks.search(_message.folder);

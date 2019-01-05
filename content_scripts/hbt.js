@@ -1092,6 +1092,14 @@ var CustomCommands = (function() {
         );
     };
 
+    self.bookmarkLookupCurrentURL = async function() {
+        let ret = await aruntime({
+            action: "bookmarkLookupCurrentURL"
+        });
+        console.log(ret);
+        Front.showBanner(ret.msg.join("\n"), 8000);
+    };
+
     self.bookmarkCopyFolder = function(folder) {
         runtime.command(
             {
