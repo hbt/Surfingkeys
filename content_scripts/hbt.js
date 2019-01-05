@@ -1096,7 +1096,6 @@ var CustomCommands = (function() {
         let ret = await aruntime({
             action: "bookmarkLookupCurrentURL"
         });
-        console.log(ret);
         Front.showBanner(ret.msg.join("\n"), 8000);
     };
 
