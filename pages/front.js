@@ -317,7 +317,6 @@ var Front = (function() {
     self.openFinder = _actions['openFinder'];
 
     self.showBanner = function (content, linger_time) {
-        return CustomCommands.showBanner(banner, content, linger_time)
         banner.classList.remove("slideInBanner");
         banner.style.display = "";
         setInnerHTML(banner, htmlEncode(content));
