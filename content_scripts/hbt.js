@@ -597,7 +597,7 @@ var CustomCommands = (function() {
         element.dispatchEvent(event);
     };
 
-    self.hintDetectNewTab = function(element) {
+    self.hintDetectNewTab = function() {
         Hints.create(
             runtime.conf.clickablePat,
             function(element) {
