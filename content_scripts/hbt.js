@@ -1187,6 +1187,28 @@ var CustomCommands = (function() {
         return map.get(k);
     }
 
+    self.tabSuspendM = async k => {
+        let magic = tabCheckMagicByKey(k);
+        if (magic) {
+            let ret = await aruntime({
+                action: "tabSuspendM",
+                repeats: Normal.repeats || -1,
+                magic: magic
+            });
+        }
+    };
+
+    self.tabUnsuspendM = async k => {
+        let magic = tabCheckMagicByKey(k);
+        if (magic) {
+            let ret = await aruntime({
+                action: "tabUnsuspendM",
+                repeats: Normal.repeats || -1,
+                magic: magic
+            });
+        }
+    };
+
     self.tabCloseM = async k => {
         let magic = tabCheckMagicByKey(k);
         if (magic) {

@@ -919,6 +919,12 @@ var State = {
     // }
 };
 
+// https://github.com/deanoemcke/thegreatsuspender
+// https://github.com/deanoemcke/thegreatsuspender/issues/276#issuecomment-448164831
+var Constants = {
+    tabSuspenderExtensionID: "icpcohpmccndpdnpbeglkengjkgegcjb"
+};
+
 class CustomBackground {
     init() {
         this.registerListeners();
@@ -1457,6 +1463,28 @@ class CustomBackground {
             ret.push(tab);
         }
         return ret;
+    }
+
+    async tabUnsuspendM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+
+        _.each(tabIds, tabId => {
+            chrome.runtime.sendMessage(Constants.tabSuspenderExtensionID, {
+                action: "unsuspend",
+                tabId: tabId
+            });
+        });
+    }
+
+    async tabSuspendM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+
+        _.each(tabIds, tabId => {
+            chrome.runtime.sendMessage(Constants.tabSuspenderExtensionID, {
+                action: "suspend",
+                tabId: tabId
+            });
+        });
     }
 
     async tabCloseM(_message, _sender, _sendResponse) {
