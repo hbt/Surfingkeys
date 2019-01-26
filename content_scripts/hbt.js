@@ -1052,6 +1052,18 @@ var CustomCommands = (function() {
         self.urlReplaceNumber2(parseInt(inc) * -1, repeats);
     };
 
+    self.openSourceCodeExternalEditor = function() {
+        // reuse the same code as ysrc . If this is buggy, do an ajax request to view-source:http.... -- gsrc
+        var aa = document.documentElement.cloneNode(true);
+        runtime.command(
+            {
+                action: "openSourceCodeExternalEditor",
+                text: aa.outerHTML
+            },
+            function(res) {}
+        );
+    };
+
     self.urlIncrementLastPath = function(inc) {
         // self.urlReplaceNumber(parseInt(inc))
 

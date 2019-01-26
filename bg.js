@@ -2106,6 +2106,30 @@ class CustomBackground {
             })
         );
     }
+
+    async openSourceCodeExternalEditor(message, sender, sendResponse) {
+        const ctab = await chrome.tabs.get(sender.tab.id);
+        // message.text = ctab.url;
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://127.0.0.1:8001");
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                this.sendResponse(message, sendResponse, {
+                    type: "editWithVIMCallback",
+                    text: xhr.responseText,
+                    elementId: message.elementId
+                });
+            }
+        };
+        xhr.send(
+            JSON.stringify({
+                data: "" + (message.text || ""),
+                line: message.line || 0,
+                column: message.column || 0
+            })
+        );
+    }
 }
 
 {
