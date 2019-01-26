@@ -1560,13 +1560,18 @@ class CustomBackground {
         if (repeats > lastRemoved.length) {
             repeats = lastRemoved.length;
         }
-        let undos = lastRemoved.slice(0, repeats);
 
-        for (var i = 0; i < undos.length; i++) {
-            if (State.tabUrls.has(undos[i])) {
-                await chrome.tabs.create({ url: State.tabUrls.get(undos[i]), index: ctab.index + 1 });
+        for (let i = 0; i < repeats; i++) {
+            if (lastRemoved[i] && State.tabUrls.has(lastRemoved[i])) {
+                await chrome.tabs.create({ url: State.tabUrls.get(lastRemoved[i]), index: ctab.index + 1 });
             }
         }
+
+        for (let i = 0; i < repeats; i++) {
+            lastRemoved.shift();
+        }
+
+        State.tabsRemoved = lastRemoved.reverse();
     }
 
     async tabGoto(_message, _sender, _sendResponse) {
