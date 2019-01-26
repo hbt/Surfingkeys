@@ -981,7 +981,7 @@ class CustomBackground {
     }
 
     static async tabUpdateInternalState(tab) {
-        State.tabUrls.set(tab.id, tab.url);
+        State.tabUrls.set(tab.id, tab);
     }
 
     static async tabsOnRemovedSave(tabId) {
@@ -1554,23 +1554,37 @@ class CustomBackground {
     }
 
     async tabUndo(_message, _sender, _sendResponse) {
+        function filterOutIncognito(incognito, lastRemoved) {
+            let ret = [];
+            for (let i = 0; i < lastRemoved.length; i++) {
+                if (State.tabUrls.has(lastRemoved[i]) && State.tabUrls.get(lastRemoved[i]).incognito == incognito) {
+                    ret.push(lastRemoved[i]);
+                }
+            }
+            return ret;
+        }
+
         const ctab = await chrome.tabs.get(_sender.tab.id);
         let lastRemoved = State.tabsRemoved.reverse();
         let repeats = _message.repeats;
+
         if (repeats > lastRemoved.length) {
             repeats = lastRemoved.length;
         }
 
+        let filteredLastRemoved = filterOutIncognito(ctab.incognito, lastRemoved);
+
         for (let i = 0; i < repeats; i++) {
-            if (lastRemoved[i] && State.tabUrls.has(lastRemoved[i])) {
-                await chrome.tabs.create({ url: State.tabUrls.get(lastRemoved[i]), index: ctab.index + 1 });
+            if (filteredLastRemoved[i] && State.tabUrls.has(filteredLastRemoved[i])) {
+                await chrome.tabs.create({ url: State.tabUrls.get(filteredLastRemoved[i]).url, index: ctab.index + 1 });
             }
         }
 
+        let rm = [];
         for (let i = 0; i < repeats; i++) {
-            lastRemoved.shift();
+            rm.push(filteredLastRemoved.shift());
         }
-
+        lastRemoved = _.without(lastRemoved, rm);
         State.tabsRemoved = lastRemoved.reverse();
     }
 
