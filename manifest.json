@@ -77,6 +77,11 @@
 
                 "promisify-chrome-api.js",
 
+                "libs/jquery-3.3.1.min.js",
+                "libs/linkify.min.js",
+                "libs/linkify-jquery.min.js",
+                "libs/linkify-element.min.js",
+
                 "libs/trie.js",
                 "content_scripts/keyboardUtils.js",
                 "content_scripts/utils.js",

@@ -598,6 +598,7 @@ var CustomCommands = (function() {
     };
 
     self.hintDetectNewTab = function() {
+        linkifyElement(document.body);
         Hints.create(
             runtime.conf.clickablePat,
             function(element) {
@@ -1062,6 +1063,10 @@ var CustomCommands = (function() {
             },
             function(res) {}
         );
+    };
+
+    self.urlMake = function() {
+        linkifyElement(document.body);
     };
 
     self.urlIncrementLastPath = function(inc) {
