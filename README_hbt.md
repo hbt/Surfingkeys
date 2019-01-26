@@ -50,6 +50,7 @@ g b -D dev
 * uses https://github.com/hbt/mouseless python server for gvim stuff
 * uses https://github.com/hbt/chrome-restore-focus to fix focus when lost in browser without having to touch mouse
 * uses https://github.com/hbt/chromedotfiles for toggleDomainStylesheet stuff
+* uses https://github.com/deanoemcke/thegreatsuspender to suspend tabs and free memory
 * the config file is loaded every time -- even in JS apps if a tab update event is detected
 * Use console > preserve log when coding in config file as the log gets eaten by frontend.html
 * avoid changes to core extension files  to prevent code conflicts. If needed, Work around it (separate files/namespaces) + identify changes (hbtXXX) to ease conflict resolution + encapsulate (call a method, no inline code)
