@@ -40,7 +40,10 @@ var runtime = window.runtime || (function() {
             stealFocusOnLoad: true,
             tabsThreshold: 9,
             textAnchorPat: /(^[\n\r\s]*\S{3,}|\b\S{4,})/g,
+            ignoredFrameHosts: ["https://tpc.googlesyndication.com"],
             scrollFriction: 0,
+            aceKeybindings: "vim",
+            caretViewport: null,
             useLocalMarkdownAPI: true,
         },
         runtime_handlers: {}

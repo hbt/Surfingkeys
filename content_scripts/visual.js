@@ -140,7 +140,13 @@ var Visual = (function() {
         feature_group: 9,
         code: function() {
             document.scrollingElement.scrollTop = document.scrollingElement.scrollHeight;
-            modifySelection();
+            if (window.navigator.userAgent.indexOf("Firefox") === -1) {
+                modifySelection();
+            } else {
+                self.hideCursor();
+                selection.setPosition(document.body.lastChild, 0);
+                self.showCursor();
+            }
             if (matches.length) {
                 currentOccurrence = matches.length - 1;
                 Front.showStatus(2, currentOccurrence + 1 + ' / ' + matches.length);
@@ -159,7 +165,14 @@ var Visual = (function() {
             if (matches.length) {
                 Front.showStatus(2, currentOccurrence + 1 + ' / ' + matches.length);
             }
-            modifySelection();
+
+            if (window.navigator.userAgent.indexOf("Firefox") === -1) {
+                modifySelection();
+            } else {
+                self.hideCursor();
+                selection.setPosition(document.body.firstChild, 0);
+                self.showCursor();
+            }
         }
     });
 
@@ -535,6 +548,13 @@ var Visual = (function() {
         }
         if (matches.length) {
             currentOccurrence = 0;
+            for (var i = 0; i < matches.length; i++) {
+                var br = matches[i][2].getBoundingClientRect();
+                if (br.top > 0) {
+                    currentOccurrence = i;
+                    break;
+                }
+            }
             Front.showStatus(2, currentOccurrence + 1 + ' / ' + matches.length);
         }
     }

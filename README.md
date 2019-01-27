@@ -33,7 +33,7 @@ Surfingkeys works for Firefox(above 57) since 0.9.15, with below features as exc
 * [Repeats action by pressing number before mapkey](#repeats-action-by-pressing-number-before-mapkey)
 * [Hotkey to toggle Surfingkeys](#hotkey-to-toggle-surfingkeys)
 * [Proxy settings](#proxy-settings)
-* [VIM editor](#vim-editor)
+* [VIM editor and Emacs editor](#vim-editor-and-emacs-editor)
 * [Dot to repeat previous action](#dot-to-repeat-previous-action)
 * [Markdown preview](#markdown-preview)
 * [Capture page](#capture-page)
@@ -167,6 +167,10 @@ If you'd like emoji suggestions popup as soon as you input colon, use below:
 `Find` is not actually a mode, it just another way to enter visual mode. Press `/` to open find bar, which sits at almost the same position with Mode indicator, type something there. All occurrences of your input will be highlighted. Press `Enter` to finish the finding, and you're in `Caret` visual mode now, press `n` to find next, `N` to find previous.
 
 Press `Ctrl-Enter` to find exactly the whole word input, like with the input `\bkeyword\b`.
+
+### PassThrough mode
+
+To press `Alt-i` to enter PassThrough mode gives you a chance to temporarily suppress SurfingKeys, which means Surfingkeys will not care any key press until leaving this mode by pressing `Esc`. In this mode, you could use built-in shortcuts from any site itself. Please see [Feature Request: implement Vimium-style insert mode · Issue #656](https://github.com/brookhong/Surfingkeys/issues/656) for why we brought this in and the difference between `Alt-i` and `Alt-s`.
 
 ## Omnibar
 
@@ -373,13 +377,19 @@ To avoid manually editing PAC script and reloading/switching profile by clicking
 
 * `spi`, shortcut for `:proxyInfo`
 
-## VIM editor
+## VIM editor and Emacs editor
 
 Thanks ACE for the vim editor, Surfingkeys integrates ACE for the vim editor. The vim editor is used:
 
 * to edit any input on html page
 * to edit URL to open in new tab
 * to edit settings
+
+You could change to Emacs keybindings for the editor by adding below settings:
+
+    settings.aceKeybindings = "emacs";
+
+With Emacs keybindings, use `C-x C-s` to save your input.
 
 ### Edit any input on html page
 
@@ -655,6 +665,9 @@ For example,
 | settings.cursorAtEndOfInput | true | Whether to put cursor at end of input when entering an input box, by false to put the cursor where it was when focus was removed from the input. |
 | settings.digitForRepeat | true | Whether digits are reserved for repeats, by false to enable mapping of numeric keys. |
 | settings.editableBodyCare | true | Insert mode is activated automatically when an editable element is focused, so if document.body is editable for some window/iframe (such as docs.google.com), Insert mode is always activated on the window/iframe, which means all shortcuts from Normal mode will not be available. With `editableBodyCare` as `true`, Insert mode will not be activated automatically in this case. |
+| settings.ignoredFrameHosts | ["https://tpc.googlesyndication.com"] | When using `w` to loop through frames, you could use this settings to exclude some of them, such as those for advertisements. |
+| settings.aceKeybindings | "vim" | Set it "emacs" to use emacs keybindings in the ACE editor. |
+| settings.caretViewport | null | Set it in format `[top, left, bottom, right]` to limit hints generation on `v` for entering visual mode, such as `[window.innerHeight / 2 - 10, 0, window.innerHeight / 2 + 10, window.innerWidth]` will make Surfingkeys generate Hints only for text that display on vertically middle of window. |
 
 ### Example of settings.theme, below is to set font size of status bar
 
