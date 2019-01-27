@@ -1956,8 +1956,9 @@ class CustomBackground {
         });
         urls = _.unique(urls);
         const count = urls.length;
-        urls = urls.join("\n");
-        Clipboard.copy(urls);
+        urls = urls.reverse();
+        let strurls = urls.join("\n");
+        Clipboard.copy(strurls);
 
         this.sendResponse(_message, _sendResponse, {
             msg: `Copied ${count} URLS`
