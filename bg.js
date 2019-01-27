@@ -1782,38 +1782,29 @@ class CustomBackground {
         );
     }
 
+    // TODO(hbt) NEXT 3
+    async bookmarkAddM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+        const tabs = await this.tabsGetFromIds(tabIds);
+    }
+
     async bookmarkToggle(_message, _sender, _sendResponse) {
         var cbl = this;
         function removeTrailingSlash(url) {
             return cbl._removeTrailingSlash(url);
         }
 
-        async function getBookmarkFolder() {
-            let collection = await chrome.bookmarks.search({ title: _message.folder });
-            let folder = collection[0];
-            return folder;
+        async function getBookmarkFolder(bookmarkFolderString) {
+            return await cbl._getBookmarkFolder(bookmarkFolderString);
         }
 
         async function getBookmarkChildren(bookmarkFolder) {
-            const bchildren = await chrome.bookmarks.getChildren(bookmarkFolder.id);
-            let children = _.map(bchildren, child => {
-                child.url = removeTrailingSlash(child.url);
-                return child;
-            });
-            children = _.indexBy(children, "url");
-            return children;
-        }
-
-        function isBookmarkedURL(children, currentTabURL) {
-            return _.keys(children).includes(currentTabURL);
+            return await cbl._getBookmarkChildren(bookmarkFolder);
         }
 
         function removeBookmark(children, currentTabURL) {
             var b = children[currentTabURL];
             chrome.bookmarks.remove(b.id);
-            this.sendResponse(_message, _sendResponse, {
-                msg: `Removed ${currentTabURL} from bookmark folder ${_message.folder}`
-            });
         }
 
         function addBookmark(currentTab, bookmarkFolder, currentTabURL) {
@@ -1827,24 +1818,57 @@ class CustomBackground {
                 url: currentTabURL,
                 title: title
             });
-
-            this.sendResponse(_message, _sendResponse, {
-                msg: `Added ${currentTabURL} to bookmark folder ${_message.folder}`
-            });
         }
 
         {
             const currentTab = await chrome.tabs.get(_sender.tab.id);
             let currentTabURL = removeTrailingSlash(currentTab.url);
-            let bookmarkFolder = await getBookmarkFolder();
-            let bookmarkFolderChildren = await getBookmarkChildren(bookmarkFolder);
+            let bookmarkFolder = await getBookmarkFolder(_message.folder);
+            let bookmarkFolderChildren = await getBookmarkChildren(_message.folder);
 
-            if (isBookmarkedURL(bookmarkFolderChildren, currentTabURL)) {
+            let msg = "";
+
+            if (await this._isBookmarkedUrl(currentTab, _message.folder)) {
                 removeBookmark.call(this, bookmarkFolderChildren, currentTabURL);
+                msg = `Removed ${currentTabURL} from bookmark folder ${_message.folder}`;
             } else {
                 addBookmark.call(this, currentTab, bookmarkFolder, currentTabURL);
+                msg = `Added ${currentTabURL} to bookmark folder ${_message.folder}`;
             }
+
+            this.sendResponse(_message, _sendResponse, {
+                msg: msg
+            });
         }
+    }
+
+    async _isBookmarkedUrl(ctab, bookmarkFolderString) {
+        let children = await this._getBookmarkChildren(bookmarkFolderString);
+        let ret = _.keys(children).includes(ctab.url);
+        if (ret) {
+            console.log("hh");
+        }
+        return ret;
+    }
+
+    async _getBookmarkFolder(bookmarkFolderString) {
+        let collection = await chrome.bookmarks.search({ title: bookmarkFolderString });
+        if (collection.length == 0) {
+            throw new Error("bookmark folder not found: " + bookmarkFolderString);
+        }
+        let ret = collection[0];
+        return ret;
+    }
+
+    async _getBookmarkChildren(bookmarkFolderString) {
+        let bookmarkFolder = await this._getBookmarkFolder(bookmarkFolderString);
+        const bchildren = await chrome.bookmarks.getChildren(bookmarkFolder.id);
+        let children = _.map(bchildren, child => {
+            child.url = this._removeTrailingSlash(child.url);
+            return child;
+        });
+        children = _.indexBy(children, "url");
+        return children;
     }
 
     _removeTrailingSlash(url) {

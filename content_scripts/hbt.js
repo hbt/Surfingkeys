@@ -356,6 +356,7 @@ var CustomCommands = (function() {
         );
     };
 
+    // TODO(hbt) Refactor (low): refactor magic cmds -- abstract pattern
     self.tabReloadM = async k => {
         let magic = tabCheckMagicByKey(k);
         if (!magic) {
@@ -1095,6 +1096,58 @@ var CustomCommands = (function() {
             },
             function(res) {}
         );
+    };
+
+    callMagicBackend = async function(key, action, options) {
+        let magic = tabCheckMagicByKey(key);
+        if (!magic) {
+            return;
+        }
+
+        let opts = options || {};
+        let msg = {
+            action: action,
+            repeats: Normal.repeats || -1,
+            magic: magic
+        };
+
+        msg = Object.assign(msg, opts);
+        console.log(msg);
+
+        let res = await aruntime(msg);
+
+        return res;
+    };
+
+    // TODO(hbt) NEXT 2
+    self.bookmarkAddM = async function(k, folder) {
+        let ret = await callMagicBackend(k, "bookmarkAddM", { folder: folder });
+        console.log(ret);
+
+        //
+        // await callMagicBackend()
+        //
+        // {
+        //             let magic = tabCheckMagicByKey(k);
+        // if (!magic) {
+        //     return;
+        // }
+        //
+        // let res = await aruntime({
+        //     action: "tabReloadM",
+        //     repeats: Normal.repeats || -1,
+        //     magic: magic
+        // });
+        // }
+        // runtime.command(
+        //     {
+        //         action: "bookmarkToggle",
+        //         folder: folder
+        //     },
+        //     function(res) {
+        //         Front.showBanner(res.msg, 3000);
+        //     }
+        // );
     };
 
     self.bookmarkToggle = function(folder) {
