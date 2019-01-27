@@ -968,11 +968,11 @@ class CustomBackground {
             CustomBackground.pageStylesheetLoadByDomain(changeInfo, tab);
             CustomBackground.tabSendMessageOnWhenDoneLoading(changeInfo, tab);
             CustomBackground.tabUpdateInternalState(tab);
+            CustomBackground.tabsMuteByDomain(tab, changeInfo);
         });
 
         chrome.tabs.onCreated.addListener(function(tab) {
             CustomBackground.tabsOnCreatedHandler(tab);
-            CustomBackground.tabsMuteByDomain(tab);
         });
 
         chrome.tabs.onRemoved.addListener(function(tab) {
@@ -995,11 +995,15 @@ class CustomBackground {
         });
     }
 
-    static async tabsMuteByDomain(tab) {
+    static async tabsMuteByDomain(tab, changeInfo) {
         // Note(hbt) for now mute all tabs and unmute in config file
-        chrome.tabs.update(tab.id, {
-            muted: true
-        });
+
+        if (changeInfo.status === "loading") {
+            chrome.tabs.update(tab.id, {
+                muted: true
+            });
+            return;
+        }
     }
 
     /**
@@ -1868,9 +1872,6 @@ class CustomBackground {
     async _isBookmarkedUrl(ctab, bookmarkFolderString) {
         let children = await this._getBookmarkChildren(bookmarkFolderString);
         let ret = _.keys(children).includes(this._removeTrailingSlash(ctab.url));
-        if (ret) {
-            console.log("hh");
-        }
         return ret;
     }
 

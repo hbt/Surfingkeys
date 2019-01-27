@@ -1112,7 +1112,6 @@ var CustomCommands = (function() {
         };
 
         msg = Object.assign(msg, opts);
-        console.log(msg);
 
         let res = await aruntime(msg);
 
