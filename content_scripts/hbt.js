@@ -1120,34 +1120,15 @@ var CustomCommands = (function() {
     };
 
     // TODO(hbt) NEXT 2
+
     self.bookmarkAddM = async function(k, folder) {
         let ret = await callMagicBackend(k, "bookmarkAddM", { folder: folder });
-        console.log(ret);
+        Front.showBanner(ret.msg, 3000);
+    };
 
-        //
-        // await callMagicBackend()
-        //
-        // {
-        //             let magic = tabCheckMagicByKey(k);
-        // if (!magic) {
-        //     return;
-        // }
-        //
-        // let res = await aruntime({
-        //     action: "tabReloadM",
-        //     repeats: Normal.repeats || -1,
-        //     magic: magic
-        // });
-        // }
-        // runtime.command(
-        //     {
-        //         action: "bookmarkToggle",
-        //         folder: folder
-        //     },
-        //     function(res) {
-        //         Front.showBanner(res.msg, 3000);
-        //     }
-        // );
+    self.bookmarkRemoveM = async function(k, folder) {
+        let ret = await callMagicBackend(k, "bookmarkRemoveM", { folder: folder });
+        Front.showBanner(ret.msg, 3000);
     };
 
     self.bookmarkToggle = function(folder) {

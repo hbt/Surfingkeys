@@ -1786,6 +1786,21 @@ class CustomBackground {
     async bookmarkAddM(_message, _sender, _sendResponse) {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
         const tabs = await this.tabsGetFromIds(tabIds);
+        let folder = _message.folder;
+        let bfolder = await this._getBookmarkFolder(folder);
+
+        let count = 0;
+        for (let i = 0; i < tabs.length; i++) {
+            if (!(await this._isBookmarkedUrl(tabs[i], folder))) {
+                await this._bookmarkAdd(tabs[i], folder);
+                count++;
+            }
+        }
+
+        let msg = `Added ${count} bookmark(s) to ${folder}`;
+        this.sendResponse(_message, _sendResponse, {
+            msg: msg
+        });
     }
 
     async bookmarkToggle(_message, _sender, _sendResponse) {
