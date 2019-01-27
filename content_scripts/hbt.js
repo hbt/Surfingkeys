@@ -1119,8 +1119,6 @@ var CustomCommands = (function() {
         return res;
     };
 
-    // TODO(hbt) NEXT 2
-
     self.bookmarkAddM = async function(k, folder) {
         let ret = await callMagicBackend(k, "bookmarkAddM", { folder: folder });
         Front.showBanner(ret.msg, 3000);

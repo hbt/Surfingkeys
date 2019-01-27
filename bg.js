@@ -1782,8 +1782,6 @@ class CustomBackground {
         );
     }
 
-    // TODO(hbt) NEXT 3
-
     async bookmarkAddM(_message, _sender, _sendResponse) {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
         const tabs = await this.tabsGetFromIds(tabIds);
