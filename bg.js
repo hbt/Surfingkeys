@@ -1139,7 +1139,8 @@ class CustomBackground {
         paste = paste.split("\n").filter(function(e) {
             return e.trim();
         });
-        for (var j = 0, l = paste.length; j < l; ++j) {
+        let length = _message.repeats > 0 ? _message.repeats : paste.length;
+        for (let j = 0; j < length; j++) {
             await chrome.tabs.create({
                 url: Utils.toSearchURL(paste[j].trim(), Utils.defaultSearchEngine),
                 index: ctab.index + 1

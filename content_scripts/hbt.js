@@ -436,11 +436,17 @@ var CustomCommands = (function() {
     };
 
     self.pasteFromClipboardNewTab = function() {
+        if (shouldSkipOtherRepeats()) {
+            return;
+        }
+        let repeats = parseInt(Normal.repeats) || -1;
+
         Clipboard.read(v => {
             runtime.command(
                 {
                     action: "pasteFromClipboardNewTab",
-                    data: v
+                    data: v,
+                    repeats: repeats
                 },
                 function(res) {}
             );
