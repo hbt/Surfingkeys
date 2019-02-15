@@ -1621,6 +1621,18 @@ class CustomBackground {
         }
     }
 
+    tabTogglePin(tab) {
+        chrome.tabs.update(tab.id, { pinned: !tab.pinned }, function(new_tab) {});
+    }
+
+    // TODO(hbt) NEXT 4
+    async tabTogglePinM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+        const tabs = await this.tabsGetFromIds(tabIds);
+
+        tabs.forEach(this.tabTogglePin);
+    }
+
     async tabToggleHighlightM(_message, _sender, _sendResponse) {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
         const tabs = await this.tabsGetFromIds(tabIds);

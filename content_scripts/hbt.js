@@ -765,6 +765,19 @@ var CustomCommands = (function() {
         );
     };
 
+    self.tabTogglePinM = async function(k) {
+        let magic = tabCheckMagicByKey(k);
+        if (!magic) {
+            return;
+        }
+
+        let ret = await aruntime({
+            action: "tabTogglePinM",
+            repeats: Normal.repeats || -1,
+            magic: magic
+        });
+    };
+
     self.tabTogglePinAll = function() {
         runtime.command(
             {
