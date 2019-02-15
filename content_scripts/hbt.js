@@ -454,18 +454,24 @@ var CustomCommands = (function() {
     };
 
     self.handleCtrlWFeature = function(msg, sender, cb) {
-        if (!document.location.href.endsWith("pages/frontend.html") && !document.location.href.startsWith("chrome-extension://")) {
+        let href = document.location.href;
+        if (
+            !document.location.href.endsWith("pages/frontend.html") &&
+            !document.location.href.startsWith("chrome-extension://") &&
+            !href.endsWith("about:blank")
+        ) {
             let el = document.activeElement;
             if (DOMUtils.isEditable(el)) {
+                // console.log(href, 'rm word')
                 InsertUtils.deleteWord();
             } else {
                 if (document.activeElement && document.activeElement.shadowRoot !== null) {
                     // TODO(hbt) ENHANCE add shortcut in AceEditor
                     // InsertUtils.deleteWord()
                 } else {
-                    // TODO(hbt) FIXME not working on google
-
-                    if (window.location.href.indexOf("google") === -1) {
+                    // console.log(href, 'closing')
+                    // if (window.location.href.indexOf("google") === -1)
+                    {
                         runtime.command(
                             {
                                 action: "tabClose"
