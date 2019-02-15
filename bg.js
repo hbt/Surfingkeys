@@ -1957,7 +1957,9 @@ class CustomBackground {
         });
         urls = _.unique(urls);
         const count = urls.length;
-        urls = urls.reverse();
+        if (_message.reverse) {
+            urls = urls.reverse();
+        }
         let strurls = urls.join("\n");
         Clipboard.copy(strurls);
 

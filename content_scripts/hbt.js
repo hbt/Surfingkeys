@@ -1153,11 +1153,25 @@ var CustomCommands = (function() {
         Front.showBanner(ret.msg.join("\n"), 8000);
     };
 
-    self.bookmarkCopyFolder = function(folder) {
+    self.bookmarkCopyOrderedFolder = function(folder) {
         runtime.command(
             {
                 action: "bookmarkCopyFolder",
-                folder: folder
+                folder: folder,
+                reverse: false
+            },
+            function(res) {
+                Front.showBanner(res.msg, 3000);
+            }
+        );
+    };
+
+    self.bookmarkCopyReversedFolder = function(folder) {
+        runtime.command(
+            {
+                action: "bookmarkCopyFolder",
+                folder: folder,
+                reverse: true
             },
             function(res) {
                 Front.showBanner(res.msg, 3000);
