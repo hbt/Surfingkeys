@@ -1,3 +1,6 @@
+var DEBUG = 0;
+var LOG = DEBUG ? console.log.bind(console) : function() {};
+
 var DOMUtils = {
     mouseEvent: function(type, element) {
         var events;
@@ -301,7 +304,7 @@ function printAllCommands() {
     // }
 
     for (var key of MyCustomMapping.acmds.keys()) {
-        console.log(`amap("${MyCustomMapping.acmds.get(key).meta.word}", "${key}");`);
+        console.info(`amap("${MyCustomMapping.acmds.get(key).meta.word}", "${key}");`);
     }
 }
 
@@ -455,21 +458,28 @@ var CustomCommands = (function() {
 
     self.handleCtrlWFeature = function(msg, sender, cb) {
         let href = document.location.href;
+        // Note(hbt) detects iframe issue and prevents evaluation  e.g https://www.google.com/search?source=hp&ei=bnxuXKfZJMrk_Aaag5iIDg&q=nodejs+console+log+line+number&btnK=Google+Search&oq=nodejs+console+log+lin&gs_l=psy-ab.3.0.0j0i22i30l4.912.3780..4703...0.0..0.78.1598.23......0....1..gws-wiz.....0..35i39j0i67j0i131i67j0i10i67j0i131j0i20i263j0i10.Wg48hdfEJdY
+        try {
+            console.info(window.location.href, window.top.location.href);
+        } catch (e) {}
         if (
             !document.location.href.endsWith("pages/frontend.html") &&
             !document.location.href.startsWith("chrome-extension://") &&
             !href.endsWith("about:blank")
         ) {
             let el = document.activeElement;
+            LOG(el);
+            LOG(window.location.href, window.top.location.href);
             if (DOMUtils.isEditable(el)) {
-                // console.log(href, 'rm word')
+                LOG(href, "rm word");
                 InsertUtils.deleteWord();
             } else {
+                LOG(document.activeElement.shadowRoot);
                 if (document.activeElement && document.activeElement.shadowRoot !== null) {
                     // TODO(hbt) ENHANCE add shortcut in AceEditor
                     // InsertUtils.deleteWord()
                 } else {
-                    // console.log(href, 'closing')
+                    LOG(href, "closing");
                     // if (window.location.href.indexOf("google") === -1)
                     {
                         runtime.command(
