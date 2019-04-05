@@ -56,6 +56,19 @@ function isElementClickable(e) {
         || e.closest("a, *[onclick], *[contenteditable=true], *.jfk-button, *.goog-flat-menu-button") !== null;
 }
 
+function dispatchMouseEvent(element, events, shiftKey) {
+    events.forEach(function(eventName) {
+        var mouseButton = shiftKey ? 1 : 0;
+        var event = new MouseEvent(eventName, {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            button: mouseButton
+        });
+        element.dispatchEvent(event);
+    });
+}
+
 function getRealEdit(event) {
     var rt = event ? event.target : document.activeElement;
     // on some pages like chrome://history/, input is in shadowRoot of several other recursive shadowRoots.
@@ -85,7 +98,8 @@ function toggleQuote() {
 }
 
 function isEditable(element) {
-    return !element.disabled && (element.localName === 'textarea'
+    return element
+        && !element.disabled && (element.localName === 'textarea'
         || element.localName === 'select'
         || element.isContentEditable
         || (element.localName === 'input' && /^(?!button|checkbox|file|hidden|image|radio|reset|submit)/i.test(element.type)));

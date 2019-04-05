@@ -60,13 +60,9 @@ var Front = (function() {
 
     var _actions = {};
 
-    self.registerAction = function(action, cb) {
-        _actions[action] = cb;
-    };
-
-    _actions["updateInlineQuery"] = function (message) {
+    self.performInlineQueryOnSelection = function(word) {
         var b = document.getSelection().getRangeAt(0).getClientRects()[0];
-        Front.performInlineQuery(message.word, function(queryResult) {
+        Front.performInlineQuery(word, function(queryResult) {
             Front.showBubble({
                 top: b.top,
                 left: b.left,
@@ -74,6 +70,21 @@ var Front = (function() {
                 width: b.width
             }, queryResult, false);
         });
+    };
+    self.querySelectedWord = function() {
+        var selection = document.getSelection();
+        var word = selection.toString().trim();
+        if (word && word.length && selection.type === "Range") {
+            self.performInlineQueryOnSelection(word);
+        }
+    };
+
+    _actions["updateInlineQuery"] = function (message) {
+        if (message.word) {
+            self.performInlineQueryOnSelection(message.word);
+        } else {
+            self.querySelectedWord();
+        }
     };
 
     _actions["getSearchSuggestions"] = function (message) {
@@ -452,6 +463,10 @@ var Front = (function() {
     _actions["visualEnter"] = function(message) {
         clearPendingQuery();
         Visual.visualEnter(message.query);
+    };
+
+    _actions["emptySelection"] = function(message) {
+        document.getSelection().empty();
     };
 
     var _active = false;

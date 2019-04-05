@@ -239,11 +239,22 @@ var Visual = (function() {
             self.star();
         }
     });
+    function clickLink(element, shiftKey) {
+        Hints.flashPressedLink(element);
+        dispatchMouseEvent(element, ['click'], shiftKey);
+    }
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Enter>"), {
         annotation: "Click on node under cursor.",
         feature_group: 9,
         code: function() {
-            Hints.dispatchMouseClick(selection.focusNode.parentNode);
+            clickLink(selection.focusNode.parentNode, false);
+        }
+    });
+    self.mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Enter>"), {
+        annotation: "Click on node under cursor.",
+        feature_group: 9,
+        code: function() {
+            clickLink(selection.focusNode.parentNode, true);
         }
     });
     self.mappings.add("zz", {
@@ -627,22 +638,15 @@ var Visual = (function() {
                             Clipboard.write(element[1] === 0 ? element[0].data.trim() : element[2].trim());
                         } else if (ex === "q") {
                             var word = element[2].trim().replace(/[^A-z].*$/, "");
-                            if (Front.isProvider()) {
-                                Front.contentCommand({
-                                    action: 'updateInlineQuery',
-                                    word: word
-                                });
-                            } else {
-                                var b = getTextNodePos(element[0], element[1], element[2].length);
-                                Front.performInlineQuery(word, function(queryResult) {
-                                    Front.showBubble({
-                                        top: b.top,
-                                        left: b.left,
-                                        height: b.height,
-                                        width: b.width
-                                    }, queryResult, false);
-                                });
-                            }
+                            var b = getTextNodePos(element[0], element[1], element[2].length);
+                            Front.performInlineQuery(word, function(queryResult) {
+                                Front.showBubble({
+                                    top: b.top,
+                                    left: b.left,
+                                    height: b.height,
+                                    width: b.width
+                                }, queryResult, false);
+                            });
                         } else {
                             setTimeout(function () {
                                 selection.setPosition(element[0], element[1]);
