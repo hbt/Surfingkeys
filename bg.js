@@ -1839,14 +1839,31 @@ class CustomBackground {
     }
 
     async bookmarkSaveYoutube(_message, _sender, _sendResponse) {
+        let cthis = this;
+        async function removeOtherBookmarkPlaybacks(strurl, folder) {
+            let url = new URL(strurl);
+            url.searchParams.delete("t");
+
+            let children = await cthis._getBookmarkChildren(folder);
+            children = Object.values(children);
+            for (let child of children) {
+                if (child.url.startsWith(url.toString())) {
+                    let bmarks = await chrome.bookmarks.search({ url: child.url });
+                    let ids = _.pluck(bmarks, "id");
+                    for (let id of ids) {
+                        await chrome.bookmarks.remove(id);
+                    }
+                }
+            }
+        }
+
         const currentTab = await chrome.tabs.get(_sender.tab.id);
         let currentTabURL = this._removeTrailingSlash(currentTab.url);
 
         let url = new URL(currentTabURL);
         url.searchParams.set("t", _message.duration);
 
-        // TODO(hbt) NEXT fix
-        // await this._bookmarkRemove(currentTab, _message.folder);
+        await removeOtherBookmarkPlaybacks(url.toString(), _message.folder);
         currentTab.url = url.toString();
         await this._bookmarkAdd(currentTab, _message.folder);
 
@@ -1909,7 +1926,18 @@ class CustomBackground {
         if (collection.length == 0) {
             throw new Error("bookmark folder not found: " + bookmarkFolderString);
         }
-        let ret = collection[0];
+        let ret = null;
+        for (let bf of collection) {
+            if (bf.title === bookmarkFolderString) {
+                ret = bf;
+                break;
+            }
+        }
+
+        if (ret === null) {
+            throw new Error("bookmark folder not found: " + bookmarkFolderString);
+        }
+
         return ret;
     }
 
