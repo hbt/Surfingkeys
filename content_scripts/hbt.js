@@ -1175,6 +1175,40 @@ var CustomCommands = (function() {
         );
     };
 
+    self.bookmarkSaveYoutube = async function() {
+        function getYoutubeDurationInSeconds() {
+            function getYoutubeDuration() {
+                return document.getElementsByClassName("ytp-time-current")[0].innerText;
+            }
+
+            function convertDurationToSeconds(duration) {
+                let parts = duration.split(":");
+                let seconds = parts.pop() || 0;
+                let mins = parts.pop() || 0;
+                let hours = parts.pop() || 0;
+
+                let d = new Date(0);
+                d.setUTCHours(hours);
+                d.setUTCMinutes(mins);
+                d.setUTCSeconds(seconds);
+
+                let ret = d.getTime() / 1000;
+
+                return ret;
+            }
+
+            return convertDurationToSeconds(getYoutubeDuration());
+        }
+
+        let ret = await aruntime({
+            action: "bookmarkSaveYoutube",
+            folder: "playback",
+            duration: getYoutubeDurationInSeconds()
+        });
+
+        Front.showBanner(ret.msg, 8000);
+    };
+
     self.bookmarkLookupCurrentURL = async function() {
         let ret = await aruntime({
             action: "bookmarkLookupCurrentURL"

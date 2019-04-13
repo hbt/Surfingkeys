@@ -1838,6 +1838,23 @@ class CustomBackground {
         });
     }
 
+    async bookmarkSaveYoutube(_message, _sender, _sendResponse) {
+        const currentTab = await chrome.tabs.get(_sender.tab.id);
+        let currentTabURL = this._removeTrailingSlash(currentTab.url);
+
+        let url = new URL(currentTabURL);
+        url.searchParams.set("t", _message.duration);
+
+        // TODO(hbt) NEXT fix
+        // await this._bookmarkRemove(currentTab, _message.folder);
+        currentTab.url = url.toString();
+        await this._bookmarkAdd(currentTab, _message.folder);
+
+        this.sendResponse(_message, _sendResponse, {
+            msg: "Saved timestamp at: " + _message.duration
+        });
+    }
+
     async bookmarkToggle(_message, _sender, _sendResponse) {
         {
             const currentTab = await chrome.tabs.get(_sender.tab.id);
