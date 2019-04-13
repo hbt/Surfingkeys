@@ -908,6 +908,8 @@ var State = {
     tabsQuickMarks: new Map(),
     tabsSettings: new Map(),
     tabUrls: new Map(),
+    // Note(hbt) tracks openerTabId because the id is lost when the tab is moved
+    tabOpenerIds: new Map(),
     tabsRemoved: []
     // globalSettings: {
     //     focusAfterClosed: "right",
@@ -1014,6 +1016,7 @@ class CustomBackground {
      */
     static async tabsOnCreatedHandler(tab) {
         if (tab.openerTabId) {
+            State.tabOpenerIds.set(tab.id, tab.openerTabId);
             const otab = await chrome.tabs.get(tab.openerTabId);
             if (State.tabsSettings.has(otab.id)) {
                 if (State.tabsSettings.get(otab.id).newTabPosition === "right") {
@@ -1186,6 +1189,22 @@ class CustomBackground {
     async tabDetach(_message, _sender, _sendResponse) {
         const w = await chrome.windows.getCurrent();
         chrome.windows.create({ tabId: _sender.tab.id, state: "maximized", incognito: w.incognito });
+    }
+
+    async tabDetachM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+        const tabs = await this.tabsGetFromIds(tabIds);
+
+        const w = await chrome.windows.getCurrent();
+        let nw = await chrome.windows.create({ tabId: _sender.tab.id, state: "maximized", incognito: w.incognito });
+
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        for (let tabId of tabIds) {
+            await chrome.tabs.move(tabId, {
+                index: -1,
+                windowId: ctab.windowId
+            });
+        }
     }
 
     convertMessageArgsToMouselessArg(_message, _sender, _sendResponse) {
@@ -1382,7 +1401,10 @@ class CustomBackground {
 
         function getChildrenTabsRecursively(tabId, all) {
             let ret = _.filter(all, tab => {
-                return tab.openerTabId == tabId;
+                if (State.tabOpenerIds.has(tab.id)) {
+                    return State.tabOpenerIds.get(tab.id) === tabId;
+                }
+                return false;
             });
 
             ret = _.flatten(ret);
@@ -1444,7 +1466,10 @@ class CustomBackground {
         } else if (_message.magic === "childrenTabs") {
             const all = await chrome.tabs.query({});
             let childrenTabs = _.filter(all, tab => {
-                return tab.openerTabId == ctab.id;
+                if (State.tabOpenerIds.has(tab.id)) {
+                    return State.tabOpenerIds.get(tab.id) === tabId;
+                }
+                return false;
             });
             retTabIds = _.map(childrenTabs, tab => {
                 return tab.id;

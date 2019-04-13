@@ -720,6 +720,17 @@ var CustomCommands = (function() {
         );
     };
 
+    self.tabDetachM = async k => {
+        let magic = tabCheckMagicByKey(k);
+        if (magic) {
+            let ret = await aruntime({
+                action: "tabDetachM",
+                repeats: Normal.repeats || -1,
+                magic: magic
+            });
+        }
+    };
+
     self.tabCloseLeft = function() {
         self.tabClose("closeLeft");
     };
