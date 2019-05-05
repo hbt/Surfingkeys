@@ -3,6 +3,8 @@
     <head>
         <meta charset="UTF-8">
         <link rel="stylesheet" href="../content_scripts/content_scripts.css">
+        <link rel="stylesheet" href="dark-chrome.css">
+        <title> Error page </title>
         <style>
 html {
     font-size: 125%;
@@ -68,11 +70,37 @@ kbd {
                 </ul>
             </div>
         </div>
-        <script src="../content_scripts/common_content.min.js"></script>
-        <script src="../content_scripts/front.js"></script>
-        <script src="../content_scripts/content_scripts.js"></script>
-        <script src="../content_scripts/top.js"></script>
-        <script src="default.js"></script>
-        <script src="error.js"></script>
+        
+        <!--<script src="../content_scripts/common_content.min.js"></script>-->
+        <!--<script src="../content_scripts/front.js"></script>-->
+        <!--<script src="../content_scripts/content_scripts.js"></script>-->
+        <!--<script src="../content_scripts/top.js"></script>-->
+        <!--<script src="default.js"></script>-->
+        <!--<script src="error.js"></script>-->
+
+<script src="../promisify-chrome-api.js"></script>
+<script src="../libs/jquery-3.3.1.min.js"></script>
+<script src="../libs/linkify.min.js"></script>
+<script src="../libs/linkify-jquery.min.js"></script>
+<script src="../libs/linkify-element.min.js"></script>
+<script src="../libs/trie.js"></script>
+<script src="../content_scripts/keyboardUtils.js"></script>
+<script src="../content_scripts/utils.js"></script>
+<script src="../content_scripts/runtime.js"></script>
+<script src="../content_scripts/normal.js"></script>
+<script src="../content_scripts/insert.js"></script>
+<script src="../content_scripts/visual.js"></script>
+<script src="../content_scripts/hints.js"></script>
+<script src="../content_scripts/clipboard.js"></script>
+<script src="../content_scripts/chrome_fg.js"></script>
+<script src="../content_scripts/front.js"></script>
+<script src="../content_scripts/content_scripts.js"></script>
+<script src="../content_scripts/top.js"></script>
+<script src="default.js"></script>
+<script src="error.js"></script>
+<script src="../custom-commons.js"></script>
+<script src="../content_scripts/hbt.js"></script>
+
+    
     </body>
 </html>

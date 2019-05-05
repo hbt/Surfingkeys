@@ -16,8 +16,10 @@ runtime.command({
         setInnerHTML(document.getElementById('errorHost'), host);
         var wrapper = document.querySelector('div.interstitial-wrapper');
         wrapper.style.margin = `15% calc(50% - ${wrapper.offsetWidth / 2}px)`;;
+        
+        localStorage['err-url'] = tabError.url
 
-        mapkey('r', 'reload', function() {
+        mapkey('r', 'reload the page', function() {
             window.location.href = tabError.url;
         });
         mapkey('p', 'toggle proxy', function() {
