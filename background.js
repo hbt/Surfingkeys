@@ -286,21 +286,26 @@ var ChromeService = (function() {
     loadSettings(null, _applyProxySettings);
 
     chrome.webRequest.onErrorOccurred.addListener(function(details) {
-        var tabId = details.tabId;
-        if (tabId !== -1 && (conf.interceptedErrors.indexOf("*") !== -1 || conf.interceptedErrors.indexOf(details.error) !== -1)) {
-            if (!tabErrors.hasOwnProperty(tabId)) {
-                tabErrors[tabId] = [];
-            }
-            if (details.type === "main_frame") {
-                tabErrors[tabId] = [];
-                if (details.error !== "net::ERR_ABORTED") {
-                    chrome.tabs.update(tabId, {
-                        url: chrome.extension.getURL("pages/error.html")
-                    });
+        loadSettings('blacklist', function(data) {
+            var excluded = ["net::ERR_ABORTED", "net::ERR_CERT_AUTHORITY_INVALID"];
+            var tabId = details.tabId;
+            var disabled = _getDisabled(data, new URL(details.url), null);
+            if (!disabled && tabId !== -1 &&
+                (conf.interceptedErrors.indexOf("*") !== -1 || conf.interceptedErrors.indexOf(details.error) !== -1)) {
+                if (!tabErrors.hasOwnProperty(tabId)) {
+                    tabErrors[tabId] = [];
                 }
+                if (details.type === "main_frame") {
+                    tabErrors[tabId] = [];
+                    if (excluded.indexOf(details.error) === -1) {
+                        chrome.tabs.update(tabId, {
+                            url: chrome.extension.getURL("pages/error.html")
+                        });
+                    }
+                }
+                tabErrors[tabId].push(details);
             }
-            tabErrors[tabId].push(details);
-        }
+        });
     }, {
         urls: ["<all_urls>"]
     });
@@ -388,6 +393,7 @@ var ChromeService = (function() {
         historyTabAction = false;
         chromelikeNewTabPosition = 0;
 
+        _setScrollPos_bg(activeInfo.tabId);
         _updateTabIndices();
     });
     chrome.tabs.onDetached.addListener(function() {
@@ -541,11 +547,10 @@ var ChromeService = (function() {
     self.toggleMouseQuery = function(message, sender, sendResponse) {
         loadSettings('mouseSelectToQuery', function(data) {
             if (sender.tab && sender.tab.url.indexOf(chrome.extension.getURL("")) !== 0) {
-                var origin = new URL(sender.tab.url).origin;
                 var mouseSelectToQuery = data.mouseSelectToQuery || [];
-                var idx = mouseSelectToQuery.indexOf(origin);
+                var idx = mouseSelectToQuery.indexOf(message.origin);
                 if (idx === -1) {
-                    mouseSelectToQuery.push(origin);
+                    mouseSelectToQuery.push(message.origin);
                 } else {
                     mouseSelectToQuery.splice(idx, 1);
                 }
@@ -567,6 +572,41 @@ var ChromeService = (function() {
         loadSettings('marks', function(data) {
             extendObject(data.marks, message.mark);
             _updateAndPostSettings({marks: data.marks});
+        });
+    };
+    self.jumpVIMark = function(message, sender, sendResponse) {
+        loadSettings("marks", function(data) {
+            var marks = data.marks;
+            if (marks.hasOwnProperty(message.mark)) {
+                var markInfo = marks[message.mark];
+                chrome.tabs.query({}, function(tabs) {
+                    tabs = tabs.filter(function(t) {
+                        return t.url === markInfo.url;
+                    });
+
+                    if (tabs.length === 0) {
+                        markInfo.tab = {
+                            tabbed: true,
+                            active: true
+                        };
+                        self.openLink(markInfo, sender, sendResponse);
+                    } else {
+                        if (markInfo.scrollLeft || markInfo.scrollTop) {
+                            tabMessages[tabs[0].id] = {
+                                scrollLeft: markInfo.scrollLeft,
+                                scrollTop: markInfo.scrollTop
+                            };
+                        }
+                        if (tabs[0].id === sender.tab.id) {
+                            _setScrollPos_bg(tabs[0].id);
+                        } else {
+                            chrome.tabs.update(tabs[0].id, {
+                                active: true
+                            });
+                        }
+                    }
+                });
+            }
         });
     };
 
@@ -951,45 +991,45 @@ var ChromeService = (function() {
     }
     self.openLink = function(message, sender, sendResponse) {
         var url = normalizeURL(message.url);
-        if (message.tab.tabbed) {
-            var newTabPosition;
-            if (sender.tab) {
-                switch (conf.newTabPosition) {
-                    case 'left':
-                        newTabPosition = sender.tab.index;
-                        break;
-                    case 'right':
-                        newTabPosition = sender.tab.index + 1;
-                        break;
-                    case 'first':
-                        newTabPosition = 0;
-                        break;
-                    case 'last':
-                        break;
-                    default:
-                        newTabPosition = sender.tab.index + 1 + chromelikeNewTabPosition;
-                        chromelikeNewTabPosition++;
-                        break;
-                }
-            }
-            chrome.tabs.create({
-                url: url,
-                active: message.tab.active,
-                index: newTabPosition,
-                pinned: message.tab.pinned,
-                openerTabId: sender.tab.id
-            }, function(tab) {
-                if (message.scrollLeft || message.scrollTop) {
-                    tabMessages[tab.id] = {
-                        scrollLeft: message.scrollLeft,
-                        scrollTop: message.scrollTop
-                    };
-                }
+        if (url.startsWith("javascript:")) {
+            chrome.tabs.executeScript(sender.tab.id, {
+                code: url.substr(11)
             });
         } else {
-            if (url.startsWith("javascript:")) {
-                chrome.tabs.executeScript(sender.tab.id, {
-                    code: url.substr(11)
+            if (message.tab.tabbed) {
+                var newTabPosition;
+                if (sender.tab) {
+                    switch (conf.newTabPosition) {
+                        case 'left':
+                            newTabPosition = sender.tab.index;
+                            break;
+                        case 'right':
+                            newTabPosition = sender.tab.index + 1;
+                            break;
+                        case 'first':
+                            newTabPosition = 0;
+                            break;
+                        case 'last':
+                            break;
+                        default:
+                            newTabPosition = sender.tab.index + 1 + chromelikeNewTabPosition;
+                            chromelikeNewTabPosition++;
+                            break;
+                    }
+                }
+                chrome.tabs.create({
+                    url: url,
+                    active: message.tab.active,
+                    index: newTabPosition,
+                    pinned: message.tab.pinned,
+                    openerTabId: sender.tab.id
+                }, function(tab) {
+                    if (message.scrollLeft || message.scrollTop) {
+                        tabMessages[tab.id] = {
+                            scrollLeft: message.scrollLeft,
+                            scrollTop: message.scrollTop
+                        };
+                    }
                 });
             } else {
                 chrome.tabs.update({
