@@ -27,6 +27,9 @@ view [Surfingkeys/surfingskeysrc-config-example.js at master · hbt/Surfingkeys]
 
 Code is isolated as much as possible to avoid conflicts between merges.
 
+Note: also check `scripts/git-merge-latest.sh
+`
+
 ```bash
 
 gcm
@@ -57,3 +60,7 @@ g b -D dev
 * If annotation/help message changes (which is used by amap to map commands); look for console errors/failed-asserts e.g "Annotation not found"
 * check docs/commands-list.txt for list of cmds + annotations. produced by `printAllCommands`
 
+
+## Interesting forks
+
+* https://github.com/metasong/Surfingkeys
