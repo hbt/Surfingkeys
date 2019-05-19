@@ -1132,8 +1132,50 @@ class CustomBackground {
         await this.openLinkCurrentOrIncognito(url, ctab);
     }
 
-    // TODO(hbt) NEXT
     async pasteFromClipboardNewTab(_message, _sender, _sendResponse) {
+        let that = this;
+
+        async function openNormalURLsInCurrentWindow(urls, ctab) {
+            if (urls.length === 0) {
+                return;
+            }
+            for (let url of urls) {
+                await chrome.tabs.create({
+                    url: url,
+                    index: ctab.index + 1
+                });
+            }
+        }
+
+        async function openIncognitoURLsInNewIncognitoWindow(urls) {
+            if (urls.length === 0) {
+                return;
+            }
+
+            await chrome.windows.create({
+                url: urls,
+                focused: true,
+                incognito: true,
+                state: "maximized"
+            });
+        }
+
+        async function separateNormalURLsFromIncognitoURLs(urls) {
+            let map = {
+                normal: [],
+                incognito: []
+            };
+            for (let url of urls) {
+                if (await that._isBookmarkedUrl(url, CustomCommonConfig.incognitoBookmarkFolder)) {
+                    map.incognito.push(url);
+                } else {
+                    map.normal.push(url);
+                }
+            }
+
+            return map;
+        }
+
         const ctab = await chrome.tabs.get(_sender.tab.id);
         var paste = Clipboard.paste();
         if (!paste) {
@@ -1142,12 +1184,20 @@ class CustomBackground {
         paste = paste.split("\n").filter(function(e) {
             return e.trim();
         });
-        let length = _message.repeats > 0 ? _message.repeats : paste.length;
-        for (let j = 0; j < length; j++) {
-            await chrome.tabs.create({
-                url: Utils.toSearchURL(paste[j].trim(), Utils.defaultSearchEngine),
-                index: ctab.index + 1
-            });
+
+        let repeats = _message.repeats > 0 ? _message.repeats : paste.length;
+        paste = paste.slice(0, repeats);
+        let urls = paste.map(v => {
+            return Utils.toSearchURL(v.trim(), Utils.defaultSearchEngine);
+        });
+
+        if (ctab.incognito) {
+            await openNormalURLsInCurrentWindow(urls, ctab);
+        } else {
+            let urlsMap = await separateNormalURLsFromIncognitoURLs(paste);
+
+            await openNormalURLsInCurrentWindow(urlsMap.normal, ctab);
+            await openIncognitoURLsInNewIncognitoWindow(urlsMap.incognito);
         }
     }
 
