@@ -17,7 +17,7 @@ runtime.command({
         var wrapper = document.querySelector('div.interstitial-wrapper');
         wrapper.style.margin = `15% calc(50% - ${wrapper.offsetWidth / 2}px)`;;
         
-        localStorage['err-url'] = tabError.url
+        localStorage['err-url'] = tabError.url;
 
         mapkey('r', 'reload the page', function() {
             window.location.href = tabError.url;
