@@ -323,6 +323,7 @@ function printAllCommands() {
  */
 function amap(keys, annotation) {
     let acmds = MyCustomMapping.acmds;
+    // Note(hbt) double check casing of annotation (not consistent)
     console.assert(acmds.has(annotation), `Annotation not found "${annotation}" for keys "${keys}"`);
     let mapping = MyCustomMapping.acmds.get(annotation);
 

@@ -1121,18 +1121,18 @@ class CustomBackground {
         });
     }
 
-    pasteFromClipboard(_message, _sender, _sendResponse) {
+    async pasteFromClipboard(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
         var paste = Clipboard.paste();
         if (!paste) {
             return;
         }
         paste = paste.split("\n")[0];
         let url = Utils.toSearchURL(paste, Utils.defaultSearchEngine);
-        chrome.tabs.update({
-            url: url
-        });
+        await this.openLinkCurrentOrIncognito(url, ctab);
     }
 
+    // TODO(hbt) NEXT
     async pasteFromClipboardNewTab(_message, _sender, _sendResponse) {
         const ctab = await chrome.tabs.get(_sender.tab.id);
         var paste = Clipboard.paste();
@@ -1147,6 +1147,22 @@ class CustomBackground {
             await chrome.tabs.create({
                 url: Utils.toSearchURL(paste[j].trim(), Utils.defaultSearchEngine),
                 index: ctab.index + 1
+            });
+        }
+    }
+
+    async openLinkCurrentOrIncognito(url, ctab) {
+        let isURLFlaggedAsIncognito = await this._isBookmarkedUrl(url, CustomCommonConfig.incognitoBookmarkFolder);
+        if (isURLFlaggedAsIncognito && !ctab.incognito) {
+            await chrome.windows.create({
+                url: url,
+                focused: true,
+                incognito: true,
+                state: "maximized"
+            });
+        } else {
+            await chrome.tabs.update({
+                url: url
             });
         }
     }
@@ -1831,7 +1847,7 @@ class CustomBackground {
 
         let count = 0;
         for (let i = 0; i < tabs.length; i++) {
-            if (!(await this._isBookmarkedUrl(tabs[i], folder))) {
+            if (!(await this.isBookmarkedTab(tabs[i], folder))) {
                 await this._bookmarkAdd(tabs[i], folder);
                 count++;
             }
@@ -1851,7 +1867,7 @@ class CustomBackground {
 
         let count = 0;
         for (let i = 0; i < tabs.length; i++) {
-            if (await this._isBookmarkedUrl(tabs[i], folder)) {
+            if (await this.isBookmarkedTab(tabs[i], folder)) {
                 await this._bookmarkRemove(tabs[i], folder);
                 count++;
             }
@@ -1904,7 +1920,7 @@ class CustomBackground {
 
             let msg = "";
 
-            if (await this._isBookmarkedUrl(currentTab, _message.folder)) {
+            if (await this.isBookmarkedTab(currentTab, _message.folder)) {
                 await this._bookmarkRemove(currentTab, _message.folder);
                 msg = `Removed ${currentTabURL} from bookmark folder ${_message.folder}`;
             } else {
@@ -1940,7 +1956,13 @@ class CustomBackground {
         });
     }
 
-    async _isBookmarkedUrl(ctab, bookmarkFolderString) {
+    async _isBookmarkedUrl(url, bookmarkFolderString) {
+        let children = await this._getBookmarkChildren(bookmarkFolderString);
+        let ret = _.keys(children).includes(this._removeTrailingSlash(url));
+        return ret;
+    }
+
+    async isBookmarkedTab(ctab, bookmarkFolderString) {
         let children = await this._getBookmarkChildren(bookmarkFolderString);
         let ret = _.keys(children).includes(this._removeTrailingSlash(ctab.url));
         return ret;

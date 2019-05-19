@@ -48,5 +48,6 @@ var CustomCommonConfig = {
         },
 
         
-    }
+    },
+    incognitoBookmarkFolder: "incognito"
 }
