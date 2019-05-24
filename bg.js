@@ -1194,7 +1194,7 @@ class CustomBackground {
         if (ctab.incognito) {
             await openNormalURLsInCurrentWindow(urls, ctab);
         } else {
-            let urlsMap = await separateNormalURLsFromIncognitoURLs(paste);
+            let urlsMap = await separateNormalURLsFromIncognitoURLs(urls);
 
             await openNormalURLsInCurrentWindow(urlsMap.normal, ctab);
             await openIncognitoURLsInNewIncognitoWindow(urlsMap.incognito);
