@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 # works with python 2.7.6
+# in case of a compatibility problem. https://python-future.org/quickstart.html -- pip install future 
 
 '''
 USAGE: ./cvim_server.py
