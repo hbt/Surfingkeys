@@ -2288,6 +2288,13 @@ class CustomBackground {
         );
     }
 
+    async getTabId(message, sender, sendResponse) {
+        const ctab = await chrome.tabs.get(sender.tab.id);
+        this.sendResponse(message, sendResponse, {
+            tabId: sender.tab.id
+        });
+    }
+        
     async urlEditExternalEditor(message, sender, sendResponse) {
         const ctab = await chrome.tabs.get(sender.tab.id);
         message.text = ctab.url;
