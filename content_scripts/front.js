@@ -63,12 +63,14 @@ var Front = (function() {
     self.performInlineQueryOnSelection = function(word) {
         var b = document.getSelection().getRangeAt(0).getClientRects()[0];
         Front.performInlineQuery(word, function(queryResult) {
-            Front.showBubble({
-                top: b.top,
-                left: b.left,
-                height: b.height,
-                width: b.width
-            }, queryResult, false);
+            if (queryResult) {
+                Front.showBubble({
+                    top: b.top,
+                    left: b.left,
+                    height: b.height,
+                    width: b.width
+                }, queryResult, false);
+            }
         });
     };
     self.querySelectedWord = function() {
@@ -124,7 +126,7 @@ var Front = (function() {
         });
     };
 
-    var frameElement = createElement('<div id=sk_frame>');
+    var frameElement = createElement('<div id="sk_frame" />');
     self.highlightElement = function (sn) {
         document.body.append(frameElement);
         var rect = sn.rect;

@@ -389,7 +389,8 @@ var Normal = (function() {
 
         var realTarget = getRealEdit(event);
         if (isEditable(realTarget) || realTarget.matches("div.CodeMirror-scroll")) {
-            Insert.enter(realTarget);
+            // keep cursor where it is
+            Insert.enter(realTarget, true);
         } else {
             Insert.exit();
         }
