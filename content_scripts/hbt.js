@@ -424,10 +424,12 @@ var CustomCommands = (function() {
                 event.ignore_stop_propgation_hack = true;
                 if (event.key === "f") {
                     // videoBug
+                    // TODO(hbt) NEXT 6 add double click handle
                     {
                         runtime.command({action: "getTabId"}, function (res) {
                                 localStorage[`win-pos-${res.tabId}`] = JSON.stringify({x: window.screenX, y: window.screenY})
                                 console.log(localStorage[`win-pos-${res.tabId}`], `win-pos-${res.tabId}`)
+                                $.get('http://localhost:3058/saveWindow?id=' + res.tabId)
                             }
                         );
                     }
@@ -527,20 +529,10 @@ var CustomCommands = (function() {
     };
     
     self.fixVideoBug = function() {
-        // TODO(hbt) NEXT limit to video sites
         runtime.command({action: "getTabId"}, function (res) {
                 if (localStorage.getItem(`win-pos-${res.tabId}`)) {
-                    let oldPos = JSON.parse(localStorage.getItem(`win-pos-${res.tabId}`))
                     delete localStorage[`win-pos-${res.tabId}`]
-                    let curPos = {x: window.screenX, y: window.screenY}
-                    console.log(JSON.stringify(oldPos), JSON.stringify(curPos))
-                    if (JSON.stringify(oldPos) !== JSON.stringify(curPos)) {
-                        // if(curPos.x >= 0 && curPos.x <= 100) 
-                        {
-                            console.log('pos changed and is wrong')
-                            $.get('http://localhost:3058/moveRight')
-                        }
-                    }
+                    $.get('http://localhost:3058/restoreWindow?id=' + res.tabId)
                 }
             }
         );
