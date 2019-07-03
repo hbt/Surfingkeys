@@ -2294,7 +2294,7 @@ class CustomBackground {
             tabId: sender.tab.id
         });
     }
-        
+
     async urlEditExternalEditor(message, sender, sendResponse) {
         const ctab = await chrome.tabs.get(sender.tab.id);
         message.text = ctab.url;
