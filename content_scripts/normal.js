@@ -350,7 +350,6 @@ var Normal = (function() {
         }
     });
     self.addEventListener('blur', function(event) {
-        CustomCommands.fixVideoBug(event)
         keyHeld = 0;
     });
     self.addEventListener('focus', function(event) {

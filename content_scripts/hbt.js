@@ -422,17 +422,6 @@ var CustomCommands = (function() {
             PassThrough.addEventListener("keydown", function(event) {
                 event.sk_suppressed = true;
                 event.ignore_stop_propgation_hack = true;
-                if (event.key === "f") {
-                    // videoBug
-                    // ODO(hbt) NEXT 6 add double click handle
-                    {
-                        runtime.command({ action: "getTabId" }, function(res) {
-                            localStorage[`win-pos-${res.tabId}`] = JSON.stringify({ x: window.screenX, y: window.screenY });
-                            console.log(localStorage[`win-pos-${res.tabId}`], `win-pos-${res.tabId}`);
-                            $.get("http://localhost:3058/saveWindow?id=" + res.tabId);
-                        });
-                    }
-                }
                 PassThrough.exit();
             });
         }
@@ -524,15 +513,6 @@ var CustomCommands = (function() {
 
     self.exampleWithRepeatAndDirection = function(e) {
         console.log(e, Normal.repeats);
-    };
-
-    self.fixVideoBug = function() {
-        runtime.command({ action: "getTabId" }, function(res) {
-            if (localStorage.getItem(`win-pos-${res.tabId}`)) {
-                delete localStorage[`win-pos-${res.tabId}`];
-                $.get("http://localhost:3058/restoreWindow?id=" + res.tabId);
-            }
-        });
     };
 
     self.handleKeyPropagation = function(mode, event) {
