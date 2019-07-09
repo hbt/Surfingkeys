@@ -405,7 +405,7 @@ var ChromeService = (function() {
     chrome.commands.onCommand.addListener(function(command) {
         switch (command) {
             case 'restartext':
-                chrome.runtime.reload();
+                // chrome.runtime.reload();
                 break;
             case 'previousTab':
             case 'nextTab':
