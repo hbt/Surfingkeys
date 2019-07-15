@@ -1,6 +1,5 @@
 # hbt ignores
 .idea/
-content_scripts/common_content.min.js
 .surfingkeysrc.js
 
 # project ignores
@@ -8,5 +7,4 @@ node_modules/
 dist/
 .DS_Store
 .vscode/
-package-lock.json
 jsconfig.json
