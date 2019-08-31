@@ -311,9 +311,10 @@ var ChromeService = (function() {
     });
 
     chrome.runtime.onConnect.addListener(function(port) {
-        var sender = port.sender;
         activePorts.push(port);
         port.onMessage.addListener(function(message, port) {
+            // using port.sender here is must, as call to these service APIs may be made from
+            // any inactive tab, such as API getDisabled.
             return handleMessage(message, port.sender, function(resp) {
                 try {
                     if (!port.isDisconnected) {
@@ -402,6 +403,12 @@ var ChromeService = (function() {
     chrome.tabs.onAttached.addListener(function() {
         _updateTabIndices();
     });
+
+    function getActiveTab(cb) {
+        chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+            tabs.length > 0 && cb(tabs[0]);
+        });
+    }
     chrome.commands.onCommand.addListener(function(command) {
         switch (command) {
             case 'restartext':
@@ -409,8 +416,7 @@ var ChromeService = (function() {
                 break;
             case 'previousTab':
             case 'nextTab':
-                chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-                    var tab = tabs[0];
+                getActiveTab(function(tab) {
                     var index = (command === 'previousTab') ? tab.index - 1 : tab.index + 1;
                     chrome.tabs.query({ windowId: tab.windowId }, function(tabs) {
                         index = ((index % tabs.length) + tabs.length) % tabs.length;
@@ -419,21 +425,18 @@ var ChromeService = (function() {
                 });
                 break;
             case 'closeTab':
-                chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-                    chrome.tabs.remove(tabs[0].id);
+                getActiveTab(function(tab) {
+                    chrome.tabs.remove(tab.id);
                 });
                 break;
             case 'proxyThis':
-                chrome.tabs.query({
-                    currentWindow: true,
-                    active: true
-                }, function(resp) {
-                    var host = new URL(resp[0].url).host;
+                getActiveTab(function(tab) {
+                    var host = new URL(tab.url).host;
                     updateProxy({
                         host: host,
                         operation: "toggle"
                     }, function() {
-                        chrome.tabs.reload(resp[0].id, {
+                        chrome.tabs.reload(tab.id, {
                             bypassCache: true
                         });
                     });
@@ -739,8 +742,7 @@ var ChromeService = (function() {
         });
     };
     self.togglePinTab = function(message, sender, sendResponse) {
-        chrome.tabs.query({currentWindow: true, active: true}, function(tabs) {
-            var tab = tabs[0];
+        getActiveTab(function(tab) {
             return chrome.tabs.update(tab.id, {
                 pinned: !tab.pinned
             });
@@ -989,6 +991,44 @@ var ChromeService = (function() {
         }
         return url;
     }
+
+    function openUrlInNewTab(currentTab, url, message) {
+        var newTabPosition;
+        if (currentTab) {
+            switch (conf.newTabPosition) {
+                case 'left':
+                    newTabPosition = currentTab.index;
+                    break;
+                case 'right':
+                    newTabPosition = currentTab.index + 1;
+                    break;
+                case 'first':
+                    newTabPosition = 0;
+                    break;
+                case 'last':
+                    break;
+                default:
+                    newTabPosition = currentTab.index + 1 + chromelikeNewTabPosition;
+                    chromelikeNewTabPosition++;
+                    break;
+            }
+        }
+        chrome.tabs.create({
+            url: url,
+            active: message.tab.active,
+            index: newTabPosition,
+            pinned: message.tab.pinned,
+            openerTabId: currentTab.id
+        }, function(tab) {
+            if (message.scrollLeft || message.scrollTop) {
+                tabMessages[tab.id] = {
+                    scrollLeft: message.scrollLeft,
+                    scrollTop: message.scrollTop
+                };
+            }
+        });
+    }
+
     self.openLink = function(message, sender, sendResponse) {
         var url = normalizeURL(message.url);
         if (url.startsWith("javascript:")) {
@@ -997,40 +1037,15 @@ var ChromeService = (function() {
             });
         } else {
             if (message.tab.tabbed) {
-                var newTabPosition;
-                if (sender.tab) {
-                    switch (conf.newTabPosition) {
-                        case 'left':
-                            newTabPosition = sender.tab.index;
-                            break;
-                        case 'right':
-                            newTabPosition = sender.tab.index + 1;
-                            break;
-                        case 'first':
-                            newTabPosition = 0;
-                            break;
-                        case 'last':
-                            break;
-                        default:
-                            newTabPosition = sender.tab.index + 1 + chromelikeNewTabPosition;
-                            chromelikeNewTabPosition++;
-                            break;
-                    }
+                if (sender.frameId !== 0 && chrome.extension.getURL("pages/frontend.html") === sender.url) {
+                    // if current call was made from Omnibar, the sender.tab may be stale,
+                    // as sender was bound when port was created.
+                    getActiveTab(function(tab) {
+                        openUrlInNewTab(tab, url, message);
+                    });
+                } else {
+                    openUrlInNewTab(sender.tab, url, message);
                 }
-                chrome.tabs.create({
-                    url: url,
-                    active: message.tab.active,
-                    index: newTabPosition,
-                    pinned: message.tab.pinned,
-                    openerTabId: sender.tab.id
-                }, function(tab) {
-                    if (message.scrollLeft || message.scrollTop) {
-                        tabMessages[tab.id] = {
-                            scrollLeft: message.scrollLeft,
-                            scrollTop: message.scrollTop
-                        };
-                    }
-                });
             } else {
                 chrome.tabs.update({
                     url: url,
