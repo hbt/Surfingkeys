@@ -400,7 +400,7 @@ function _init() {
         }, function (resp) {
             if (resp.disabled) {
                 Disabled.enter(0, true);
-            } else {
+            } else if (document.contentType === "application/pdf" && !resp.noPdfViewer) {
                 usePdfViewer();
             }
 
