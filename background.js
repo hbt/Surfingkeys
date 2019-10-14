@@ -298,9 +298,13 @@ var ChromeService = (function() {
                 if (details.type === "main_frame") {
                     tabErrors[tabId] = [];
                     if (excluded.indexOf(details.error) === -1) {
-                        chrome.tabs.update(tabId, {
-                            url: chrome.extension.getURL("pages/error.html")
-                        });
+                        chrome.tabs.get(tabId, (tab) => {
+                            if(!tab.url.endsWith('pages/error.html')) {
+                                chrome.tabs.update(tabId, {
+                                    url: chrome.extension.getURL("pages/error.html")
+                                });
+                            }
+                        })
                     }
                 }
                 tabErrors[tabId].push(details);
@@ -412,7 +416,7 @@ var ChromeService = (function() {
     chrome.commands.onCommand.addListener(function(command) {
         switch (command) {
             case 'restartext':
-                // chrome.runtime.reload();
+                chrome.runtime.reload();
                 break;
             case 'previousTab':
             case 'nextTab':
