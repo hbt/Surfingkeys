@@ -1290,6 +1290,32 @@ var CustomCommands = (function() {
         );
     };
 
+    self.createYoutubePlaylist = function() {
+        runtime.command(
+            {
+                action: "bookmarkCopyFolder",
+                folder: "watch_later",
+                reverse: true
+            },
+            function(res) {
+                // console.log(res.urls)
+                let urls = res.urls;
+                urls = urls.filter(url => {
+                    return url.indexOf("?v=") !== -1;
+                });
+                let vidIds = urls.map(url => {
+                    let ourl = new URL(url);
+                    return ourl.searchParams.get("v");
+                });
+
+                let playlist = vidIds.slice(0, 50);
+
+                let purl = "http://www.youtube.com/watch_videos?video_ids=" + playlist.join(",");
+                window.location.href = purl;
+            }
+        );
+    };
+
     self.tabUnique = async () => {
         return await aruntime({ action: "tabUnique" });
     };

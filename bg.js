@@ -2117,7 +2117,8 @@ class CustomBackground {
         Clipboard.copy(strurls);
 
         this.sendResponse(_message, _sendResponse, {
-            msg: `Copied ${count} URLS`
+            msg: `Copied ${count} URLS`,
+            urls: urls
         });
     }
 
