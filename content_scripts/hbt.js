@@ -1290,11 +1290,11 @@ var CustomCommands = (function() {
         );
     };
 
-    self.createYoutubePlaylist = function() {
+    self.createYoutubePlaylist = function(folder) {
         runtime.command(
             {
                 action: "bookmarkCopyFolder",
-                folder: "watch_later",
+                folder: folder,
                 reverse: true
             },
             function(res) {
