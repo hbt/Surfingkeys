@@ -1257,11 +1257,20 @@ var CustomCommands = (function() {
     self.bookmarkEmptyFolder = function(folder) {
         runtime.command(
             {
-                action: "bookmarkEmptyFolder",
-                folder: folder
+                action: "bookmarkCopyFolder",
+                folder: folder,
+                reverse: true
             },
             function(res) {
-                Front.showBanner(res.msg, 3000);
+                runtime.command(
+                    {
+                        action: "bookmarkEmptyFolder",
+                        folder: folder
+                    },
+                    function(res) {
+                        Front.showBanner(res.msg, 3000);
+                    }
+                );
             }
         );
     };
