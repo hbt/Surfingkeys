@@ -200,7 +200,7 @@ mapkey('yq', '#7Copy pre text', function() {
     });
 });
 mapkey('i', '#1Go to edit box', function() {
-    Hints.create("input, textarea, *[contenteditable=true], select", Hints.dispatchMouseClick);
+    Hints.create("input, textarea, *[contenteditable=true], *[role=textbox], select", Hints.dispatchMouseClick);
 });
 mapkey('gi', '#1Go to the first edit box', function() {
     Hints.createInputLayer();
@@ -429,6 +429,9 @@ mapkey('yd', "#7Copy current downloading URL", function() {
 mapkey('yt', '#3Duplicate current tab', function() {
     RUNTIME("duplicateTab");
 });
+mapkey('yT', '#3Duplicate current tab in background', function() {
+    RUNTIME("duplicateTab", {active: false});
+});
 mapkey('yy', "#7Copy current page's URL", function() {
     Clipboard.write(window.location.href);
 });
@@ -464,9 +467,27 @@ mapkey(';pf', '#7Fill form with data from yf', function() {
             var forms = JSON.parse(response.data.trim());
             if (forms.hasOwnProperty(formKey)) {
                 var fd = forms[formKey];
-                element.querySelectorAll('input').forEach(function(ip) {
-                    if (fd.hasOwnProperty(ip.name) && typeof(fd[ip.name]) !== "object") {
-                        ip.value = fd[ip.name];
+                element.querySelectorAll('input, textarea').forEach(function(ip) {
+                    if (fd.hasOwnProperty(ip.name) && ip.type !== "hidden") {
+                        if (ip.type === "radio") {
+                            var op = element.querySelector(`input[name='${ip.name}'][value='${fd[ip.name]}']`);
+                            if (op) {
+                                op.checked = true;
+                            }
+                        } else if (Array.isArray(fd[ip.name])) {
+                            element.querySelectorAll(`input[name='${ip.name}']`).forEach(function(ip) {
+                                ip.checked = false;
+                            });
+                            var vals = fd[ip.name];
+                            vals.forEach(function(v) {
+                                var op = element.querySelector(`input[name='${ip.name}'][value='${v}']`);
+                                if (op) {
+                                    op.checked = true;
+                                }
+                            });
+                        } else if (typeof(fd[ip.name]) === "string") {
+                            ip.value = fd[ip.name];
+                        }
                     }
                 });
             } else {

@@ -80,13 +80,30 @@ var Mode = (function() {
         return (-1 !== self.specialKeys[specialKey].indexOf(KeyboardUtils.decodeKeystroke(keyToCheck)));
     };
 
+    // Enable to stop propagation of the event whose keydown handler has been triggered
+    // Why we need this?
+    // For example, there is keyup event handler of `s` on some site to set focus on an input box,
+    // Now user presses `sg` to search with google, Surfingkeys got `s` and triggered its keydown handler.
+    // But keyup handler of the site also got triggered, then `g` was swallowed by the input box.
+    // This setting now is only turned on for Normal.
+    // For Hints, we could not turn on it, as keyup should be propagated to Normal
+    // to stop scrolling when holding a key.
+    var keysNeedKeyupSuppressed = [];
+    self.suppressKeyUp = function(keyCode) {
+        if (keysNeedKeyupSuppressed.indexOf(keyCode) === -1) {
+            keysNeedKeyupSuppressed.push(keyCode);
+        }
+    };
+
     function onAfterHandler(mode, event) {
         event = CustomCommands.handleKeyPropagation(mode, event);
         if (event.sk_stopPropagation) {
             event.stopImmediatePropagation();
             event.preventDefault();
             // keyup event also needs to be suppressed for the key whose keydown has been suppressed.
-            mode.stopKeyupPropagation = (event.type === "keydown" && mode.enableKeyupMerging) ? event.keyCode : 0;
+            if (event.type === "keydown" && mode === Normal) {
+                self.suppressKeyUp(event.keyCode);
+            }
         }
     }
 
@@ -115,9 +132,10 @@ var Mode = (function() {
 
         window.addEventListener("keyup", function (event) {
             handleStack("keyup", event, function (m) {
-                if (m.stopKeyupPropagation === event.keyCode) {
+                var i = keysNeedKeyupSuppressed.indexOf(event.keyCode);
+                if (i !== -1) {
                     event.stopImmediatePropagation();
-                    m.stopKeyupPropagation = 0;
+                    keysNeedKeyupSuppressed.splice(i, 1);
                 }
             });
         }, true);
@@ -210,7 +228,9 @@ var Mode = (function() {
         } else if (this.repeats !== undefined &&
             this.map_node === this.mappings &&
             runtime.conf.digitForRepeat &&
-            (key >= "1" || (this.repeats !== "" && key >= "0")) && key <= "9") {
+            (key >= "1" || (this.repeats !== "" && key >= "0")) && key <= "9" &&
+            this.map_node.getWords().length > 0
+        ) {
             // reset only after target action executed or cancelled
             this.repeats += key;
             this.isTrustedEvent && Front.showKeystroke(key, this);
@@ -276,6 +296,7 @@ var Disabled = (function() {
 
 var PassThrough = (function() {
     var self = new Mode("PassThrough", "pass through");
+    var _autoExit;
 
     self.addEventListener('keydown', function(event) {
         // prevent this event to be handled by Surfingkeys' other listeners
@@ -283,26 +304,32 @@ var PassThrough = (function() {
         if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
             self.exit();
             event.sk_stopPropagation = true;
+        } else if (runtime.conf.passThroughTimeout > 0) {
+            if (_autoExit) {
+                clearTimeout(_autoExit);
+                _autoExit = undefined;
+            }
+            _autoExit = setTimeout(function() {
+                self.exit();
+            }, runtime.conf.passThroughTimeout);
         }
     }).addEventListener('mousedown', function(event) {
         event.sk_suppressed = true;
     });
+
+    self.onEnter = function() {
+        if (runtime.conf.passThroughTimeout > 0) {
+            _autoExit = setTimeout(function() {
+                self.exit();
+            }, runtime.conf.passThroughTimeout);
+        }
+    };
 
     return self;
 })();
 
 var Normal = (function() {
     var self = new Mode("Normal");
-
-    // Enable to stop propagation of the event whose keydown handler has been triggered
-    // Why we need this?
-    // For example, there is keyup event handler of `s` on some site to set focus on an input box,
-    // Now user presses `sg` to search with google, Surfingkeys got `s` and triggered its keydown handler.
-    // But keyup handler of the site also got triggered, then `g` was swallowed by the input box.
-    // This setting now is only turned on for Normal.
-    // For Hints, we could not turn on it, as keyup should be propagated to Normal
-    // to stop scrolling when holding a key.
-    self.enableKeyupMerging = true;
 
     // let next focus event pass
     var _passFocus = false;
@@ -337,8 +364,25 @@ var Normal = (function() {
                     if (event.sk_stopPropagation) {
                         realTarget.focus();
                     }
-                    // keep cursor where it is
-                    Insert.enter(realTarget, true);
+
+                    var stealFocus = false;
+                    if (!isElementPartiallyInViewport(realTarget)) {
+                        var n = realTarget;
+                        while (n !== document.documentElement && !n.newlyCreated) {
+                            n = n.parentElement;
+                        }
+                        stealFocus = n !== document.documentElement && n.newlyCreated;
+                    }
+                    if (stealFocus) {
+                        // steal focus from dynamically created input widget
+                        realTarget.blur();
+                        delete n.newlyCreated;
+                        Mode.handleMapKey.call(self, event);
+                    } else {
+                        // keep cursor where it is
+                        Insert.enter(realTarget, true);
+                    }
+
                 }
             }
         } else if (Mode.isSpecialKeyOf("<Alt-s>", event.sk_keyName)) {
@@ -518,7 +562,7 @@ var Normal = (function() {
         if (!scrollNodes || scrollNodes.length === 0) {
             document.documentElement.style.overflow = "visible";
             document.body.style.overflow = "visible";
-            scrollNodes = getScrollableElements(100, 1.1);
+            scrollNodes = getScrollableElements();
             scrollIndex = 0;
         }
     }
@@ -582,7 +626,7 @@ var Normal = (function() {
         });
     }
     function changeScrollTarget(silent) {
-        scrollNodes = getScrollableElements(100, 1.1);
+        scrollNodes = getScrollableElements();
         if (scrollNodes.length > 0) {
             scrollIndex = (scrollIndex + 1) % scrollNodes.length;
             var sn = scrollNodes[scrollIndex];
@@ -598,6 +642,14 @@ var Normal = (function() {
         var scrollNode = document.scrollingElement;
         if (scrollNodes.length > 0) {
             scrollNode = scrollNodes[scrollIndex];
+            if (scrollNode !== document.scrollingElement) {
+                var br = scrollNode.getBoundingClientRect();
+                if (br.width === 0 || br.height === 0) {
+                    scrollNodes.splice(scrollIndex, 1);
+                    scrollIndex = 0;
+                    scrollNode = scrollNodes[scrollIndex];
+                }
+            }
         }
         if (!scrollNode.skScrollBy) {
             initScroll(scrollNode);
@@ -659,6 +711,16 @@ var Normal = (function() {
     self.getScrollableElements = function() {
         initScrollIndex();
         return scrollNodes;
+    };
+
+    self.addScrollableElement = function(elm) {
+        initScrollIndex();
+        scrollIndex = scrollNodes.indexOf(elm);
+        if (scrollIndex === -1) {
+            scrollNodes.push(elm);
+            _highlightElement(elm);
+            scrollIndex = scrollNodes.length - 1;
+        }
     };
 
     self.rotateFrame = function() {

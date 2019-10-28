@@ -907,7 +907,11 @@ var ChromeService = (function() {
         chrome.sessions.restore();
     };
     self.duplicateTab = function(message, sender, sendResponse) {
-        chrome.tabs.duplicate(sender.tab.id);
+        chrome.tabs.duplicate(sender.tab.id, function() {
+            if (message.active === false) {
+                chrome.tabs.update(sender.tab.id, { active: true });
+            }
+        });
     };
     self.newWindow = function(message, sender, sendResponse) {
         chrome.tabs.query({}, function(tabs) {
@@ -1118,17 +1122,21 @@ var ChromeService = (function() {
                 return frameId;
             });
 
-            if (framesInTab.length > 1) {
-                if (!frameIndexes.hasOwnProperty(tid)) {
-                    frameIndexes[tid] = 0;
+            if (framesInTab.length > 0) {
+                var fid = framesInTab[0];
+                if (framesInTab.length > 1) {
+                    if (!frameIndexes.hasOwnProperty(tid)) {
+                        frameIndexes[tid] = 0;
+                    }
+                    frameIndexes[tid]++;
+                    frameIndexes[tid] = frameIndexes[tid] % framesInTab.length;
+                    fid = framesInTab[frameIndexes[tid]];
                 }
-                frameIndexes[tid] ++;
-                frameIndexes[tid] = frameIndexes[tid] % framesInTab.length;
 
                 chrome.tabs.sendMessage(tid, {
                     subject: "focusFrame",
                     target: 'content_runtime',
-                    frameId: framesInTab[frameIndexes[tid]]
+                    frameId: fid
                 });
             }
         });
