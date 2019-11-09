@@ -65,6 +65,13 @@
             "match_about_blank": true,
             "js": [
 
+                "promisify-chrome-api.js",
+
+                "libs/jquery-3.3.1.min.js",
+                "libs/linkify.min.js",
+                "libs/linkify-jquery.min.js",
+                "libs/linkify-element.min.js",
+
                 "libs/trie.js",
                 "content_scripts/keyboardUtils.js",
                 "content_scripts/utils.js",
@@ -75,11 +82,16 @@
                 "content_scripts/hints.js",
                 "content_scripts/clipboard.js",
                 "content_scripts/chrome_fg.js",
+              
+              
 
                 "content_scripts/front.js",
+                "pages/default.js",
                 "content_scripts/content_scripts.js",
-                "content_scripts/top.js",
-                "pages/default.js"
+                "content_scripts/uiframe.js",
+
+                "custom-commons.js",
+                "content_scripts/hbt.js"
             ],
             "css": [
                 "content_scripts/content_scripts.css"
