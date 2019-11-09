@@ -299,7 +299,7 @@ var ChromeService = (function() {
                     tabErrors[tabId] = [];
                     if (excluded.indexOf(details.error) === -1) {
                         chrome.tabs.get(tabId, (tab) => {
-                            if(!tab.url.endsWith('pages/error.html')) {
+                            if(!tab.url.endsWith('pages/error.html') && !tab.incognito) {
                                 chrome.tabs.update(tabId, {
                                     url: chrome.extension.getURL("pages/error.html")
                                 });
