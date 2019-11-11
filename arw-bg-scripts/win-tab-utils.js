@@ -39,6 +39,17 @@ class Window extends BgBase {
   }
 
 
+  __closeTabs(tabs) {
+    for (const tab of tabs) {
+      if (tab.active === false) {
+        chrome.tabs.remove(tab.id);
+      }
+    }
+  }
+
+
+
+
 	detachTab() {
     // Move current tab into a new window
 		chrome.tabs.query({ currentWindow: true, active: true }, (tabs) => {
@@ -71,31 +82,19 @@ class Window extends BgBase {
 		chrome.sessions.restore();
 	}
 
-	duplicateTab() {
-		chrome.tabs.query({ currentWindow: true, active: true }, (tabs) => {
-			const [tab] = tabs;
-			chrome.tabs.duplicate(tab.id);
-		});
+	duplicateTab(mesgage, sender, sendResponse) {
+    chrome.tabs.duplicate(sender.tab.id);
 	}
 
-	closeOtherTabs () {
-		chrome.tabs.query({ currentWindow: true }, (tabs) => {
-			for (const tab of tabs) {
-				if (tab.active === false) {
-					chrome.tabs.remove(tab.id);
-				}
-			}
-		});
+	closeOtherTabs() {
+		chrome.tabs.query({ currentWindow: true }, this.__closeTabs);
 	}
-
 
 	closeRightTabs () {
 		chrome.tabs.query({ currentWindow: true }, (tabs) => {
 			const active = tabs.find((tab) => tab.active);
 			const rightTabs = tabs.slice(active.index + 1);
-			for (const tab of rightTabs) {
-				chrome.tabs.remove(tab.id);
-			}
+      this.__closeTabs(rightTabs);
 		});
 	}
 

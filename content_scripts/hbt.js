@@ -1415,7 +1415,10 @@ var CustomCommands = (function() {
         });
     };
 
+    self.adam = function(){
+      console.log("hi from custom bg function");
+    };
+
     return self;
 })();
 
-// setTimeout(CustomCommands.debug, 2000)
