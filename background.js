@@ -1,4 +1,9 @@
-function request(url, onReady, headers, data, onException) {
+/*
+BROOK HONG'S BACKGROUND SCRIPT
+  https://github.com/brookhong/Surfingkeys/blob/master/background.js
+*/
+
+function request(url, onReady, headers, data, onException) {//{{{
     headers = headers || {};
     return new Promise(function(acc, rej) {
         var xhr = new XMLHttpRequest();
@@ -15,23 +20,23 @@ function request(url, onReady, headers, data, onException) {
     }).then(onReady).catch(function(exp) {
         onException && onException(exp);
     });
-}
+}//}}}
 
-function dictFromArray(arry, val) {
+function dictFromArray(arry, val) {//{{{
     var dict = {};
     arry.forEach(function(h) {
         dict[h] = val;
     });
     return dict;
-}
+}//}}}
 
-function extendObject(target, ss) {
+function extendObject(target, ss) {//{{{
     for (var k in ss) {
         target[k] = ss[k];
     }
-}
+}//}}}
 
-function getSubSettings(set, keys) {
+function getSubSettings(set, keys) {//{{{
     var subset;
     if (!keys) {
         // if null/undefined/""
@@ -46,16 +51,16 @@ function getSubSettings(set, keys) {
         });
     }
     return subset;
-}
+}//}}}
 
-function _save(storage, data, cb) {
+function _save(storage, data, cb) {//{{{
     if (data.localPath) {
         delete data.snippets;
     }
     storage.set(data, cb);
-}
+}//}}}
 
-var Gist = (function() {
+var Gist = (function() {//{{{
     var self = {};
 
     function _initGist(token, magic_word, onGistReady) {
@@ -168,9 +173,9 @@ var Gist = (function() {
     };
 
     return self;
-})();
+})();//}}}
 
-var ChromeService = (function() {
+var ChromeService = (function() {//{{{
     var self = {};
 
     var activePorts = [],
@@ -304,7 +309,7 @@ var ChromeService = (function() {
                                     url: chrome.extension.getURL("pages/error.html")
                                 });
                             }
-                        })
+                        });
                     }
                 }
                 tabErrors[tabId].push(details);
@@ -360,6 +365,7 @@ var ChromeService = (function() {
         _updateTabIndices();
     }
     chrome.tabs.onRemoved.addListener(removeTab);
+
     function _setScrollPos_bg(tabId) {
         if (tabMessages.hasOwnProperty(tabId)) {
             var message = tabMessages[tabId];
@@ -905,9 +911,6 @@ var ChromeService = (function() {
     };
     self.openLast = function(message, sender, sendResponse) {
         chrome.sessions.restore();
-    };
-    self.duplicateTab = function(message, sender, sendResponse) {
-        chrome.tabs.duplicate(sender.tab.id);
     };
     self.newWindow = function(message, sender, sendResponse) {
         chrome.tabs.query({}, function(tabs) {
@@ -1545,4 +1548,4 @@ var ChromeService = (function() {
 
     chrome.runtime.setUninstallURL("http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html");
     return self;
-})();
+})();//}}}

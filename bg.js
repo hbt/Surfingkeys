@@ -1,11 +1,17 @@
-console.sassert = function(cond, text) {
+/*
+HBT's BACKGROUND SCRIPT
+  First commit:    https://github.com/hbt/Surfingkeys/commit/1db0a707dc55535f155b74068986cbf4ad063025
+  Current version: https://github.com/hbt/Surfingkeys/blob/master/bg.js
+*/
+
+console.assert = function(cond, text) {//{{{
     if (cond) return;
     if (console.assert.useDebugger) debugger;
     throw new Error(text || "Assertion failed!");
-};
+};//}}}
 
 {
-    var Clipboard = {};
+    var Clipboard = {};//{{{
 
     Clipboard.createTextArea = function() {
         var t = document.createElement("textarea");
@@ -31,11 +37,11 @@ console.sassert = function(cond, text) {
         var text = t.value;
         document.body.removeChild(t);
         return text;
-    };
+    };//}}}
 }
 
 {
-    var Utils = {
+    var Utils = {//{{{
         getHostname: function(href) {
             var res = window.location.host || "file";
 
@@ -900,10 +906,10 @@ console.sassert = function(cond, text) {
                 );
             };
         })()
-    };
+    };//}}}
 }
 
-var State = {
+var State = {//{{{
     tabsMarked: new Map(),
     tabsQuickMarks: new Map(),
     tabsSettings: new Map(),
@@ -919,15 +925,15 @@ var State = {
     //     showTabIndices: false,
     //     interceptedErrors: []
     // }
-};
+};//}}}
 
-// https://github.com/deanoemcke/thegreatsuspender
-// https://github.com/deanoemcke/thegreatsuspender/issues/276#issuecomment-448164831
-var Constants = {
+var Constants = {//{{{
+  // https://github.com/deanoemcke/thegreatsuspender
+  // https://github.com/deanoemcke/thegreatsuspender/issues/276#issuecomment-448164831
     tabSuspenderExtensionID: "icpcohpmccndpdnpbeglkengjkgegcjb"
-};
+};//}}}
 
-class CustomBackground {
+class CustomBackground {//{{{
     init() {
         this.registerListeners();
     }
@@ -2350,12 +2356,11 @@ class CustomBackground {
             })
         );
     }
-}
+}//}}}
 
 {
-    let cc = new CustomBackground();
-    cc.init();
-    // setTimeout(CustomBackground.handleCtrlWFeature, 3000)
+    let cc = new CustomBackground();//{{{
+    cc.init();//}}}
 }
 
 (async () => {})();
