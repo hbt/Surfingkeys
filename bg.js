@@ -1615,6 +1615,13 @@ class CustomBackground {
         });
     }
 
+    getAllTabsURLsInCurrentWindow(_message, _sender, _sendResponse) {
+          chrome.tabs.query({ currentWindow: true }, tabs => {
+            let tabData = tabs.map(tab => ({url: tab.url, title: tab.title}));
+            this.sendResponse(_message, _sendResponse, { data: tabData, count: tabData.length });
+        });
+    }
+
     _copyTabUrlsAndRespond(tabs, _message, _sendResponse) {
         let text = tabs
             .map(function(tab) {

@@ -1,16 +1,16 @@
 #!/bin/bash
 
-cd /tmp
+cd /tmp || exit
 
 # rm existing
-date=`date "+%s"`
+date=$(date "+%s")
 folder="tmp-$date"
-mv Surfingkeys $folder
+mv Surfingkeys "$folder"
 
 
 # clone
 git clone git@github.com:hbt/Surfingkeys.git
-cd Surfingkeys
+cd Surfingkeys || exit
 
 git remote add brookhong git@github.com:brookhong/Surfingkeys.git
 

@@ -9,6 +9,5 @@
     },
     "rules": {
         "semi": ["error", "always"],
-        "no-tabs": 2
     }
 }

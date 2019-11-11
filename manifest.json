@@ -57,13 +57,17 @@
     ],
     "background": {
         "scripts": [
+            "libs/hot-reload.js",
             "libs/underscore.js",
             "libs/jquery-3.3.1.min.js",
             "promisify-chrome-api.js",
             "chrome_bg.js",
             "background.js",
             "custom-commons.js",
-            "bg.js"
+            "bg.js",
+            "./arw-bg-scripts/bg-script-base.js",
+            "./arw-bg-scripts/win-tab-utils.js",
+            "./arw-bg-scripts/aw-background.js"
         ],
         "persistent": true
     },
@@ -92,8 +96,6 @@
                 "content_scripts/hints.js",
                 "content_scripts/clipboard.js",
                 "content_scripts/chrome_fg.js",
-              
-              
 
                 "content_scripts/front.js",
                 "content_scripts/content_scripts.js",
