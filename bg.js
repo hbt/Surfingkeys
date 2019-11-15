@@ -1964,18 +1964,38 @@ class CustomBackground {
     }
 
     async bookmarkToggle(_message, _sender, _sendResponse) {
+        let cthis = this;
+        function getYoutubeVideoFromPlaylist(url) {
+            console.assert(url.indexOf("youtube.com") !== -1 && url.indexOf("&list=") !== -1);
+            let curl = new URL(url);
+            let nurl = "https://www.youtube.com/watch?v=" + curl.searchParams.get("v");
+            return nurl;
+        }
+        async function isYoutubePlaylistAndVideoIsBookmarked(url, folder) {
+            if (url.indexOf("youtube.com") !== -1 && url.indexOf("&list=") !== -1) {
+                let nurl = getYoutubeVideoFromPlaylist(url);
+                return await cthis._isBookmarkedUrl(nurl, folder);
+            }
+            return false;
+        }
         {
             const currentTab = await chrome.tabs.get(_sender.tab.id);
             let currentTabURL = this._removeTrailingSlash(currentTab.url);
 
             let msg = "";
 
-            if (await this.isBookmarkedTab(currentTab, _message.folder)) {
-                await this._bookmarkRemove(currentTab, _message.folder);
-                msg = `Removed ${currentTabURL} from bookmark folder ${_message.folder}`;
+            if (await isYoutubePlaylistAndVideoIsBookmarked(currentTabURL, _message.folder)) {
+                let nurl = getYoutubeVideoFromPlaylist(currentTabURL);
+                await this._bookmarkRemoveByURL(nurl, _message.folder);
+                msg = `Removed playlist video ${nurl} from bookmark folder ${_message.folder}`;
             } else {
-                await this._bookmarkAdd(currentTab, _message.folder);
-                msg = `Added ${currentTabURL} to bookmark folder ${_message.folder}`;
+                if (await this.isBookmarkedTab(currentTab, _message.folder)) {
+                    await this._bookmarkRemove(currentTab, _message.folder);
+                    msg = `Removed ${currentTabURL} from bookmark folder ${_message.folder}`;
+                } else {
+                    await this._bookmarkAdd(currentTab, _message.folder);
+                    msg = `Added ${currentTabURL} to bookmark folder ${_message.folder}`;
+                }
             }
 
             this.sendResponse(_message, _sendResponse, {
@@ -1984,11 +2004,14 @@ class CustomBackground {
         }
     }
 
-    async _bookmarkRemove(currentTab, bookmarkFolderString) {
+    async _bookmarkRemoveByURL(url, bookmarkFolderString) {
         let children = await this._getBookmarkChildren(bookmarkFolderString);
-        let currentTabURL = this._removeTrailingSlash(currentTab.url);
-        let b = children[currentTabURL];
-        chrome.bookmarks.remove(b.id);
+        let nurl = this._removeTrailingSlash(url);
+        let b = children[nurl];
+        await chrome.bookmarks.remove(b.id);
+    }
+    async _bookmarkRemove(currentTab, bookmarkFolderString) {
+        await this._bookmarkRemoveByURL(currentTab.url, bookmarkFolderString);
     }
 
     async _bookmarkAdd(currentTab, bookmarkFolderString) {
