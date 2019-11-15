@@ -1643,10 +1643,10 @@ class CustomBackground {
         }
     }
 
-    async tabOpenInIncognito(_message, _sender, _sendResponse) {
+    async tabToggleIncognito(_message, _sender, _sendResponse) {
         const ctab = await chrome.tabs.get(_sender.tab.id);
 
-        chrome.windows.create({ url: ctab.url, incognito: true, state: "maximized" });
+        chrome.windows.create({ url: ctab.url, incognito: !ctab.incognito, state: "maximized" });
     }
 
     async tabUndo(_message, _sender, _sendResponse) {
