@@ -84,8 +84,13 @@ var Front = (function() {
         }, topOrigin);
     };
     self.visualCommand = function(args) {
-        // visual mode for all content windows
-        self.contentCommand(args);
+        if (_usage.style.display !== "none") {
+            // visual mode in frontend.html, such as help
+            Visual[args.action](args.query);
+        } else {
+            // visual mode for all content windows
+            self.contentCommand(args);
+        }
     };
 
     self.omnibar = document.getElementById('sk_omnibar');
@@ -156,9 +161,7 @@ var Front = (function() {
         });
     };
     _actions['chooseTab'] = function() {
-        runtime.command({
-            action: 'getTabs'
-        }, function(response) {
+        RUNTIME('getTabs', null, function(response) {
             if (response.tabs.length > runtime.conf.tabsThreshold) {
                 showPopup(self.omnibar, {type: 'Tabs'});
             } else if (response.tabs.length > 0) {

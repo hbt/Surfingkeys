@@ -457,8 +457,7 @@ function createNormal() {
 
     self.toggleBlacklist = function() {
         if (document.location.href.indexOf(chrome.extension.getURL("")) !== 0) {
-            runtime.command({
-                action: 'toggleBlacklist',
+            RUNTIME('toggleBlacklist', {
                 blacklistPattern: (runtime.conf.blacklistPattern ? runtime.conf.blacklistPattern.toJSON() : "")
             }, function(resp) {
                 if (resp.disabled) {
@@ -577,8 +576,6 @@ function createNormal() {
     // set scrollIndex to the highest node
     function initScrollIndex() {
         if (!scrollNodes || scrollNodes.length === 0) {
-            document.documentElement.style.overflow = "visible";
-            document.body.style.overflow = "visible";
             scrollNodes = getScrollableElements();
             scrollIndex = 0;
         }
@@ -608,8 +605,9 @@ function createNormal() {
             else if (a.contains(b)) return -1;
             return b.scrollHeight * b.scrollWidth - a.scrollHeight * a.scrollWidth;
         });
-        if (document.scrollingElement.scrollHeight > window.innerHeight
-            || document.scrollingElement.scrollWidth > window.innerWidth) {
+        // document.scrollingElement will be null when document.body.tagName === "FRAMESET", for example http://www.knoppix.org/
+        if (document.scrollingElement && (document.scrollingElement.scrollHeight > window.innerHeight
+            || document.scrollingElement.scrollWidth > window.innerWidth)) {
             nodes.unshift(document.scrollingElement);
         }
         nodes.forEach(function (n) {
@@ -659,15 +657,19 @@ function createNormal() {
         var scrollNode = document.scrollingElement;
         if (scrollNodes.length > 0) {
             scrollNode = scrollNodes[scrollIndex];
-            if (scrollNode !== document.scrollingElement) {
+            if (scrollNode !== document.scrollingElement && scrollNode !== document.body) {
                 var br = scrollNode.getBoundingClientRect();
                 if (br.width === 0 || br.height === 0 || !isElementPartiallyInViewport(scrollNode)
-                    || !hasScroll(scrollNode, 'y', 16)) {
+                    || !hasScroll(scrollNode, 'x', 16) && !hasScroll(scrollNode, 'y', 16)) {
                     scrollNodes.splice(scrollIndex, 1);
                     scrollIndex = 0;
                     scrollNode = scrollNodes[scrollIndex];
                 }
             }
+        }
+        if (!scrollNode) {
+            // scrollNode could be null on a page with frameset as its body.
+            return;
         }
         if (!scrollNode.skScrollBy) {
             initScroll(scrollNode);
@@ -810,10 +812,8 @@ function createNormal() {
     };
 
     self.jumpVIMark = function(mark) {
-        runtime.command({
-            action: 'jumpVIMark',
+        RUNTIME('jumpVIMark', {
             mark: mark
-        }, function(response) {
         });
     };
 
@@ -842,9 +842,7 @@ function createNormal() {
     };
 
     self.captureElement = function(elm) {
-        runtime.command({
-            action: 'getCaptureSize'
-        }, function(response) {
+        RUNTIME('getCaptureSize', null, function(response) {
             var scale = response.width / window.innerWidth;
 
             elm.scrollTop = 0;
@@ -916,9 +914,7 @@ function createNormal() {
                             dx = elm.scrollLeft * scale;
                         }
                         setTimeout(function() {
-                            runtime.command({
-                                action: 'captureVisibleTab'
-                            }, function(response) {
+                            RUNTIME('captureVisibleTab', null, function(response) {
                                 img.src = response.dataUrl;
                             });
                         }, 100);
@@ -933,9 +929,7 @@ function createNormal() {
                         dy = elm.scrollTop * scale;
                     }
                     setTimeout(function() {
-                        runtime.command({
-                            action: 'captureVisibleTab'
-                        }, function(response) {
+                        RUNTIME('captureVisibleTab', null, function(response) {
                             img.src = response.dataUrl;
                         });
                     }, 100);
@@ -944,9 +938,7 @@ function createNormal() {
 
             // wait 500 millisecond for keystrokes of Surfingkeys to hide
             setTimeout(function() {
-                runtime.command({
-                    action: 'captureVisibleTab'
-                }, function(response) {
+                RUNTIME('captureVisibleTab', null, function(response) {
                     img.src = response.dataUrl;
                 });
             }, 500);

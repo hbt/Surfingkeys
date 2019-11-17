@@ -31,11 +31,17 @@ function createFront() {
         });
     }
 
-    self.applyUserSettings = function (us) {
-        frontendCommand({
+    var _uiUserSettings = [];
+    self.setUserSettings = function (us) {
+        _uiUserSettings.push({
             action: 'applyUserSettings',
             userSettings: us
         });
+    };
+    self.applyUserSettings = function () {
+        for (var cmd of _uiUserSettings) {
+            frontendCommand(cmd);
+        }
     };
 
     var _listSuggestions = {};
@@ -43,7 +49,7 @@ function createFront() {
         if (suggestionURL && listSuggestion) {
             _listSuggestions[suggestionURL] = listSuggestion;
         }
-        frontendCommand({
+        _uiUserSettings.push({
             action: 'addSearchAlias',
             alias: alias,
             prompt: prompt,
@@ -52,7 +58,7 @@ function createFront() {
         });
     };
     self.removeSearchAlias = function (alias) {
-        frontendCommand({
+        _uiUserSettings.push({
             action: 'removeSearchAlias',
             alias: alias
         });
@@ -104,7 +110,7 @@ function createFront() {
         });
     };
     self.addMapkey = function (mode, new_keystroke, old_keystroke) {
-        frontendCommand({
+        _uiUserSettings.push({
             action: 'addMapkey',
             mode: mode,
             new_keystroke: new_keystroke,
@@ -112,7 +118,7 @@ function createFront() {
         });
     };
     self.addVimMap = function (lhs, rhs, ctx) {
-        frontendCommand({
+        _uiUserSettings.push({
             action: 'addVimMap',
             lhs: lhs,
             rhs: rhs,
@@ -120,16 +126,16 @@ function createFront() {
         });
     };
     self.addVimKeyMap = function (vimKeyMap) {
-        frontendCommand({
+        _uiUserSettings.push({
             action: 'addVimKeyMap',
             vimKeyMap: vimKeyMap
         });
     };
 
-    var frameElement = createElement('<div id="sk_frame" />');
+    var frameElement = createElement('<div id="sk_frame">Hi, I\'m here now!</div>');
     frameElement.fromSurfingKeys = true;
     self.highlightElement = function (sn) {
-        document.body.append(frameElement);
+        document.documentElement.append(frameElement);
         var rect = sn.rect;
         frameElement.style.top = rect.top + "px";
         frameElement.style.left = rect.left + "px";
@@ -406,8 +412,7 @@ function createFront() {
     };
 
     _actions["executeScript"] = function(message) {
-        runtime.command({
-            action: 'executeScript',
+        RUNTIME('executeScript', {
             code: message.cmdline
         }, function (response) {
             frontendCommand({
@@ -419,7 +424,7 @@ function createFront() {
 
     _actions["getBackFocus"] = function(response) {
         window.focus();
-        if (window === top && document.activeElement === window.uiFrame) {
+        if (window === top && window.uiHost && window.uiHost.shadowRoot.contains(document.activeElement)) {
             // fix for Firefox, blur from iframe for frontend after Omnibar closed.
             document.activeElement.blur();
         }
@@ -472,7 +477,7 @@ function createFront() {
         _active = true;
     };
 
-    runtime.runtime_handlers['focusFrame'] = function(msg, sender, response) {
+    runtime.on('focusFrame', function(msg, sender, response) {
         if (msg.frameId === window.frameId) {
             window.focus();
             document.body.scrollIntoView({
@@ -490,10 +495,13 @@ function createFront() {
                 }
             });
         }
-    };
+    });
 
     window.addEventListener('message', function (event) {
         var _message = event.data;
+        if (_message === undefined) {
+            return;
+        }
         if (_message.action === "performInlineQuery") {
             self.performInlineQuery(_message.query, function (queryResult) {
                 event.source.postMessage({
