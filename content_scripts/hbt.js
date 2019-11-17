@@ -772,10 +772,10 @@ var CustomCommands = (function() {
         );
     };
 
-    self.tabOpenInIncognito = function() {
+    self.tabToggleIncognito = function() {
         runtime.command(
             {
-                action: "tabOpenInIncognito"
+                action: "tabToggleIncognito"
             },
             function(res) {}
         );
