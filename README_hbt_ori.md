@@ -8,5 +8,6 @@ BUILD:
 - npm ci 
 - npx gulp
 - load from dist/chrome...
+- load config in options/advanced -- file:///home/hassen/.surfingkeysrc.js
 
 
