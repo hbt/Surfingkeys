@@ -442,8 +442,12 @@ var ChromeService = (function() {
                 console.log(_message.action + ": " + e);
             }
         } else {
-            console.log("[unexpected runtime message] " + JSON.stringify(_message));
+            // Note(hbt) otherwise prints error message for my background actions
+            // console.log("[unexpected runtime message] " + JSON.stringify(_message));
         }
+        
+        // Note(hbt) necessary as we have 2 onMessage listeners
+        return true
     });
 
     self.getTabErrors = function(message, sender, sendResponse) {

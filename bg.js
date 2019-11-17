@@ -933,30 +933,30 @@ class CustomBackground {
     }
 
     registerListeners() {
-        chrome.runtime.onMessage.addListener((_message, _sender, _sendResponse, _port) => {
-            this.handlePortMessage(_message, _sender, _sendResponse, _port);
+        chrome.runtime.onMessage.addListener((_message, _sender, _sendResponse) => {
+            this.handlePortMessage(_message, _sender, _sendResponse);
         });
 
-        chrome.runtime.onConnect.addListener(port => {
-            var sender = port.sender;
-            port.onMessage.addListener((message, port) => {
-                return this.handlePortMessage(
-                    message,
-                    port.sender,
-                    function(resp) {
-                        try {
-                            if (!port.isDisconnected) {
-                                port.postMessage(resp);
-                            }
-                        } catch (e) {
-                            console.error(message.action + ": " + e);
-                            console.error(port, e);
-                        }
-                    },
-                    port
-                );
-            });
-        });
+        // chrome.runtime.onConnect.addListener(port => {
+        //     var sender = port.sender;
+        //     port.onMessage.addListener((message, port) => {
+        //         return this.handlePortMessage(
+        //             message,
+        //             port.sender,
+        //             function(resp) {
+        //                 try {
+        //                     if (!port.isDisconnected) {
+        //                         port.postMessage(resp);
+        //                     }
+        //                 } catch (e) {
+        //                     console.error(message.action + ": " + e);
+        //                     console.error(port, e);
+        //                 }
+        //             },
+        //             port
+        //         );
+        //     });
+        // });
 
         chrome.commands.onCommand.addListener(function(command) {
             switch (command) {
@@ -1031,12 +1031,12 @@ class CustomBackground {
     }
 
     sendResponse(message, sendResponse, result) {
-        result.action = message.action;
-        result.id = message.id;
+        // result.action = message.action;
+        // result.id = message.id;
         sendResponse(result);
     }
 
-    handlePortMessage(_message, _sender, _sendResponse, _port) {
+    handlePortMessage(_message, _sender, _sendResponse) {
         if (_message && _message.target !== "content_runtime") {
             if (this[_message.action] instanceof Function) {
                 try {
@@ -1047,6 +1047,7 @@ class CustomBackground {
                 }
             }
         }
+        return true;
     }
 
     async updateSettings(message, sender, sendResponse) {

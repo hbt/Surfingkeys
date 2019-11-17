@@ -1,10 +1,10 @@
 var DEBUG = 0;
 var LOG = DEBUG ? console.log.bind(console) : function() {};
 
-// runtime.command = function(args, cb) {
-//     console.assert(args.action !== undefined);
-//     RUNTIME(args.action, args, function() {cb()});
-// };
+runtime.command = function(args, cb) {
+    console.assert(args.action !== undefined);
+    RUNTIME(args.action, args, cb);
+};
 
 var DOMUtils = {
     mouseEvent: function(type, element) {
@@ -599,6 +599,7 @@ var CustomCommands = (function() {
         runtime.conf.stealFocusOnLoad = stealFocusOnLoad;
     };
 
+    // TODO(hbt) NEXT fix dup calls
     chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
         if (msg.action && typeof self[msg.action] === "function") {
             try {
