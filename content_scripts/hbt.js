@@ -1,6 +1,11 @@
 var DEBUG = 0;
 var LOG = DEBUG ? console.log.bind(console) : function() {};
 
+// runtime.command = function(args, cb) {
+//     console.assert(args.action !== undefined);
+//     RUNTIME(args.action, args, function() {cb()});
+// };
+
 var DOMUtils = {
     mouseEvent: function(type, element) {
         var events;
