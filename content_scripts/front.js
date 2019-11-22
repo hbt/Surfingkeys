@@ -150,7 +150,11 @@ var Front = (function() {
     }
 
     self.showUsage = function() {
-        frontendCommand({
+         frontendCommand({
+            action: 'showUsage',
+            metas: getAllAnnotations()
+        });
+       frontendCommand({
             action: 'showUsage',
             metas: getAllAnnotations()
         });

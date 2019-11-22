@@ -40,6 +40,7 @@
     "author": "brook hong",
     "permissions": [
         "webRequest",
+        "nativeMessaging",
         "webRequestBlocking",
         "proxy",
         "<all_urls>",
@@ -78,6 +79,10 @@
             ],
             "match_about_blank": true,
             "js": [
+
+              "content_scripts/react/react.js",
+              "content_scripts/react/react-dom.js",
+              "content_scripts/react/styled-components.js",
 
                 "promisify-chrome-api.js",
 

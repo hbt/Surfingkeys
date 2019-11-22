@@ -13,6 +13,11 @@ const getMethods = (obj) => {
 };
 
 
+// ┌──────────────────┐
+// │ Commands omnibar │
+// └──────────────────┘
+// LINK: /Users/adamwagner/Programming/CLONES/SurfFork/pages/omnibar.js:1041
+
 
 class Window extends BgBase {
 
@@ -82,7 +87,7 @@ class Window extends BgBase {
 		chrome.sessions.restore();
 	}
 
-	duplicateTab(mesgage, sender, sendResponse) {
+	duplicateTab(message, sender, sendResponse) {
     chrome.tabs.duplicate(sender.tab.id);
 	}
 

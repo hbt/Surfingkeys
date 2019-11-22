@@ -1037,6 +1037,135 @@ var OpenTabs = (function() {
 })();
 Omnibar.addHandler('Tabs', OpenTabs);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ const TabCmds = {
+  'copy-all': {
+    kbd: 'yYY',
+    label: 'Copy urls of all tabs in all windows',
+    func: () => {
+      runtime.command({ action: 'allTabsCurrentWindow' }, tabs => {
+        console.log('tabs: ', tabs);
+      });
+    }
+  },
+
+  duplicate: {
+    kbd: ';d',
+    label: 'Duplciate current tab',
+    func: () => {
+      runtime.command({ action: 'duplicateTab' });
+    }
+  },
+
+  detach: {
+    kbd: ',,dt',
+    label: 'Detach current tab',
+    func: () => {
+      runtime.command({ action: 'detachTab' }, res => {
+        console.log('detach tab');
+        console.log('res:', res);
+      });
+    }
+  },
+
+  attach: {
+    kbd: ',,at',
+    label: 'Attach current tab',
+    func: () => {
+      runtime.command({ action: 'attachTab' }, res => {
+        console.log('attach tab');
+        console.log('res:', res);
+      });
+    }
+  },
+
+};
+
+
+function ObjToArray(obj) {
+  return Object.entries(obj)
+    .map(n => Object.assign({name: n[0]}, n[1]));
+}
+
+var AWCommands = (function() {
+    var self = {
+        prompt: `commands${separatorHtml}`
+    };
+
+    self.getResults = function () {
+        Omnibar.cachedPromise = new Promise(function(resolve, reject) {
+
+            console.log('TabCmds from omnibar:', ObjToArray(TabCmds));
+
+            runtime.command({
+                action: 'getTabs',
+                query: ''
+            }, function() {
+              let result = ObjToArray(TabCmds).map(({name, label}) => ({title: name, url: label}));
+              resolve(result);
+            });
+        });
+    };
+    self.onEnter = Omnibar.openFocused.bind(self);
+    self.onOpen = function() {
+        self.getResults();
+        self.onInput();
+    };
+    self.onInput = function() {
+        Omnibar.cachedPromise.then(function(cached) {
+            var filtered = _filterByTitleOrUrl(cached, Omnibar.input.value);
+            Omnibar.listURLs(filtered, false);
+        });
+    };
+    return self;
+})();
+
+Omnibar.addHandler('CMDS_AW', AWCommands);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var OpenVIMarks = (function() {
     var self = {
         prompt: `VIMarks${separatorHtml}`
@@ -1209,6 +1338,7 @@ var Commands = (function() {
             action: 'getSettings',
             key: 'cmdHistory'
         }, function(response) {
+          console.log('command omnibar response:', self.items);
             var candidates = response.settings.cmdHistory;
             if (candidates.length) {
                 Omnibar.listResults(candidates, function(c) {
