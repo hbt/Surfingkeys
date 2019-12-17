@@ -28,5 +28,9 @@ runtime.command({
                 operation: 'toggle'
             });
         });
+
+        setInterval(() => {
+            window.location.href = tabError.url;
+        }, 1000)
     }
 });
