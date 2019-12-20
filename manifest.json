@@ -22,6 +22,9 @@
         "closeTab": {
             "description": "Close the current tab."
         },
+        "pinTab": {
+            "description": "Pin the current tab | background.js:424"
+        },
         "handlebothcwevents": {
             "description": "When pressing C-w depending on mode will close the tab or delete backword in insert mode"
         },
