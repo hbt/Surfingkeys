@@ -235,7 +235,6 @@ var ChromeService = (function() { // {{{
         }
     }
 
-<<<<<<< HEAD
     function handleMessage(_message, _sender, _sendResponse, _port) {
         if (_message && _message.target !== 'content_runtime') {
             if (self.hasOwnProperty(_message.action)) {
@@ -255,9 +254,6 @@ var ChromeService = (function() { // {{{
         }
     }
 
-
-=======
->>>>>>> brookhong/master
     function loadSettings(keys, cb) {
         var tmpSet = {
             blacklist: {},
@@ -940,8 +936,6 @@ var ChromeService = (function() { // {{{
     self.openLast = function(message, sender, sendResponse) {
         chrome.sessions.restore();
     };
-<<<<<<< HEAD
-=======
     self.duplicateTab = function(message, sender, sendResponse) {
         chrome.tabs.duplicate(sender.tab.id, function() {
             if (message.active === false) {
@@ -949,7 +943,6 @@ var ChromeService = (function() { // {{{
             }
         });
     };
->>>>>>> brookhong/master
     self.newWindow = function(message, sender, sendResponse) {
         chrome.tabs.query({}, function(tabs) {
             var tabInWindow = {};
