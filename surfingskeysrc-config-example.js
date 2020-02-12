@@ -587,16 +587,16 @@ mapkey("bt", "tn", () => {
 // TODO(hbt) INVESTIGATE inv smart way to recognize url changes e.g http://tomtunguz.com/pricing-summary/ changed to https://tomtunguz.com/pricing-summary -- using https. Can the API open a URL from my bookmark and update it to whatever the new one is so it shows with a star
 
 mapkey("BDl", "dump later", () => {
-    CustomCommands.bookmarkDumpFolder('later')
+    CustomCommands.bookmarkDumpFolder('later');
 });
 mapkey("BLl", "load later", () => {
-    CustomCommands.bookmarkLoadFolder('later')
+    CustomCommands.bookmarkLoadFolder('later');
 });
 mapkey("BDf", "dump functionshub", () => {
-    CustomCommands.bookmarkDumpFolder('functionshub')
+    CustomCommands.bookmarkDumpFolder('functionshub');
 });
 mapkey("BLf", "load functionshub", () => {
-    CustomCommands.bookmarkLoadFolder('functionshub')
+    CustomCommands.bookmarkLoadFolder('functionshub');
 });
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -73,6 +73,7 @@ var Mode = (function() {
     }, mode_stack = [];
     self.specialKeys = {
         "<Alt-s>": ["<Alt-s>"],       // hotkey to toggleBlacklist
+        "<Alt-i>": ["<Alt-i>"],       // hotkey to togglePassthrough Mode
         "<Esc>": ["<Esc>"]
     };
 
@@ -280,7 +281,7 @@ var PassThrough = (function() {
     self.addEventListener('keydown', function(event) {
         // prevent this event to be handled by Surfingkeys' other listeners
         event.sk_suppressed = true;
-        if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
+       if (Mode.isSpecialKeyOf("<Alt-i>", event.sk_keyName)) {
             self.exit();
             event.sk_stopPropagation = true;
         }

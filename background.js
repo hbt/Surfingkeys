@@ -421,6 +421,13 @@ var ChromeService = (function() {//{{{
     }
     chrome.commands.onCommand.addListener(function(command) {
         switch (command) {
+            case 'pinTab':
+                getActiveTab(function(tab) {
+                    return chrome.tabs.update(tab.id, {
+                        pinned: !tab.pinned
+                    });
+                });
+                break;
             case 'restartext':
                 chrome.runtime.reload();
                 break;

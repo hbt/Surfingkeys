@@ -21,7 +21,6 @@ var DOMUtils = {
             element.dispatchEvent(event);
         });
     },
-
     hasAttributes: function(node) {
         if (arguments.length < 2) return false;
         for (var i = 1; i < arguments.length; i++) {
@@ -29,7 +28,6 @@ var DOMUtils = {
         }
         return false;
     },
-
     traverseDOM: function(root, accept) {
         var nodes = [root];
         for (var i = 0; i < nodes.length; i++) {
@@ -43,7 +41,6 @@ var DOMUtils = {
         nodes.shift();
         return nodes.filter(accept);
     },
-
     getLinkableElements: function() {
         var visible = function(node) {
             var cs = getComputedStyle(node, null);
@@ -62,7 +59,6 @@ var DOMUtils = {
             });
         };
     },
-
     findFirstOf: function(array, callback) {
         for (var i = 0; i < array.length; i++) {
             if (callback(array[i], i, array)) return array[i];
@@ -77,7 +73,6 @@ var DOMUtils = {
         }
         return result;
     },
-
     matchLocation: function(url, pattern) {
         // Uses @match syntax
         // See https://code.google.com/p/chromium/codesearch#chromium/src/extensions/common/url_pattern.h&sq=package:chromium
@@ -136,7 +131,6 @@ var DOMUtils = {
         }
         return false;
     },
-
     /**
      * Checks if an element is visible (not necessarily on-screen)
      */
@@ -150,7 +144,6 @@ var DOMUtils = {
             element.getAttribute("display") !== "none"
         );
     },
-
     isEditable: function(element) {
         if (!element) {
             return false;
@@ -174,7 +167,6 @@ var DOMUtils = {
         return true;
     }
 };
-
 var InsertUtils = (function() {
     var self = {};
     self.selection = document.getSelection();
@@ -185,7 +177,6 @@ var InsertUtils = (function() {
         }
         self.selection.modify.bind(self.selection, self.selection.type === "Range" ? "extend" : "move").apply(null, arguments);
     }
-
     function deleteSelection() {
         if (self.selection.type === "Range" && self.selection.toString().length !== 0) {
             document.execCommand("delete", false, 0);
@@ -206,11 +197,9 @@ class MyCustomMapping {
     static get acmds() {
         return _commandsIndexedByAnnotation;
     }
-
     static set acmds(v) {
         return (_commandsIndexedByAnnotation = v);
     }
-
     init() {
         function mapCommandsByAnnotations(modes) {
             function mapCommandsFromTrieToFlatArray(modes) {
@@ -229,14 +218,12 @@ class MyCustomMapping {
                                 }
                             });
                         }
-
                         let mappings = mode.mappings;
                         extractMappingRecursively(mappings);
                     });
                     return ret;
                 }
             }
-
             function indexByAnnotation(commands) {
                 function fixSearchAliasBug(key, v) {
                     // removeSearchAlias(); is not properly implemented and lacks annotations
@@ -246,7 +233,6 @@ class MyCustomMapping {
                     }
                     return ret;
                 }
-
                 function fixMissingAnnotation(v) {
                     let ret = v;
                     if (!v.meta.hasOwnProperty("annotation")) {
@@ -254,7 +240,6 @@ class MyCustomMapping {
                     }
                     return ret;
                 }
-
                 {
                     console.assert(commands.length > 0);
                     let ret = new Map();
@@ -265,10 +250,8 @@ class MyCustomMapping {
                         key = key.toLowerCase();
                         key = fixSearchAliasBug(key, v);
                         console.assert(key.length > 0, key);
-
                         if (ret.has(key)) {
                             key = v.mode + v.meta.annotation;
-
                             console.assert(ret.has(key) === false, `Annotation duplicated ${key} for shortcut ${v.meta.word}`);
                         }
                         ret.set(key, v);
@@ -278,14 +261,12 @@ class MyCustomMapping {
                     return ret;
                 }
             }
-
             {
                 let flatCommands = mapCommandsFromTrieToFlatArray(modes);
                 let ret = indexByAnnotation(flatCommands);
                 return ret;
             }
         }
-
         {
             // let modes = [Disabled, Normal, PassThrough, Insert, Hints, Find, AceEditor, Front, Visual, Omnibar, mappingsEditor, KeyPicker]
             let modes = [Normal, Insert, Visual];
@@ -302,7 +283,6 @@ function printAllCommands() {
     // for (var key of MyCustomMapping.acmds.keys()) {
     //     console.log(`Mode: ${MyCustomMapping.acmds.get(key).mode}, Shortcut: ${MyCustomMapping.acmds.get(key).meta.word}, Annotation: ${key}`);
     // }
-
     for (var key of MyCustomMapping.acmds.keys()) {
         console.info(`amap("${MyCustomMapping.acmds.get(key).meta.word}", "${key}");`);
     }
@@ -326,29 +306,62 @@ function amap(keys, annotation) {
     // Note(hbt) double check casing of annotation (not consistent)
     console.assert(acmds.has(annotation), `Annotation not found "${annotation}" for keys "${keys}"`);
     let mapping = MyCustomMapping.acmds.get(annotation);
-
     _mapkey(window[mapping.mode], keys, mapping.meta.annotation, mapping.meta.code, mapping.meta.options);
 }
 
+let tabMagic = {
+  DirectionRight: {
+      key: 'e'
+  },
+  DirectionRightInclusive: {
+      key: 'E'
+  },
+  DirectionLeft: {
+      key: 'q'
+  },
+  DirectionLeftInclusive: {
+      key: 'Q'
+  },
+  AllTabsInCurrentWindowExceptActiveTab: {
+      key: 'c'
+  },
+  AllTabsInCurrentWindow: {
+      key: 'C'
+  },
+  AllOtherTabsInOtherWindowsExceptAllTabsInCurrentWindow: {
+      key: 'w'
+  },
+  AllTabsInAllWindowExceptActiveTab: {
+      key: 'g'
+  },
+  currentTab: {
+      key: 't'
+  },
+  highlightedTabs: {
+      key: 'h'
+  },
+  childrenTabs: {
+      key: 'K'
+  },
+  childrenTabsRecursively: {
+      key: 'k'
+  },
+};
+
 var CustomCommands = (function() {
     let self = {};
-
     function shouldSkipOtherRepeats() {
         return !isNaN(parseInt(Normal.repeats)) && RUNTIME.repeats !== parseInt(Normal.repeats);
     }
-
     runtime.conf.disabledDomainKeys = [];
-
     self.testMyPort = async () => {
         return await aruntime({ action: "testMyPort" });
     };
-
     async function aruntime(obj) {
         return new Promise(resolve => {
             runtime.command(obj, resolve);
         });
     }
-
     self.copyTopURL = () => {
         runtime.command(
             {
@@ -359,27 +372,23 @@ var CustomCommands = (function() {
             }
         );
     };
-
     // TODO(hbt) Refactor (low): refactor magic cmds -- abstract pattern
     self.tabReloadM = async k => {
         let magic = tabCheckMagicByKey(k);
         if (!magic) {
             return;
         }
-
         let res = await aruntime({
             action: "tabReloadM",
             repeats: Normal.repeats || -1,
             magic: magic
         });
     };
-
     self.copyTabURLsM = async k => {
         let magic = tabCheckMagicByKey(k);
         if (!magic) {
             return;
         }
-
         let res = await aruntime({
             action: "copyTabURLsM",
             repeats: Normal.repeats || -1,
@@ -387,7 +396,6 @@ var CustomCommands = (function() {
         });
         Front.showBanner(`Copied ${res.count} URLs ${res.data}`, 2000);
     };
-
     self.copyAllTabsURLsInCurrentWindow = () => {
         runtime.command(
             {
@@ -398,12 +406,10 @@ var CustomCommands = (function() {
             }
         );
     };
-
     self.copyRootURL = async () => {
         const res = await aruntime({ action: "copyTopURL" });
         Front.showBanner(res.url);
     };
-
     self.openLinkIncognito = function(url) {
         runtime.command(
             {
@@ -413,7 +419,6 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.passSingleKey = function() {
         if (Mode.stack()[0].name === "Visual") {
             Visual.toggle();
@@ -426,7 +431,6 @@ var CustomCommands = (function() {
             });
         }
     };
-
     self.pasteFromClipboard = function() {
         Clipboard.read(v => {
             runtime.command(
@@ -438,13 +442,11 @@ var CustomCommands = (function() {
             );
         });
     };
-
     self.pasteFromClipboardNewTab = function() {
         if (shouldSkipOtherRepeats()) {
             return;
         }
         let repeats = parseInt(Normal.repeats) || -1;
-
         Clipboard.read(v => {
             runtime.command(
                 {
@@ -456,7 +458,6 @@ var CustomCommands = (function() {
             );
         });
     };
-
     self.handleCtrlWFeature = function(msg, sender, cb) {
         let href = document.location.href;
         // Note(hbt) detects iframe issue and prevents evaluation  e.g https://www.google.com/search?source=hp&ei=bnxuXKfZJMrk_Aaag5iIDg&q=nodejs+console+log+line+number&btnK=Google+Search&oq=nodejs+console+log+lin&gs_l=psy-ab.3.0.0j0i22i30l4.912.3780..4703...0.0..0.78.1598.23......0....1..gws-wiz.....0..35i39j0i67j0i131i67j0i10i67j0i131j0i20i263j0i10.Wg48hdfEJdY
@@ -494,9 +495,7 @@ var CustomCommands = (function() {
             }
         }
     };
-
     self.debug = function(msg) {};
-
     /**
      * HACK for sites like youtube where the window object is the same despite switching URLs.
      * that means surfingkeys:defaultSettingsLoaded is executed once and custom scripts only once (regardless of the number of URLs we browse)
@@ -510,11 +509,9 @@ var CustomCommands = (function() {
             window.document.dispatchEvent(new CustomEvent("surfingkeys:hbt:tabcomplete"));
         }
     };
-
     self.exampleWithRepeatAndDirection = function(e) {
         console.log(e, Normal.repeats);
     };
-
     self.handleKeyPropagation = function(mode, event) {
         // Note(hbt) experimental to prevent lightboxes in JS and sites with existing shortcuts from being triggered
         let ret = event;
@@ -528,7 +525,6 @@ var CustomCommands = (function() {
                 document.activeElement && document.activeElement.blur();
             }
         }
-
         // hack:  Some events still being passed to the page when unmapped keys are triggered e.g map s to scroll press s on github; it goes to search
         // Note(hbt) it works but there is no focus. i.e will trigger site action but focus stays (for the first time only)
         let settings = runtime.conf;
@@ -542,10 +538,8 @@ var CustomCommands = (function() {
         ) {
             ret.sk_stopPropagation = true;
         }
-
         return ret;
     };
-
     self.insertGoToFirstInput = function() {
         if (RUNTIME.repeats !== 1 && RUNTIME.repeats !== parseInt(Normal.repeats)) {
             return;
@@ -553,7 +547,6 @@ var CustomCommands = (function() {
         let stealFocusOnLoad = runtime.conf.stealFocusOnLoad;
         runtime.conf.stealFocusOnLoad = false;
         let repeats = Normal.repeats || 0;
-
         this.inputElements = [];
         var allInput = document.querySelectorAll("input,textarea,*[contenteditable]");
         for (var i = 0, l = allInput.length; i < l; i++) {
@@ -568,7 +561,6 @@ var CustomCommands = (function() {
         if (this.inputElementsIndex < 0) {
             this.inputElementsIndex = 0;
         }
-
         // TODO(hbt) INVESTIGATE this makes inputElementsIndex always = 0
         // for (i = 0, l = this.inputElements.length; i < l; i++) {
         //     var br = this.inputElements[i].getBoundingClientRect();
@@ -580,20 +572,16 @@ var CustomCommands = (function() {
         //         break;
         //     }
         // }
-
         this.inputFocused = true;
         this.inputElements[this.inputElementsIndex].focus();
-
         if (document.activeElement.select) {
             document.activeElement.select();
         }
         if (!document.activeElement.hasAttribute("readonly")) {
             document.getSelection().modify("move", "right", "lineboundary");
         }
-
         runtime.conf.stealFocusOnLoad = stealFocusOnLoad;
     };
-
     chrome.runtime.onMessage.addListener(function(msg, sender, cb) {
         if (msg.action && typeof self[msg.action] === "function") {
             try {
@@ -603,13 +591,11 @@ var CustomCommands = (function() {
             }
         }
     });
-
     self.hintOpenLinkIncognito = function() {
         Hints.create("*[href]", function(element) {
             CustomCommands.openLinkIncognito(element.href);
         });
     };
-
     self.hintSimulateMiddleClickBackground = function(element) {
         var event = new MouseEvent("click", {
             bubbles: true,
@@ -620,7 +606,6 @@ var CustomCommands = (function() {
         });
         element.dispatchEvent(event);
     };
-
     self.hintDetectNewTab = function() {
         linkifyElement(document.body);
         Hints.create(
@@ -631,7 +616,6 @@ var CustomCommands = (function() {
             { statusLine: "Open detected links from text" }
         );
     };
-
     self.hintMatchPatterns = function(pattern, direction) {
         function tryGooglePattern(forward) {
             if (location.hostname.indexOf("www.google.")) return false;
@@ -639,7 +623,6 @@ var CustomCommands = (function() {
             if (target) target.click();
             return !!target;
         }
-
         let matchPatternFilters = {
             "*://*.ebay.com/*": {
                 next: "td a.next",
@@ -662,7 +645,6 @@ var CustomCommands = (function() {
                 return matchPatternFilters[key][direction];
             });
         applicableFilters = DOMUtils.compressArray(applicableFilters);
-
         var link = null;
         for (var i = 0; i < applicableFilters.length; i++) {
             link = DOMUtils.findFirstOf(document.querySelectorAll(applicableFilters[i]), function(e) {
@@ -688,7 +670,6 @@ var CustomCommands = (function() {
             DOMUtils.mouseEvent("click", link);
         }
     };
-
     self.hintHandleClickNewTabBackground = function(element, event) {
         Hints.flashPressedLink(element);
         if (isEditable(element)) {
@@ -701,17 +682,14 @@ var CustomCommands = (function() {
             CustomCommands.hintSimulateMiddleClickBackground(element);
         }
     };
-
     self.hintNewTab = async () => {
         Hints.create("", CustomCommands.hintHandleClickNewTabBackground);
     };
-
     self.hintFocusElement = async () => {
         Hints.create("", function(element) {
             element.focus();
         });
     };
-
     self.tabDetach = function() {
         runtime.command(
             {
@@ -720,7 +698,6 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.tabDetachM = async k => {
         let magic = tabCheckMagicByKey(k);
         if (magic) {
@@ -731,38 +708,31 @@ var CustomCommands = (function() {
             });
         }
     };
-
     self.tabCloseLeft = function() {
         self.tabClose("closeLeft");
     };
-
     self.tabCloseRight = function() {
         self.tabClose("closeRight");
     };
-
     // tcc
     self.tabCloseOthersInWindow = function() {
         self.tabClose("closeOther");
     };
-
     // tcw
     self.windowCloseOtherWindows = function() {
         // self.tabClose('otherWindows', {otherWindows: true,})
         self.tabClose("otherWindows");
     };
-
     // tcg
     self.tabCloseOthersInAllWindows = function() {
         self.tabCloseOthersInWindow();
         self.windowCloseOtherWindows();
     };
-
     self.tabUndo = function() {
         if (shouldSkipOtherRepeats()) {
             return;
         }
         let repeats = parseInt(Normal.repeats) || 1;
-
         runtime.command(
             {
                 action: "tabUndo",
@@ -771,7 +741,6 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.tabOpenInIncognito = function() {
         runtime.command(
             {
@@ -780,7 +749,6 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.tabClose = function(type) {
         runtime.command(
             {
@@ -792,20 +760,17 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.tabTogglePinM = async function(k) {
         let magic = tabCheckMagicByKey(k);
         if (!magic) {
             return;
         }
-
         let ret = await aruntime({
             action: "tabTogglePinM",
             repeats: Normal.repeats || -1,
             magic: magic
         });
     };
-
     self.tabTogglePinAll = function() {
         runtime.command(
             {
@@ -814,7 +779,6 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.windowsTogglePinAll = function() {
         runtime.command(
             {
@@ -826,13 +790,11 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.tabGotoParent = function() {
         aruntime({
             action: "tabGotoParent"
         });
     };
-
     self.tabGoto = function() {
         // ignore other repeats and pass the value instead
         if (RUNTIME.repeats !== parseInt(Normal.repeats)) {
@@ -848,26 +810,22 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.tabReverseM = async function(k) {
         let magic = tabCheckMagicByKey(k);
         if (!magic) {
             return;
         }
-
         let ret = await aruntime({
             action: "tabReverseM",
             repeats: Normal.repeats || -1,
             magic: magic
         });
     };
-
     self.tabToggleHighlightM = async function(k) {
         let magic = tabCheckMagicByKey(k);
         if (!magic) {
             return;
         }
-
         let ret = await aruntime({
             action: "tabToggleHighlightM",
             repeats: Normal.repeats || -1,
@@ -876,7 +834,6 @@ var CustomCommands = (function() {
         let msg = `Highlighted: ${ret.state.add} \n Removed! : ${ret.state.rm} \n Total: ${ret.count}`;
         Front.showBanner(msg, 3000);
     };
-
     self.tabToggleHighlight = function() {
         runtime.command(
             {
@@ -889,7 +846,6 @@ var CustomCommands = (function() {
             }
         );
     };
-
     self.tabMoveHighlighted = function() {
         runtime.command(
             {
@@ -898,7 +854,6 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.tabHighlightClearAll = function() {
         runtime.command(
             {
@@ -909,7 +864,6 @@ var CustomCommands = (function() {
             }
         );
     };
-
     self.pageStylesheetToggleByDomain = function(fileURL) {
         runtime.command(
             {
@@ -919,14 +873,12 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.addVIMark2 = function(mark, url) {
         if (/^[a-z]$/.test(mark)) {
             // local mark
             var localMarks = JSON.parse(localStorage["sklocalMarks"] || "{}");
             let href = CustomCommands.getHostname();
             localMarks[href] = localMarks[href] || {};
-
             localMarks[href][mark] = {
                 scrollLeft: document.scrollingElement.scrollLeft,
                 scrollTop: document.scrollingElement.scrollTop
@@ -936,7 +888,6 @@ var CustomCommands = (function() {
             Normal.addVIMark(mark, url);
         }
     };
-
     self.jumpVIMark = function(mark, newTab) {
         function saveLastPosition(href) {
             var localMarks = JSON.parse(localStorage["sklocalMarks"] || "{}");
@@ -946,14 +897,11 @@ var CustomCommands = (function() {
             };
             localStorage["sklocalMarks"] = JSON.stringify(localMarks);
         }
-
         function gotoPosition(scrollLeft, scrollTop) {
             document.scrollingElement.scrollLeft = scrollLeft;
             document.scrollingElement.scrollTop = scrollTop;
         }
-
         var localMarks = JSON.parse(localStorage["sklocalMarks"] || "{}");
-
         let href = CustomCommands.getHostname();
         if (localMarks.hasOwnProperty(href) && localMarks[href].hasOwnProperty(mark)) {
             var markInfo = localMarks[href][mark];
@@ -969,39 +917,32 @@ var CustomCommands = (function() {
             }
         }
     };
-
     self.getHostname = function(url) {
         let href = url || window.top.location.href;
         var res = window.location.host || "file";
-
         if (href) {
             var a = document.createElement("a");
             a.href = href;
             res = a.host;
         }
-
         return res;
     };
-
     /**
      *  WIP
      */
     self.tabToggleSwitchTabNewPosition = function() {
         // Note(hbt) skipping idea for now. low ROI
-
         //     runtime.command(
         //     {
         //         action: "tabToggleSwitchTabNewPosition",
         //     },
         //     function(res) {}
         // );
-
         let settings = {
             snippets: 'settings.newTabPosition = "default"'
         };
         applySettings(settings);
     };
-
     /**
      * opens in external editor using mouseless python server
      */
@@ -1014,7 +955,6 @@ var CustomCommands = (function() {
         var __ = window._;
         var mid = "mouseless_sfk_" + generateQuickGuid();
         element.classList.add(mid);
-
         runtime.command(
             {
                 action: "insertOpenExternalEditor",
@@ -1027,14 +967,12 @@ var CustomCommands = (function() {
                 var lastInputElement = element;
                 lastInputElement[lastInputElement.value !== void 0 ? "value" : "innerHTML"] = res.text.replace(/\n$/, ""); // remove trailing line left by vim
                 // element.value = res.text;
-
                 if (!DOMUtils.isSubmittable(element)) {
                     element.blur();
                 }
             }
         );
     };
-
     self.urlEditExternalEditor = function() {
         runtime.command(
             {
@@ -1047,13 +985,11 @@ var CustomCommands = (function() {
             }
         );
     };
-
     self.urlReplaceNumber2 = function(inc, repeats) {
         let matches = document.location.href.match(/\d+/g);
         if (matches.length < 0) {
             return;
         }
-
         let url = document.location.href;
         let posi = url.length;
         matches = matches.reverse();
@@ -1063,15 +999,12 @@ var CustomCommands = (function() {
                 break;
             }
         }
-
         let nurl = url.substr(0, posi);
         let ninc = parseInt(url.substr(posi, matches[i].length)) + inc;
         nurl += ninc;
         nurl += url.substr(posi + matches[i].length);
-
         window.location.href = nurl;
     };
-
     self.urlReplaceNumber = function(inc) {
         if (document.location.href.match(/(.*?)(\d+)(\D*)$/)) {
             var pre = RegExp.$1,
@@ -1085,22 +1018,18 @@ var CustomCommands = (function() {
                     newNumberStr = "0" + newNumberStr;
                 }
             }
-
             var url = pre + newNumberStr + post;
             window.location.href = url;
         }
     };
-
     self.urlDecrementLastPath = function(inc) {
         // self.urlReplaceNumber(parseInt(inc) * -1);
-
         if (isNaN(inc)) {
             inc = 1;
         }
         let repeats = Normal.repeats === "" ? 1 : Normal.repeats;
         self.urlReplaceNumber2(parseInt(inc) * -1, repeats);
     };
-
     self.openSourceCodeExternalEditor = function() {
         // reuse the same code as ysrc . If this is buggy, do an ajax request to view-source:http.... -- gsrc
         var aa = document.documentElement.cloneNode(true);
@@ -1112,21 +1041,17 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.urlMake = function() {
         linkifyElement(document.body);
     };
-
     self.urlIncrementLastPath = function(inc) {
         // self.urlReplaceNumber(parseInt(inc))
-
         if (isNaN(inc)) {
             inc = 1;
         }
         let repeats = Normal.repeats === "" ? 1 : Normal.repeats;
         self.urlReplaceNumber2(parseInt(inc), repeats);
     };
-
     self.downloadShowLastFile = function() {
         runtime.command(
             {
@@ -1135,7 +1060,6 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     self.downloadOpenLastFile = function() {
         runtime.command(
             {
@@ -1144,37 +1068,29 @@ var CustomCommands = (function() {
             function(res) {}
         );
     };
-
     callMagicBackend = async function(key, action, options) {
         let magic = tabCheckMagicByKey(key);
         if (!magic) {
             return;
         }
-
         let opts = options || {};
         let msg = {
             action: action,
             repeats: Normal.repeats || -1,
             magic: magic
         };
-
         msg = Object.assign(msg, opts);
-
         let res = await aruntime(msg);
-
         return res;
     };
-
     self.bookmarkAddM = async function(k, folder) {
         let ret = await callMagicBackend(k, "bookmarkAddM", { folder: folder });
         Front.showBanner(ret.msg, 3000);
     };
-
     self.bookmarkRemoveM = async function(k, folder) {
         let ret = await callMagicBackend(k, "bookmarkRemoveM", { folder: folder });
         Front.showBanner(ret.msg, 3000);
     };
-
     self.bookmarkToggle = function(folder) {
         runtime.command(
             {
@@ -1186,48 +1102,38 @@ var CustomCommands = (function() {
             }
         );
     };
-
     self.bookmarkSaveYoutube = async function() {
         function getYoutubeDurationInSeconds() {
             function getYoutubeDuration() {
                 return document.getElementsByClassName("ytp-time-current")[0].innerText;
             }
-
             function convertDurationToSeconds(duration) {
                 let parts = duration.split(":");
                 let seconds = parts.pop() || 0;
                 let mins = parts.pop() || 0;
                 let hours = parts.pop() || 0;
-
                 let d = new Date(0);
                 d.setUTCHours(hours);
                 d.setUTCMinutes(mins);
                 d.setUTCSeconds(seconds);
-
                 let ret = d.getTime() / 1000;
-
                 return ret;
             }
-
             return convertDurationToSeconds(getYoutubeDuration());
         }
-
         let ret = await aruntime({
             action: "bookmarkSaveYoutube",
             folder: "playback",
             duration: getYoutubeDurationInSeconds()
         });
-
         Front.showBanner(ret.msg, 8000);
     };
-
     self.bookmarkLookupCurrentURL = async function() {
         let ret = await aruntime({
             action: "bookmarkLookupCurrentURL"
         });
         Front.showBanner(ret.msg.join("\n"), 8000);
     };
-
     self.bookmarkCopyOrderedFolder = function(folder) {
         runtime.command(
             {
@@ -1240,7 +1146,6 @@ var CustomCommands = (function() {
             }
         );
     };
-
     self.bookmarkCopyReversedFolder = function(folder) {
         runtime.command(
             {
@@ -1253,7 +1158,6 @@ var CustomCommands = (function() {
             }
         );
     };
-
     self.bookmarkEmptyFolder = function(folder) {
         runtime.command(
             {
@@ -1274,7 +1178,6 @@ var CustomCommands = (function() {
             }
         );
     };
-
     self.bookmarkDumpFolder = function(folder) {
         runtime.command(
             {
@@ -1286,7 +1189,6 @@ var CustomCommands = (function() {
             }
         );
     };
-
     self.bookmarkLoadFolder = function(folder) {
         runtime.command(
             {
@@ -1298,7 +1200,6 @@ var CustomCommands = (function() {
             }
         );
     };
-
     self.createYoutubePlaylist = function(folder) {
         runtime.command(
             {
@@ -1316,29 +1217,23 @@ var CustomCommands = (function() {
                     let ourl = new URL(url);
                     return ourl.searchParams.get("v");
                 });
-
                 let playlist = vidIds.slice(0, 50);
-
                 let purl = "http://www.youtube.com/watch_videos?video_ids=" + playlist.join(",");
                 window.location.href = purl;
             }
         );
     };
-
     self.tabUnique = async () => {
         return await aruntime({ action: "tabUnique" });
     };
-
     self.tabShowIndexPosition = async () => {
         let ret = await aruntime({ action: "tabShowIndexPosition" });
         Front.showBanner(`Tab Position: ${ret.data}`, 3000);
     };
-
     self.tabQuickMarkSave = async m => {
         let ret = await aruntime({ action: "tabQuickMarkSave", mark: m });
         Front.showBanner(`${ret.msg}`, 3000);
     };
-
     self.tabQuickMarkJump = async m => {
         if (m === "`") {
             RUNTIME("goToLastTab");
@@ -1346,7 +1241,6 @@ var CustomCommands = (function() {
             let ret = await aruntime({ action: "tabQuickMarkJump", mark: m });
         }
     };
-
     function tabCheckMagicByKey(k) {
         function mapKeyToName() {
             let ret = new Map();
@@ -1358,13 +1252,10 @@ var CustomCommands = (function() {
             });
             return ret;
         }
-
         let map = mapKeyToName();
         console.assert(map.has(k));
-
         return map.get(k);
     }
-
     self.tabSuspendM = async k => {
         let magic = tabCheckMagicByKey(k);
         if (magic) {
@@ -1375,7 +1266,6 @@ var CustomCommands = (function() {
             });
         }
     };
-
     self.tabUnsuspendM = async k => {
         let magic = tabCheckMagicByKey(k);
         if (magic) {
@@ -1386,7 +1276,6 @@ var CustomCommands = (function() {
             });
         }
     };
-
     self.tabCloseM = async k => {
         let magic = tabCheckMagicByKey(k);
         if (magic) {
@@ -1397,7 +1286,6 @@ var CustomCommands = (function() {
             });
         }
     };
-
     self.showBanner = function(banner, content, time) {
         let timems = (time || 1600) / 1000;
         var banner = document.getElementById("sk_banner");
@@ -1405,7 +1293,6 @@ var CustomCommands = (function() {
         banner.style.display = "";
         setInnerHTML(banner, htmlEncode(content));
         Front.flush();
-
         banner.style.cssText = `animation: ${timems}s ease-in-out 1 both slideInBanner;`;
         // banner.classList.add("slideInBanner");
         banner.one("animationend", function() {
@@ -1414,11 +1301,8 @@ var CustomCommands = (function() {
             Front.flush();
         });
     };
-
     self.adam = function(){
       console.log("hi from custom bg function");
     };
-
     return self;
 })();
-

@@ -66,7 +66,6 @@ console.assert = function(cond, text) {//{{{
             engineUrl = engineUrl || Utils.defaultSearchEngine;
             return Utils.format(engineUrl, encodeURIComponent(query));
         },
-
         isValidURL: (function() {
             var TLDs = [
                 "abogado",
@@ -1006,12 +1005,13 @@ class CustomBackground {//{{{
     static async tabsMuteByDomain(tab, changeInfo) {
         // Note(hbt) for now mute all tabs and unmute in config file
 
-        if (changeInfo.status === "loading") {
-            chrome.tabs.update(tab.id, {
-                muted: true
-            });
-            return;
-        }
+        return;
+        // if (changeInfo.status === "loading") {
+        //     chrome.tabs.update(tab.id, {
+        //         muted: true
+        //     });
+        //     return;
+        // }
     }
 
     /**
@@ -2363,4 +2363,3 @@ class CustomBackground {//{{{
     cc.init();//}}}
 }
 
-(async () => {})();
