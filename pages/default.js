@@ -20,6 +20,8 @@
 //
 // ************************* WARNING *************************
 
+function createDefaultMappings() {
+
 imapkey("<Ctrl-'>", '#15Toggle quotes in an input element', toggleQuote);
 imapkey('<Ctrl-i>', '#15Open vim editor for current input', function() {
     var element = getRealEdit();
@@ -41,8 +43,7 @@ mapkey('cp', '#13Toggle proxy for current site', function() {
     }
 });
 mapkey(';cp', '#13Copy proxy info', function() {
-    runtime.command({
-        action: 'getSettings',
+    RUNTIME('getSettings', {
         key: ['proxyMode', 'proxy', 'autoproxy_hosts']
     }, function(response) {
         Clipboard.write(JSON.stringify(response.settings, null, 4));
@@ -51,8 +52,7 @@ mapkey(';cp', '#13Copy proxy info', function() {
 mapkey(';ap', '#13Apply proxy info from clipboard', function() {
     Clipboard.read(function(response) {
         var proxyConf = JSON.parse(response.data);
-        runtime.command({
-            action: 'updateProxy',
+        RUNTIME('updateProxy', {
             operation: 'set',
             host: proxyConf.autoproxy_hosts,
             proxy: proxyConf.proxy,
@@ -75,9 +75,7 @@ vmapkey('gr', '#9Read selected text', function() {
     readText(window.getSelection().toString(), {verbose: true});
 });
 mapkey('sfr', '#13show failed web requests of current page', function() {
-    runtime.command({
-        action: 'getTabErrors'
-    }, function(response) {
+    RUNTIME('getTabErrors', null, function(response) {
         if (response.tabError && response.tabError.length) {
             var errors = response.tabError.map(function(e) {
                 var url = new URL(e.url);
@@ -200,7 +198,7 @@ mapkey('yq', '#7Copy pre text', function() {
     });
 });
 mapkey('i', '#1Go to edit box', function() {
-    Hints.create("input, textarea, *[contenteditable=true], select", Hints.dispatchMouseClick);
+    Hints.create("input, textarea, *[contenteditable=true], *[role=textbox], select", Hints.dispatchMouseClick);
 });
 mapkey('gi', '#1Go to the first edit box', function() {
     Hints.createInputLayer();
@@ -217,7 +215,7 @@ mapkey('O', '#1Open detected links from text', function() {
 });
 
 mapkey(';q', 'Toggle mouseSelectToQuery', function() {
-    runtime.command({ action: 'toggleMouseQuery', origin: window.location.origin });
+    RUNTIME('toggleMouseQuery', { origin: window.location.origin });
 });
 
 mapkey(';s', 'Toggle PDF viewer from SurfingKeys', function() {
@@ -258,6 +256,9 @@ mapkey('q', '#1Click on an Image or a button', function() {
 mapkey('<Alt-i>', '#0enter PassThrough mode to temporarily suppress SurfingKeys', function() {
     Normal.passThrough();
 });
+mapkey('p', '#0enter ephemeral PassThrough mode to temporarily suppress SurfingKeys', function() {
+    Normal.passThrough(1000);
+});
 mapkey('<Alt-p>', '#3pin/unpin current tab', function() {
     RUNTIME("togglePinTab");
 });
@@ -295,8 +296,7 @@ mapkey('go', '#8Open a URL in current tab', function() {
     Front.openOmnibar({type: "URLs", extra: "getAllSites", tabbed: false});
 });
 mapkey('oi', '#8Open incognito window', function() {
-    runtime.command({
-        action: 'openIncognito',
+    RUNTIME('openIncognito', {
         url: window.location.href
     });
 });
@@ -401,8 +401,7 @@ mapkey('ys', "#7Copy current page's source", function() {
     Clipboard.write(aa.outerHTML);
 });
 mapkey('yj', "#7Copy current settings", function() {
-    runtime.command({
-        action: 'getSettings',
+    RUNTIME('getSettings', {
         key: "RAW"
     }, function(response) {
         Clipboard.write(JSON.stringify(response.settings, null, 4));
@@ -416,8 +415,7 @@ mapkey(';pj', "#7Restore settings data from clipboard", function() {
     });
 });
 mapkey('yd', "#7Copy current downloading URL", function() {
-    runtime.command({
-        action: 'getDownloads',
+    RUNTIME('getDownloads', {
         query: {state: "in_progress"}
     }, function(response) {
         var items = response.downloads.map(function(o) {
@@ -428,6 +426,9 @@ mapkey('yd', "#7Copy current downloading URL", function() {
 });
 mapkey('yt', '#3Duplicate current tab', function() {
     RUNTIME("duplicateTab");
+});
+mapkey('yT', '#3Duplicate current tab in background', function() {
+    RUNTIME("duplicateTab", {active: false});
 });
 mapkey('yy', "#7Copy current page's URL", function() {
     Clipboard.write(window.location.href);
@@ -440,8 +441,7 @@ mapkey('yl', "#7Copy current page's title", function() {
     Clipboard.write(document.title);
 });
 mapkey('yQ', '#7Copy all query history of OmniQuery.', function() {
-    runtime.command({
-        action: 'getSettings',
+    RUNTIME('getSettings', {
         key: 'OmniQueryHistory'
     }, function(response) {
         Clipboard.write(response.settings.OmniQueryHistory.join("\n"));
@@ -464,9 +464,27 @@ mapkey(';pf', '#7Fill form with data from yf', function() {
             var forms = JSON.parse(response.data.trim());
             if (forms.hasOwnProperty(formKey)) {
                 var fd = forms[formKey];
-                element.querySelectorAll('input').forEach(function(ip) {
-                    if (fd.hasOwnProperty(ip.name) && typeof(fd[ip.name]) !== "object") {
-                        ip.value = fd[ip.name];
+                element.querySelectorAll('input, textarea').forEach(function(ip) {
+                    if (fd.hasOwnProperty(ip.name) && ip.type !== "hidden") {
+                        if (ip.type === "radio") {
+                            var op = element.querySelector(`input[name='${ip.name}'][value='${fd[ip.name]}']`);
+                            if (op) {
+                                op.checked = true;
+                            }
+                        } else if (Array.isArray(fd[ip.name])) {
+                            element.querySelectorAll(`input[name='${ip.name}']`).forEach(function(ip) {
+                                ip.checked = false;
+                            });
+                            var vals = fd[ip.name];
+                            vals.forEach(function(v) {
+                                var op = element.querySelector(`input[name='${ip.name}'][value='${v}']`);
+                                if (op) {
+                                    op.checked = true;
+                                }
+                            });
+                        } else if (typeof(fd[ip.name]) === "string") {
+                            ip.value = fd[ip.name];
+                        }
                     }
                 });
             } else {
@@ -478,9 +496,7 @@ mapkey(';pf', '#7Fill form with data from yf', function() {
 mapkey('yg', '#7Capture current page', function() {
     Front.toggleStatus(false);
     setTimeout(function() {
-        runtime.command({
-            action: 'captureVisibleTab'
-        }, function(response) {
+        RUNTIME('captureVisibleTab', null, function(response) {
             Front.toggleStatus(true);
             Front.showPopup("<img src='{0}' />".format(response.dataUrl));
         });
@@ -667,4 +683,4 @@ addSearchAliasX('y', 'youtube', 'https://www.youtube.com/results?search_query=',
     });
 });
 
-document.dispatchEvent(new CustomEvent('surfingkeys:defaultSettingsLoaded'));
+}

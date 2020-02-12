@@ -1,10 +1,11 @@
 var Front = (function() {
+    window.KeyboardUtils = createKeyboardUtils();
+    window.Mode = createMode();
+    window.Normal = createNormal();
+    window.Visual = createVisual();
+    window.Hints = createHints();
+    window.Clipboard = createClipboard();
     var self = new Mode("Front");
-
-    // this object is implementation of UI, it's UI provider
-    self.isProvider = function() {
-        return true;
-    };
 
     var topOrigin,
         _actions = {},
@@ -84,7 +85,7 @@ var Front = (function() {
     };
     self.visualCommand = function(args) {
         if (_usage.style.display !== "none") {
-            // visual mode in frontend.html
+            // visual mode in frontend.html, such as help
             Visual[args.action](args.query);
         } else {
             // visual mode for all content windows
@@ -131,8 +132,7 @@ var Front = (function() {
     };
     self.hidePopup = _actions['hidePopup'];
 
-    function showPopup(td, args) {
-        self.enter(0, true);
+    function setDisplay(td, args) {
         if (_display && _display.style.display !== "none") {
             _display.style.display = "none";
             _display.onHide && _display.onHide();
@@ -140,6 +140,11 @@ var Front = (function() {
         _display = td;
         _display.style.display = "";
         _display.onShow && _display.onShow(args);
+    }
+
+    function showPopup(td, args) {
+        self.enter(0, true);
+        setDisplay(td, args);
         self.flush();
     }
 
@@ -160,9 +165,7 @@ var Front = (function() {
         });
     };
     _actions['chooseTab'] = function() {
-        runtime.command({
-            action: 'getTabs'
-        }, function(response) {
+        RUNTIME('getTabs', null, function(response) {
             if (response.tabs.length > runtime.conf.tabsThreshold) {
                 showPopup(self.omnibar, {type: 'Tabs'});
             } else if (response.tabs.length > 0) {
@@ -382,8 +385,7 @@ var Front = (function() {
         }
         self.flush();
         if (!_bubble.noPointerEvents) {
-            _display = _bubble;
-            self.onShowBubble && self.onShowBubble(_bubble);
+            setDisplay(_bubble, {});
             self.enter(0, true);
         }
     };
@@ -524,6 +526,14 @@ var Front = (function() {
     }, true);
 
 
+    function onResize() {
+        if (_bubble.style.display !== "none") {
+            Front.contentCommand({
+                action: 'updateInlineQuery'
+            });
+        }
+    }
+
     // for mouseSelectToQuery
     document.onmouseup = function(e) {
         if (!_bubble.contains(e.target)) {
@@ -532,23 +542,20 @@ var Front = (function() {
             Front.visualCommand({
                 action: 'emptySelection'
             });
+            window.removeEventListener("resize", onResize);
         } else {
             var sel = window.getSelection().toString().trim() || Visual.getWordUnderCursor();
             if (sel && sel.length > 0) {
                 Front.contentCommand({
                     action: 'updateInlineQuery',
                     word: sel
+                }, function() {
+                    window.addEventListener("resize", onResize);
                 });
             }
         }
     };
-    window.onresize = function(evt) {
-        if (_bubble.style.display !== "none") {
-            Front.contentCommand({
-                action: 'updateInlineQuery'
-            });
-        }
-    };
+
     _bubble.querySelector("div.sk_bubble_content").addEventListener("mousewheel", function (evt) {
         if (evt.deltaY > 0 && this.scrollTop + this.offsetHeight >= this.scrollHeight || evt.deltaY < 0 && this.scrollTop <= 0) {
             evt.preventDefault();

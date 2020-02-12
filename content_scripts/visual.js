@@ -1,4 +1,4 @@
-var Visual = (function() {
+function createVisual() {
     var self = new Mode("Visual");
 
     self.addEventListener('keydown', function(event) {
@@ -591,10 +591,8 @@ var Visual = (function() {
         _incState();
     };
 
-    var _lastPos = null;
     self.onExit = function() {
         document.removeEventListener('surfingkeys:cursorHidden', onCursorHiden);
-        _lastPos = [selection.anchorNode, selection.anchorOffset];
     };
 
     function _onStateChange() {
@@ -607,8 +605,8 @@ var Visual = (function() {
         _onStateChange();
     }
     self.restore = function() {
-        if (_lastPos) {
-            selection.setPosition(_lastPos[0], _lastPos[1]);
+        if (selection && selection.anchorNode) {
+            selection.setPosition(selection.anchorNode, selection.anchorOffset);
             self.showCursor();
             self.enter();
         }
@@ -826,4 +824,4 @@ var Visual = (function() {
         mark_template.setAttribute('style', _style.marks || '');
     };
     return self;
-})();
+}

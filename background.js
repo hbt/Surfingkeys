@@ -90,7 +90,7 @@ var Gist = (function() { // {{{
     var _token, _gist = "", _comments = [];
     self.initGist = function(token, onGistReady) {
         if (_token === token && _gist !== "") {
-            onGistReady && onGistReady(_gist);
+            return _gist;
         } else {
             _token = token;
             _initGist(_token, "cloudboard", function(gist) {
@@ -178,8 +178,7 @@ var Gist = (function() { // {{{
 var ChromeService = (function() { // {{{
     var self = {};
 
-    var activePorts = [],
-        tabHistory = [],
+    var tabHistory = [],
         tabHistoryIndex = 0,
         chromelikeNewTabPosition = 0,
         historyTabAction = false;
@@ -236,6 +235,7 @@ var ChromeService = (function() { // {{{
         }
     }
 
+<<<<<<< HEAD
     function handleMessage(_message, _sender, _sendResponse, _port) {
         if (_message && _message.target !== 'content_runtime') {
             if (self.hasOwnProperty(_message.action)) {
@@ -256,6 +256,8 @@ var ChromeService = (function() { // {{{
     }
 
 
+=======
+>>>>>>> brookhong/master
     function loadSettings(keys, cb) {
         var tmpSet = {
             blacklist: {},
@@ -291,59 +293,29 @@ var ChromeService = (function() { // {{{
     loadSettings(null, _applyProxySettings);
 
     chrome.webRequest.onErrorOccurred.addListener(function(details) {
-        loadSettings('blacklist', function(data) {
-            var excluded = ["net::ERR_ABORTED", "net::ERR_CERT_AUTHORITY_INVALID"];
-            var tabId = details.tabId;
-            var disabled = _getDisabled(data, new URL(details.url), null);
-            if (!disabled && tabId !== -1 &&
-                (conf.interceptedErrors.indexOf("*") !== -1 || conf.interceptedErrors.indexOf(details.error) !== -1)) {
-                if (!tabErrors.hasOwnProperty(tabId)) {
-                    tabErrors[tabId] = [];
-                }
-                if (details.type === "main_frame") {
-                    tabErrors[tabId] = [];
-                    if (excluded.indexOf(details.error) === -1) {
-                        chrome.tabs.get(tabId, (tab) => {
-                            if(!tab.url.endsWith('pages/error.html') && !tab.incognito) {
-                                chrome.tabs.update(tabId, {
-                                    url: chrome.extension.getURL("pages/error.html")
-                                });
-                            }
-                        });
+        var tabId = details.tabId;
+        if (tabActivated.hasOwnProperty(tabId)) {
+            loadSettings('blacklist', function(data) {
+                var excluded = ["net::ERR_ABORTED", "net::ERR_CERT_AUTHORITY_INVALID"];
+                var disabled = _getDisabled(data, new URL(details.url), null);
+                if (!disabled && (conf.interceptedErrors.indexOf("*") !== -1 || conf.interceptedErrors.indexOf(details.error) !== -1)) {
+                    if (!tabErrors.hasOwnProperty(tabId)) {
+                        tabErrors[tabId] = [];
                     }
+                    if (details.type === "main_frame") {
+                        tabErrors[tabId] = [];
+                        if (excluded.indexOf(details.error) === -1) {
+                            chrome.tabs.update(tabId, {
+                                url: chrome.extension.getURL("pages/error.html")
+                            });
+                        }
+                    }
+                    tabErrors[tabId].push(details);
                 }
-                tabErrors[tabId].push(details);
-            }
-        });
+            });
+        }
     }, {
         urls: ["<all_urls>"]
-    });
-
-    chrome.runtime.onConnect.addListener(function(port) {
-        activePorts.push(port);
-        port.onMessage.addListener(function(message, port) {
-            // using port.sender here is must, as call to these service APIs may be made from
-            // any inactive tab, such as API getDisabled.
-            return handleMessage(message, port.sender, function(resp) {
-                try {
-                    if (!port.isDisconnected) {
-                        port.postMessage(resp);
-                    }
-                } catch (e) {
-                    console.log(message.action + ": " + e);
-                    console.log(port);
-                }
-            }, port);
-        });
-        port.onDisconnect.addListener(function() {
-            port.isDisconnected = true;
-            for (var i = 0; i < activePorts.length; i++) {
-                if (activePorts[i] === port) {
-                    activePorts.splice(i, 1);
-                    break;
-                }
-            }
-        });
     });
 
     function removeTab(tabId) {
@@ -375,9 +347,38 @@ var ChromeService = (function() { // {{{
             delete tabMessages[tabId];
         }
     }
-    chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+
+    function sendTabMessage(tabId, frameId, message, cb) {
+        if (frameId === -1) {
+            chrome.tabs.sendMessage(tabId, message);
+        } else {
+            chrome.tabs.sendMessage(tabId, message, {frameId: frameId});
+        }
+    }
+    var _lastActiveTabId = null;
+    function _tabActivated(tabId) {
+        if (_lastActiveTabId !== tabId) {
+            if (_lastActiveTabId !== null) {
+                sendTabMessage(_lastActiveTabId, 0, {
+                    subject: 'tabDeactivated'
+                });
+            }
+            sendTabMessage(tabId, 0, {
+                subject: 'tabActivated'
+            });
+            _lastActiveTabId = tabId;
+        }
+    }
+    chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
         if (changeInfo.status === "loading") {
+            if (changeInfo.url !== undefined && changeInfo.url !== chrome.extension.getURL("pages/error.html")) {
+                delete tabErrors[tabId];
+            }
             delete frameIndexes[tabId];
+        } else if (changeInfo.status === "complete") {
+            if (tab.active) {
+                _tabActivated(tabId);
+            }
         }
         _setScrollPos_bg(tabId);
     });
@@ -390,7 +391,7 @@ var ChromeService = (function() { // {{{
         _updateTabIndices();
     });
     chrome.tabs.onActivated.addListener(function(activeInfo) {
-        if (tabURLs.hasOwnProperty(activeInfo.tabId) && !historyTabAction && activeInfo.tabId != tabHistory[tabHistory.length - 1]) {
+        if (!historyTabAction && activeInfo.tabId != tabHistory[tabHistory.length - 1]) {
             if (tabHistory.length > 10) {
                 tabHistory.shift();
             }
@@ -401,6 +402,7 @@ var ChromeService = (function() { // {{{
             tabHistoryIndex = tabHistory.length - 1;
         }
         tabActivated[activeInfo.tabId] = new Date().getTime();
+        _tabActivated(activeInfo.tabId);
         historyTabAction = false;
         chromelikeNewTabPosition = 0;
 
@@ -429,7 +431,12 @@ var ChromeService = (function() { // {{{
                 });
                 break;
             case 'restartext':
-                chrome.runtime.reload();
+                chrome.tabs.query({}, function(tabs) {
+                    tabs.forEach(function(tab) {
+                        chrome.tabs.reload(tab.id);
+                    });
+                    chrome.runtime.reload();
+                });
                 break;
             case 'previousTab':
             case 'nextTab':
@@ -463,33 +470,46 @@ var ChromeService = (function() { // {{{
                 break;
         }
     });
-    chrome.runtime.onMessage.addListener(handleMessage);
+
+    self.pendingPorts = [];
     function _response(message, sendResponse, result) {
-        result.action = message.action;
-        result.id = message.id;
+        var idx = self.pendingPorts.indexOf(message);
+        if (idx !== -1) {
+            self.pendingPorts.splice(idx, 1);
+        }
         sendResponse(result);
     }
-    self.getTabErrors = function(message, sender, sendResponse) {
-        _response(message, sendResponse, {
-            tabError: tabErrors[sender.tab.id]
-        });
-    };
-    self.clearTabErrors = function(message, sender, sendResponse) {
-        tabErrors[sender.tab.id] = [];
-    };
-    self.isTabActive = function(message, sender, sendResponse) {
-        chrome.tabs.query({
-            active: true
-        }, function(resp) {
-            var activeTabs = resp.map(function(t) {
-                return t.id;
-            });
-            _response(message, sendResponse, {
-                active: (activeTabs.indexOf(sender.tab.id) !== -1)
-            });
-        });
-    };
+    chrome.runtime.onMessage.addListener(function (_message, _sender, _sendResponse) {
+        if (self.hasOwnProperty(_message.action)) {
+            if (_message.repeats > conf.repeatThreshold) {
+                _message.repeats = conf.repeatThreshold;
+            }
+            // runtime.command from popup.js has _sender.tab undefined.
+            try {
+                var result = self[_message.action](_message, _sender, _sendResponse);
+                if (_message.needResponse) {
+                    if (result) {
+                        _sendResponse(result);
+                        _message.needResponse = false;
+                    } else {
+                        self.pendingPorts.push(_message);
+                        // An asynchronous response will be sent using sendResponse later.
+                    }
+                    return _message.needResponse;
+                }
+            } catch (e) {
+                console.log(_message.action + ": " + e);
+            }
+        } else {
+            console.log("[unexpected runtime message] " + JSON.stringify(_message));
+        }
+    });
 
+    self.getTabErrors = function(message, sender, sendResponse) {
+        return {
+            tabError: tabErrors[sender.tab.id]
+        };
+    };
 
     function _updateSettings(diffSettings, afterSet) {
         diffSettings.savedAt = new Date().getTime();
@@ -505,13 +525,19 @@ var ChromeService = (function() { // {{{
         });
     }
 
-    function _updateAndPostSettings(diffSettings, afterSet) {
-        activePorts.forEach(function(port) {
-            port.postMessage({
-                action: 'settingsUpdated',
-                settings: diffSettings
+    function _broadcastSettings(data) {
+        chrome.tabs.query({}, function(tabs) {
+            tabs.forEach(function(tab) {
+                sendTabMessage(tab.id, 0, {
+                    subject: 'settingsUpdated',
+                    settings: data
+                });
             });
         });
+    }
+
+    function _updateAndPostSettings(diffSettings, afterSet) {
+        _broadcastSettings(diffSettings);
         _updateSettings(diffSettings, afterSet);
     }
 
@@ -519,9 +545,8 @@ var ChromeService = (function() { // {{{
         if (conf.showTabIndices) {
             chrome.tabs.query({currentWindow: true}, function(tabs) {
                 tabs.forEach(function(tab) {
-                    chrome.tabs.sendMessage(tab.id, {
+                    sendTabMessage(tab.id, 0, {
                         subject: "tabIndexChange",
-                        target: 'content_runtime',
                         index: tab.index + 1
                     });
                 });
@@ -556,7 +581,7 @@ var ChromeService = (function() { // {{{
                 data.blacklist[origin] = 1;
             }
             _updateAndPostSettings({blacklist: data.blacklist}, function() {
-                _response(message, sendResponse, {
+                sendResponse({
                     disabled: _getDisabled(data, sender.tab ? new URL(sender.tab.url) : null, message.blacklistPattern),
                     blacklist: data.blacklist,
                     url: origin
@@ -648,13 +673,7 @@ var ChromeService = (function() { // {{{
             _response(message, sendResponse, {
                 settings: data
             });
-
-            activePorts.forEach(function(port) {
-                port.postMessage({
-                    action: 'settingsUpdated',
-                    settings: data
-                });
-            });
+            _broadcastSettings(data);
         });
     };
     self.loadSettingsFromUrl = function(message, sender, sendResponse) {
@@ -881,6 +900,8 @@ var ChromeService = (function() { // {{{
             chrome.tabs.remove(tabIds, function() {
                 if ( conf.focusAfterClosed === "left" ) {
                     _nextTab(sender.tab, -1);
+                } else if ( conf.focusAfterClosed === "last" ) {
+                    self.historyTab({backward: true});
                 }
             });
         });
@@ -919,6 +940,16 @@ var ChromeService = (function() { // {{{
     self.openLast = function(message, sender, sendResponse) {
         chrome.sessions.restore();
     };
+<<<<<<< HEAD
+=======
+    self.duplicateTab = function(message, sender, sendResponse) {
+        chrome.tabs.duplicate(sender.tab.id, function() {
+            if (message.active === false) {
+                chrome.tabs.update(sender.tab.id, { active: true });
+            }
+        });
+    };
+>>>>>>> brookhong/master
     self.newWindow = function(message, sender, sendResponse) {
         chrome.tabs.query({}, function(tabs) {
             var tabInWindow = {};
@@ -1122,23 +1153,26 @@ var ChromeService = (function() { // {{{
         var tid = sender.tab.id;
         chrome.tabs.executeScript(tid, {
             allFrames: true,
-            code: "Front && Front.getFrameId && Front.getFrameId()"
+            code: "typeof(getFrameId) === 'function' && getFrameId()"
         }, function(framesInTab) {
             framesInTab = framesInTab.filter(function(frameId) {
                 return frameId;
             });
 
-            if (framesInTab.length > 1) {
-                if (!frameIndexes.hasOwnProperty(tid)) {
-                    frameIndexes[tid] = 0;
+            if (framesInTab.length > 0) {
+                var fid = framesInTab[0];
+                if (framesInTab.length > 1) {
+                    if (!frameIndexes.hasOwnProperty(tid)) {
+                        frameIndexes[tid] = 0;
+                    }
+                    frameIndexes[tid]++;
+                    frameIndexes[tid] = frameIndexes[tid] % framesInTab.length;
+                    fid = framesInTab[frameIndexes[tid]];
                 }
-                frameIndexes[tid] ++;
-                frameIndexes[tid] = frameIndexes[tid] % framesInTab.length;
 
-                chrome.tabs.sendMessage(tid, {
+                sendTabMessage(tid, -1, {
                     subject: "focusFrame",
-                    target: 'content_runtime',
-                    frameId: framesInTab[frameIndexes[tid]]
+                    frameId: fid
                 });
             }
         });
@@ -1269,9 +1303,12 @@ var ChromeService = (function() { // {{{
                 tabURLs[tabId] = {};
             }
             tabURLs[tabId][message.url] = message.title;
-            _response(message, sendResponse, {
+            return {
+                active: sender.tab.active,
                 index: conf.showTabIndices ? sender.tab.index + 1 : 0
-            });
+            };
+        } else {
+            return {};
         }
     };
     self.getTabURLs = function(message, sender, sendResponse) {
@@ -1282,14 +1319,14 @@ var ChromeService = (function() { // {{{
                 title: tabURL[u]
             };
         });
-        _response(message, sendResponse, {
+        return {
             urls: tabURL
-        });
+        };
     };
     self.getTopURL = function(message, sender, sendResponse) {
-        _response(message, sendResponse, {
+        return {
             url: sender.tab ? sender.tab.url : ""
-        });
+        };
     };
 
     function updateProxy(message, cb) {
@@ -1412,12 +1449,7 @@ var ChromeService = (function() { // {{{
             });
             // broadcast the change also, such as lastKeys
             // we would set lastKeys in sync to avoid breaching chrome.storage.sync.MAX_WRITE_OPERATIONS_PER_MINUTE
-            activePorts.forEach(function(port) {
-                port.postMessage({
-                    action: 'settingsUpdated',
-                    settings: message.data
-                });
-            });
+            _broadcastSettings(message.data);
         } else {
             // string or array of string keys
             chrome.storage.local.get(message.data, function(data) {
@@ -1478,7 +1510,7 @@ var ChromeService = (function() { // {{{
     };
 
     self.initGist = function(message, sender, sendResponse) {
-        Gist.initGist(message.token, function(gist) {
+        return Gist.initGist(message.token, function(gist) {
             _response(message, sendResponse, {
                 gist: gist
             });
@@ -1500,9 +1532,9 @@ var ChromeService = (function() { // {{{
         _queueURLs = _queueURLs.concat(message.urls);
     };
     self.getQueueURLs = function(message, sender, sendResponse) {
-        _response(message, sendResponse, {
+        return {
             queueURLs: _queueURLs
-        });
+        };
     };
 
     self.getVoices = function(message, sender, sendResponse) {

@@ -1,20 +1,3 @@
-var AutoCommands = {};
-function autocmd(domain, jscode) {
-    var dp = "",
-        po;
-    if (typeof(domain) === 'object' && domain.test !== undefined) {
-        dp = domain.toString();
-        po = domain;
-    } else {
-        dp = domain;
-        po = new RegExp(domain);
-    }
-    AutoCommands[dp] = {
-        code: jscode,
-        regex: po
-    };
-}
-
 function createKeyTarget(code, ag, repeatIgnore) {
     var keybound = {
         code: code
@@ -214,7 +197,7 @@ function walkPageUrl(step) {
 }
 
 function previousPage() {
-    var prevLinks = getClickableElements("[rel=prev]", runtime.conf.prevLinkRegex);
+    var prevLinks = uniqueLinks(getClickableElements("[rel=prev]", runtime.conf.prevLinkRegex));
     if (prevLinks.length) {
         clickOn(prevLinks);
         return true;
@@ -224,13 +207,24 @@ function previousPage() {
 }
 
 function nextPage() {
-    var nextLinks = getClickableElements("[rel=next]", runtime.conf.nextLinkRegex);
+    var nextLinks = uniqueLinks(getClickableElements("[rel=next]", runtime.conf.nextLinkRegex));
     if (nextLinks.length) {
         clickOn(nextLinks);
         return true;
     } else {
         return walkPageUrl(1);
     }
+}
+
+function uniqueLinks(links) {
+    let unique = {};
+    links.forEach(function(link) {
+        let href = link.getAttribute('href');
+        if (!unique[href]) {
+            unique[href] = link;
+        }
+    });
+    return Object.values(unique);
 }
 
 function searchSelectedWith(se, onlyThisSite, interactive, alias) {
@@ -269,15 +263,19 @@ function getFormData(form, format) {
     if (format === "json") {
         var obj = {};
 
-        formData.forEach(function(value, key) {
+        formData.forEach(function (value, key) {
             if (obj.hasOwnProperty(key)) {
-                var p = obj[key];
-                if (p.constructor.name === "Array") {
-                    p.push(value);
-                } else {
-                    obj[key] = [];
-                    obj[key].push(p);
-                    obj[key].push(value);
+                if (value.length) {
+                    var p = obj[key];
+                    if (p.constructor.name === "Array") {
+                        p.push(value);
+                    } else {
+                        obj[key] = [];
+                        if (p.length) {
+                            obj[key].push(p);
+                        }
+                        obj[key].push(value);
+                    }
                 }
             } else {
                 obj[key] = value;
@@ -291,9 +289,8 @@ function getFormData(form, format) {
 }
 
 function httpRequest(args, onSuccess) {
-    args.action = "request";
     args.method = "get";
-    runtime.command(args, onSuccess);
+    RUNTIME("request", args, onSuccess);
 }
 
 /*
@@ -310,7 +307,7 @@ function runScript(snippets) {
     return result;
 }
 
-function applySettings(rs) {
+function applySettings(rs, resolve) {
     for (var k in rs) {
         if (runtime.conf.hasOwnProperty(k)) {
             runtime.conf[k] = rs[k];
@@ -319,7 +316,7 @@ function applySettings(rs) {
     if ('findHistory' in rs) {
         runtime.conf.lastQuery = rs.findHistory.length ? rs.findHistory[0] : "";
     }
-    if ('snippets' in rs && rs.snippets && !Front.isProvider()) {
+    if ('snippets' in rs && rs.snippets && !isInUIFrame()) {
         var delta = runScript(rs.snippets);
         if (delta.error !== "") {
             if (window === top) {
@@ -331,7 +328,7 @@ function applySettings(rs) {
             }
         }
         if (!isEmptyObject(delta.settings)) {
-            Front.applyUserSettings(JSON.parse(JSON.stringify(delta.settings)));
+            Front.setUserSettings(JSON.parse(JSON.stringify(delta.settings)));
             // overrides local settings from snippets
             for (var k in delta.settings) {
                 if (runtime.conf.hasOwnProperty(k)) {
@@ -341,8 +338,7 @@ function applySettings(rs) {
             }
             if (Object.keys(delta.settings).length > 0 && window === top) {
                 // left settings are for background, need not broadcast the update, neither persist into storage
-                runtime.command({
-                    action: 'updateSettings',
+                RUNTIME('updateSettings', {
                     scope: "snippets",
                     settings: delta.settings
                 });
@@ -356,75 +352,149 @@ function applySettings(rs) {
             Front.showStatus(3, rs.proxyMode);
         }
     }
+
+    RUNTIME('getDisabled', {
+        blacklistPattern: runtime.conf.blacklistPattern ? runtime.conf.blacklistPattern.toJSON() : ""
+    }, function (resp) {
+        if (resp.disabled) {
+            Normal.disable();
+        } else {
+            if (document.contentType === "application/pdf" && !resp.noPdfViewer) {
+                usePdfViewer();
+            } else {
+                resolve && resolve(window.location.href);
+                Normal.enable();
+            }
+        }
+
+        if (window === top) {
+            RUNTIME('setSurfingkeysIcon', {
+                status: resp.disabled
+            });
+        }
+    });
+
 }
 
-runtime.on('settingsUpdated', function(response) {
-    var rs = response.settings;
-    applySettings(rs);
-    if (rs.hasOwnProperty('blacklist') || runtime.conf.blacklistPattern) {
-
-        // only toggle Disabled mode when blacklist is updated
-        runtime.command({
-            action: 'getDisabled',
-            blacklistPattern: (runtime.conf.blacklistPattern ? runtime.conf.blacklistPattern.toJSON() : "")
-        }, function(resp) {
-            if (resp.disabled) {
-                Disabled.enter(0, true);
-            } else {
-                Disabled.exit();
-            }
-
-            if (window === top) {
-                runtime.command({
-                    action: 'setSurfingkeysIcon',
-                    status: resp.disabled
-                });
-            }
-        });
-    }
-});
-
-function _init() {
-    runtime.command({
-        action: 'getSettings'
-    }, function(response) {
-        var rs = response.settings;
-
-        applySettings(rs);
-
-        Normal.enter();
-
-        runtime.command({
-            action: 'getDisabled',
-            blacklistPattern: runtime.conf.blacklistPattern ? runtime.conf.blacklistPattern.toJSON() : ""
-        }, function (resp) {
-            if (resp.disabled) {
-                Disabled.enter(0, true);
-            } else if (document.contentType === "application/pdf" && !resp.noPdfViewer) {
-                usePdfViewer();
-            }
-
-            if (window === top) {
-                runtime.command({
-                    action: 'setSurfingkeysIcon',
-                    status: resp.disabled
-                });
-            }
-        });
-
-        document.dispatchEvent(new CustomEvent('surfingkeys:userSettingsLoaded', { 'detail': rs }));
-        document.addEventListener("mouseup", event => {
-            if (runtime.conf.mouseSelectToQuery.indexOf(window.origin) !== -1
-                && !isElementClickable(event.target)
-                && !event.target.matches(".cm-matchhighlight")) {
-                // perform inline query after 1 ms
-                // to avoid calling on selection collapse
-                setTimeout(Front.querySelectedWord, 1);
-            }
+function _initModules() {
+    window.KeyboardUtils = createKeyboardUtils();
+    window.Mode = createMode();
+    window.Normal = createNormal();
+    Normal.enter();
+    window.PassThrough = createPassThrough();
+    window.Insert = createInsert();
+    window.Visual = createVisual();
+    window.Hints = createHints();
+    window.Clipboard = createClipboard();
+    window.Front = createFront();
+    createDefaultMappings();
+    window.pdfGuard = new Promise(function (resolve, reject) {
+        RUNTIME('getSettings', null, function(response) {
+            var rs = response.settings;
+            applySettings(rs, resolve);
+            document.dispatchEvent(new CustomEvent('surfingkeys:userSettingsLoaded', { 'detail': rs }));
         });
     });
 }
 
-document.addEventListener("surfingkeys:defaultSettingsLoaded", function (evt) {
-    _init();
-});
+
+function _onSettingsUpdated(response) {
+    var rs = response.settings;
+    applySettings(rs);
+}
+
+function _initContent() {
+    window.frameId = generateQuickGuid();
+    runtime.on('settingsUpdated', _onSettingsUpdated);
+
+    if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
+        var elm = getRealEdit();
+        elm && elm.blur();
+    }
+}
+
+function getFrameId() {
+    if (!window.frameId && window.innerWidth > 16 && window.innerHeight > 16
+        && runtime.conf.ignoredFrameHosts.indexOf(window.origin) === -1
+        && (!window.frameElement || (parseInt("0" + getComputedStyle(window.frameElement).zIndex) >= 0
+            && window.frameElement.offsetWidth > 16 && window.frameElement.offsetWidth > 16))
+    ) {
+        _initModules();
+        _initContent();
+    }
+    return window.frameId;
+}
+
+if (window === top) {
+    _initModules();
+
+    document.addEventListener('DOMContentLoaded', function (e) {
+        _initContent();
+        runtime.on('tabActivated', function() {
+            if (!window.uiHost) {
+                window.uiHost = createUiHost();
+                document.documentElement.appendChild(window.uiHost);
+            }
+        });
+        runtime.on('tabDeactivated', function() {
+            if (window.uiHost) {
+                window.uiHost.detach();
+                window.uiHost.remove();
+                delete window.uiHost;
+            }
+        });
+        window._setScrollPos = function (x, y) {
+            document.scrollingElement.scrollLeft = x;
+            document.scrollingElement.scrollTop = y;
+        };
+
+        RUNTIME('tabURLAccessed', {
+            title: document.title,
+            url: window.location.href
+        }, function (resp) {
+            if (resp.active && !window.uiHost) {
+                window.uiHost = createUiHost();
+                window.pdfGuard.then(function() {
+                    document.documentElement.appendChild(window.uiHost);
+                });
+            }
+
+            if (resp.index > 0) {
+                var showTabIndexInTitle = function () {
+                    skipObserver = true;
+                    document.title = myTabIndex + " " + originalTitle;
+                };
+
+                var myTabIndex = resp.index,
+                    skipObserver = false,
+                    originalTitle = document.title;
+
+                new MutationObserver(function (mutationsList) {
+                    if (skipObserver) {
+                        skipObserver = false;
+                    } else {
+                        originalTitle = document.title;
+                        showTabIndexInTitle();
+                    }
+                }).observe(document.querySelector("title"), { childList: true });;
+
+                showTabIndexInTitle();
+
+                runtime.on('tabIndexChange', function(msg, sender, response) {
+                    if (msg.index !== myTabIndex) {
+                        myTabIndex = msg.index;
+                        showTabIndexInTitle();
+                    }
+                });
+            }
+        });
+
+        // There is some site firing DOMContentLoaded twice, such as http://www.423down.com/
+    }, {once: true});
+} else {
+    setTimeout(function() {
+        document.addEventListener('click', function (e) {
+            getFrameId();
+        }, { once: true });
+    }, 1);
+}

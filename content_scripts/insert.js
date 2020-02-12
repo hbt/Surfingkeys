@@ -1,4 +1,4 @@
-var Insert = (function() {
+function createInsert() {
     var self = new Mode("Insert");
 
     function moveCusorEOL() {
@@ -371,6 +371,8 @@ var Insert = (function() {
         var realTarget = getRealEdit(event);
         if (!isEditable(realTarget)) {
             self.exit();
+        } else {
+            event.sk_suppressed = true;
         }
     });
 
@@ -420,4 +422,4 @@ var Insert = (function() {
     };
 
     return self;
-})();
+}

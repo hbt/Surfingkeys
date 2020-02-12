@@ -1,13 +1,8 @@
-var Front = (function() {
+function createFront() {
     var self = {};
     // The agent is a front stub to talk with pages/frontend.html
     // that will live in all content window except the frontend.html
     // as there is no need to make this object live in frontend.html.
-
-    // this object is stub of UI, it's UI consumer
-    self.isProvider = function() {
-        return document.location.href.indexOf(chrome.extension.getURL("")) === 0 && !document.location.href.endsWith('pages/error.html');
-    };
 
     var frontendPromise = new Promise(function (resolve, reject) {
         if (window === top) {
@@ -31,11 +26,17 @@ var Front = (function() {
         });
     }
 
-    self.applyUserSettings = function (us) {
-        frontendCommand({
+    var _uiUserSettings = [];
+    self.setUserSettings = function (us) {
+        _uiUserSettings.push({
             action: 'applyUserSettings',
             userSettings: us
         });
+    };
+    self.applyUserSettings = function () {
+        for (var cmd of _uiUserSettings) {
+            frontendCommand(cmd);
+        }
     };
 
     var _listSuggestions = {};
@@ -43,7 +44,7 @@ var Front = (function() {
         if (suggestionURL && listSuggestion) {
             _listSuggestions[suggestionURL] = listSuggestion;
         }
-        frontendCommand({
+        _uiUserSettings.push({
             action: 'addSearchAlias',
             alias: alias,
             prompt: prompt,
@@ -52,7 +53,7 @@ var Front = (function() {
         });
     };
     self.removeSearchAlias = function (alias) {
-        frontendCommand({
+        _uiUserSettings.push({
             action: 'removeSearchAlias',
             alias: alias
         });
@@ -104,7 +105,7 @@ var Front = (function() {
         });
     };
     self.addMapkey = function (mode, new_keystroke, old_keystroke) {
-        frontendCommand({
+        _uiUserSettings.push({
             action: 'addMapkey',
             mode: mode,
             new_keystroke: new_keystroke,
@@ -112,7 +113,7 @@ var Front = (function() {
         });
     };
     self.addVimMap = function (lhs, rhs, ctx) {
-        frontendCommand({
+        _uiUserSettings.push({
             action: 'addVimMap',
             lhs: lhs,
             rhs: rhs,
@@ -120,15 +121,16 @@ var Front = (function() {
         });
     };
     self.addVimKeyMap = function (vimKeyMap) {
-        frontendCommand({
+        _uiUserSettings.push({
             action: 'addVimKeyMap',
             vimKeyMap: vimKeyMap
         });
     };
 
-    var frameElement = createElement('<div id="sk_frame" />');
+    var frameElement = createElement('<div id="sk_frame">Hi, I\'m here now!</div>');
+    frameElement.fromSurfingKeys = true;
     self.highlightElement = function (sn) {
-        document.body.append(frameElement);
+        document.documentElement.append(frameElement);
         var rect = sn.rect;
         frameElement.style.top = rect.top + "px";
         frameElement.style.left = rect.left + "px";
@@ -246,6 +248,7 @@ var Front = (function() {
     var _showQueryResult;
     self.performInlineQuery = function (query, showQueryResult) {
         if (_inlineQuery) {
+            readText(query);
             query = query.toLocaleLowerCase();
             runtime.updateHistory('OmniQuery', query);
             httpRequest({
@@ -254,7 +257,7 @@ var Front = (function() {
             }, function(res) {
                 showQueryResult(_inlineQuery.parseResult(res));
             });
-        } else if (Front.isProvider()) {
+        } else if (isInUIFrame()) {
             _showQueryResult = showQueryResult;
             document.getElementById("proxyFrame").contentWindow.postMessage({
                 action: "performInlineQuery",
@@ -363,15 +366,6 @@ var Front = (function() {
         });
     };
 
-    self.getFrameId = function () {
-        if (document.body.offsetWidth && document.body.offsetHeight && document.body.innerText
-            && runtime.conf.ignoredFrameHosts.indexOf(window.origin) === -1
-            && !window.frameId) {
-            window.frameId = generateQuickGuid();
-        }
-        return window.frameId;
-    };
-
     _actions["ace_editor_saved"] = function(response) {
         if (response.data !== undefined) {
             onEditorSaved(response.data);
@@ -397,7 +391,6 @@ var Front = (function() {
     };
 
     _actions["omnibar_query_entered"] = function(response) {
-        readText(response.query);
         runtime.updateHistory('OmniQuery', response.query);
         self.performInlineQuery(response.query, function(queryResult) {
             if (queryResult.constructor.name !== "Array") {
@@ -418,8 +411,7 @@ var Front = (function() {
     };
 
     _actions["executeScript"] = function(message) {
-        runtime.command({
-            action: 'executeScript',
+        RUNTIME('executeScript', {
             code: message.cmdline
         }, function (response) {
             frontendCommand({
@@ -431,7 +423,7 @@ var Front = (function() {
 
     _actions["getBackFocus"] = function(response) {
         window.focus();
-        if (window === top && document.activeElement === ifr[0]) {
+        if (window === top && window.uiHost && window.uiHost.shadowRoot.contains(document.activeElement)) {
             // fix for Firefox, blur from iframe for frontend after Omnibar closed.
             document.activeElement.blur();
         }
@@ -484,7 +476,7 @@ var Front = (function() {
         _active = true;
     };
 
-    runtime.runtime_handlers['focusFrame'] = function(msg, sender, response) {
+    runtime.on('focusFrame', function(msg, sender, response) {
         if (msg.frameId === window.frameId) {
             window.focus();
             document.body.scrollIntoView({
@@ -492,30 +484,23 @@ var Front = (function() {
                 block: 'center',
                 inline: 'center'
             });
-            var rc = document.body.getBoundingClientRect();
             self.highlightElement({
                 duration: 500,
                 rect: {
-                    top: rc.top,
-                    left: rc.left,
-                    width: rc.width,
-                    height: rc.height
+                    top: 0,
+                    left: 0,
+                    width: window.innerWidth,
+                    height: window.innerHeight
                 }
             });
-
-            Normal.exit();
-            Normal.enter();
-        }
-    };
-
-    document.addEventListener('DOMContentLoaded', function (e) {
-        if (window.location.href.indexOf(chrome.extension.getURL("/pages/pdf_viewer.html")) === 0) {
-            document.getElementById("proxyFrame").src = window.location.search.substr(3);
         }
     });
 
     window.addEventListener('message', function (event) {
         var _message = event.data;
+        if (_message === undefined) {
+            return;
+        }
         if (_message.action === "performInlineQuery") {
             self.performInlineQuery(_message.query, function (queryResult) {
                 event.source.postMessage({
@@ -549,4 +534,4 @@ var Front = (function() {
     }, true);
 
     return self;
-})();
+}

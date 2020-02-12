@@ -1,6 +1,4 @@
-runtime.command({
-    action: "getTopSites"
-}, function(response) {
+RUNTIME("getTopSites", null, function(response) {
     var urls = response.urls.map(function(u) {
         return `<li><a href="${u.url}"><i style="background:url('chrome://favicon/${u.url}') no-repeat"></i>${u.title}</a></li>`;
     });
@@ -26,7 +24,7 @@ runtime.command({
         });
     };
 
-    document.querySelector('#-show-full-list-of-surfingkeys->a').onclick = function() {
+    document.querySelector('#show-full-list-of-surfingkeys>a').onclick = function() {
         var cl = screen1.classList;
         cl.remove("fadeOut");
         cl.remove("fadeIn");
@@ -40,6 +38,7 @@ runtime.command({
 });
 
 document.addEventListener("surfingkeys:userSettingsLoaded", function(evt) {
+    Normal.enter();
     Front.getUsage(function(usage) {
         var _usage = document.getElementById('sk_usage');
         setInnerHTML(_usage, usage);
