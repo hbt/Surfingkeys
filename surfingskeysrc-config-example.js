@@ -645,7 +645,6 @@ mmconfig.Disabled = {};
 // amap(";pj", "restore settings data from clipboard");
 // amap("ge", "edit settings");
 
-// TODO(hbt) INVESTIGATE bring cvim focus
 // amap(";w", "focus top window");
 // TODO(hbt) INVESTIGATE how it fits with hints mouse out
 // amap(";m", "mouse out last element");

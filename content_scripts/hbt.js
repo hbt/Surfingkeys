@@ -86,11 +86,11 @@ var DOMUtils = {
             hostMatch;
         url = new URL(url);
         if (/\*\*/.test(pattern)) {
-            console.error('cVim Error: Invalid pattern: "%s"', pattern);
+            console.error('Error: Invalid pattern: "%s"', pattern);
             return false;
         }
         if (!protocol.length) {
-            console.error('cVim Error: Invalid protocol in pattern: "%s"', pattern);
+            console.error('Error: Invalid protocol in pattern: "%s"', pattern);
             return false;
         }
         pattern = pattern.replace(/.*:\/\//, "");
@@ -100,7 +100,7 @@ var DOMUtils = {
         if (url.protocol !== "file:") {
             hostname = pattern.match(/^[^\/]+/g);
             if (!hostname) {
-                console.error('cVim Error: Invalid host in pattern: "%s"', pattern);
+                console.error('Error: Invalid host in pattern: "%s"', pattern);
                 return false;
             }
             var origHostname = hostname;

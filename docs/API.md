@@ -10,7 +10,7 @@ Note: check popstate event on widnow to capture  history/hash changes
 
 **Parameters**
 
--   `msg`  
+-   `msg`
 
 ## Omnibar
 
@@ -51,7 +51,7 @@ cmap('<Ctrl-p>', '<Shift-Tab>');
 
 **Parameters**
 
--   `mode` **[Object][1]** 
+-   `mode` **[Object][1]**
 
 Returns **[Omnibar][2]** Omnibar instance
 
@@ -70,13 +70,13 @@ List URLs like {url: "[https://github.com"][3], title: "github.com"} beneath omn
 Omnibar.listURLs ([{url: 'http://google.com', title: 'Google'}], false)
 ```
 
-Returns **[undefined][6]** 
+Returns **[undefined][6]**
 
 ### onOpen
 
 List commands when OmniBar opens
 
-Returns **[undefined][6]** 
+Returns **[undefined][6]**
 
 ### onEnter
 
@@ -84,7 +84,7 @@ Execute command after pressing the return key.
 
 Displays any output if the command.
 
-Returns **[boolean][5]** 
+Returns **[boolean][5]**
 
 ## StatusBar
 
@@ -92,7 +92,7 @@ The status bar displays the status of Surfingkeys current mode: Normal, visual, 
 
 **Parameters**
 
--   `ui` **[Object][1]** 
+-   `ui` **[Object][1]**
 
 Returns **[StatusBar][7]** StatusBar instance
 
@@ -100,7 +100,7 @@ Returns **[StatusBar][7]** StatusBar instance
 
 Opens the status bar
 
-Returns **[undefined][6]** 
+Returns **[undefined][6]**
 
 [1]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
 
