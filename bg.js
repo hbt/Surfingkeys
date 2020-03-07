@@ -1974,7 +1974,7 @@ class CustomBackground {
         async function isYoutubePlaylistAndVideoIsBookmarked(url, folder) {
             if (url.indexOf("youtube.com") !== -1 && url.indexOf("&list=") !== -1) {
                 let nurl = getYoutubeVideoFromPlaylist(url);
-                return await cthis._isBookmarkedUrl(nurl, folder);
+                return await cthis._isBookmarkedUrlStartingWith(nurl, folder);
             }
             return false;
         }
@@ -1986,7 +1986,7 @@ class CustomBackground {
 
             if (await isYoutubePlaylistAndVideoIsBookmarked(currentTabURL, _message.folder)) {
                 let nurl = getYoutubeVideoFromPlaylist(currentTabURL);
-                await this._bookmarkRemoveByURL(nurl, _message.folder);
+                await this._bookmarkRemoveByURLStartingWith(nurl, _message.folder);
                 msg = `Removed playlist video ${nurl} from bookmark folder ${_message.folder}`;
             } else {
                 if (await this.isBookmarkedTab(currentTab, _message.folder)) {
@@ -2001,6 +2001,17 @@ class CustomBackground {
             this.sendResponse(_message, _sendResponse, {
                 msg: msg
             });
+        }
+    }
+
+    async _bookmarkRemoveByURLStartingWith(url, bookmarkFolderString) {
+        let children = await this._getBookmarkChildren(bookmarkFolderString);
+        let filtered = _.keys(children).filter(v => {
+            return v.startsWith(this._removeTrailingSlash(url));
+        });
+        for (let url of filtered) {
+            let b = children[url];
+            await chrome.bookmarks.remove(b.id);
         }
     }
 
@@ -2027,6 +2038,15 @@ class CustomBackground {
             url: currentTabURL,
             title: title
         });
+    }
+
+    async _isBookmarkedUrlStartingWith(url, bookmarkFolderString) {
+        let children = await this._getBookmarkChildren(bookmarkFolderString);
+        let filtered = _.keys(children).filter(v => {
+            return v.startsWith(this._removeTrailingSlash(url));
+        });
+        let ret = filtered.length > 0;
+        return ret;
     }
 
     async _isBookmarkedUrl(url, bookmarkFolderString) {
