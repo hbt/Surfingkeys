@@ -2009,6 +2009,8 @@ class CustomBackground {
         let filtered = _.keys(children).filter(v => {
             return v.startsWith(this._removeTrailingSlash(url));
         });
+        // Note(hbt) prevent accidentally matching too many bookmarks.
+        console.sassert(filtered.length <= 1);
         for (let url of filtered) {
             let b = children[url];
             await chrome.bookmarks.remove(b.id);
@@ -2045,6 +2047,8 @@ class CustomBackground {
         let filtered = _.keys(children).filter(v => {
             return v.startsWith(this._removeTrailingSlash(url));
         });
+        // Note(hbt) prevent accidentally matching too many bookmarks.
+        console.sassert(filtered.length <= 1);
         let ret = filtered.length > 0;
         return ret;
     }
