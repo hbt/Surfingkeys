@@ -1415,6 +1415,20 @@ var CustomCommands = (function() {
         });
     };
 
+    self.bajax = async data => {
+        let ret = await aruntime({
+            action: "bajax",
+            data: data
+        });
+        console.log(ret);
+        // TODO(hbt) ENHANCE add passed success/error functions and execute callback from data
+        if (ret.state === "success") {
+            Front.showBanner("FH: Success");
+        } else {
+            Front.showBanner("FH: Error");
+        }
+    };
+
     return self;
 })();
 

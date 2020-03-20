@@ -2390,6 +2390,30 @@ class CustomBackground {
             })
         );
     }
+
+    async bajax(message, sender, sendResponse) {
+        {
+            let res = this.sendResponse;
+            $.ajax({
+                type: message.data.type,
+                contentType: message.data.contentType,
+                url: message.data.url,
+                data: message.data.data,
+                success: function(ret) {
+                    res(message, sendResponse, {
+                        state: "success",
+                        result: ret
+                    });
+                },
+                error: function(e) {
+                    res(message, sendResponse, {
+                        state: "error",
+                        result: ret
+                    });
+                }
+            });
+        }
+    }
 }
 
 {
