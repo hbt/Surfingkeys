@@ -1233,7 +1233,8 @@ var CustomCommands = (function() {
             {
                 action: "bookmarkCopyFolder",
                 folder: folder,
-                reverse: false
+                reverse: false,
+                repeats: Normal.repeats || -1
             },
             function(res) {
                 Front.showBanner(res.msg, 3000);
@@ -1246,7 +1247,8 @@ var CustomCommands = (function() {
             {
                 action: "bookmarkCopyFolder",
                 folder: folder,
-                reverse: true
+                reverse: true,
+                repeats: Normal.repeats || -1
             },
             function(res) {
                 Front.showBanner(res.msg, 3000);

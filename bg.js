@@ -2156,10 +2156,13 @@ class CustomBackground {
             return this._removeTrailingSlash(url);
         });
         urls = _.unique(urls);
-        const count = urls.length;
         if (_message.reverse) {
             urls = urls.reverse();
         }
+        if (_message.repeats > 0) {
+            urls = urls.slice(0, _message.repeats);
+        }
+        const count = urls.length;
         let strurls = urls.join("\n");
         Clipboard.copy(strurls);
 
