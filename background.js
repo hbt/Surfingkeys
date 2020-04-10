@@ -287,7 +287,7 @@ var ChromeService = (function() {
 
     chrome.webRequest.onErrorOccurred.addListener(function(details) {
         loadSettings('blacklist', function(data) {
-            var excluded = ["net::ERR_ABORTED", "net::ERR_CERT_AUTHORITY_INVALID"];
+            var excluded = ["net::ERR_ABORTED", "net::ERR_CERT_AUTHORITY_INVALID", "net::ERR_BLOCKED_BY_CLIENT"];
             var tabId = details.tabId;
             var disabled = _getDisabled(data, new URL(details.url), null);
             if (!disabled && tabId !== -1 &&
