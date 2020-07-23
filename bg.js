@@ -2109,12 +2109,16 @@ class CustomBackground {
         async function findBookmarkFoldersFromURL(url) {
             let marks = await chrome.bookmarks.search({ url: url });
 
+            let titles = ["Titles: "];
             let folderIds = [];
             for (let i = 0; i < marks.length; i++) {
                 folderIds.push(marks[i].parentId);
+                titles.push(marks[i].title);
             }
 
-            let titles = [];
+            titles = _.unique(titles);
+
+            titles.push(["Folders:"]);
 
             for (let i = 0; i < folderIds.length; i++) {
                 let folder = null;
