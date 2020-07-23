@@ -2109,16 +2109,11 @@ class CustomBackground {
         async function findBookmarkFoldersFromURL(url) {
             let marks = await chrome.bookmarks.search({ url: url });
 
-            let titles = ["Titles: "];
+            let titles = [];
             let folderIds = [];
             for (let i = 0; i < marks.length; i++) {
                 folderIds.push(marks[i].parentId);
-                titles.push(marks[i].title);
             }
-
-            titles = _.unique(titles);
-
-            titles.push(["Folders:"]);
 
             for (let i = 0; i < folderIds.length; i++) {
                 let folder = null;
@@ -2135,6 +2130,19 @@ class CustomBackground {
             return titles;
         }
 
+        async function findBookmarkTitlesFromURL(url) {
+            let marks = await chrome.bookmarks.search({ url: url });
+
+            let titles = [];
+            for (let i = 0; i < marks.length; i++) {
+                titles.push(marks[i].title);
+            }
+
+            titles = _.unique(titles);
+
+            return titles;
+        }
+
         const ctab = await chrome.tabs.get(_sender.tab.id);
         let url1 = ctab.url;
         let url2 = this._removeTrailingSlash(ctab.url);
@@ -2142,8 +2150,12 @@ class CustomBackground {
         let folders2 = await findBookmarkFoldersFromURL(url2);
         let folders = _.uniq(_.flatten([folders1, folders2]));
 
+        let titles1 = await findBookmarkTitlesFromURL(url1);
+        let titles2 = await findBookmarkTitlesFromURL(url2);
+        let titles = _.uniq(_.flatten([titles1, titles2]));
+
         this.sendResponse(_message, _sendResponse, {
-            msg: folders
+            msg: ["Titles:", titles.join("\n"), "Folders:", folders.join("\n")]
         });
     }
 
