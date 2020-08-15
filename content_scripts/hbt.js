@@ -1228,8 +1228,23 @@ var CustomCommands = (function() {
         Front.showBanner(ret.msg.join("\n"), 8000);
     };
 
-    // TODO(hbt) NEXT add oredered vs reversed
-    self.bookmarkCutFromFolder = function(folder) {
+    self.bookmarkCutFromFolder = async function(folder) {
+        RUNTIME.repeats = 1;
+        runtime.command(
+            {
+                action: "bookmarkCutFromFolder",
+                folder: folder,
+                reverse: true,
+                repeats: Normal.repeats || -1
+            },
+            function(res) {
+                Front.showBanner(res.msg, 3000);
+            }
+        );
+    };
+
+    self.bookmarkCutFromFolderOrdered = async function(folder) {
+        RUNTIME.repeats = 1;
         runtime.command(
             {
                 action: "bookmarkCutFromFolder",
@@ -1244,6 +1259,7 @@ var CustomCommands = (function() {
     };
 
     self.bookmarkCopyOrderedFolder = async function(folder) {
+        RUNTIME.repeats = 1;
         await runtime.command(
             {
                 action: "bookmarkCopyFolder",
@@ -1258,6 +1274,7 @@ var CustomCommands = (function() {
     };
 
     self.bookmarkCopyReversedFolder = function(folder) {
+        RUNTIME.repeats = 1;
         runtime.command(
             {
                 action: "bookmarkCopyFolder",

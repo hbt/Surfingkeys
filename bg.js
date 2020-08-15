@@ -2172,15 +2172,28 @@ class CustomBackground {
                 return !mark.hasOwnProperty("url");
             });
             const folderId = folders[0].id;
-            let bmarks = await chrome.bookmarks.getSubTree(folderId);
-            bmarks = bmarks.reverse();
-            console.log(bmarks.slice(0, 5));
+            const bmarks = await chrome.bookmarks.getSubTree(folderId);
+            console.sassert(bmarks.length == 1);
+            console.sassert(bmarks[0].children.length > 0);
+            console.sassert(bmarks[0].children.length >= _message.repeats);
+            let children = bmarks[0].children;
+            if (_message.reverse) {
+                children = children.reverse();
+            }
+            children = children.slice(0, _message.repeats);
+            for (let child of children) {
+                await chrome.bookmarks.remove(child.id);
+            }
         }
 
         // safety check
         if (_message.repeats > 0 && _message.repeats < 50) {
             await copyIntoClipboardAsBackup();
             await cutBookmarks();
+
+            this.sendResponse(_message, _sendResponse, {
+                msg: "Cut " + _message.repeats + " bookmarks from folder: " + _message.folder
+            });
         }
     }
 
