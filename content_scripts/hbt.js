@@ -1228,8 +1228,23 @@ var CustomCommands = (function() {
         Front.showBanner(ret.msg.join("\n"), 8000);
     };
 
-    self.bookmarkCopyOrderedFolder = function(folder) {
+    // TODO(hbt) NEXT add oredered vs reversed
+    self.bookmarkCutFromFolder = function(folder) {
         runtime.command(
+            {
+                action: "bookmarkCutFromFolder",
+                folder: folder,
+                reverse: false,
+                repeats: Normal.repeats || -1
+            },
+            function(res) {
+                Front.showBanner(res.msg, 3000);
+            }
+        );
+    };
+
+    self.bookmarkCopyOrderedFolder = async function(folder) {
+        await runtime.command(
             {
                 action: "bookmarkCopyFolder",
                 folder: folder,

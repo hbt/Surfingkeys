@@ -2159,7 +2159,32 @@ class CustomBackground {
         });
     }
 
-    async bookmarkCopyFolder(_message, _sender, _sendResponse) {
+    async bookmarkCutFromFolder(_message, _sender, _sendResponse) {
+        let cthis = this;
+
+        async function copyIntoClipboardAsBackup() {
+            let ret = await cthis.bookmarkCopyFolderHelper(_message, _sender, _sendResponse);
+        }
+
+        async function cutBookmarks() {
+            const matchedMarks = await chrome.bookmarks.search(_message.folder);
+            const folders = _.filter(matchedMarks, mark => {
+                return !mark.hasOwnProperty("url");
+            });
+            const folderId = folders[0].id;
+            let bmarks = await chrome.bookmarks.getSubTree(folderId);
+            bmarks = bmarks.reverse();
+            console.log(bmarks.slice(0, 5));
+        }
+
+        // safety check
+        if (_message.repeats > 0 && _message.repeats < 50) {
+            await copyIntoClipboardAsBackup();
+            await cutBookmarks();
+        }
+    }
+
+    async bookmarkCopyFolderHelper(_message, _sender, _sendResponse) {
         // get subtree
         const matchedMarks = await chrome.bookmarks.search(_message.folder);
         const folders = _.filter(matchedMarks, mark => {
@@ -2182,10 +2207,17 @@ class CustomBackground {
         let strurls = urls.join("\n");
         Clipboard.copy(strurls);
 
-        this.sendResponse(_message, _sendResponse, {
+        let result = {
             msg: `Copied ${count} URLS`,
             urls: urls
-        });
+        };
+
+        return result;
+    }
+
+    async bookmarkCopyFolder(_message, _sender, _sendResponse) {
+        let result = await this.bookmarkCopyFolderHelper(_message, _sender, _sendResponse);
+        this.sendResponse(_message, _sendResponse, result);
     }
 
     async bookmarkEmptyFolder(_message, _sender, _sendResponse) {
