@@ -706,6 +706,32 @@ var CustomCommands = (function() {
         Hints.create("", CustomCommands.hintHandleClickNewTabBackground);
     };
 
+    self.hintOpenDebuggerInspector = async () => {
+        function runCheckvistCommand(cmd) {
+            $.ajax({
+                type: "GET",
+                contentType: "application/json",
+                url: `http://localhost:3066/${cmd}`,
+                success: function(ret) {
+                    // Front.showBanner('OK');
+                },
+                error: function(e) {
+                    console.error("Checkvist: ", e, e.status, e.statusText);
+                    Front.showBanner("Checkvist linux-scripts start-sfk-server error ");
+                }
+            });
+        }
+
+        Hints.create("", function(element) {
+            let rects = element.getBoundingClientRect();
+
+            let x = Math.round(window.screenX + rects.x * window.devicePixelRatio + (rects.width * window.devicePixelRatio) / 2);
+            let y = Math.round(window.screenY + 100 + rects.y * window.devicePixelRatio + (rects.height * window.devicePixelRatio) / 2);
+
+            runCheckvistCommand(`trigger/inspector?x=${x}&y=${y}`);
+        });
+    };
+
     self.hintFocusElement = async () => {
         Hints.create("", function(element) {
             element.focus();
