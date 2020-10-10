@@ -2478,6 +2478,17 @@ class CustomBackground {
             });
         }
     }
+
+    async setBackgroundLocalStorage(message, sender, sendResponse) {
+        localStorage.setItem(message.key, message.value);
+    }
+
+    async getBackgroundLocalStorage(message, sender, sendResponse) {
+        let v = localStorage.getItem(message.key);
+        this.sendResponse(message, sendResponse, {
+            value: v
+        });
+    }
 }
 
 {

@@ -1515,6 +1515,23 @@ var CustomCommands = (function() {
         }
     };
 
+    self.setBackgroundLocalStorage = async data => {
+        let ret = await aruntime({
+            action: "setBackgroundLocalStorage",
+            key: data.key,
+            value: data.value
+        });
+        return ret;
+    };
+
+    self.getBackgroundLocalStorage = async data => {
+        let ret = await aruntime({
+            action: "getBackgroundLocalStorage",
+            key: data.key
+        });
+        return ret;
+    };
+
     return self;
 })();
 
