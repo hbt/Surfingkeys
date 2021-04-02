@@ -1929,6 +1929,7 @@ class CustomBackground {
         });
     }
 
+    // TODO(hbt) NEXT handle playlist
     async bookmarkSaveYoutube(_message, _sender, _sendResponse) {
         let cthis = this;
         async function removeOtherBookmarkPlaybacks(strurl, folder) {
@@ -1978,23 +1979,39 @@ class CustomBackground {
             }
             return false;
         }
+        async function removeFromPlaybackBookmarks(url) {
+            let children = await cthis._getBookmarkChildren("playback");
+            children = Object.values(children);
+            let curl = new URL(url);
+            for (let child of children) {
+                let childurl = new URL(child.url);
+                if (childurl.searchParams.get("v") === curl.searchParams.get("v")) {
+                    await chrome.bookmarks.remove(child.id);
+                }
+            }
+        }
         {
             const currentTab = await chrome.tabs.get(_sender.tab.id);
             let currentTabURL = this._removeTrailingSlash(currentTab.url);
 
             let msg = "";
 
-            if (await isYoutubePlaylistAndVideoIsBookmarked(currentTabURL, _message.folder)) {
-                let nurl = getYoutubeVideoFromPlaylist(currentTabURL);
-                await this._bookmarkRemoveByURLStartingWith(nurl, _message.folder);
-                msg = `Removed playlist video ${nurl} from bookmark folder ${_message.folder}`;
+            if (_message.folder === "playback") {
+                await removeFromPlaybackBookmarks(currentTabURL);
+                msg = `Removed ${currentTabURL} from bookmark folder ${_message.folder}`;
             } else {
-                if (await this.isBookmarkedTab(currentTab, _message.folder)) {
-                    await this._bookmarkRemove(currentTab, _message.folder);
-                    msg = `Removed ${currentTabURL} from bookmark folder ${_message.folder}`;
+                if (await isYoutubePlaylistAndVideoIsBookmarked(currentTabURL, _message.folder)) {
+                    let nurl = getYoutubeVideoFromPlaylist(currentTabURL);
+                    await this._bookmarkRemoveByURLStartingWith(nurl, _message.folder);
+                    msg = `Removed playlist video ${nurl} from bookmark folder ${_message.folder}`;
                 } else {
-                    await this._bookmarkAdd(currentTab, _message.folder);
-                    msg = `Added ${currentTabURL} to bookmark folder ${_message.folder}`;
+                    if (await this.isBookmarkedTab(currentTab, _message.folder)) {
+                        await this._bookmarkRemove(currentTab, _message.folder);
+                        msg = `Removed ${currentTabURL} from bookmark folder ${_message.folder}`;
+                    } else {
+                        await this._bookmarkAdd(currentTab, _message.folder);
+                        msg = `Added ${currentTabURL} to bookmark folder ${_message.folder}`;
+                    }
                 }
             }
 
