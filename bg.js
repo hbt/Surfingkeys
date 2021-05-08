@@ -1747,6 +1747,19 @@ class CustomBackground {
         });
     }
 
+    async tabPrintM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+        const tabs = await this.tabsGetFromIds(tabIds);
+
+        let ops = {
+            rm: 0,
+            add: 0
+        };
+        tabs.forEach(function(tab) {
+            chrome.tabs.executeScript(tab.id, { code: "window.print();" });
+        });
+    }
+
     async tabToggleHighlight(_message, _sender, _sendResponse) {
         // Note(hbt) remove highlight is a pain in the ass. Use an internal state; if needed save it in local storage
         const ctab = await chrome.tabs.get(_sender.tab.id);

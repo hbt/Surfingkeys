@@ -1420,6 +1420,19 @@ var CustomCommands = (function() {
         Front.showBanner(`Tab Position: ${ret.data}`, 3000);
     };
 
+    self.tabPrintM = async function(k) {
+        let magic = tabCheckMagicByKey(k);
+        if (!magic) {
+            return;
+        }
+
+        let ret = await aruntime({
+            action: "tabPrintM",
+            repeats: Normal.repeats || -1,
+            magic: magic
+        });
+    };
+
     self.tabQuickMarkSave = async m => {
         let ret = await aruntime({ action: "tabQuickMarkSave", mark: m });
         Front.showBanner(`${ret.msg}`, 3000);
