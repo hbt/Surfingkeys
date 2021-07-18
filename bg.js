@@ -1,4 +1,4 @@
-console.sassert = function(cond, text) {
+console.sassert = function (cond, text) {
     if (cond) return;
     if (console.assert.useDebugger) debugger;
     throw new Error(text || "Assertion failed!");
@@ -7,14 +7,14 @@ console.sassert = function(cond, text) {
 {
     var Clipboard = {};
 
-    Clipboard.createTextArea = function() {
+    Clipboard.createTextArea = function () {
         var t = document.createElement("textarea");
         t.style.position = "absolute";
         t.style.left = "-100%";
         return t;
     };
 
-    Clipboard.copy = function(text) {
+    Clipboard.copy = function (text) {
         var t = this.createTextArea();
         t.value = text;
         document.body.appendChild(t);
@@ -23,7 +23,7 @@ console.sassert = function(cond, text) {
         document.body.removeChild(t);
     };
 
-    Clipboard.paste = function() {
+    Clipboard.paste = function () {
         var t = this.createTextArea();
         document.body.appendChild(t);
         t.focus();
@@ -36,7 +36,7 @@ console.sassert = function(cond, text) {
 
 {
     var Utils = {
-        getHostname: function(href) {
+        getHostname: function (href) {
             var res = window.location.host || "file";
 
             if (href) {
@@ -48,12 +48,12 @@ console.sassert = function(cond, text) {
             return res;
         },
         defaultSearchEngine: "https://www.google.com/search?q=",
-        format: function(string, value) {
+        format: function (string, value) {
             var index = string.lastIndexOf("%s");
             if (index < 0) return string + value;
             return string.slice(0, index) + value + string.slice(index + 2);
         },
-        toSearchURL: function(query, engineUrl) {
+        toSearchURL: function (query, engineUrl) {
             if (Utils.isValidURL(query)) {
                 return (!/^[a-zA-Z\-]+:/.test(query) ? "http://" : "") + query;
             }
@@ -61,7 +61,7 @@ console.sassert = function(cond, text) {
             return Utils.format(engineUrl, encodeURIComponent(query));
         },
 
-        isValidURL: (function() {
+        isValidURL: (function () {
             var TLDs = [
                 "abogado",
                 "ac",
@@ -871,10 +871,10 @@ console.sassert = function(cond, text) {
                 "zm",
                 "zone",
                 "zuerich",
-                "zw"
+                "zw",
             ];
             var PROTOCOLS = ["http:", "https:", "file:", "ftp:", "chrome:", "chrome-extension:"];
-            return function(url) {
+            return function (url) {
                 url = url.trim();
                 if (~url.indexOf(" ")) return false;
                 if (~url.search(/^(about|file):[^:]/)) return true;
@@ -885,21 +885,22 @@ console.sassert = function(cond, text) {
                 url = url.replace(/(:[0-9]+)?([#\/].*|$)/g, "").split(".");
                 if (protocolMatch && /^[a-zA-Z0-9@!]+$/.test(url)) return true;
                 if (protocol && !protocolMatch && protocol !== "localhost:") return false;
-                var isIP = url.every(function(e) {
+                var isIP = url.every(function (e) {
                     // IP addresses
                     return /^[0-9]+$/.test(e) && +e >= 0 && +e < 256;
                 });
                 if ((isIP && !protocol && url.length === 4) || (isIP && protocolMatch)) return true;
                 return (
-                    (url.every(function(e) {
+                    (url.every(function (e) {
                         return /^[a-z0-9\-]+$/i.test(e);
                     }) &&
-                        (url.length > 1 && TLDs.indexOf(url[url.length - 1]) !== -1)) ||
+                        url.length > 1 &&
+                        TLDs.indexOf(url[url.length - 1]) !== -1) ||
                     (url.length === 1 && url[0] === "localhost") ||
                     hasPath
                 );
             };
-        })()
+        })(),
     };
 }
 
@@ -910,7 +911,7 @@ var State = {
     tabUrls: new Map(),
     // Note(hbt) tracks openerTabId because the id is lost when the tab is moved
     tabOpenerIds: new Map(),
-    tabsRemoved: []
+    tabsRemoved: [],
     // globalSettings: {
     //     focusAfterClosed: "right",
     //     repeatThreshold: 99,
@@ -924,7 +925,7 @@ var State = {
 // https://github.com/deanoemcke/thegreatsuspender
 // https://github.com/deanoemcke/thegreatsuspender/issues/276#issuecomment-448164831
 var Constants = {
-    tabSuspenderExtensionID: "icpcohpmccndpdnpbeglkengjkgegcjb"
+    tabSuspenderExtensionID: "icpcohpmccndpdnpbeglkengjkgegcjb",
 };
 
 class CustomBackground {
@@ -937,13 +938,13 @@ class CustomBackground {
             this.handlePortMessage(_message, _sender, _sendResponse, _port);
         });
 
-        chrome.runtime.onConnect.addListener(port => {
+        chrome.runtime.onConnect.addListener((port) => {
             var sender = port.sender;
             port.onMessage.addListener((message, port) => {
                 return this.handlePortMessage(
                     message,
                     port.sender,
-                    function(resp) {
+                    function (resp) {
                         try {
                             if (!port.isDisconnected) {
                                 port.postMessage(resp);
@@ -958,7 +959,7 @@ class CustomBackground {
             });
         });
 
-        chrome.commands.onCommand.addListener(function(command) {
+        chrome.commands.onCommand.addListener(function (command) {
             switch (command) {
                 case "handlebothcwevents":
                     CustomBackground.handleCtrlWFeature();
@@ -966,18 +967,18 @@ class CustomBackground {
             }
         });
 
-        chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+        chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
             CustomBackground.pageStylesheetLoadByDomain(changeInfo, tab);
             CustomBackground.tabSendMessageOnWhenDoneLoading(changeInfo, tab);
             CustomBackground.tabUpdateInternalState(tab);
             CustomBackground.tabsMuteByDomain(tab, changeInfo);
         });
 
-        chrome.tabs.onCreated.addListener(function(tab) {
+        chrome.tabs.onCreated.addListener(function (tab) {
             CustomBackground.tabsOnCreatedHandler(tab);
         });
 
-        chrome.tabs.onRemoved.addListener(function(tab) {
+        chrome.tabs.onRemoved.addListener(function (tab) {
             CustomBackground.tabsOnRemovedSave(tab);
         });
     }
@@ -993,7 +994,7 @@ class CustomBackground {
     async tabUnmute(message, sender, sendResponse) {
         const ctab = await chrome.tabs.get(sender.tab.id);
         chrome.tabs.update(ctab.id, {
-            muted: false
+            muted: false,
         });
     }
 
@@ -1002,7 +1003,7 @@ class CustomBackground {
 
         if (changeInfo.status === "loading") {
             chrome.tabs.update(tab.id, {
-                muted: true
+                muted: true,
             });
             return;
         }
@@ -1020,9 +1021,9 @@ class CustomBackground {
             const otab = await chrome.tabs.get(tab.openerTabId);
             if (State.tabsSettings.has(otab.id)) {
                 if (State.tabsSettings.get(otab.id).newTabPosition === "right") {
-                    chrome.tabs.get(tab.openerTabId, ot => {
+                    chrome.tabs.get(tab.openerTabId, (ot) => {
                         chrome.tabs.move(tab.id, {
-                            index: ot.index + 1
+                            index: ot.index + 1,
                         });
                     });
                 }
@@ -1065,7 +1066,7 @@ class CustomBackground {
                 this.sendResponse(message, sendResponse, {
                     type: "editWithVIMCallback",
                     text: xhr.responseText,
-                    elementId: message.elementId
+                    elementId: message.elementId,
                 });
             }
         };
@@ -1073,7 +1074,7 @@ class CustomBackground {
             JSON.stringify({
                 data: "" + (message.text || ""),
                 line: message.line || 0,
-                column: message.column || 0
+                column: message.column || 0,
             })
         );
     }
@@ -1112,12 +1113,24 @@ class CustomBackground {
         this.sendResponse(_message, _sendResponse, { url: url });
     }
 
+    async openLinkNewWindow(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        const win = await chrome.windows.get(ctab.windowId);
+
+        chrome.windows.create({
+            url: _message.url,
+            focused: true,
+            incognito: win.incognito,
+            state: "maximized",
+        });
+    }
+
     openLinkIncognito(_message, _sender, _sendResponse) {
         chrome.windows.create({
             url: _message.url,
             focused: true,
             incognito: true,
-            state: "maximized"
+            state: "maximized",
         });
     }
 
@@ -1142,7 +1155,7 @@ class CustomBackground {
             for (let url of urls) {
                 await chrome.tabs.create({
                     url: url,
-                    index: ctab.index + 1
+                    index: ctab.index + 1,
                 });
             }
         }
@@ -1156,14 +1169,14 @@ class CustomBackground {
                 url: urls,
                 focused: true,
                 incognito: true,
-                state: "maximized"
+                state: "maximized",
             });
         }
 
         async function separateNormalURLsFromIncognitoURLs(urls) {
             let map = {
                 normal: [],
-                incognito: []
+                incognito: [],
             };
             for (let url of urls) {
                 if (await that._isBookmarkedUrl(url, CustomCommonConfig.incognitoBookmarkFolder)) {
@@ -1181,13 +1194,13 @@ class CustomBackground {
         if (!paste) {
             return;
         }
-        paste = paste.split("\n").filter(function(e) {
+        paste = paste.split("\n").filter(function (e) {
             return e.trim();
         });
 
         let repeats = _message.repeats > 0 ? _message.repeats : paste.length;
         paste = paste.slice(0, repeats);
-        let urls = paste.map(v => {
+        let urls = paste.map((v) => {
             return Utils.toSearchURL(v.trim(), Utils.defaultSearchEngine);
         });
 
@@ -1208,11 +1221,11 @@ class CustomBackground {
                 url: url,
                 focused: true,
                 incognito: true,
-                state: "maximized"
+                state: "maximized",
             });
         } else {
             await chrome.tabs.update({
-                url: url
+                url: url,
             });
         }
     }
@@ -1222,7 +1235,7 @@ class CustomBackground {
         const tab = await chrome.tabs.getSelected(w.id);
 
         chrome.tabs.sendMessage(tab.id, {
-            action: "handleCtrlWFeature"
+            action: "handleCtrlWFeature",
         });
     }
 
@@ -1235,10 +1248,10 @@ class CustomBackground {
 
         async function removeDuplicateTabsByURL(tabs, uniqueTabs) {
             let diffIds = _.difference(
-                tabs.map(t => {
+                tabs.map((t) => {
                     return t.id;
                 }),
-                uniqueTabs.map(t => {
+                uniqueTabs.map((t) => {
                     return t.id;
                 })
             );
@@ -1246,7 +1259,7 @@ class CustomBackground {
         }
 
         const tabs = await getAllTabsInCurrentWindow();
-        const uniqueTabs = _.unique(tabs, t => {
+        const uniqueTabs = _.unique(tabs, (t) => {
             return t.url;
         });
         await removeDuplicateTabsByURL(tabs, uniqueTabs);
@@ -1268,7 +1281,7 @@ class CustomBackground {
         for (let tabId of tabIds) {
             await chrome.tabs.move(tabId, {
                 index: -1,
-                windowId: ctab.windowId
+                windowId: ctab.windowId,
             });
         }
     }
@@ -1279,8 +1292,8 @@ class CustomBackground {
             sender: _sender,
             request: {
                 msg: _message.msg,
-                repeats: 1
-            }
+                repeats: 1,
+            },
         };
         ret.request = _message.request || ret.request;
         return ret;
@@ -1312,16 +1325,16 @@ class CustomBackground {
         if (cond || msg.count > 1) {
             chrome.windows.getAll(
                 {
-                    populate: true
+                    populate: true,
                 },
-                function(windows) {
+                function (windows) {
                     if (msg.otherWindows) {
                         // filter windows  without pinned tabs
-                        windows = _.filter(windows, function(w) {
+                        windows = _.filter(windows, function (w) {
                             if (w.id === tab.windowId) return false;
                             else {
                                 var noPinned = true;
-                                _.each(w.tabs, function(v) {
+                                _.each(w.tabs, function (v) {
                                     if (v.pinned) {
                                         noPinned = false;
                                     }
@@ -1331,14 +1344,14 @@ class CustomBackground {
                         });
                     } else {
                         // limit to current window
-                        windows = _.filter(windows, function(w) {
+                        windows = _.filter(windows, function (w) {
                             return w.id === tab.windowId;
                         });
                     }
 
-                    _.each(windows, function(w) {
+                    _.each(windows, function (w) {
                         var tabs = w.tabs;
-                        tabs = _.filter(tabs, function(v) {
+                        tabs = _.filter(tabs, function (v) {
                             var closeMap = {
                                 closeOther: v.id == tab.id || v.pinned,
                                 closeLeft: v.id == tab.id || v.pinned || tab.index < v.index,
@@ -1346,11 +1359,11 @@ class CustomBackground {
                                 closePinned: !v.pinned,
                                 closeUnPinned: v.pinned,
                                 otherWindows: v.windowId == tab.windowId || v.pinned,
-                                count: v.index >= tab.index
+                                count: v.index >= tab.index,
                             };
                             return !closeMap[cond];
                         });
-                        _.each(tabs, function(v, k) {
+                        _.each(tabs, function (v, k) {
                             if (msg.count && k > msg.count) return;
                             chrome.tabs.remove(v.id);
                         });
@@ -1380,16 +1393,16 @@ class CustomBackground {
 
         chrome.windows.getAll(
             {
-                populate: true
+                populate: true,
             },
-            function(windows) {
+            function (windows) {
                 if (!msg.allWindows) {
-                    windows = _.filter(windows, function(w) {
+                    windows = _.filter(windows, function (w) {
                         return w.id === tab.windowId;
                     });
                 }
-                _.each(windows, function(w) {
-                    var tabs = _.filter(w.tabs, function(v) {
+                _.each(windows, function (w) {
+                    var tabs = _.filter(w.tabs, function (v) {
                         return v.pinned;
                     });
 
@@ -1400,8 +1413,8 @@ class CustomBackground {
                         pinned = true;
                     }
 
-                    _.each(tabs, function(t) {
-                        chrome.tabs.update(t.id, { pinned: pinned }, function(new_tab) {});
+                    _.each(tabs, function (t) {
+                        chrome.tabs.update(t.id, { pinned: pinned }, function (new_tab) {});
                     });
                 });
             }
@@ -1423,10 +1436,10 @@ class CustomBackground {
 
     async tabHandleMagic(_message, _sender, _sendResponse) {
         function filterDirectionRight() {
-            let rightTabs = _.filter(currentWindowTabs, tab => {
+            let rightTabs = _.filter(currentWindowTabs, (tab) => {
                 return tab.index > ctab.index;
             });
-            rightTabs = _.map(rightTabs, tab => {
+            rightTabs = _.map(rightTabs, (tab) => {
                 return tab.id;
             });
 
@@ -1438,10 +1451,10 @@ class CustomBackground {
         }
 
         function filterDirectionLeft() {
-            let leftTabs = _.filter(currentWindowTabs, tab => {
+            let leftTabs = _.filter(currentWindowTabs, (tab) => {
                 return tab.index < ctab.index;
             });
-            leftTabs = _.map(leftTabs, tab => {
+            leftTabs = _.map(leftTabs, (tab) => {
                 return tab.id;
             });
 
@@ -1453,10 +1466,10 @@ class CustomBackground {
         }
 
         function AllTabsInCurrentWindowExceptActiveTab() {
-            let allOthers = _.filter(currentWindowTabs, tab => {
+            let allOthers = _.filter(currentWindowTabs, (tab) => {
                 return tab.id != ctab.id;
             });
-            allOthers = _.map(allOthers, tab => {
+            allOthers = _.map(allOthers, (tab) => {
                 return tab.id;
             });
 
@@ -1466,7 +1479,7 @@ class CustomBackground {
         console.sassert(CustomCommonConfig.tabMagic.hasOwnProperty(_message.magic));
 
         function getChildrenTabsRecursively(tabId, all) {
-            let ret = _.filter(all, tab => {
+            let ret = _.filter(all, (tab) => {
                 if (State.tabOpenerIds.has(tab.id)) {
                     return State.tabOpenerIds.get(tab.id) === tabId;
                 }
@@ -1475,7 +1488,7 @@ class CustomBackground {
 
             ret = _.flatten(ret);
 
-            _.each(ret, tab => {
+            _.each(ret, (tab) => {
                 ret.push(getChildrenTabsRecursively(tab.id, all));
             });
 
@@ -1489,7 +1502,7 @@ class CustomBackground {
         const ctab = await chrome.tabs.get(_sender.tab.id);
         let retTabIds = [];
         const currentWindowTabs = await chrome.tabs.query({
-            currentWindow: true
+            currentWindow: true,
         });
 
         if (_message.magic === "DirectionRight") {
@@ -1509,20 +1522,20 @@ class CustomBackground {
             retTabIds.push(ctab.id);
         } else if (_message.magic === "AllOtherTabsInOtherWindowsExceptAllTabsInCurrentWindow") {
             const otabs = await chrome.tabs.query({
-                currentWindow: false
+                currentWindow: false,
             });
 
-            retTabIds = _.map(otabs, tab => {
+            retTabIds = _.map(otabs, (tab) => {
                 return tab.id;
             });
         } else if (_message.magic === "AllTabsInAllWindowExceptActiveTab") {
             const otabs = await chrome.tabs.query({});
 
-            retTabIds = _.filter(otabs, tab => {
+            retTabIds = _.filter(otabs, (tab) => {
                 return tab.id != ctab.id;
             });
 
-            retTabIds = _.map(retTabIds, tab => {
+            retTabIds = _.map(retTabIds, (tab) => {
                 return tab.id;
             });
         } else if (_message.magic === "currentTab") {
@@ -1531,20 +1544,20 @@ class CustomBackground {
             retTabIds = Array.from(State.tabsMarked.keys());
         } else if (_message.magic === "childrenTabs") {
             const all = await chrome.tabs.query({});
-            let childrenTabs = _.filter(all, tab => {
+            let childrenTabs = _.filter(all, (tab) => {
                 if (State.tabOpenerIds.has(tab.id)) {
                     return State.tabOpenerIds.get(tab.id) === tabId;
                 }
                 return false;
             });
-            retTabIds = _.map(childrenTabs, tab => {
+            retTabIds = _.map(childrenTabs, (tab) => {
                 return tab.id;
             });
         } else if (_message.magic === "childrenTabsRecursively") {
             const all = await chrome.tabs.query({});
             let childrenTabsRecursively = getChildrenTabsRecursively(ctab.id, all);
 
-            retTabIds = _.map(childrenTabsRecursively, tab => {
+            retTabIds = _.map(childrenTabsRecursively, (tab) => {
                 return tab.id;
             });
         }
@@ -1564,10 +1577,10 @@ class CustomBackground {
     async tabUnsuspendM(_message, _sender, _sendResponse) {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
 
-        _.each(tabIds, tabId => {
+        _.each(tabIds, (tabId) => {
             chrome.runtime.sendMessage(Constants.tabSuspenderExtensionID, {
                 action: "unsuspend",
-                tabId: tabId
+                tabId: tabId,
             });
         });
     }
@@ -1575,10 +1588,10 @@ class CustomBackground {
     async tabSuspendM(_message, _sender, _sendResponse) {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
 
-        _.each(tabIds, tabId => {
+        _.each(tabIds, (tabId) => {
             chrome.runtime.sendMessage(Constants.tabSuspenderExtensionID, {
                 action: "suspend",
-                tabId: tabId
+                tabId: tabId,
             });
         });
     }
@@ -1587,16 +1600,16 @@ class CustomBackground {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
         const tabs = await this.tabsGetFromIds(tabIds);
 
-        let unpinnedTabs = _.filter(tabs, tab => {
+        let unpinnedTabs = _.filter(tabs, (tab) => {
             return !tab.pinned;
         });
-        unpinnedTabs = _.map(unpinnedTabs, tab => {
+        unpinnedTabs = _.map(unpinnedTabs, (tab) => {
             return tab.id;
         });
 
         if (_message.magic !== "highlightedTabs") {
             let highlightedIds = Array.from(State.tabsMarked.keys());
-            unpinnedTabs = _.filter(unpinnedTabs, id => {
+            unpinnedTabs = _.filter(unpinnedTabs, (id) => {
                 return !highlightedIds.includes(id);
             });
         }
@@ -1610,14 +1623,14 @@ class CustomBackground {
     }
 
     copyAllTabsURLsInCurrentWindow(_message, _sender, _sendResponse) {
-        chrome.tabs.query({ currentWindow: true }, tabs => {
+        chrome.tabs.query({ currentWindow: true }, (tabs) => {
             this._copyTabUrlsAndRespond(tabs, _message, _sendResponse);
         });
     }
 
     _copyTabUrlsAndRespond(tabs, _message, _sendResponse) {
         let text = tabs
-            .map(function(tab) {
+            .map(function (tab) {
                 return tab.url;
             })
             .join("\n");
@@ -1627,7 +1640,7 @@ class CustomBackground {
 
     async tabReloadM(_message, _sender, _sendResponse) {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
-        _.each(tabIds, id => {
+        _.each(tabIds, (id) => {
             chrome.tabs.reload(id, { bypassCache: true });
         });
     }
@@ -1688,10 +1701,10 @@ class CustomBackground {
         let o = this.convertMessageArgsToMouselessArg(_message, _sender, _sendResponse);
         var id = o.request.id,
             index = o.request.index;
-        chrome.tabs.query({ currentWindow: true }, function(tabs) {
+        chrome.tabs.query({ currentWindow: true }, function (tabs) {
             if (id) {
-                return chrome.tabs.get(id, function(tabInfo) {
-                    chrome.windows.update(tabInfo.windowId, { focused: true }, function() {
+                return chrome.tabs.get(id, function (tabInfo) {
+                    chrome.windows.update(tabInfo.windowId, { focused: true }, function () {
                         chrome.tabs.update(id, { active: true });
                     });
                 });
@@ -1713,7 +1726,7 @@ class CustomBackground {
     }
 
     tabTogglePin(tab) {
-        chrome.tabs.update(tab.id, { pinned: !tab.pinned }, function(new_tab) {});
+        chrome.tabs.update(tab.id, { pinned: !tab.pinned }, function (new_tab) {});
     }
 
     async tabTogglePinM(_message, _sender, _sendResponse) {
@@ -1729,9 +1742,9 @@ class CustomBackground {
 
         let ops = {
             rm: 0,
-            add: 0
+            add: 0,
         };
-        tabs.forEach(function(tab) {
+        tabs.forEach(function (tab) {
             if (State.tabsMarked.has(tab.id)) {
                 State.tabsMarked.delete(tab.id);
                 ops.rm++;
@@ -1743,7 +1756,7 @@ class CustomBackground {
 
         this.sendResponse(_message, _sendResponse, {
             state: ops,
-            count: State.tabsMarked.size
+            count: State.tabsMarked.size,
         });
     }
 
@@ -1753,9 +1766,9 @@ class CustomBackground {
 
         let ops = {
             rm: 0,
-            add: 0
+            add: 0,
         };
-        tabs.forEach(function(tab) {
+        tabs.forEach(function (tab) {
             chrome.tabs.executeScript(tab.id, { code: "window.print();" });
         });
     }
@@ -1772,7 +1785,7 @@ class CustomBackground {
 
         this.sendResponse(_message, _sendResponse, {
             state: State.tabsMarked.has(ctab.id),
-            count: State.tabsMarked.size
+            count: State.tabsMarked.size,
         });
     }
 
@@ -1781,7 +1794,7 @@ class CustomBackground {
             let ret = [];
             const allTabs = await chrome.tabs.query({});
             const allTabIds = _.pluck(allTabs, "id");
-            ret = _.filter(tabIds, id => {
+            ret = _.filter(tabIds, (id) => {
                 return allTabIds.includes(id);
             });
             return ret;
@@ -1798,7 +1811,7 @@ class CustomBackground {
     async tabHighlightClearAll(_message, _sender, _sendResponse) {
         State.tabsMarked = new Map();
         this.sendResponse(_message, _sendResponse, {
-            count: State.tabsMarked.size
+            count: State.tabsMarked.size,
         });
     }
 
@@ -1808,7 +1821,7 @@ class CustomBackground {
         var hostname = Utils.getHostname(ctab.url);
         var tab = _sender.tab;
 
-        chrome.storage.local.get("domainStylesheets", data => {
+        chrome.storage.local.get("domainStylesheets", (data) => {
             let domainStylesheets = data.domainStylesheets || {};
             let settings = { domainStylesheets };
             settings.domainStylesheets[hostname] = settings.domainStylesheets[hostname] || {};
@@ -1821,7 +1834,7 @@ class CustomBackground {
                 settings.domainStylesheets[hostname] = styleurl;
             }
 
-            chrome.storage.local.set({ domainStylesheets: settings.domainStylesheets }, function(data) {
+            chrome.storage.local.set({ domainStylesheets: settings.domainStylesheets }, function (data) {
                 chrome.tabs.reload(tab.id);
             });
         });
@@ -1831,20 +1844,20 @@ class CustomBackground {
         if (changeInfo.status === "loading") {
             var hostname = Utils.getHostname(tab.url);
 
-            chrome.storage.local.get("domainStylesheets", data => {
+            chrome.storage.local.get("domainStylesheets", (data) => {
                 let domainStylesheets = data.domainStylesheets || {};
                 if (domainStylesheets.hasOwnProperty(hostname)) {
                     $.ajax({
-                        url: domainStylesheets[hostname]
-                    }).done(function(data) {
+                        url: domainStylesheets[hostname],
+                    }).done(function (data) {
                         chrome.tabs.insertCSS(
                             tab.id,
                             {
                                 code: data,
                                 runAt: "document_start",
-                                allFrames: true
+                                allFrames: true,
                             },
-                            function(res) {}
+                            function (res) {}
                         );
                     });
                 }
@@ -1855,7 +1868,7 @@ class CustomBackground {
     static async tabSendMessageOnWhenDoneLoading(changeInfo, tab) {
         if (changeInfo.status === "complete") {
             chrome.tabs.sendMessage(tab.id, {
-                action: "tabDoneLoading"
+                action: "tabDoneLoading",
             });
         }
     }
@@ -1865,14 +1878,14 @@ class CustomBackground {
         chrome.downloads.search(
             {
                 exists: true,
-                state: "complete"
+                state: "complete",
             },
-            function(dlds) {
+            function (dlds) {
                 if (!dlds) {
                     return;
                 }
                 // sort dlds by end time
-                let sortedDlds = window._.sortBy(dlds, v => {
+                let sortedDlds = window._.sortBy(dlds, (v) => {
                     return v.endTime;
                 });
                 let last = sortedDlds.pop();
@@ -1886,14 +1899,14 @@ class CustomBackground {
         chrome.downloads.search(
             {
                 exists: true,
-                state: "complete"
+                state: "complete",
             },
-            function(dlds) {
+            function (dlds) {
                 if (!dlds) {
                     return;
                 }
                 // sort dlds by end time
-                let sortedDlds = window._.sortBy(dlds, v => {
+                let sortedDlds = window._.sortBy(dlds, (v) => {
                     return v.endTime;
                 });
                 let last = sortedDlds.pop();
@@ -1918,7 +1931,7 @@ class CustomBackground {
 
         let msg = `Added ${count} bookmark(s) to ${folder}`;
         this.sendResponse(_message, _sendResponse, {
-            msg: msg
+            msg: msg,
         });
     }
 
@@ -1938,7 +1951,7 @@ class CustomBackground {
 
         let msg = `Removed ${count} bookmark(s) to ${folder}`;
         this.sendResponse(_message, _sendResponse, {
-            msg: msg
+            msg: msg,
         });
     }
 
@@ -1973,7 +1986,7 @@ class CustomBackground {
         await this._bookmarkAdd(currentTab, _message.folder);
 
         this.sendResponse(_message, _sendResponse, {
-            msg: "Saved timestamp at: " + _message.duration
+            msg: "Saved timestamp at: " + _message.duration,
         });
     }
 
@@ -2029,14 +2042,14 @@ class CustomBackground {
             }
 
             this.sendResponse(_message, _sendResponse, {
-                msg: msg
+                msg: msg,
             });
         }
     }
 
     async _bookmarkRemoveByURLStartingWith(url, bookmarkFolderString) {
         let children = await this._getBookmarkChildren(bookmarkFolderString);
-        let filtered = _.keys(children).filter(v => {
+        let filtered = _.keys(children).filter((v) => {
             return v.startsWith(this._removeTrailingSlash(url));
         });
         // Note(hbt) prevent accidentally matching too many bookmarks.
@@ -2068,13 +2081,13 @@ class CustomBackground {
         const b = chrome.bookmarks.create({
             parentId: bookmarkFolder.id,
             url: currentTabURL,
-            title: title
+            title: title,
         });
     }
 
     async _isBookmarkedUrlStartingWith(url, bookmarkFolderString) {
         let children = await this._getBookmarkChildren(bookmarkFolderString);
-        let filtered = _.keys(children).filter(v => {
+        let filtered = _.keys(children).filter((v) => {
             return v.startsWith(this._removeTrailingSlash(url));
         });
         // Note(hbt) prevent accidentally matching too many bookmarks.
@@ -2118,7 +2131,7 @@ class CustomBackground {
     async _getBookmarkChildren(bookmarkFolderString) {
         let bookmarkFolder = await this._getBookmarkFolder(bookmarkFolderString);
         const bchildren = await chrome.bookmarks.getChildren(bookmarkFolder.id);
-        let children = _.map(bchildren, child => {
+        let children = _.map(bchildren, (child) => {
             child.url = this._removeTrailingSlash(child.url);
             return child;
         });
@@ -2185,7 +2198,7 @@ class CustomBackground {
         let titles = _.uniq(_.flatten([titles1, titles2]));
 
         this.sendResponse(_message, _sendResponse, {
-            msg: ["Titles:", titles.join("\n"), "Folders:", folders.join("\n")]
+            msg: ["Titles:", titles.join("\n"), "Folders:", folders.join("\n")],
         });
     }
 
@@ -2198,7 +2211,7 @@ class CustomBackground {
 
         async function cutBookmarks() {
             const matchedMarks = await chrome.bookmarks.search(_message.folder);
-            const folders = _.filter(matchedMarks, mark => {
+            const folders = _.filter(matchedMarks, (mark) => {
                 return !mark.hasOwnProperty("url");
             });
             const folderId = folders[0].id;
@@ -2222,7 +2235,7 @@ class CustomBackground {
             await cutBookmarks();
 
             this.sendResponse(_message, _sendResponse, {
-                msg: "Cut " + _message.repeats + " bookmarks from folder: " + _message.folder
+                msg: "Cut " + _message.repeats + " bookmarks from folder: " + _message.folder,
             });
         }
     }
@@ -2230,13 +2243,13 @@ class CustomBackground {
     async bookmarkCopyFolderHelper(_message, _sender, _sendResponse) {
         // get subtree
         const matchedMarks = await chrome.bookmarks.search(_message.folder);
-        const folders = _.filter(matchedMarks, mark => {
+        const folders = _.filter(matchedMarks, (mark) => {
             return !mark.hasOwnProperty("url");
         });
         const folderId = folders[0].id;
         const bmarks = await chrome.bookmarks.getSubTree(folderId);
         let urls = this._deepPluck(_, bmarks, "url");
-        urls = _.map(urls, url => {
+        urls = _.map(urls, (url) => {
             return this._removeTrailingSlash(url);
         });
         urls = _.unique(urls);
@@ -2252,7 +2265,7 @@ class CustomBackground {
 
         let result = {
             msg: `Copied ${count} URLS`,
-            urls: urls
+            urls: urls,
         };
 
         return result;
@@ -2266,7 +2279,7 @@ class CustomBackground {
     async bookmarkEmptyFolder(_message, _sender, _sendResponse) {
         this.bookmarkEmptyFolderContents(_message.folder, () => {
             this.sendResponse(_message, _sendResponse, {
-                msg: `Emptied bookmark folder ${_message.folder}`
+                msg: `Emptied bookmark folder ${_message.folder}`,
             });
         });
     }
@@ -2275,11 +2288,11 @@ class CustomBackground {
         let url = "http://localhost:7077/rest-begin-folder-edit.php?folder_name=" + _message.folder;
         $.ajax({
             url: url,
-            async: false
-        }).done(data => {
+            async: false,
+        }).done((data) => {
             console.log(data);
             this.sendResponse(_message, _sendResponse, {
-                msg: `Dumped bookmark folder ${_message.folder}`
+                msg: `Dumped bookmark folder ${_message.folder}`,
             });
         });
     }
@@ -2302,8 +2315,8 @@ class CustomBackground {
                 let url = "http://localhost:7077/rest-finish-folder-edit.php";
                 $.ajax({
                     url: url,
-                    async: false
-                }).done(function(data) {
+                    async: false,
+                }).done(function (data) {
                     ret = JSON.parse(data);
                     console.assert(_.isObject(ret.roots), "bookmarks loaded properly");
                 });
@@ -2317,9 +2330,9 @@ class CustomBackground {
                             {
                                 parentId: folderId,
                                 title: mark.name,
-                                index: index
+                                index: index,
                             },
-                            function(nmark) {
+                            function (nmark) {
                                 if (mark.children) {
                                     _.each(mark.children, (child, index) => {
                                         createMark(child, nmark.id, index);
@@ -2335,9 +2348,9 @@ class CustomBackground {
                                 parentId: folderId,
                                 title: mark.name,
                                 url: mark.url,
-                                index: index
+                                index: index,
                             },
-                            function(nmark) {}
+                            function (nmark) {}
                         );
                     }
                 }
@@ -2345,9 +2358,9 @@ class CustomBackground {
                 {
                     chrome.bookmarks.search(
                         {
-                            title: folder
+                            title: folder,
                         },
-                        function(smarks) {
+                        function (smarks) {
                             console.assert(smarks.length === 1, "folder is the only one with that name");
                             let folderId = smarks[0].id;
 
@@ -2361,7 +2374,7 @@ class CustomBackground {
 
             function getBookmarksByFolderName(allmarks, folder) {
                 var children = deepPluck(allmarks.roots, "children");
-                var child = _.select(children, child => {
+                var child = _.select(children, (child) => {
                     return child.type == "folder" && child.name == folder;
                 });
                 console.assert(_.isArray(child) && child[0].children.length > 0, "found folder and it has data");
@@ -2375,7 +2388,7 @@ class CustomBackground {
             }
         }
 
-        emptyExistingFolder(_message.folder, function() {
+        emptyExistingFolder(_message.folder, function () {
             loadEditedBookmarks(_message.folder);
         });
     }
@@ -2385,7 +2398,7 @@ class CustomBackground {
             let ret = [];
 
             if (_.isArray(obj)) {
-                _.each(obj, function(i) {
+                _.each(obj, function (i) {
                     ret.push(deepPluck(i, k));
                 });
             } else if (_.isObject(obj) && _.has(obj, k)) {
@@ -2393,7 +2406,7 @@ class CustomBackground {
             }
 
             if (_.isObject(obj)) {
-                _.each(_.keys(obj), function(key) {
+                _.each(_.keys(obj), function (key) {
                     ret.push(deepPluck(obj[key], k));
                 });
             }
@@ -2407,21 +2420,21 @@ class CustomBackground {
     bookmarkEmptyFolderContents(folder, callback) {
         chrome.bookmarks.search(
             {
-                title: folder
+                title: folder,
             },
-            function(marks) {
+            function (marks) {
                 console.assert(marks.length === 1, "folder is the only one with that name");
 
                 var omark = marks[0];
 
-                chrome.bookmarks.removeTree(marks[0].id, function() {
+                chrome.bookmarks.removeTree(marks[0].id, function () {
                     chrome.bookmarks.create(
                         {
                             parentId: omark.parentId,
                             title: omark.title,
-                            index: omark.index
+                            index: omark.index,
                         },
-                        function() {
+                        function () {
                             callback();
                         }
                     );
@@ -2433,7 +2446,7 @@ class CustomBackground {
     async getTabId(message, sender, sendResponse) {
         const ctab = await chrome.tabs.get(sender.tab.id);
         this.sendResponse(message, sendResponse, {
-            tabId: sender.tab.id
+            tabId: sender.tab.id,
         });
     }
 
@@ -2448,7 +2461,7 @@ class CustomBackground {
                 this.sendResponse(message, sendResponse, {
                     type: "editWithVIMCallback",
                     text: xhr.responseText,
-                    elementId: message.elementId
+                    elementId: message.elementId,
                 });
             }
         };
@@ -2456,7 +2469,7 @@ class CustomBackground {
             JSON.stringify({
                 data: "" + (message.text || ""),
                 line: message.line || 0,
-                column: message.column || 0
+                column: message.column || 0,
             })
         );
     }
@@ -2472,7 +2485,7 @@ class CustomBackground {
                 this.sendResponse(message, sendResponse, {
                     type: "editWithVIMCallback",
                     text: xhr.responseText,
-                    elementId: message.elementId
+                    elementId: message.elementId,
                 });
             }
         };
@@ -2480,7 +2493,7 @@ class CustomBackground {
             JSON.stringify({
                 data: "" + (message.text || ""),
                 line: message.line || 0,
-                column: message.column || 0
+                column: message.column || 0,
             })
         );
     }
@@ -2493,18 +2506,18 @@ class CustomBackground {
                 contentType: message.data.contentType,
                 url: message.data.url,
                 data: message.data.data,
-                success: function(ret) {
+                success: function (ret) {
                     res(message, sendResponse, {
                         state: "success",
-                        result: ret
+                        result: ret,
                     });
                 },
-                error: function(e) {
+                error: function (e) {
                     res(message, sendResponse, {
                         state: "error",
-                        result: ret
+                        result: ret,
                     });
-                }
+                },
             });
         }
     }
@@ -2516,7 +2529,7 @@ class CustomBackground {
     async getBackgroundLocalStorage(message, sender, sendResponse) {
         let v = localStorage.getItem(message.key);
         this.sendResponse(message, sendResponse, {
-            value: v
+            value: v,
         });
     }
 }
