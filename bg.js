@@ -1955,7 +1955,6 @@ class CustomBackground {
         });
     }
 
-    // TODO(hbt) NEXT handle playlist
     async bookmarkSaveYoutube(_message, _sender, _sendResponse) {
         let cthis = this;
         async function removeOtherBookmarkPlaybacks(strurl, folder) {
