@@ -1070,9 +1070,9 @@ var CustomCommands = (function () {
                 lastInputElement[lastInputElement.value !== void 0 ? "value" : "innerHTML"] = res.text.replace(/\n$/, ""); // remove trailing line left by vim
                 // element.value = res.text;
 
-                if (!DOMUtils.isSubmittable(element)) {
-                    element.blur();
-                }
+                // if (!DOMUtils.isSubmittable(element)) {
+                // element.blur();
+                // }
             }
         );
     };
