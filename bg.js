@@ -4,6 +4,10 @@ console.sassert = function (cond, text) {
     throw new Error(text || "Assertion failed!");
 };
 
+const uid = function () {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
+
 {
     var Clipboard = {};
 
@@ -1769,7 +1773,9 @@ class CustomBackground {
             add: 0,
         };
         tabs.forEach(function (tab) {
-            chrome.tabs.executeScript(tab.id, { code: "window.print();" });
+            chrome.tabs.executeScript(tab.id, {
+                code: "window.document.title = window.document.title + ' ' +  \"" + uid() + '"' + ";window.print();",
+            });
         });
     }
 
