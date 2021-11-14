@@ -1274,6 +1274,17 @@ class CustomBackground {
         chrome.windows.create({ tabId: _sender.tab.id, state: "maximized", incognito: w.incognito });
     }
 
+    pageCapture() {
+        // TODO(hbt) NEXT impl
+        chrome.pageCapture.saveAsMHTML({ tabId: ctab.id }, function (data) {
+            var url = URL.createObjectURL(data);
+            chrome.downloads.download({
+                url: url,
+                filename: "file.mhtml", // TODO(hbt) NEXT fix .txt issue + use tab title + similar algo as tbt
+            });
+        });
+    }
+
     async tabDetachM(_message, _sender, _sendResponse) {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
         const tabs = await this.tabsGetFromIds(tabIds);

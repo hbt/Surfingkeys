@@ -41,6 +41,7 @@
     "permissions": [
         "webRequest",
         "webRequestBlocking",
+        "pageCapture",
         "proxy",
         "<all_urls>",
         "tabs",
