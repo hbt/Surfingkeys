@@ -1769,20 +1769,24 @@ class CustomBackground {
         const tabs = await this.tabsGetFromIds(tabIds);
 
         tabs.forEach(function (tab) {
-            // TODO(hbt) NEXT fix extension
             chrome.pageCapture.saveAsMHTML({ tabId: tab.id }, function (data) {
-                let title = tab.title + " " + uid();
-                var url = URL.createObjectURL(data);
-                console.log(url);
-                chrome.downloads.download({
-                    url: url,
-                    filename: title + ".mhtml",
+                const blob = new Blob([data], {
+                    type: "plain/mhtml",
                 });
+                let title = tab.title + " " + uid();
+                var url = URL.createObjectURL(blob);
+                const filename = title.replace(/\[title\]/g, title).replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>{}[\]\\/]/gi, "-");
+                chrome.downloads.download(
+                    {
+                        url: url,
+                        saveAs: false,
+                        filename: filename + ".mhtml",
+                    },
+                    () => {
+                        URL.revokeObjectURL(url);
+                    }
+                );
             });
-            // TODO(hbt) NEXT rm
-            // chrome.tabs.executeScript(tab.id, {
-            //     code: "window.document.title = window.document.title + ' ' +  \"" + uid() + '"' + ";window.print();",
-            // });
         });
     }
 
