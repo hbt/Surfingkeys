@@ -1436,6 +1436,19 @@ var CustomCommands = (function () {
         Front.showBanner(`Tab Position: ${ret.data}`, 3000);
     };
 
+    self.tabPageCaptureM = async function (k) {
+        let magic = tabCheckMagicByKey(k);
+        if (!magic) {
+            return;
+        }
+
+        let ret = await aruntime({
+            action: "tabPageCaptureM",
+            repeats: Normal.repeats || -1,
+            magic: magic,
+        });
+    };
+
     self.tabPrintM = async function (k) {
         let magic = tabCheckMagicByKey(k);
         if (!magic) {

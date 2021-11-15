@@ -1274,17 +1274,6 @@ class CustomBackground {
         chrome.windows.create({ tabId: _sender.tab.id, state: "maximized", incognito: w.incognito });
     }
 
-    pageCapture() {
-        // TODO(hbt) NEXT impl
-        chrome.pageCapture.saveAsMHTML({ tabId: ctab.id }, function (data) {
-            var url = URL.createObjectURL(data);
-            chrome.downloads.download({
-                url: url,
-                filename: "file.mhtml", // TODO(hbt) NEXT fix .txt issue + use tab title + similar algo as tbt
-            });
-        });
-    }
-
     async tabDetachM(_message, _sender, _sendResponse) {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
         const tabs = await this.tabsGetFromIds(tabIds);
@@ -1775,14 +1764,32 @@ class CustomBackground {
         });
     }
 
+    async tabPageCaptureM(_message, _sender, _sendResponse) {
+        const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
+        const tabs = await this.tabsGetFromIds(tabIds);
+
+        tabs.forEach(function (tab) {
+            // TODO(hbt) NEXT fix extension
+            chrome.pageCapture.saveAsMHTML({ tabId: tab.id }, function (data) {
+                let title = tab.title + " " + uid();
+                var url = URL.createObjectURL(data);
+                console.log(url);
+                chrome.downloads.download({
+                    url: url,
+                    filename: title + ".mhtml",
+                });
+            });
+            // TODO(hbt) NEXT rm
+            // chrome.tabs.executeScript(tab.id, {
+            //     code: "window.document.title = window.document.title + ' ' +  \"" + uid() + '"' + ";window.print();",
+            // });
+        });
+    }
+
     async tabPrintM(_message, _sender, _sendResponse) {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
         const tabs = await this.tabsGetFromIds(tabIds);
 
-        let ops = {
-            rm: 0,
-            add: 0,
-        };
         tabs.forEach(function (tab) {
             chrome.tabs.executeScript(tab.id, {
                 code: "window.document.title = window.document.title + ' ' +  \"" + uid() + '"' + ";window.print();",
