@@ -614,7 +614,7 @@ mapkey(';m', '#1mouse out last element', function() {
     Hints.mouseoutLastElement();
 });
 mapkey(';j', '#12Close Downloads Shelf', function() {
-    RUNTIME("closeDownloadsShelf", {clearHistory: true});
+    RUNTIME("closeDownloadsShelf", {clearHistory: false});
 });
 mapkey(';pp', '#7Paste html on current page', function() {
     Clipboard.read(function(response) {
