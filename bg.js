@@ -968,6 +968,10 @@ class CustomBackground {
                 case "handlebothcwevents":
                     CustomBackground.handleCtrlWFeature();
                     break;
+                case "reloaddark":
+                    chrome.management.setEnabled("pdhanilkeidkjjnhipibaemjgnndkiep", false);
+                    chrome.management.setEnabled("pdhanilkeidkjjnhipibaemjgnndkiep", true);
+                    break;
             }
         });
 

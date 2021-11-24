@@ -11,7 +11,10 @@
     },
     "commands": {
         "restartext": {
-            "description": "Restart this extenstion."
+            "description": "Restart this extension."
+        },
+        "reloaddark": {
+            "description": "Reload Dark"
         },
         "previousTab": {
             "description": "Go to the previous tab."
@@ -40,6 +43,7 @@
     "author": "brook hong",
     "permissions": [
         "webRequest",
+        "management",
         "webRequestBlocking",
         "pageCapture",
         "proxy",
