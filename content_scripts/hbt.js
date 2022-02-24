@@ -1523,7 +1523,7 @@ var CustomCommands = (function () {
                 repeats: Normal.repeats || -1,
                 magic: magic,
             });
-            Front.showBanner(ret.msg, 2000);
+            // Front.showBanner(ret.msg, 2000);
         }
     };
 
