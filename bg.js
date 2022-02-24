@@ -1590,6 +1590,9 @@ class CustomBackground {
                             pinned: false,
                         });
                     }
+                    if (State.tabsMarked.has(otab.id)) {
+                        State.tabsMarked.delete(otab.id);
+                    }
                     retTabIds.push(otab.id);
                 }
             }
@@ -1669,6 +1672,9 @@ class CustomBackground {
             });
         }
         await chrome.tabs.remove(unpinnedTabs);
+        this.sendResponse(_message, _sendResponse, {
+            msg: `Closed ${unpinnedTabs.length} tabs`,
+        });
     }
 
     async copyTabURLsM(_message, _sender, _sendResponse) {
