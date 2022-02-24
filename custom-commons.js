@@ -24,7 +24,15 @@ var CustomCommonConfig = {
         },
 
         AllOtherTabsInOtherWindowsExceptAllTabsInCurrentWindow: {
+            key: 'W'
+        },
+
+        AllWindowsNoPinnedTabsExceptCurrentWindow: {
             key: 'w'
+        },
+
+        AllIncognitoWindowsIncludingPinnedIncognitoTabs: {
+            key: 'o'
         },
        
         AllTabsInAllWindowExceptActiveTab: {

@@ -1536,6 +1536,32 @@ class CustomBackground {
             retTabIds = _.map(otabs, (tab) => {
                 return tab.id;
             });
+        } else if (_message.magic === "AllWindowsNoPinnedTabsExceptCurrentWindow") {
+            const owindows = await chrome.windows.getAll({
+                populate: true,
+            });
+            let owindowsWithNoPinnedTabs = [];
+            for (let owindow of owindows) {
+                let pinnedTabFound = false;
+                for (let otab of owindow.tabs) {
+                    if (otab.pinned) {
+                        pinnedTabFound = true;
+                        break;
+                    }
+                }
+                if (!pinnedTabFound) {
+                    owindowsWithNoPinnedTabs.push(owindow);
+                }
+            }
+
+            for (let owindow of owindowsWithNoPinnedTabs) {
+                if (owindow.id === ctab.windowId) {
+                    continue;
+                }
+                for (let otab of owindow.tabs) {
+                    retTabIds.push(otab.id);
+                }
+            }
         } else if (_message.magic === "AllTabsInAllWindowExceptActiveTab") {
             const otabs = await chrome.tabs.query({});
 
@@ -1546,6 +1572,27 @@ class CustomBackground {
             retTabIds = _.map(retTabIds, (tab) => {
                 return tab.id;
             });
+        } else if (_message.magic === "AllIncognitoWindowsIncludingPinnedIncognitoTabs") {
+            const owindows = await chrome.windows.getAll({
+                populate: true,
+            });
+            let incognitoWindows = [];
+            for (let owindow of owindows) {
+                if (owindow.incognito) {
+                    incognitoWindows.push(owindow);
+                }
+            }
+
+            for (let owindow of incognitoWindows) {
+                for (let otab of owindow.tabs) {
+                    if (otab.pinned) {
+                        await chrome.tabs.update(otab.id, {
+                            pinned: false,
+                        });
+                    }
+                    retTabIds.push(otab.id);
+                }
+            }
         } else if (_message.magic === "currentTab") {
             retTabIds = [ctab.id];
         } else if (_message.magic === "highlightedTabs") {
