@@ -1645,13 +1645,49 @@ class CustomBackground {
 
     async tabSuspendM(_message, _sender, _sendResponse) {
         const tabIds = await this.tabHandleMagic(_message, _sender, _sendResponse);
-
         _.each(tabIds, (tabId) => {
             chrome.runtime.sendMessage(Constants.tabSuspenderExtensionID, {
                 action: "suspend",
                 tabId: tabId,
             });
         });
+    }
+
+    async focusTab(tab, focusWindow) {
+        await chrome.windows.update(
+            tab.windowId,
+            {
+                focused: focusWindow || false,
+            },
+            async () => {
+                await chrome.tabs.update(tab.id, { active: true });
+            }
+        );
+    }
+
+    // TODO(hbt) NEXT optimize by tracking into a map and only updating the ones that aren't in the map
+    async tabFixSuspended(_message, _sender, _sendResponse) {
+        const ctab = await chrome.tabs.get(_sender.tab.id);
+        const all = await chrome.tabs.query({});
+
+        const wall = await chrome.windows.getAll({
+            populate: true,
+        });
+
+        for (let w of wall) {
+            let currentSelectedTab = _.select(w.tabs, (child) => {
+                return child.active;
+            })[0];
+            console.log(currentSelectedTab);
+
+            for (let tab of w.tabs) {
+                await this.focusTab(tab);
+            }
+
+            await this.focusTab(currentSelectedTab);
+        }
+
+        await this.focusTab(ctab, true);
     }
 
     async tabCloseM(_message, _sender, _sendResponse) {

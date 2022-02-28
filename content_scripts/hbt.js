@@ -1515,6 +1515,13 @@ var CustomCommands = (function () {
         }
     };
 
+    self.tabFixSuspended = async () => {
+        let ret = await aruntime({
+            action: "tabFixSuspended",
+            repeats: Normal.repeats || -1,
+        });
+    };
+
     self.tabCloseM = async (k) => {
         let magic = tabCheckMagicByKey(k);
         if (magic) {
