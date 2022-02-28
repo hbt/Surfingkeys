@@ -1678,7 +1678,6 @@ class CustomBackground {
             let currentSelectedTab = _.select(w.tabs, (child) => {
                 return child.active;
             })[0];
-            console.log(currentSelectedTab);
 
             for (let tab of w.tabs) {
                 await this.focusTab(tab);
