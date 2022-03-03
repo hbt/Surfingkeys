@@ -916,6 +916,7 @@ var State = {
     // Note(hbt) tracks openerTabId because the id is lost when the tab is moved
     tabOpenerIds: new Map(),
     tabsRemoved: [],
+    tabsSelected: new Map(),
     // globalSettings: {
     //     focusAfterClosed: "right",
     //     repeatThreshold: 99,
@@ -1661,11 +1662,11 @@ class CustomBackground {
             },
             async () => {
                 await chrome.tabs.update(tab.id, { active: true });
+                State.tabsSelected.set(tab.id, true);
             }
         );
     }
 
-    // TODO(hbt) NEXT optimize by tracking into a map and only updating the ones that aren't in the map
     async tabFixSuspended(_message, _sender, _sendResponse) {
         const ctab = await chrome.tabs.get(_sender.tab.id);
         const all = await chrome.tabs.query({});
@@ -1679,11 +1680,15 @@ class CustomBackground {
                 return child.active;
             })[0];
 
+            let countFocusChanged = 0;
             for (let tab of w.tabs) {
-                await this.focusTab(tab);
+                if (!State.tabsSelected.has(tab.id)) {
+                    await this.focusTab(tab);
+                    countFocusChanged++;
+                }
             }
 
-            await this.focusTab(currentSelectedTab);
+            if (countFocusChanged > 0) await this.focusTab(currentSelectedTab);
         }
 
         await this.focusTab(ctab, true);
