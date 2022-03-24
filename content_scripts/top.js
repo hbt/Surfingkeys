@@ -131,14 +131,16 @@ if (window === top) {
                     skipObserver = false,
                     originalTitle = document.title;
 
-                new MutationObserver(function (mutationsList) {
-                    if (skipObserver) {
-                        skipObserver = false;
-                    } else {
-                        originalTitle = document.title;
-                        showTabIndexInTitle();
-                    }
-                }).observe(document.querySelector("title"), { childList: true });;
+                if (document.querySelector("title"))
+                    new MutationObserver(function (mutationsList) {
+                        if (skipObserver) {
+                            skipObserver = false;
+                        } else {
+                            originalTitle = document.title;
+                            showTabIndexInTitle();
+                        }
+                    }).observe(document.querySelector("title"), {childList: true});
+                ;
 
                 showTabIndexInTitle();
 
