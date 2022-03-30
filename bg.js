@@ -1067,6 +1067,7 @@ class CustomBackground {
         State.tabsSettings.set(sender.tab.id, message.settings);
     }
 
+    // Note(hbt) ref https://gist.github.com/hbt/b7a14c0d3d09d2541908c9553e8ac892
     async reloadDarkReader(message, sender, sendResponse) {
         chrome.management.setEnabled("pdhanilkeidkjjnhipibaemjgnndkiep", false);
         chrome.management.setEnabled("pdhanilkeidkjjnhipibaemjgnndkiep", true);
