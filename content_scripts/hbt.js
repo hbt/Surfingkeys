@@ -869,6 +869,12 @@ var CustomCommands = (function () {
         );
     };
 
+    self.reloadDarkReader = function () {
+        aruntime({
+            action: "reloadDarkReader",
+        });
+    };
+
     self.tabGotoParent = function () {
         aruntime({
             action: "tabGotoParent",

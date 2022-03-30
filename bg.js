@@ -1067,6 +1067,11 @@ class CustomBackground {
         State.tabsSettings.set(sender.tab.id, message.settings);
     }
 
+    async reloadDarkReader(message, sender, sendResponse) {
+        chrome.management.setEnabled("pdhanilkeidkjjnhipibaemjgnndkiep", false);
+        chrome.management.setEnabled("pdhanilkeidkjjnhipibaemjgnndkiep", true);
+    }
+
     async insertOpenExternalEditor(message, sender, sendResponse) {
         var xhr = new XMLHttpRequest();
         xhr.open("POST", "http://127.0.0.1:8001");
