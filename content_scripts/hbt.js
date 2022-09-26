@@ -456,7 +456,7 @@ var CustomCommands = (function () {
 
         Clipboard.read((v) => {
             let total = v.data.split("\n").length;
-            if (total > 20) {
+            if (total > 30) {
                 let ok = confirm(`Too many entries (${total}). Are you sure?`);
                 if (!ok) {
                     return;
