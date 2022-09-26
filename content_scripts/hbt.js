@@ -453,14 +453,19 @@ var CustomCommands = (function () {
         if (shouldSkipOtherRepeats()) {
             return;
         }
-        let repeats = parseInt(Normal.repeats) || -1;
 
         Clipboard.read((v) => {
+            let total = v.data.split("\n").length;
+            if (total > 20) {
+                let ok = confirm(`Too many entries (${total}). Are you sure?`);
+                if (!ok) {
+                    return;
+                }
+            }
             runtime.command(
                 {
                     action: "pasteFromClipboardNewTab",
                     data: v,
-                    repeats: repeats,
                 },
                 function (res) {}
             );
