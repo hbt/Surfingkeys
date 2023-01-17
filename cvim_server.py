@@ -35,7 +35,7 @@ VIM_COMMAND = 'gvim -f'
 
 def edit_file(content, line, column):
     
-    fd, fn = mkstemp(suffix='.txt', prefix='cvim-', text=True)
+    fd, fn = mkstemp(suffix='.html', prefix='cvim-', text=True)
     os.write(fd, content.encode('utf8'))
     os.close(fd)
     command = VIM_COMMAND + " " + fn + ' -c "call cursor(' + str(line) + ',' + str(column) + ')"'
