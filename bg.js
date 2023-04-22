@@ -1144,6 +1144,8 @@ class CustomBackground {
 
         // Note(hbt) switch user agent for chatgpt
         // Note(hbt) related code from extension https://github.com/vytal-io/vytal-extension but extension is not working
+        // refs https://stackoverflow.com/questions/15618923/in-google-chrome-what-is-the-extension-api-for-changing-the-useragent-and-devic
+        // https://chromedevtools.github.io/devtools-protocol/tot/Network/#method-setUserAgentOverride
         var protocolVersion = "1.0";
         let tabId = tab.id;
         chrome.debugger.attach({ tabId: tabId }, protocolVersion, function () {
