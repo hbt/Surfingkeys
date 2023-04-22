@@ -977,14 +977,20 @@ class CustomBackground {
         });
 
         chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+            CustomBackground.switchUserAgent(tab);
             CustomBackground.pageStylesheetLoadByDomain(changeInfo, tab);
             CustomBackground.tabSendMessageOnWhenDoneLoading(changeInfo, tab);
             CustomBackground.tabUpdateInternalState(tab);
             CustomBackground.tabsMuteByDomain(tab, changeInfo);
         });
 
+        chrome.tabs.onActivated.addListener(function (tab) {
+            CustomBackground.switchUserAgent(tab);
+        });
+
         chrome.tabs.onCreated.addListener(function (tab) {
             CustomBackground.tabsOnCreatedHandler(tab);
+            CustomBackground.switchUserAgent(tab);
         });
 
         chrome.tabs.onRemoved.addListener(function (tab) {
@@ -1126,6 +1132,49 @@ class CustomBackground {
         let url = ctab.url;
         Clipboard.copy(url);
         this.sendResponse(_message, _sendResponse, { url: url });
+    }
+
+    static async switchUserAgent(tab) {
+        if (!tab || !tab.url) {
+            return;
+        }
+        if (tab.url.indexOf("bing.com") === -1) {
+            return;
+        }
+        // Note(hbt) switch user agent for chatgpt
+        var protocolVersion = "1.0";
+        let tabId = tab.id;
+        chrome.debugger.attach({ tabId: tabId }, protocolVersion, function () {
+            if (chrome.runtime.lastError) {
+                console.log(chrome.runtime.lastError.message);
+                return;
+            }
+
+            chrome.debugger.sendCommand(
+                {
+                    tabId: tabId,
+                },
+                "Network.enable",
+                {},
+                function (response) {
+                    chrome.debugger.sendCommand(
+                        {
+                            tabId: tabId,
+                        },
+                        "Network.setUserAgentOverride",
+                        {
+                            userAgent:
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36 Edg/100.0.100.0",
+                        },
+                        function (response) {
+                            // chrome.debugger.detach({tabId: tabId}, function () {
+                            //     console.log('detached')
+                            // })
+                        }
+                    );
+                }
+            );
+        });
     }
 
     async openLinkNewWindow(_message, _sender, _sendResponse) {

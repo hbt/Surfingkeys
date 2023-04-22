@@ -43,6 +43,7 @@
     "author": "brook hong",
     "permissions": [
         "webRequest",
+        "debugger",
         "management",
         "webRequestBlocking",
         "pageCapture",
