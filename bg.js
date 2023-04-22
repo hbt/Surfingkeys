@@ -1141,7 +1141,9 @@ class CustomBackground {
         if (tab.url.indexOf("bing.com") === -1) {
             return;
         }
+
         // Note(hbt) switch user agent for chatgpt
+        // Note(hbt) related code from extension https://github.com/vytal-io/vytal-extension but extension is not working
         var protocolVersion = "1.0";
         let tabId = tab.id;
         chrome.debugger.attach({ tabId: tabId }, protocolVersion, function () {
