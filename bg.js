@@ -1010,6 +1010,8 @@ class CustomBackground {
         var protocolVersion = "1.0";
         const tab = await chrome.tabs.get(sender.tab.id);
         let tabId = tab.id;
+
+        let urls = [];
         chrome.debugger.attach({ tabId: tabId }, protocolVersion, function () {
             if (chrome.runtime.lastError) {
                 console.log(chrome.runtime.lastError.message);
@@ -1024,10 +1026,43 @@ class CustomBackground {
                 function (response) {
                     chrome.debugger.onEvent.addListener((source, method, params) => {
                         if (method === "Network.requestWillBeSent") {
-                            if (params.request.url.indexOf("profiles/23") !== -1 || params.request.url.indexOf("profiles/19") !== -1) {
-                                console.log("URL:", params.request.url);
-                                Clipboard.copy(params.request.url);
-                                chrome.debugger.detach({ tabId: tabId });
+                            if (params.request.url.indexOf("profiles/") !== -1) {
+                                urls.push(params.request.url);
+                            }
+
+                            if (urls.length >= 2) {
+                                console.log(urls);
+                                let profiles = [];
+                                for (let url of urls) {
+                                    const regex = /profiles\/(\d+)/;
+                                    const match = url.match(regex);
+
+                                    if (match) {
+                                        const number = match[1];
+                                        profiles.push(number);
+                                    }
+                                }
+
+                                profiles = _.unique(profiles);
+                                profiles.sort();
+
+                                let matchString = "profiles/";
+                                if (profiles[0] === "15") {
+                                    matchString += "19";
+                                } else if (profiles[0] === "19") {
+                                    matchString += "23";
+                                }
+
+                                console.log(matchString);
+
+                                for (let url of urls) {
+                                    if (url.indexOf(matchString) !== -1) {
+                                        console.log(url);
+                                        chrome.debugger.detach({ tabId: tabId });
+                                        Clipboard.copy(url);
+                                        break;
+                                    }
+                                }
                             }
                         }
                     });
