@@ -1006,6 +1006,36 @@ class CustomBackground {
         State.tabsRemoved.push(tabId);
     }
 
+    async printNetworkActivity(message, sender, sendResponse) {
+        var protocolVersion = "1.0";
+        const tab = await chrome.tabs.get(sender.tab.id);
+        let tabId = tab.id;
+        chrome.debugger.attach({ tabId: tabId }, protocolVersion, function () {
+            if (chrome.runtime.lastError) {
+                console.log(chrome.runtime.lastError.message);
+                return;
+            }
+            chrome.debugger.sendCommand(
+                {
+                    tabId: tabId,
+                },
+                "Network.enable",
+                {},
+                function (response) {
+                    chrome.debugger.onEvent.addListener((source, method, params) => {
+                        if (method === "Network.requestWillBeSent") {
+                            if (params.request.url.indexOf("profiles/23") !== -1 || params.request.url.indexOf("profiles/19") !== -1) {
+                                console.log("URL:", params.request.url);
+                                Clipboard.copy(params.request.url);
+                                chrome.debugger.detach({ tabId: tabId });
+                            }
+                        }
+                    });
+                }
+            );
+        });
+    }
+
     async tabUnmute(message, sender, sendResponse) {
         const ctab = await chrome.tabs.get(sender.tab.id);
         chrome.tabs.update(ctab.id, {

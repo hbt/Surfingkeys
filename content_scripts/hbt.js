@@ -727,6 +727,17 @@ var CustomCommands = (function () {
         Hints.create("", CustomCommands.hintHandleClickNewTabBackground);
     };
 
+    self.printNetworkActivity = async () => {
+        runtime.command(
+            {
+                action: "printNetworkActivity",
+            },
+            function (res) {
+                console.log(res);
+            }
+        );
+    };
+
     self.hintOpenDebuggerInspector = async () => {
         function runCheckvistCommand(cmd) {
             $.ajax({
