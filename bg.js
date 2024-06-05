@@ -2232,6 +2232,9 @@ class CustomBackground {
         await removeOtherBookmarkPlaybacks(url.toString(), _message.folder);
         currentTab.url = url.toString();
         await this._bookmarkAdd(currentTab, _message.folder);
+        
+        // copy URL to clipboard
+        Clipboard.copy(url.toString());
 
         this.sendResponse(_message, _sendResponse, {
             msg: "Saved timestamp at: " + _message.duration,
