@@ -7,8 +7,9 @@
 #
 
 cd $(git rev-parse --show-toplevel)
-/home/hassen/.npm/bin/prettier --config=.prettierrc.json --write content_scripts/hbt.js
-/home/hassen/.npm/bin/prettier  --config=.prettierrc.json --write bg.js
+
+/home/hassen/workspace/surfingkeys/node_modules/prettier/bin-prettier.js --config=.prettierrc.json --write content_scripts/hbt.js
+/home/hassen/workspace/surfingkeys/node_modules/prettier/bin-prettier.js --config=.prettierrc.json --write bg.js
 
 git add content_scripts/hbt.js
 git add bg.js

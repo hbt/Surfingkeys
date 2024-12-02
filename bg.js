@@ -2232,7 +2232,7 @@ class CustomBackground {
         await removeOtherBookmarkPlaybacks(url.toString(), _message.folder);
         currentTab.url = url.toString();
         await this._bookmarkAdd(currentTab, _message.folder);
-        
+
         // copy URL to clipboard
         Clipboard.copy(url.toString());
 
@@ -2749,6 +2749,15 @@ class CustomBackground {
         );
     }
 
+    async togglePushBullet(message, sender, sendResponse) {
+        chrome.management.get("chlffgpmiacpedhhbkiomidkjlcfhogd", function (extensionInfo) {
+            if (extensionInfo.enabled) {
+                chrome.management.setEnabled("chlffgpmiacpedhhbkiomidkjlcfhogd", false);
+            } else {
+                chrome.management.setEnabled("chlffgpmiacpedhhbkiomidkjlcfhogd", true);
+            }
+        });
+    }
     async bajax(message, sender, sendResponse) {
         {
             let res = this.sendResponse;

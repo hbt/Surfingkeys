@@ -1604,6 +1604,13 @@ var CustomCommands = (function () {
         return ret;
     };
 
+    self.togglePushBullet = async () => {
+        let ret = await aruntime({
+            action: "togglePushBullet",
+        });
+        return ret;
+    };
+
     return self;
 })();
 
