@@ -8,3 +8,4 @@ dist/
 .DS_Store
 .vscode/
 jsconfig.json
+.attach_pid*
