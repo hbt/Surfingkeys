@@ -252,7 +252,7 @@ const initKeyboard = ({ nvim, screen }: { nvim: Nvim; screen: Screen }): Keyboar
     return {
         attach,
         detach,
-    }
+    };
 };
 
 export default initKeyboard;

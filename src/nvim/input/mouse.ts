@@ -129,7 +129,7 @@ const initMouse = ({ screen, nvim }: { screen: Screen; nvim: Nvim }): Mouse => {
     return {
         attach ,
         detach,
-    }
+    };
 };
 
 export default initMouse;

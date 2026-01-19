@@ -833,7 +833,7 @@ const screen = ({
     const throttledResize = throttle(() => resize(), 1000 / TARGET_FPS);
 
     const uiAttach = () => {
-        let [c, r] = screenCoords(screenContainer.clientWidth, screenContainer.clientHeight);
+        const [c, r] = screenCoords(screenContainer.clientWidth, screenContainer.clientHeight);
         cols = c || cols;
         rows = r || rows;
         nvim.uiAttach(cols, rows, { ext_linegrid: true });
@@ -904,7 +904,7 @@ const screen = ({
     initCursor();
     setScale();
 
-    let newSettings: Partial<Settings> = {};
+    const newSettings: Partial<Settings> = {};
     const applySetting = <K extends keyof Settings>([option, props]: [K, Settings[K]]) => {
         if (props !== null) {
             newSettings[option] = props;

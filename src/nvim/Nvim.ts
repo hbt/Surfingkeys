@@ -8,7 +8,7 @@ const NvimEventEmitter = (EventEmitter as unknown) as { new (): NvimInterface };
 
 class Nvim extends NvimEventEmitter {
     private requestId = 0;
-    private connectedUrl: String;
+    private connectedUrl: string;
 
     private requestPromises: Record<
         string,
