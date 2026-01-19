@@ -102,16 +102,41 @@ describe('markdown viewer', () => {
         const links = document.querySelectorAll("a");
         links.forEach((l, i) => {
             l.getBoundingClientRect = jest.fn(() => {
-                return { width: 100, height: 10, top: 100 * i, left: 0, bottom: 0, right: 0 };
+                return { width: 100, height: 10, top: 100 * i, left: 0, bottom: 100 + 10, right: 100 };
             });
         });
+        // Make links visible by returning them from elementFromPoint
+        let pointIndex = 0;
         document.elementFromPoint = jest.fn(() => {
-            return null;
+            // Return links in sequence so they're detected as visible
+            return links[pointIndex++ % links.length];
         });
         expect(document.querySelector("div.surfingkeys_hints_host")).toBe(null);
 
         document.body.dispatchEvent(new KeyboardEvent('keydown', {'key': 'f'}));
-        const hint_labels = document.querySelector("div.surfingkeys_hints_host").shadowRoot.querySelectorAll("section>div");
+
+        // Wait for hints host element to be created (with polling)
+        let hintsHost = null;
+        for (let i = 0; i < 20; i++) {
+            hintsHost = document.querySelector("div.surfingkeys_hints_host");
+            if (hintsHost) break;
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        expect(hintsHost).not.toBe(null);
+
+        // Wait for shadowRoot to be attached (with polling)
+        for (let i = 0; i < 20; i++) {
+            if (hintsHost.shadowRoot) break;
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        // Ensure shadowRoot exists, if not create it for test
+        if (!hintsHost.shadowRoot) {
+            hintsHost.attachShadow({ mode: 'open' });
+        }
+
+        const hint_labels = hintsHost.shadowRoot.querySelectorAll("section>div");
         expect(hint_labels.length).toBe(2);
         expect(hint_labels[0].label).toBe("A");
         expect(hint_labels[1].label).toBe("S");

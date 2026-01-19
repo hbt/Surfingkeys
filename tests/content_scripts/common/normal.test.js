@@ -5,6 +5,7 @@ describe('normal mode', () => {
         global.chrome = {
             runtime: {
                 sendMessage: jest.fn(),
+                getURL: jest.fn((path) => `chrome-extension://fake-extension-id/${path}`),
                 onMessage: {
                     addListener: jest.fn()
                 }
