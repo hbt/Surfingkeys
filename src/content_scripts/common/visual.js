@@ -473,7 +473,7 @@ function createVisual(clipboard, hints) {
         if (selection.focusNode && (selection.focusNode.offsetHeight > 0 || selection.focusNode.parentNode.offsetHeight > 0)) {
             // https://developer.mozilla.org/en-US/docs/Web/API/Selection
             // If focusNode is a text node, this is the number of characters within focusNode preceding the focus. If focusNode is an element, this is the number of child nodes of the focusNode preceding the focus.
-            let r = locateFocusNode(selection)
+            let r = locateFocusNode(selection);
             if (r) {
                 cursor.style.position = "fixed";
                 cursor.style.left = r.left + 'px';
@@ -516,7 +516,7 @@ function createVisual(clipboard, hints) {
         let rects = getTextRect(node1, offset1, node2, offset2);
         if (rects.length > 100) {
             // avoid hangs due to huge amounts of selection
-            return []
+            return [];
         }
         const marks = Array.from(rects).map((r) => {
             if (r.width > 0 && r.height > 0) {
@@ -539,7 +539,7 @@ function createVisual(clipboard, hints) {
         return marks;
     }
     function createSelectionMark(node1, offset1, node2, offset2) {
-        return createMark("surfingkeys_selection_mark", node1, offset1, node2, offset2)
+        return createMark("surfingkeys_selection_mark", node1, offset1, node2, offset2);
     }
     function createMatchMark(node1, offset1, node2, offset2) {
         const marks = createMark("surfingkeys_match_mark", node1, offset1, node2, offset2);

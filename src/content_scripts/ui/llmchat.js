@@ -157,7 +157,7 @@ export default function (omnibar, front) {
                 provider = p;
                 omnibar.resultsDiv.querySelector('h4').textContent = p;
             } else {
-                const msg = `Please specify a provider, which can be [ ${providers.join(", ")} ].`
+                const msg = `Please specify a provider, which can be [ ${providers.join(", ")} ].`;
                 showSystemMessage(msg, 8000);
             }
         },
@@ -168,7 +168,7 @@ export default function (omnibar, front) {
         },
         "clear": clear,
     };
-    const commandsPatten = new RegExp(`^/(${Object.keys(commands).join("|")})(?:\\s+(.+)|\\s*)?$`, "")
+    const commandsPatten = new RegExp(`^/(${Object.keys(commands).join("|")})(?:\\s+(.+)|\\s*)?$`, "");
     const commandsPrompt = new CursorPrompt((c) => {
         return "<div>{0}</div>".format(c);
     }, (elm) => {
@@ -319,7 +319,7 @@ export default function (omnibar, front) {
             clearInterval(spinnerInterval);
             spinnerInterval = 0;
         }
-        response = response + chunk
+        response = response + chunk;
         setSanitizedContent(lastResponseItem.firstElementChild, marked.parse(response));
         lastResponseItem.firstElementChild.scrollIntoView({ behavior: 'instant', block: 'end', });
     }

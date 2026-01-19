@@ -34,9 +34,9 @@ function createInsert() {
                 if (node.nodeType === Node.TEXT_NODE) {
                     document.getSelection().setPosition(node, node.data.length);
                 } else {
-                    let codeMirrorNode = node.querySelector(".CodeMirror-line")
+                    let codeMirrorNode = node.querySelector(".CodeMirror-line");
                     if (codeMirrorNode) {
-                        setEndOfContenteditable(element)
+                        setEndOfContenteditable(element);
                     } else {
                         document.getSelection().setPosition(node, node.childNodes.length);
                     }

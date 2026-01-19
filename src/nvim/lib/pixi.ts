@@ -1,7 +1,7 @@
 // Customized minimal build for pixi.js
 // https://github.com/pixijs/pixi.js/blob/dev/bundles/pixi.js/src/index.ts
 
-import '@pixi/unsafe-eval'
+import '@pixi/unsafe-eval';
 import { Application } from '@pixi/app';
 import { BatchRenderer, Renderer, Texture } from '@pixi/core';
 import { TickerPlugin } from '@pixi/ticker';

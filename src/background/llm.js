@@ -238,7 +238,7 @@ function bedrock(req, opts) {
                                         content_block.text += e.delta.text;
                                         break;
                                     case "input_json_delta":
-                                        content_block.input_json += e.delta.partial_json
+                                        content_block.input_json += e.delta.partial_json;
                                         break;
                                 }
                                 break;
@@ -281,7 +281,7 @@ bedrock.init = function(opts) {
     };
     awsClient = new AwsClient(clientOpts);
     awsClient.bedrockModel = opts.model;
-}
+};
 
 function ollama(req, opts) {
     const decoder = new TextDecoder();
@@ -424,9 +424,9 @@ function gemini(req, opts) {
     let model = opts.model || "gemini-2.0-flash";
     function buildParts(m) {
         if (typeof(m.content) === "string") {
-            return {"role": m.role, "parts": [ {"text": m.content} ]}
+            return {"role": m.role, "parts": [ {"text": m.content} ]};
         } else {
-            return {"role": m.role, "parts": [ {"text": m.content[0].text} ]}
+            return {"role": m.role, "parts": [ {"text": m.content[0].text} ]};
         }
     }
     function transformMessages(reqMsgs) {
@@ -595,4 +595,4 @@ export default {
     gemini,
     ollama,
     custom,
-}
+};

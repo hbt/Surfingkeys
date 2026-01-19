@@ -54,7 +54,7 @@ function applyBasicMappings(api, normal, mappings) {
 }
 
 function ensureRegex(regexName) {
-    const r = runtime.conf[regexName]
+    const r = runtime.conf[regexName];
     if (r && r.source && !(r instanceof RegExp)) {
         runtime.conf[regexName] = new RegExp(r.source, r.flags);
     }

@@ -204,7 +204,7 @@ div.hint-scrollable {
         /* Set height and width */
         hintsHost.style.height = `${height}px`;
         hintsHost.style.width = `${width}px`;
-    }
+    };
 
     hintsHost.shadowRoot.appendChild(hintsStyle);
     const regionalHints = createRegionalHints(clipboard);
@@ -647,7 +647,7 @@ div.hint-scrollable {
             }
         }
         hints = hints.slice(offset, offset + total);
-        return hints
+        return hints;
     };
 
     self.coordinate = function() {

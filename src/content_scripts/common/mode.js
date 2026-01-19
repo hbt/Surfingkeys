@@ -337,7 +337,7 @@ Mode.handleMapKey = function(event, onNoMatched) {
 
 Mode.checkEventListener = (onMissing) => {
     const previousState = eventListenerBeats;
-    window.dispatchEvent(new CustomEvent("sentinel"))
+    window.dispatchEvent(new CustomEvent("sentinel"));
     if (previousState === eventListenerBeats) {
         init();
         onMissing();

@@ -263,7 +263,7 @@ function isElementClickable(e) {
  * Front.showBanner(window.location.href);
  */
 function showBanner(msg, timeout) {
-    dispatchSKEvent("front", ['showBanner', msg, timeout])
+    dispatchSKEvent("front", ['showBanner', msg, timeout]);
 }
 
 /**
@@ -276,11 +276,11 @@ function showBanner(msg, timeout) {
  * Front.showPopup(window.location.href);
  */
 function showPopup(msg) {
-    dispatchSKEvent("front", ['showPopup', msg])
+    dispatchSKEvent("front", ['showPopup', msg]);
 }
 
 function openOmnibar(args) {
-    dispatchSKEvent("front", ['openOmnibar', args])
+    dispatchSKEvent("front", ['openOmnibar', args]);
 }
 
 function initSKFunctionListener(name, interfaces, capture) {
@@ -684,7 +684,7 @@ function getTextRect() {
 }
 
 function locateFocusNode(selection) {
-    let se = selection.focusNode.parentElement
+    let se = selection.focusNode.parentElement;
     scrollIntoViewIfNeeded(se, true);
     var r = getTextRect(selection.focusNode, selection.focusOffset)[0];
     if (!r) {
@@ -866,7 +866,7 @@ function constructSearchURL(se, word) {
     if (se.indexOf("{0}") > 0) {
         return se.format(word);
     } else if (se.indexOf("%s") > 0) {
-        return se.replace("%s", word)
+        return se.replace("%s", word);
     } else {
         return se + word;
     }

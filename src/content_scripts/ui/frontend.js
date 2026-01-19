@@ -216,9 +216,9 @@ const Front = (function() {
                 }
                 if (input && document.activeElement !== input) {
                     input.focus();
-                    input.value = " "
+                    input.value = " ";
                     setTimeout(() => {
-                        input.value = ""
+                        input.value = "";
                     }, 10);
                 } else {
                     clearInterval(inputGuard);

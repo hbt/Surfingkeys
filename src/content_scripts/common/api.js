@@ -324,9 +324,9 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         if (!isInUIFrame() && front.addSearchAlias) {
             front.addSearchAlias(alias, prompt, search_url, suggestion_url, callback_to_parse_suggestion, options);
         }
-        const skipMaps = options?.skipMaps ?? false
+        const skipMaps = options?.skipMaps ?? false;
         if (skipMaps) {
-          return
+          return;
         }
         function ssw() {
             searchSelectedWith(search_url);

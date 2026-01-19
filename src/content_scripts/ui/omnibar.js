@@ -181,7 +181,7 @@ function createOmnibar(front, clipboard) {
             } else if (_page) {
                 text = _page.map(p => {
                     return p.url;
-                }).join("\n")
+                }).join("\n");
             }
             clipboard.write(text);
 
@@ -608,7 +608,7 @@ function createOmnibar(front, clipboard) {
       var regex = /^(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/;
 
       return input.match(regex);
-    }
+    };
 
     self.openFocused = function() {
         var ret = false, fi = self.resultsDiv.querySelector('li.focused');

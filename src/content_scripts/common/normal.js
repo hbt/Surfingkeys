@@ -486,7 +486,7 @@ function createNormal(insert) {
                 height: rc.height
             }
         }]);
-    }
+    };
     function changeScrollTarget(silent) {
         scrollNodes = Mode.getScrollableElements();
         if (scrollNodes.length > 0) {

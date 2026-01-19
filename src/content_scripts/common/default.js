@@ -229,7 +229,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         if (chrome.surfingkeys) {
             chrome.surfingkeys.translateCurrentPage();
         } else {
-            openGoogleTranslate()
+            openGoogleTranslate();
         }
     });
     vmapkey('t', '#9Translate selected text with google', openGoogleTranslate);
@@ -462,13 +462,13 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     mapkey('gp', '#4Go to the playing tab', function() {
         RUNTIME('getTabs', { queryInfo: {audible: true}}, response => {
             if (response.tabs?.at(0)) {
-                const tab = response.tabs[0]
+                const tab = response.tabs[0];
                 RUNTIME('focusTab', {
                     windowId: tab.windowId,
                     tabId: tab.id
                 });
             }
-        })
+        });
     }, { repeatIgnore: true });
     mapkey('S', '#4Go back in history', function() {
         history.go(-1);

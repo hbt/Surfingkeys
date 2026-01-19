@@ -17,7 +17,7 @@ function request(url, onReady, headers, data, onException) {
         return Promise.all([
             Promise.resolve(cs && cs.length > 1 ? cs[1] : "utf-8"),
             res.arrayBuffer()
-        ])
+        ]);
     }).then(res => {
         const decoder = new TextDecoder(res[0]);
         const content = decoder.decode(res[1]);
@@ -992,7 +992,7 @@ function start(browser) {
         chrome.tabs.query({currentWindow: true}, function(tabs) {
             tabs = tabs.filter(function(t) {
                 return t.id != sender.tab.id && !t.pinned;
-            }).map(function(t) { return t.id });
+            }).map(function(t) { return t.id; });
             chrome.tabs.remove(tabs);
         });
     };
@@ -1000,7 +1000,7 @@ function start(browser) {
     self.closeAudibleTab = function(message, sender, sendResponse) {
         chrome.tabs.query({audible: true}, function(tabs) {
             if (tabs) {
-                chrome.tabs.remove(tabs[0].id)
+                chrome.tabs.remove(tabs[0].id);
             }
         });
     };
@@ -1402,11 +1402,11 @@ function start(browser) {
         fetch(message.url, {
             method: "GET"
         }).then(res => {
-            return res.blob()
+            return res.blob();
         }).then(blob => {
-            return createImageBitmap(blob)
+            return createImageBitmap(blob);
         }).then(img => {
-            const canvas = new OffscreenCanvas(img.width, img.height)
+            const canvas = new OffscreenCanvas(img.width, img.height);
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0,0, canvas.width, canvas.height);
             canvas.convertToBlob().then(blob => {
@@ -1415,7 +1415,7 @@ function start(browser) {
                     _response(message, sendResponse, {
                         text: e.target.result
                     });
-                }
+                };
                 fr.readAsDataURL(blob);
             });
         }).catch(exp => {
@@ -1868,7 +1868,7 @@ function start(browser) {
     }
 
     self.writeClipboard = function (message, sender, sendResponse) {
-        navigator.clipboard.writeText(message.text)
+        navigator.clipboard.writeText(message.text);
     };
     self.readClipboard = function (message, sender, sendResponse) {
         // only for Safari

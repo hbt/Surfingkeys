@@ -128,4 +128,4 @@ export default (normal, command, omnibar) => {
         var dt = new Date(parseInt(args[0]));
         omnibar.listWords([dt.toString()]);
     });
-}
+};

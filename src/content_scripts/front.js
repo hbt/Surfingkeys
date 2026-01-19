@@ -224,10 +224,10 @@ function createFront(insert, normal, hints, visual, browser) {
         // https://brookhong.github.io/2021/04/18/brook-build-of-chromium.html
         if (elementBehindEditor.nodeName === "DIV") {
             if (elementBehindEditor.className === "CodeMirror-code") {
-                window.getSelection().selectAllChildren(elementBehindEditor)
-                let dataTransfer = new DataTransfer()
-                dataTransfer.items.add(data, 'text/plain')
-                elementBehindEditor.dispatchEvent(new ClipboardEvent('paste', {clipboardData: dataTransfer}))
+                window.getSelection().selectAllChildren(elementBehindEditor);
+                let dataTransfer = new DataTransfer();
+                dataTransfer.items.add(data, 'text/plain');
+                elementBehindEditor.dispatchEvent(new ClipboardEvent('paste', {clipboardData: dataTransfer}));
             } else {
                 data = data.replace(/\n+$/, '');
 
@@ -287,10 +287,10 @@ function createFront(insert, normal, hints, visual, browser) {
             elementBehindEditor = element;
             if (elementBehindEditor.nodeName === "DIV") {
                 if (elementBehindEditor.className === "CodeMirror-code") {
-                    let codeMirrorLines = elementBehindEditor.querySelectorAll(".CodeMirror-line")
-                    content = Array.from(codeMirrorLines).map(el => el.innerText).join("\n")
+                    let codeMirrorLines = elementBehindEditor.querySelectorAll(".CodeMirror-line");
+                    content = Array.from(codeMirrorLines).map(el => el.innerText).join("\n");
                     // Remove the red dot (char code 8226) that CodeMirror uses to visualize the zero-width space.
-                    content = content.replace(/\u200B/g, "")
+                    content = content.replace(/\u200B/g, "");
 
                 } else {
                     content = elementBehindEditor.innerText;

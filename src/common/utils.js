@@ -37,4 +37,4 @@ export {
     LOG,
     filterByTitleOrUrl,
     regexFromString,
-}
+};
