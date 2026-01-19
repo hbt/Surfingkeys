@@ -14,7 +14,10 @@
     "build:prod": "webpack --mode=production --config ./config/webpack.config.js",
     "build:testdata": "webpack --mode=production --config ./config/webpack.test.config.js",
     "build": "npm-run-all clean test build:doc build:prod",
-    "test": "jest"
+    "esbuild:dev": "node ./config/esbuild.config.js development",
+    "esbuild:prod": "node ./config/esbuild.config.js production",
+    "test": "jest",
+    "lint": "eslint src --ext .js,.ts"
   },
   "repository": {
     "type": "git",
@@ -39,6 +42,9 @@
     "babel-plugin-module-resolver": "^4.1.0",
     "copy-webpack-plugin": "^9.0.1",
     "documentation": "^14.0.3",
+    "esbuild": "^0.27.2",
+    "esbuild-plugin-copy": "^2.1.1",
+    "eslint": "^9.39.2",
     "file-loader": "^6.2.0",
     "filemanager-webpack-plugin": "^8.0.0",
     "jest": "^27.3.1",
