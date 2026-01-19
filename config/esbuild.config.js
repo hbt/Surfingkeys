@@ -100,6 +100,10 @@ async function build() {
         'pages/options': './src/content_scripts/options.js',
     };
 
+    if (browser !== 'safari') {
+        regularEntries['pages/markdown'] = './src/content_scripts/markdown.js';
+    }
+
     if (browser === 'chrome') {
         regularEntries['pages/neovim'] = './src/pages/neovim.js';
         moduleEntries['pages/neovim_lib'] = './src/nvim/renderer.ts';
