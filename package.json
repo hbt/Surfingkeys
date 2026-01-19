@@ -17,7 +17,7 @@
     "esbuild:dev": "node ./config/esbuild.config.js development",
     "esbuild:prod": "node ./config/esbuild.config.js production",
     "test": "jest",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .js,.ts"
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .js,.ts --ignore-pattern 'src/nvim/**'"
   },
   "repository": {
     "type": "git",

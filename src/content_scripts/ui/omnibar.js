@@ -815,7 +815,7 @@ function OpenBookmarks(omnibar) {
                 var subItems = response.bookmarks;
                 for ( var m of subItems){
                     if (m.url){
-                        RUNTIME("openLink",	{
+                        RUNTIME("openLink", {
                             tab: {
                                 tabbed: true,
                                 active: false
