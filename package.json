@@ -40,6 +40,8 @@
     "@types/jest-image-snapshot": "^4.3.1",
     "@types/lodash": "^4.14.172",
     "@types/offscreencanvas": "^2019.6.4",
+    "@typescript-eslint/eslint-plugin": "^8.53.1",
+    "@typescript-eslint/parser": "^8.53.1",
     "babel-plugin-module-resolver": "^4.1.0",
     "copy-webpack-plugin": "^9.0.1",
     "documentation": "^14.0.3",
