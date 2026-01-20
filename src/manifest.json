@@ -10,6 +10,9 @@
     },
     "commands": {
         "restartext": {
+            "suggested_key": {
+                "default": "Alt+Shift+R"
+            },
             "description": "Restart this extenstion."
         },
         "previousTab": {

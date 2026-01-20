@@ -398,9 +398,12 @@ function start(browser) {
         });
     }
     chrome.commands.onCommand.addListener(function(command) {
+        console.log('[COMMAND RECEIVED]', command);
         switch (command) {
             case 'restartext':
+                console.log('[RESTARTEXT] Reloading extension...');
                 chrome.tabs.query({}, function(tabs) {
+                    console.log('[RESTARTEXT] Reloading', tabs.length, 'tabs');
                     tabs.forEach(function(tab) {
                         chrome.tabs.reload(tab.id);
                     });

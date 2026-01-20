@@ -134,6 +134,49 @@ function getLatestHistoryItem(text, maxResults, cb) {
     impl(endTime, maxResults, cb);
 }
 
+// Register command listener at top level for Manifest v3 service worker
+chrome.commands.onCommand.addListener(function(command) {
+    console.log('[COMMAND RECEIVED]', command);
+    switch (command) {
+        case 'restartext':
+            console.log('[RESTARTEXT] Reloading extension in 2 seconds...');
+            chrome.tabs.query({}, function(tabs) {
+                console.log('[RESTARTEXT] Reloading', tabs.length, 'tabs');
+                tabs.forEach(function(tab) {
+                    chrome.tabs.reload(tab.id);
+                });
+
+                // Delay reload so logs are visible
+                console.log('[RESTARTEXT] Extension reload in 2s (check console!)');
+                setTimeout(() => {
+                    console.log('[RESTARTEXT] Reloading NOW');
+                    chrome.runtime.reload();
+                }, 2000);
+            });
+            break;
+        case 'previousTab':
+        case 'nextTab':
+            chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+                if (tabs.length > 0) {
+                    const tab = tabs[0];
+                    const index = (command === 'previousTab') ? tab.index - 1 : tab.index + 1;
+                    chrome.tabs.query({ windowId: tab.windowId }, function(tabs) {
+                        const newIndex = ((index % tabs.length) + tabs.length) % tabs.length;
+                        chrome.tabs.update(tabs[newIndex].id, { active: true });
+                    });
+                }
+            });
+            break;
+        case 'closeTab':
+            chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+                if (tabs.length > 0) {
+                    chrome.tabs.remove(tabs[0].id);
+                }
+            });
+            break;
+    }
+});
+
 function generatePassword() {
     const random = new Uint32Array(8);
     self.crypto.getRandomValues(random);
