@@ -197,7 +197,14 @@ function generateMarkdown(amapMappings, mapkeyMappings, customCommands, magicCom
     md += 'This document catalogs all custom commands and keybindings from the 2018-2025 fork.\n\n';
     md += '**Command Sources**:\n';
     md += '- `content_scripts/hbt.js` - Custom command implementations\n';
-    md += '- `surfingskeysrc-config-example.js` - Keybinding mappings\n\n';
+    md += '- `~/.surfingkeysrc` - Keybinding mappings (via symlink)\n\n';
+    md += '## Scope\n\n';
+    md += 'This inventory covers **generic key mappings only** (`amap()` and `mapkey()` calls).\n\n';
+    md += '**Excluded from analysis:**\n';
+    md += '- Site-specific key overrides (YouTube, etc.)\n';
+    md += '- Custom bookmark collections\n';
+    md += '- URL-specific configurations\n';
+    md += '- Private functions with hardcoded URLs\n\n';
 
     // Statistics
     const activeCommands = amapMappings.filter(m => !m.disabled);
@@ -326,10 +333,12 @@ function main() {
     console.log('Extracting custom command definitions from archive branch...\n');
 
     // Read source files (archive paths)
-    const configPath = path.join(__dirname, '..', 'surfingskeysrc-config-example.js');
+    // Use symlink to actual .surfingkeysrc (not the old example file)
+    const configPath = path.join(__dirname, '..', '.surfingkeysrc.js');
     const hbtPath = path.join(__dirname, '..', 'content_scripts', 'hbt.js');
 
     console.log(`Reading config: ${configPath}`);
+    console.log('Note: Extracting only amap()/mapkey() calls, excluding site-specific configs and bookmarks\n');
     const configJs = fs.readFileSync(configPath, 'utf8');
 
     console.log(`Reading hbt.js: ${hbtPath}`);

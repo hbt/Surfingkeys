@@ -12,13 +12,23 @@ This document catalogs all custom commands and keybindings from the 2018-2025 fo
 
 **Command Sources**:
 - `content_scripts/hbt.js` - Custom command implementations
-- `surfingskeysrc-config-example.js` - Keybinding mappings
+- `~/.surfingkeysrc` - Keybinding mappings (via symlink)
+
+## Scope
+
+This inventory covers **generic key mappings only** (`amap()` and `mapkey()` calls).
+
+**Excluded from analysis:**
+- Site-specific key overrides (YouTube, etc.)
+- Custom bookmark collections
+- URL-specific configurations
+- Private functions with hardcoded URLs
 
 ## Statistics
 
-- Total keybindings: 175
-  - Active: 130
-  - Disabled/Commented: 45
+- Total keybindings: 203
+  - Active: 149
+  - Disabled/Commented: 54
 - Custom implementations: 93
 - Magic pattern commands: 6
 
@@ -36,6 +46,7 @@ This document catalogs all custom commands and keybindings from the 2018-2025 fo
 - [Manipulation](#manipulation)
 - [Misc](#misc)
 - [No hints (misc)](#no-hints-(misc))
+- [Note(hbt) select text then type "sj" to trigger search in new tab or go to omnibox and press j<Tab>](#note(hbt)-select-text-then-type-"sj"-to-trigger-search-in-new-tab-or-go-to-omnibox-and-press-j<tab>)
 - [Omnibar](#omnibar)
 - [QuickMarks](#quickmarks)
 - [Scrolling](#scrolling)
@@ -61,12 +72,11 @@ This document catalogs all custom commands and keybindings from the 2018-2025 fo
 | `yma`      | copy multiple link urls to the clipboard |
 | `ymc`      | copy multiple columns of a table         |
 | `ymv`      | yank text of multiple elements           |
-| `ya`       | copy a link url to the clipboard         |
 | `yf`       | copy a link url to the clipboard         |
 | `yc`       | copy a column of a table                 |
-| `yv`       | yank text of an element                  |
 | `yd`       | yank text of an element                  |
 | `yi`       | yank text of an input                    |
+| `yv`       | yank text of an input                    |
 
 ## Closing
 
@@ -93,16 +103,13 @@ This document catalogs all custom commands and keybindings from the 2018-2025 fo
 
 ## Hints
 
-| Keybinding | Description                                                    |
-| ---------- | -------------------------------------------------------------- |
-| `f`        | open a link, press shift to flip hints if they are overlapped. |
-| `<Alt-c>`  | open multiple links in a new tab                               |
-| `c`        | open a link in non-active new tab                              |
-| `C`        | open a link in new tab                                         |
-| `<Alt-m>`  | mouse over elements.                                           |
-| `<Alt-,>`  | mouse out elements.                                            |
-| `[[`       | click on the previous link on current page                     |
-| `]]`       | click on the next link on current page                         |
+| Keybinding | Description                                                                 |
+| ---------- | --------------------------------------------------------------------------- |
+| `f`        | open a link, press shift to flip overlapped hints, hold space to hide hints |
+| `<Alt-c>`  | open multiple links in a new tab                                            |
+| `C`        | open a link in new tab                                                      |
+| `<Alt-m>`  | mouse over elements.                                                        |
+| `<Alt-,>`  | mouse out elements.                                                         |
 
 ## Insert
 
@@ -121,15 +128,10 @@ This document catalogs all custom commands and keybindings from the 2018-2025 fo
 | `tv`       | duplicate current tab     |
 | `q`        | go one tab left           |
 | `e`        | go one tab right          |
-| `r`        | reload the page           |
 | `tl`       | pin/unpin current tab     |
 | `tm`       | mute/unmute current tab   |
-| `tu`       | open recently closed url  |
+| `tU`       | open recently closed url  |
 | `tz`       | restore closed tab        |
-| `t``       | go to last used tab       |
-| ````       | go to last used tab       |
-| `ti`       | open incognito window     |
-| `tI`       | open incognito window     |
 
 ## Misc
 
@@ -139,29 +141,30 @@ This document catalogs all custom commands and keybindings from the 2018-2025 fo
 | `<F1>`     | show usage                                                 |
 | `..`       | repeat last action                                         |
 | `<Ctrl-z>` | enter passthrough mode to temporarily suppress surfingkeys |
-| `v`        | toggle visual mode                                         |
 
 ## No hints (misc)
 
 | Keybinding | Description                             |
 | ---------- | --------------------------------------- |
 | `y.`       | copy current settings                   |
-| `ysf`      | capture current full page               |
-| `yss`      | capture scrolling element               |
 | `ysc`      | capture current page                    |
 | `yJ`       | copy form data in json on current page  |
 | `yP`       | copy form data for post on current page |
 
-## Omnibar
+## Note(hbt) select text then type "sj" to trigger search in new tab or go to omnibox and press j<Tab>
 
 | Keybinding | Description                  |
 | ---------- | ---------------------------- |
-| `oo`       | open a url in current tab    |
-| `oh`       | open url from history        |
-| `ob`       | open a bookmark              |
-| `od`       | open search with alias d     |
-| `og`       | open search with alias g     |
 | `oM`       | open url from vim-like marks |
+
+## Omnibar
+
+| Keybinding | Description               |
+| ---------- | ------------------------- |
+| `oo`       | open a url in current tab |
+| `oH`       | open url from history     |
+| `ob`       | open a bookmark           |
+| `od`       | open search with alias d  |
 
 ## QuickMarks
 
@@ -180,25 +183,26 @@ This document catalogs all custom commands and keybindings from the 2018-2025 fo
 
 ## Scrolling
 
-| Keybinding | Description                          |
-| ---------- | ------------------------------------ |
-| `G`        | scroll to the bottom of the page     |
-| `gf`       | scroll to the bottom of the page     |
-| `gg`       | scroll to the top of the page        |
-| `j`        | scroll down                          |
-| `l`        | scroll right                         |
-| `k`        | scroll up                            |
-| `s`        | scroll down                          |
-| `w`        | scroll up                            |
-| `h`        | scroll left                          |
-| `a`        | scroll left                          |
-| `d`        | scroll right                         |
-| `%`        | scroll to percentage of current page |
-| `0`        | scroll all the way to the left       |
-| `ga`       | scroll all the way to the left       |
-| `$`        | scroll all the way to the right      |
-| `gd`       | scroll all the way to the right      |
-| `g]`       | switch frames                        |
+| Keybinding | Description                                |
+| ---------- | ------------------------------------------ |
+| `gf`       | scroll to the bottom of the page           |
+| `gg`       | scroll to the top of the page              |
+| `j`        | scroll down                                |
+| `l`        | scroll right                               |
+| `k`        | scroll up                                  |
+| `s`        | scroll down                                |
+| `w`        | scroll up                                  |
+| `h`        | scroll left                                |
+| `a`        | scroll left                                |
+| `d`        | scroll right                               |
+| `%`        | scroll to percentage of current page       |
+| `0`        | scroll all the way to the left             |
+| `ga`       | scroll all the way to the left             |
+| `$`        | scroll all the way to the right            |
+| `gd`       | scroll all the way to the right            |
+| `yss`      | change scroll target                       |
+| `ysf`      | display hints to focus scrollable elements |
+| `g]`       | switch frames                              |
 
 ## Search
 
@@ -218,9 +222,9 @@ This document catalogs all custom commands and keybindings from the 2018-2025 fo
 
 | Keybinding | Description                |
 | ---------- | -------------------------- |
-| `ot`       | choose a tab               |
-| ``1`       | go one tab history back    |
-| ``2`       | go one tab history forward |
+| `oT`       | choose a tab               |
+| `t[`       | go one tab history back    |
+| `t]`       | go one tab history forward |
 
 ## URLs
 
@@ -246,6 +250,7 @@ This document catalogs all custom commands and keybindings from the 2018-2025 fo
 | `zz`       | enter visual mode, and select whole element |
 | `V`        | restore visual mode                         |
 | `*`        | find selected text in current page          |
+| `v`        | toggle visual mode                          |
 
 ## Zoom
 
@@ -261,25 +266,55 @@ These commands are defined using `mapkey()` and call `CustomCommands` functions.
 
 | Keybinding | Description                                   | Function                         |
 | ---------- | --------------------------------------------- | -------------------------------- |
+| `yI`       | trigger right and open inspector              | `hintOpenDebuggerInspector`      |
 | `of`       | Open link incognito                           | `hintOpenLinkIncognito`          |
 | `nf`       | Open link incognito                           | `hintOpenLinkIncognito`          |
+| `nw`       | Open link in new window                       | `hintOpenLinkNewWindow`          |
+| `ysd`      | Focus Element                                 | `hintFocusElement`               |
 | `yy`       | Copy url                                      | `copyRootURL`                    |
+| `yt`       | Copy tab urls                                 | `copyTabURLsM`                   |
 | `yw`       | Copy all urls                                 | `copyAllTabsURLsInCurrentWindow` |
+| `c`        | open a link in non-active new tab             | `hintNewTab`                     |
 | `of`       | Open link incognito                           | `hintOpenLinkIncognito`          |
-| `th`       | toggle highlight                              | `tabToggleHighlight`             |
-| `tH`       | clear highlight                               | `tabHighlightClearAll`           |
+| `ts`       | suspend tab                                   | `tabFixSuspended`                |
+| `tS`       | unsuspend tab                                 | `tabUnsuspendM`                  |
+| `tc`       | close tabs                                    | `tabCloseM`                      |
+| `gtp`      | tab go to parent opener                       | `tabGotoParent`                  |
+| `tC`       | Tab show Count Index Position                 | `tabShowIndexPosition`           |
+| `tH`       | toggle highlight                              | `tabToggleHighlight`             |
+| `th`       | toggle highlight                              | `tabToggleHighlightM`            |
+| `t!h`      | clear highlight                               | `tabHighlightClearAll`           |
 | `tp`       | put                                           | `tabMoveHighlighted`             |
-| `tk`       | Toggle Switch Tab Opening Position            | `tabToggleSwitchTabNewPosition`  |
+| `t``       | mark tab                                      | `tabQuickMarkSave`               |
+| ```        | jump mark tab                                 | `tabQuickMarkJump`               |
+| `tb`       | print                                         | `tabPrintM`                      |
+| `tB`       | print page capture                            | `tabPageCaptureM`                |
+| `tk`       | Toggle Switch Tab Opening Position            | `testDisconnect`                 |
+| `tR`       | reverse tabs                                  | `tabReverseM`                    |
+| `t!u`      | unique tabs                                   | `tabUnique`                      |
 | `td`       | Detach                                        | `tabDetach`                      |
+| `td`       | Detach                                        | `tabDetachM`                     |
+| `tr`       | reload tab                                    | `tabReloadM`                     |
+| `tj`       | toggle pin magic                              | `tabTogglePinM`                  |
+| `tu`       | undo tabs                                     | `tabUndo`                        |
+| `ti`       | open incognito                                | `tabToggleIncognito`             |
+| `tx`       | open incognito                                | `tabToggleIncognito`             |
 | `<Ctrl-a>` | Increment URL                                 | `urlIncrementLastPath`           |
 | `<Ctrl-x>` | Decrement URL                                 | `urlDecrementLastPath`           |
 | `uE`       | edit current url with gvim editor, and reload | `urlEditExternalEditor`          |
-| `m`        | #10Add current URL to vim-like marks          | `addVIMark`                      |
+| `ol`       | open detected links from text in new tab      | `hintDetectNewTab`               |
+| `Ml`       | make urls                                     | `urlMake`                        |
+| `m`        | #10Add current URL to vim-like marks          | `addVIMark2`                     |
+| `usrc`     | Open source code in gvim                      | `openSourceCodeExternalEditor`   |
+| `gsrv`     | Open source code in gvim                      | `openSourceCodeExternalEditor`   |
 | `<Ctrl-i>` | open vim editor for current input             | `insertOpenExternalEditor`       |
 | `<Alt-i>`  | open vim editor for current input             | `insertOpenExternalEditor`       |
+| `v`        | Pass Single key                               | `passSingleKey`                  |
 | `xl`       | Download open last file                       | `downloadOpenLastFile`           |
 | `xs`       | Download show last file                       | `downloadShowLastFile`           |
-| `v`        | Pass Single key                               | `passSingleKey`                  |
+| `Bc`       | close tabs                                    | `bookmarkCutFromFolder`          |
+| `bv`       | save youtube playback                         | `bookmarkSaveYoutube`            |
+| `LL`       | lookup url                                    | `bookmarkLookupCurrentURL`       |
 
 ## Magic Pattern Commands
 
@@ -300,53 +335,62 @@ See [Custom Glossary](custom-glossary.md#magic-navigation-pattern) for details.
 
 Commands that are commented out in the configuration.
 
-| Keybinding | Description                               | Section            |
-| ---------- | ----------------------------------------- | ------------------ |
-| `cS`       | reset scroll target                       | Scrolling          |
-| `cs`       | change scroll target                      | Scrolling          |
-| `e`        | scroll a page up                          | Scrolling          |
-| `d`        | scroll a page down                        | Scrolling          |
-| `ymc`      | copy multiple columns of a table          | No hints (misc)    |
-| `yd`       | copy current downloading url              | No hints (misc)    |
-| `yq`       | copy pre text                             | No hints (misc)    |
-| `C`        | NormalOpen a link in non-active new tab   | Hints              |
-| `Fi`       | click on an image or a button             | Hints              |
-| `gT`       | go to first activated tab                 | Tab Selection      |
-| `gt`       | go to last activated tab                  | Tab Selection      |
-| `<Ctrl-i>` | open vim editor for current input         | Insert             |
-| `I`        | NormalGo to edit box with vim editor      | Insert             |
-| `ow`       | open search with alias w                  | Omnibar            |
-| `oy`       | open search with alias y                  | Omnibar            |
-| `on`       | open chrome newtab                        | Omnibar            |
-| `v`        | toggle visual mode                        | Visual             |
-| `ZZ`       | save session and quit                     | Session Management |
-| `ZR`       | restore last session                      | Session Management |
-| `cp`       | toggle proxy for current site             | Disabled           |
-| `;cp`      | copy proxy info                           | Disabled           |
-| `;ap`      | apply proxy info from clipboard           | Disabled           |
-| `spa`      | set proxy mode `always`                   | Disabled           |
-| `spb`      | set proxy mode `byhost`                   | Disabled           |
-| `spd`      | set proxy mode `direct`                   | Disabled           |
-| `sps`      | set proxy mode `system`                   | Disabled           |
-| `spc`      | set proxy mode `clear`                    | Disabled           |
-| `gr`       | read selected text or text from clipboard | Disabled           |
-| `;s`       | toggle pdf viewer from surfingkeys        | Tools              |
-| `;q`       | insert jquery library on current page     | Tools              |
-| `;t`       | translate selected text with google       | Tools              |
-| `;dh`      | delete history older than 30 days         | Tools              |
-| `;db`      | remove bookmark for current page          | Tools              |
-| `;pf`      | fill form with data from yf               | Tools              |
-| `;pp`      | paste html on current page                | Tools              |
-| `<Ctrl-i>` | open chrome inspect                       | Tools              |
-| `sm`       | preview markdown                          | Tools              |
-| `Q`        | open omnibar for word translation         | Tools              |
-| `;pj`      | restore settings data from clipboard      | Settings           |
-| `ge`       | edit settings                             | Settings           |
-| `;w`       | focus top window                          | Settings           |
-| `;m`       | mouse out last element                    | Settings           |
-| `sfr`      | show failed web requests of current page  | Settings           |
-| `sql`      | show last action                          | Settings           |
-| `ZQ`       | normal search selected zq                 | Settings           |
+| Keybinding | Description                                | Section                                                                                             |
+| ---------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `G`        | scroll to the bottom of the page           | Scrolling                                                                                           |
+| `cS`       | reset scroll target                        | Scrolling                                                                                           |
+| `cs`       | change scroll target                       | Scrolling                                                                                           |
+| `e`        | scroll a page up                           | Scrolling                                                                                           |
+| `d`        | scroll a page down                         | Scrolling                                                                                           |
+| `ysf`      | capture current full page                  | No hints (misc)                                                                                     |
+| `yss`      | capture scrolling element                  | No hints (misc)                                                                                     |
+| `ymc`      | copy multiple columns of a table           | No hints (misc)                                                                                     |
+| `yd`       | copy current downloading url               | No hints (misc)                                                                                     |
+| `yq`       | copy pre text                              | No hints (misc)                                                                                     |
+| `c`        | open a link in non-active new tab          | Hints                                                                                               |
+| `C`        | NormalOpen a link in non-active new tab    | Hints                                                                                               |
+| `Fi`       | click on an image or a button              | Hints                                                                                               |
+| `[[`       | click on the previous link on current page | Hints                                                                                               |
+| `]]`       | click on the next link on current page     | Hints                                                                                               |
+| `r`        | reload the page                            | Manipulation                                                                                        |
+| `ti`       | open incognito window                      | Manipulation                                                                                        |
+| `gT`       | go to first activated tab                  | Tab Selection                                                                                       |
+| `gt`       | go to last activated tab                   | Tab Selection                                                                                       |
+| `<Ctrl-i>` | open vim editor for current input          | Insert                                                                                              |
+| `I`        | NormalGo to edit box with vim editor       | Insert                                                                                              |
+| `og`       | open search with alias g                   | Note(hbt) select text then type "sj" to trigger search in new tab or go to omnibox and press j<Tab> |
+| `ow`       | open search with alias w                   | Search Engines                                                                                      |
+| `oy`       | open search with alias y                   | Search Engines                                                                                      |
+| `on`       | open chrome newtab                         | Search Engines                                                                                      |
+| `v`        | toggle visual mode                         | Visual                                                                                              |
+| `ZZ`       | save session and quit                      | Session Management                                                                                  |
+| `ZR`       | restore last session                       | Session Management                                                                                  |
+| `cp`       | toggle proxy for current site              | Disabled                                                                                            |
+| `;cp`      | copy proxy info                            | Disabled                                                                                            |
+| `;ap`      | apply proxy info from clipboard            | Disabled                                                                                            |
+| `spa`      | set proxy mode `always`                    | Disabled                                                                                            |
+| `spb`      | set proxy mode `byhost`                    | Disabled                                                                                            |
+| `spd`      | set proxy mode `direct`                    | Disabled                                                                                            |
+| `sps`      | set proxy mode `system`                    | Disabled                                                                                            |
+| `spc`      | set proxy mode `clear`                     | Disabled                                                                                            |
+| `gr`       | read selected text or text from clipboard  | Disabled                                                                                            |
+| `;s`       | toggle pdf viewer from surfingkeys         | Tools                                                                                               |
+| `;q`       | insert jquery library on current page      | Tools                                                                                               |
+| `;t`       | translate selected text with google        | Tools                                                                                               |
+| `;dh`      | delete history older than 30 days          | Tools                                                                                               |
+| `;db`      | remove bookmark for current page           | Tools                                                                                               |
+| `;pf`      | fill form with data from yf                | Tools                                                                                               |
+| `;pp`      | paste html on current page                 | Tools                                                                                               |
+| `<Ctrl-i>` | open chrome inspect                        | Tools                                                                                               |
+| `sm`       | preview markdown                           | Tools                                                                                               |
+| `Q`        | open omnibar for word translation          | Tools                                                                                               |
+| `;pj`      | restore settings data from clipboard       | Settings                                                                                            |
+| `ge`       | edit settings                              | Settings                                                                                            |
+| `;w`       | focus top window                           | Settings                                                                                            |
+| `;m`       | mouse out last element                     | Settings                                                                                            |
+| `sfr`      | show failed web requests of current page   | Settings                                                                                            |
+| `sql`      | show last action                           | Settings                                                                                            |
+| `ZQ`       | normal search selected zq                  | Settings                                                                                            |
 
 ---
 
