@@ -75,10 +75,11 @@ function modifyManifest(browser, mode, manifestPath, outputPath) {
 
 async function build() {
     const mode = process.argv[2] || 'development';
+    const isWatch = process.argv.includes('--watch');
     const browser = process.env.browser || 'chrome';
     const buildPath = path.resolve(__dirname, `../dist-esbuild/${mode}/${browser}`);
 
-    console.log(`Building for ${browser} in ${mode} mode...`);
+    console.log(`Building for ${browser} in ${mode} mode${isWatch ? ' (watch)' : ''}...`);
     console.log(`Output: ${buildPath}`);
 
     // Clean output directory
@@ -164,47 +165,68 @@ async function build() {
 
     const startTime = Date.now();
 
+    // Common build options for regular bundles
+    const regularOptions = {
+        entryPoints: regularEntries,
+        bundle: true,
+        outdir: buildPath,
+        platform: 'browser',
+        target: 'es2020',
+        format: 'iife',
+        minify: mode === 'production',
+        sourcemap: false,
+        loader: {
+            '.ts': 'ts',
+            '.js': 'js',
+        },
+        external: ['./neovim_lib.js', './pages/options.js', './ace.js'],
+        logLevel: 'info',
+    };
+
+    // Common build options for ES module bundles
+    const moduleOptions = {
+        entryPoints: moduleEntries,
+        bundle: true,
+        outdir: buildPath,
+        platform: 'browser',
+        target: 'es2020',
+        format: 'esm',
+        minify: mode === 'production',
+        sourcemap: false,
+        loader: {
+            '.ts': 'ts',
+            '.js': 'js',
+        },
+        logLevel: 'info',
+    };
+
     try {
-        // Build 1: Regular bundles
-        console.log('\n=== Building regular bundles ===');
-        await esbuild.build({
-            entryPoints: regularEntries,
-            bundle: true,
-            outdir: buildPath,
-            platform: 'browser',
-            target: 'es2020',
-            format: 'iife',
-            minify: mode === 'production',
-            sourcemap: false,
-            loader: {
-                '.ts': 'ts',
-                '.js': 'js',
-            },
-            external: ['./neovim_lib.js', './pages/options.js', './ace.js'],
-            logLevel: 'info',
-        });
+        if (isWatch) {
+            // Use context API for watch mode
+            console.log('\n=== Starting watch mode ===');
 
-        // Build 2: ES Module bundles
-        console.log('\n=== Building ES module bundles ===');
-        await esbuild.build({
-            entryPoints: moduleEntries,
-            bundle: true,
-            outdir: buildPath,
-            platform: 'browser',
-            target: 'es2020',
-            format: 'esm',
-            minify: mode === 'production',
-            sourcemap: false,
-            loader: {
-                '.ts': 'ts',
-                '.js': 'js',
-            },
-            logLevel: 'info',
-        });
+            const regularContext = await esbuild.context(regularOptions);
+            const moduleContext = await esbuild.context(moduleOptions);
 
-        const endTime = Date.now();
-        console.log(`\n✅ Build completed in ${endTime - startTime}ms`);
-        console.log(`📦 Output: ${buildPath}`);
+            await regularContext.watch();
+            await moduleContext.watch();
+
+            console.log('👀 Watching for changes...\n');
+
+            // Keep process alive
+            await new Promise(() => {});
+        } else {
+            // One-time build
+            console.log('\n=== Building regular bundles ===');
+            await esbuild.build(regularOptions);
+
+            console.log('\n=== Building ES module bundles ===');
+            await esbuild.build(moduleOptions);
+
+            const endTime = Date.now();
+            console.log(`\n✅ Build completed in ${endTime - startTime}ms`);
+            console.log(`📦 Output: ${buildPath}`);
+        }
 
     } catch (error) {
         console.error('❌ Build failed:', error);
