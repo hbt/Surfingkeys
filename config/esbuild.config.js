@@ -53,7 +53,8 @@ function modifyManifest(browser, mode, manifestPath, outputPath) {
                     "pages/pdf_viewer.html",
                     "pages/pdf_viewer.css",
                     "pages/pdf_viewer.mjs",
-                    "pages/shadow.css"
+                    "pages/shadow.css",
+                    "pages/fixtures/*"
                 ],
                 "matches": [
                     "<all_urls>"

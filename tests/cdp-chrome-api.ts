@@ -53,7 +53,7 @@ async function checkCDPAvailable(): Promise<boolean> {
     });
 }
 
-async function findExtensionBackground(): Promise<string> {
+async function findExtensionBackground(): Promise<{ wsUrl: string; extensionId: string }> {
     const data = await new Promise<string>((resolve, reject) => {
         const req = http.get('http://localhost:9222/json', (res) => {
             let body = '';
@@ -77,8 +77,18 @@ async function findExtensionBackground(): Promise<string> {
         process.exit(1);
     }
 
+    // Extract extension ID from URL (e.g., chrome-extension://aajlcoiaogpknhgninhopncaldipjdnp/background.js)
+    const extensionIdMatch = bg.url.match(/chrome-extension:\/\/([a-z]+)\//);
+    if (!extensionIdMatch) {
+        console.error('❌ Could not extract extension ID from URL:', bg.url);
+        process.exit(1);
+    }
+
+    const extensionId = extensionIdMatch[1];
     console.log(`✓ Connected to background: ${bg.title} (${bg.type})`);
-    return bg.webSocketDebuggerUrl;
+    console.log(`✓ Extension ID: ${extensionId}`);
+
+    return { wsUrl: bg.webSocketDebuggerUrl, extensionId };
 }
 
 function executeInBackground(ws: WebSocket, code: string): Promise<any> {
@@ -116,7 +126,7 @@ function executeInBackground(ws: WebSocket, code: string): Promise<any> {
     });
 }
 
-async function runTests(ws: WebSocket) {
+async function runTests(ws: WebSocket, extensionId: string) {
     console.log('\n=== Test 1: Query All Tabs ===\n');
 
     const allTabs = await executeInBackground(ws, `
@@ -191,10 +201,13 @@ async function runTests(ws: WebSocket) {
 
     console.log('\n=== Test 4: Create New Tab ===\n');
 
+    const fixtureUrl = `chrome-extension://${extensionId}/pages/fixtures/hackernews.html`;
+    console.log(`Creating tab with fixture: ${fixtureUrl}\n`);
+
     const newTab = await executeInBackground(ws, `
         new Promise((resolve) => {
             chrome.tabs.create({
-                url: 'https://example.com',
+                url: '${fixtureUrl}',
                 active: false
             }, (tab) => {
                 resolve({
@@ -283,7 +296,7 @@ async function main() {
     }
 
     // Find background page
-    const wsUrl = await findExtensionBackground();
+    const { wsUrl, extensionId } = await findExtensionBackground();
 
     // Connect
     const ws = new WebSocket(wsUrl);
@@ -300,7 +313,7 @@ async function main() {
             await new Promise(resolve => setTimeout(resolve, 100));
 
             // Run all tests
-            await runTests(ws);
+            await runTests(ws, extensionId);
 
             // Close connection and exit
             ws.close();

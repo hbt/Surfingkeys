@@ -77,7 +77,8 @@
         "pages/l10n.json",
         "pages/frontend.html",
         "pages/pdf_viewer.html",
-        "pages/shadow.css"
+        "pages/shadow.css",
+        "pages/fixtures/hackernews.html"
     ],
     "content_security_policy": "script-src 'self'; object-src 'self'"
 }
