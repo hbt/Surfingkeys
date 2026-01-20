@@ -25,9 +25,14 @@ let globalMessageId = 1;
 export async function checkCDPAvailable(): Promise<boolean> {
     return new Promise((resolve) => {
         const req = http.get(getCDPJsonUrl(), (res) => {
+            res.resume(); // Consume response data to free up socket
+            req.destroy(); // Explicitly destroy the request
             resolve(res.statusCode === 200);
         });
-        req.on('error', () => resolve(false));
+        req.on('error', () => {
+            req.destroy();
+            resolve(false);
+        });
         req.setTimeout(1000, () => {
             req.destroy();
             resolve(false);

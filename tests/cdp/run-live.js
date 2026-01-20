@@ -1,31 +1,34 @@
 #!/usr/bin/env node
 /**
- * Headless CDP Test Runner
+ * Live CDP Test Runner
  *
- * Launches Chrome in headless mode with isolated profile and dynamic port,
- * runs a CDP test, then cleans up.
+ * Runs CDP tests against an existing Chrome instance with remote debugging
+ * enabled on port 9222. Does not launch or manage Chrome.
  *
  * Features:
- * - Dynamic port allocation (finds available port starting from 9300)
- * - Unique temporary user data directory
- * - Automatic Chrome cleanup after test
- * - Port passed to test via CDP_PORT environment variable
+ * - Uses existing Chrome at port 9222
+ * - Checks for fixtures server and starts if needed
+ * - Same Jest streaming reporter as headless mode
+ * - No Chrome cleanup (user manages their own instance)
+ *
+ * Prerequisites:
+ *   Chrome must be running with debug mode:
+ *   google-chrome-beta --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug
  *
  * Usage:
- *   node tests/cdp/run-headless.js tests/cdp/cdp-keyboard.ts
- *   npm run test:cdp:headless tests/cdp/cdp-keyboard.ts
+ *   node tests/cdp/run-live.js tests/cdp/cdp-keyboard.test.ts
+ *   npm run test:cdp:live tests/cdp/cdp-keyboard.test.ts
  */
 
 const { spawn, execSync } = require('child_process');
 const net = require('net');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 
 // Log file setup
 const timestamp = new Date().toISOString().split('T')[0];
 const uniqueId = Math.random().toString(36).substring(2, 8);
-const LOG_FILE = `/tmp/cdp-headless-${timestamp}-${uniqueId}.log`;
+const LOG_FILE = `/tmp/cdp-live-${timestamp}-${uniqueId}.log`;
 let logStream = null;
 
 function log(message, stdoutAlso = false) {
@@ -35,43 +38,6 @@ function log(message, stdoutAlso = false) {
     if (stdoutAlso) {
         console.log(message);
     }
-}
-
-// Find an available port starting from the given port
-async function findAvailablePort(startPort = 9300, maxAttempts = 100) {
-    for (let port = startPort; port < startPort + maxAttempts; port++) {
-        if (await isPortAvailable(port)) {
-            return port;
-        }
-    }
-    throw new Error(`No available ports found in range ${startPort}-${startPort + maxAttempts}`);
-}
-
-function isPortAvailable(port) {
-    return new Promise((resolve) => {
-        const server = net.createServer();
-
-        server.once('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-                resolve(false);
-            } else {
-                resolve(false);
-            }
-        });
-
-        server.once('listening', () => {
-            server.close();
-            resolve(true);
-        });
-
-        server.listen(port, '127.0.0.1');
-    });
-}
-
-function generateUniqueId() {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 8);
-    return `${timestamp}-${random}`;
 }
 
 async function checkFixturesServer(port = 9873) {
@@ -111,12 +77,52 @@ async function startFixturesServer() {
     throw new Error('Fixtures server failed to start');
 }
 
+async function checkChromeDebugger(port = 9222) {
+    return new Promise((resolve) => {
+        const req = require('http').get(`http://localhost:${port}/json/version`, (res) => {
+            resolve(res.statusCode === 200);
+        });
+        req.on('error', () => resolve(false));
+        req.setTimeout(2000, () => {
+            req.destroy();
+            resolve(false);
+        });
+    });
+}
+
+async function checkSurfingkeysExtension(port = 9222) {
+    return new Promise((resolve) => {
+        const req = require('http').get(`http://localhost:${port}/json`, (res) => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+                try {
+                    const targets = JSON.parse(body);
+                    const hasExtension = targets.some(t =>
+                        t.title === 'Surfingkeys' ||
+                        t.url.includes('_generated_background_page.html') ||
+                        (t.type === 'service_worker' && t.url.includes('background.js'))
+                    );
+                    resolve(hasExtension);
+                } catch (err) {
+                    resolve(false);
+                }
+            });
+        });
+        req.on('error', () => resolve(false));
+        req.setTimeout(2000, () => {
+            req.destroy();
+            resolve(false);
+        });
+    });
+}
+
 async function main() {
     const testFile = process.argv[2];
 
     if (!testFile) {
-        console.error('❌ Usage: node run-headless.js <test-file>');
-        console.error('   Example: node run-headless.js tests/cdp/cdp-keyboard.ts');
+        console.error('❌ Usage: node run-live.js <test-file>');
+        console.error('   Example: node run-live.js tests/cdp/cdp-keyboard.test.ts');
         process.exit(1);
     }
 
@@ -128,13 +134,13 @@ async function main() {
 
     // Initialize log file
     logStream = fs.createWriteStream(LOG_FILE, { flags: 'w' });
-    log('=== CDP Headless Test Runner ===');
+    log('=== CDP Live Test Runner ===');
     log(`Started: ${new Date().toISOString()}`);
     log(`Test file: ${testFile}`);
     log(`Log file: ${LOG_FILE}\n`);
 
     // Brief stdout message
-    console.log(`Running headless: ${path.basename(testFile)}`);
+    console.log(`Running live: ${path.basename(testFile)}`);
     console.log(`Log: ${LOG_FILE}\n`);
 
     // Check if extension is built
@@ -146,6 +152,55 @@ async function main() {
         process.exit(1);
     }
 
+    // Check if Chrome debugger is available on port 9222
+    log('Checking for Chrome debugger on port 9222...');
+    const chromeAvailable = await checkChromeDebugger(9222);
+
+    if (!chromeAvailable) {
+        const errorMsg = `
+❌ Chrome debugger not available on port 9222
+
+Please start Chrome with remote debugging enabled:
+
+  google-chrome-beta --remote-debugging-port=9222
+
+Note: Use your default Chrome profile (not a temporary one) so the extension
+persists across restarts. You'll need to manually load the extension once.
+`;
+        console.error(errorMsg);
+        log(errorMsg);
+        logStream.end();
+        process.exit(1);
+    }
+
+    log('Chrome debugger is available on port 9222');
+
+    // Verify Surfingkeys extension is loaded
+    log('Checking if Surfingkeys extension is loaded...');
+    const extensionLoaded = await checkSurfingkeysExtension();
+
+    if (!extensionLoaded) {
+        const errorMsg = `
+❌ Surfingkeys extension not found in Chrome
+
+The Chrome debugger is available, but Surfingkeys extension is not loaded.
+
+One-time setup - load the extension manually:
+  1. Open chrome://extensions/ in your Chrome browser
+  2. Enable "Developer mode" (toggle in top right)
+  3. Click "Load unpacked"
+  4. Select directory: ${extDir}
+
+After loading once, the extension will persist in your profile for future test runs.
+`;
+        console.error(errorMsg);
+        log(errorMsg);
+        logStream.end();
+        process.exit(1);
+    }
+
+    log('Surfingkeys extension is loaded');
+
     // Check/start fixtures server
     let fixturesServerPid = null;
     const fixturesServerRunning = await checkFixturesServer();
@@ -155,54 +210,6 @@ async function main() {
     } else {
         fixturesServerPid = await startFixturesServer();
     }
-
-    // Find available port (randomize start to avoid race conditions in parallel runs)
-    log('Finding available port...');
-    // Add small random delay to stagger parallel port checks (0-200ms)
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 200));
-    const randomOffset = Math.floor(Math.random() * 50); // Random offset 0-49
-    const port = await findAvailablePort(9300 + randomOffset);
-    log(`Found available port: ${port}`);
-
-    // Create unique temporary user data directory
-    const uniqueId = generateUniqueId();
-    const userDataDir = path.join(os.tmpdir(), `chrome-headless-test-${uniqueId}`);
-    fs.mkdirSync(userDataDir, { recursive: true });
-
-    log(`Launching Chrome in headless mode...`);
-    log(`  Port: ${port}`);
-    log(`  User data: ${userDataDir}`);
-    log(`  Extension: ${extDir}`);
-
-    // Launch Chrome in headless mode
-    const chromeArgs = [
-        '--headless=new',
-        `--user-data-dir=${userDataDir}`,
-        `--remote-debugging-port=${port}`,
-        '--disable-gpu',
-        '--no-sandbox',
-        '--disable-dev-shm-usage',
-        `--disable-extensions-except=${extDir}`,
-        `--load-extension=${extDir}`,
-        '--simulate-outdated-no-au=Tue, 31 Dec 2099 23:59:59 GMT',
-        '--password-store=basic',
-        '--disable-infobars',
-        'about:blank'
-    ];
-
-    const chrome = spawn('google-chrome-beta', chromeArgs, {
-        stdio: 'ignore',
-        detached: true
-    });
-
-    chrome.unref();
-
-    log(`Chrome launched (PID: ${chrome.pid})`);
-
-    // Wait for Chrome to be ready
-    log('Waiting for Chrome DevTools Protocol to be ready...');
-    await waitForCDP(port);
-    log(`CDP ready at http://localhost:${port}`);
 
     // Detect if this is a Jest test file or standalone script
     const isJestTest = testPath.endsWith('.test.ts');
@@ -214,13 +221,13 @@ async function main() {
 
     log(`\nRunning test...`);
     log(`  Test: ${testFile}`);
-    log(`  CDP_PORT: ${port}`);
+    log(`  CDP_PORT: 9222`);
     log(`  Runner: ${command}\n`);
 
     const testProcess = spawn('npx', [command, ...args], {
         env: {
             ...process.env,
-            CDP_PORT: port.toString(),
+            CDP_PORT: '9222',
             FORCE_COLOR: '1'  // Ensure colored output
         },
         stdio: ['inherit', 'inherit', 'inherit']  // Explicitly inherit all streams
@@ -239,14 +246,6 @@ async function main() {
     // Cleanup
     log('\nCleaning up...');
 
-    // Kill Chrome
-    try {
-        process.kill(chrome.pid, 'SIGTERM');
-        log(`Killed Chrome (PID: ${chrome.pid})`);
-    } catch (err) {
-        log(`Chrome process may have already exited: ${err.message}`);
-    }
-
     // Kill fixtures server if we started it
     if (fixturesServerPid) {
         try {
@@ -255,14 +254,6 @@ async function main() {
         } catch (err) {
             log(`Fixtures server process may have already exited: ${err.message}`);
         }
-    }
-
-    // Remove temporary user data directory
-    try {
-        fs.rmSync(userDataDir, { recursive: true, force: true });
-        log(`Removed temp directory: ${userDataDir}`);
-    } catch (err) {
-        log(`Could not remove temp directory: ${err.message}`);
     }
 
     log('Cleanup complete\n');
@@ -281,25 +272,6 @@ async function main() {
 
     // Exit with same code as test
     process.exit(testExitCode || 0);
-}
-
-async function waitForCDP(port, maxWait = 10000, interval = 500) {
-    const startTime = Date.now();
-
-    while (Date.now() - startTime < maxWait) {
-        try {
-            const response = await fetch(`http://localhost:${port}/json/version`);
-            if (response.ok) {
-                return true;
-            }
-        } catch (err) {
-            // CDP not ready yet, continue waiting
-        }
-
-        await new Promise(resolve => setTimeout(resolve, interval));
-    }
-
-    throw new Error(`CDP not ready after ${maxWait}ms`);
 }
 
 main().catch(err => {

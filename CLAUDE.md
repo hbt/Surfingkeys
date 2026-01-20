@@ -7,6 +7,19 @@ build: `npm run esbuild:dev`
 reload extension: `xdotool key alt+shift+r`
 CDP monitor: `npm run test:cdp` (use run_in_background: true, logs to /tmp/surfingkeys-cdp.log) and then read+monitor the log file every few seconds
 
+## CDP Testing
+
+Live mode (uses browser at port 9222):
+- `npm run test:cdp:live tests/cdp/cdp-keyboard.test.ts`
+- Setup (one-time):
+  1. Manually load extension in Chrome: chrome://extensions/ → Load unpacked → `dist-esbuild/development/chrome`
+  2. Start Chrome with: `google-chrome-beta --remote-debugging-port=9222`
+- Extension persists in your default profile across restarts
+
+Headless mode (auto-launches isolated Chrome):
+- `npm run test:cdp:headless tests/cdp/cdp-keyboard.test.ts`
+- No setup needed, fully automated
+
 
 ## Documentation
 
