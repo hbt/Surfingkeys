@@ -6,61 +6,43 @@ This directory contains Chrome DevTools Protocol (CDP) debugging scripts for **l
 
 **Not for:** Automated testing (use `tests/cdp/` with Jest framework instead).
 
-## Prerequisites
+## Quick Start
 
-1. Chrome running with remote debugging:
-   ```bash
-   # Live mode (visible browser, port 9222)
-   google-chrome-stable --remote-debugging-port=9222
-
-   # OR Headless mode (no GUI, port 9223)
-   gchrb-dev-headless
-   ```
-
-2. Surfingkeys extension loaded in Chrome
-
-3. For some tests: Fixtures server running
-   ```bash
-   node tests/fixtures-server.js
-   ```
-
-## Configuration
-
-All debug scripts now use environment-based configuration via `.env` file:
-
+### Headless Mode (Automatic)
 ```bash
-# .env file (in project root)
-CDP_PORT=9222        # 9222 for live mode, 9223 for headless
-CDP_MODE=live        # 'live' or 'headless'
-CDP_HOST=localhost   # Usually localhost
+npm run debug:cdp:headless debug/cdp-debug-verify-working.ts
+```
+- Automatic Chrome launch
+- Automatic port allocation (9400-9499)
+- Parallel-safe
+- No manual setup!
+
+### Live Mode (Visible Browser)
+```bash
+# One-time setup: Launch Chrome with debugging
+google-chrome-stable --remote-debugging-port=9222
+
+# Run debug script
+npm run debug:cdp:live debug/cdp-debug-show-current-state.ts
 ```
 
-### Switching Between Modes
+## Parallel Execution
 
-**Option 1: Edit .env file**
+Run multiple debug scripts simultaneously:
 ```bash
-# For live mode (visible browser)
-CDP_PORT=9222
-CDP_MODE=live
-
-# For headless mode (no GUI)
-CDP_PORT=9223
-CDP_MODE=headless
+npm run debug:cdp:headless debug/script1.ts &
+npm run debug:cdp:headless debug/script2.ts &
+npm run debug:cdp:headless debug/script3.ts &
+wait
 ```
 
-**Option 2: Use run-test.sh helper**
-```bash
-# Run in live mode
-./debug/run-test.sh live debug/cdp-debug-verify-working.ts
+Each gets a unique port (9400-9499 range).
 
-# Run in headless mode
-./debug/run-test.sh headless debug/cdp-test-hints-headless.ts
-```
+## Logs
 
-**Option 3: Override environment variables**
-```bash
-CDP_PORT=9223 CDP_MODE=headless npx ts-node debug/cdp-debug-verify-working.ts
-```
+All runs log to `/tmp/`:
+- `/tmp/cdp-debug-headless-*.log` - Headless runs
+- `/tmp/cdp-debug-live-*.log` - Live runs
 
 ## Available Scripts
 
@@ -70,7 +52,7 @@ CDP_PORT=9223 CDP_MODE=headless npx ts-node debug/cdp-debug-verify-working.ts
 Shows the current state of your active Chrome tab.
 
 ```bash
-npx ts-node debug/cdp-debug-show-current-state.ts
+npm run debug:cdp:live debug/cdp-debug-show-current-state.ts
 ```
 
 **What it shows:**
@@ -89,7 +71,7 @@ npx ts-node debug/cdp-debug-show-current-state.ts
 Proves Surfingkeys is working by creating a test tab and functionally testing it.
 
 ```bash
-npx ts-node debug/cdp-debug-verify-working.ts
+npm run debug:cdp:headless debug/cdp-debug-verify-working.ts
 ```
 
 **What it does:**
@@ -108,7 +90,7 @@ npx ts-node debug/cdp-debug-verify-working.ts
 Demonstrates breakpoint-style debugging with the 'f' key (hint creation).
 
 ```bash
-npx ts-node debug/cdp-debug-breakpoint-hints.ts
+npm run debug:cdp:headless debug/cdp-debug-breakpoint-hints.ts
 ```
 
 **What it does:**
@@ -121,12 +103,6 @@ npx ts-node debug/cdp-debug-breakpoint-hints.ts
 
 **Use case**: Learn how to do step-by-step debugging with pauses and inspections
 
-**What you learn:**
-- How to pause execution at specific points
-- How to inspect state at each pause
-- How timing affects what you see
-- When Surfingkeys creates hints (answer: immediately!)
-
 ---
 
 ### 4. cdp-debug-live-modification-scrolling.ts
@@ -135,7 +111,7 @@ npx ts-node debug/cdp-debug-breakpoint-hints.ts
 Demonstrates live code modification for scrolling behavior (PAGE context).
 
 ```bash
-npx ts-node debug/cdp-debug-live-modification-scrolling.ts
+npm run debug:cdp:headless debug/cdp-debug-live-modification-scrolling.ts
 ```
 
 **What it does:**
@@ -159,7 +135,7 @@ npx ts-node debug/cdp-debug-live-modification-scrolling.ts
 Demonstrates live code modification for clipboard (PAGE CONTEXT).
 
 ```bash
-npx ts-node debug/cdp-debug-live-modification-clipboard.ts
+npm run debug:cdp:headless debug/cdp-debug-live-modification-clipboard.ts
 ```
 
 **What it does:**
@@ -168,12 +144,6 @@ npx ts-node debug/cdp-debug-live-modification-clipboard.ts
 - Wraps the copy operation to track what's being copied
 - Shows page console logs
 - ALL without reloading extension!
-
-**What you learn:**
-- How to modify PAGE context (where Chrome's execCommand runs)
-- How to wrap document APIs
-- How to use real Surfingkeys commands in tests
-- Page context affects one tab only
 
 **Technical note:**
 - Chrome uses `document.execCommand('copy')` in page, not `navigator.clipboard` in background
@@ -187,7 +157,7 @@ npx ts-node debug/cdp-debug-live-modification-clipboard.ts
 Comprehensive end-to-end test for Chrome Tabs API (BACKGROUND CONTEXT).
 
 ```bash
-npx ts-node debug/cdp-debug-live-modification-tabs.ts
+npm run debug:cdp:headless debug/cdp-debug-live-modification-tabs.ts
 ```
 
 **What it does:**
@@ -205,25 +175,6 @@ npx ts-node debug/cdp-debug-live-modification-tabs.ts
 - How to use multiple Surfingkeys commands in sequence
 - Background context affects ALL tabs (extension-wide)
 
-**State verification demonstrates:**
-- Tab count after each duplication
-- New tab IDs as they're created
-- Active tab after switch
-- Which tabs remain after close command
-
-**Promise handling:**
-- All `chrome.tabs.*` APIs return Promises
-- `awaitPromise: true` in Runtime.evaluate handles them automatically
-- Works for ALL Chrome extension APIs
-
-**This test proves:**
-- ✅ Background context access
-- ✅ Chrome API wrapping
-- ✅ Promise handling
-- ✅ State tracking at each step
-- ✅ Console logging from background
-- ✅ No reload needed
-
 ---
 
 ### 7. cdp-debug-full-demo.ts
@@ -232,7 +183,7 @@ npx ts-node debug/cdp-debug-live-modification-tabs.ts
 Comprehensive demonstration of all CDP debugging capabilities.
 
 ```bash
-npx ts-node debug/cdp-debug-full-demo.ts
+npm run debug:cdp:headless debug/cdp-debug-full-demo.ts
 ```
 
 **What it demonstrates:**
@@ -278,22 +229,16 @@ Content Script Scope (isolated)
   But we can intercept when it calls window.* functions
 ```
 
-## Live Modification: Two Contexts
+## Debug vs Test
 
-### Page Context
-**Examples: scrolling-debug, clipboard-debug**
-- Modifies: `window.scrollBy()`, `document.execCommand()`
-- Affects: Current tab only
-- Use for: DOM operations, page-specific behavior
-- Real command tested: `ya` (copy link with hints)
-
-### Background Context
-**Example: tabs-debug**
-- Modifies: `chrome.tabs.*` APIs
-- Affects: ALL tabs (extension-wide)
-- Use for: Chrome APIs, extension operations
-- Real commands tested: `yt` (duplicate tab), `gx$` (close tabs right)
-- Proves: Promise handling, state verification at each step
+| Feature | Debug Scripts | Automated Tests |
+|---------|--------------|-----------------|
+| Purpose | Exploration, live experimentation | Regression testing, CI/CD |
+| Run time | Manual, on-demand | Automatic, parallel |
+| Speed | Fast iteration, no rebuild | Fast execution, batched |
+| Output | Verbose, detailed state | Pass/fail, coverage reports |
+| Chrome | Visible or headless | Headless only |
+| Use when | Developing new features | Verifying existing features |
 
 ## Debug Workflow
 
@@ -301,32 +246,23 @@ Content Script Scope (isolated)
 
 **1. Problem:** "Does the clipboard copy work correctly?"
 
-**2. Setup:**
+**2. Run Debug Script:**
 ```bash
-# Start Chrome with debugging (if not already running)
-google-chrome-stable --remote-debugging-port=9222
-
-# Start fixtures server (if needed)
-node tests/fixtures-server.js
+npm run debug:cdp:headless debug/cdp-debug-live-modification-clipboard.ts
 ```
 
-**3. Run Debug Script:**
-```bash
-npx ts-node debug/cdp-debug-live-modification-clipboard.ts
-```
-
-**4. What You See:**
+**3. What You See:**
 - Script creates test tab
 - Injects logging into `document.execCommand('copy')`
 - Triggers `ya` command (copy link with hints)
 - Shows what was copied in real-time
 - **No extension reload needed!**
 
-**5. Iterate:**
+**4. Iterate:**
 ```bash
 # Modify the script to test different scenarios
 # Run again immediately - fast iteration
-npx ts-node debug/cdp-debug-live-modification-clipboard.ts
+npm run debug:cdp:headless debug/cdp-debug-live-modification-clipboard.ts
 ```
 
 ### When to Use Debug Scripts
@@ -344,25 +280,41 @@ npx ts-node debug/cdp-debug-live-modification-clipboard.ts
 - ✅ Testing multiple scenarios in parallel
 - ✅ Need pass/fail verification
 
-### Debug Script Template
+## Migration from Old Workflow
 
-Create new debug scripts by copying existing ones:
-
+### Old Workflow (DEPRECATED)
 ```bash
-# Copy a similar script
-cp debug/cdp-debug-verify-working.ts debug/cdp-debug-my-feature.ts
-
-# Modify to test your feature
-# Run immediately
-npx ts-node debug/cdp-debug-my-feature.ts
+# 1. Edit .env to set CDP_PORT=9223
+# 2. gchrb-dev-headless  (manual Chrome launch)
+# 3. npx ts-node debug/script.ts
 ```
 
-**Common patterns:**
-1. Create test tab → Setup state
-2. Inject logging → Observe behavior
-3. Modify functions → Test changes
-4. Verify state → Check results
-5. Repeat without rebuild
+### New Workflow (RECOMMENDED)
+```bash
+# One command!
+npm run debug:cdp:headless debug/script.ts
+```
+
+### Why Migrate?
+- ✅ Zero setup - one command does everything
+- ✅ Parallel execution - run multiple scripts
+- ✅ No port conflicts - automatic allocation
+- ✅ Automatic cleanup - no zombie Chrome processes
+
+## Advanced: Manual Override
+
+For edge cases, you can still override ports:
+```bash
+CDP_PORT=9500 npm run debug:cdp:headless debug/script.ts
+```
+
+## Deprecated Methods
+
+These still work but are no longer recommended:
+
+- **run-test.sh**: Use npm scripts instead
+- **.env PORT configuration**: Automatic port allocation is better
+- **Manual Chrome launch for headless**: Runners handle this now
 
 ## Key Learnings
 

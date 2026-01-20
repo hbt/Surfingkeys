@@ -1,6 +1,22 @@
 /**
  * CDP Configuration Module
  *
+ * DEPRECATED: This configuration file is mostly obsolete.
+ *
+ * The debug runners (run-headless.js, run-live.js) automatically
+ * handle port allocation and configuration.
+ *
+ * This file is kept for backwards compatibility and edge cases where
+ * manual port override is needed:
+ *   CDP_PORT=9500 npm run debug:cdp:headless debug/script.ts
+ *
+ * For normal usage, just use:
+ *   npm run debug:cdp:headless debug/script.ts  (automatic port)
+ *   npm run debug:cdp:live debug/script.ts      (fixed port 9222)
+ *
+ * ---
+ *
+ * OLD DOCUMENTATION (for reference):
  * Centralized configuration for Chrome DevTools Protocol testing.
  * Supports switching between live (visible browser) and headless modes
  * via environment variables.

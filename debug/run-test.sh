@@ -1,4 +1,19 @@
 #!/bin/bash
+# DEPRECATED: Use npm scripts instead
+#
+# Instead of:
+#   ./debug/run-test.sh live debug/script.ts
+#   ./debug/run-test.sh headless debug/script.ts
+#
+# Use:
+#   npm run debug:cdp:live debug/script.ts
+#   npm run debug:cdp:headless debug/script.ts
+#
+# This script is kept for backwards compatibility only.
+#
+# ---
+#
+# OLD USAGE:
 # CDP Test Runner - Switch between live and headless modes
 # Usage: ./run-test.sh [live|headless] <test-file>
 
