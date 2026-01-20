@@ -9,6 +9,10 @@ import {
     getSubSettings,
     start
 } from './start.js';
+import { installErrorHandlers } from '../common/errorCollector.js';
+
+// Install global error handlers for background script
+installErrorHandlers('background');
 
 function loadRawSettings(keys, cb, defaultSet) {
     var rawSet = defaultSet || {};

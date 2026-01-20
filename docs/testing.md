@@ -177,6 +177,67 @@ Logs: tail -f /tmp/surfingkeys-cdp.log
 
 See [cdp-experiment-scope.md](cdp-experiment-scope.md) for full scope.
 
+### testing.cdp.error_handlers
+
+**Error Handler Testing** - CDP scripts to test global error logging and tracking.
+
+**Purpose:** Verify error handlers catch and persist all unhandled errors.
+
+**Status:** ✅ Implemented (ADR-005)
+
+**Scripts:**
+
+1. **debug/cdp-test-error-handlers.ts** - Full test suite
+   - Tests both background and content script handlers
+   - Injects handlers, triggers test errors, verifies storage
+   - Limitation: Background access tricky with MV3 service workers
+
+2. **debug/cdp-test-error-handlers-simple.ts** - Content script only
+   - Simplified test for content script context
+   - Learned: chrome API not available in page context (isolated world)
+
+3. **debug/cdp-verify-error-collection.ts** - Production verification
+   - Checks if error handlers are installed in running extension
+   - Provides manual testing instructions
+
+**Run error handler verification:**
+```bash
+CDP_PORT=9222 CDP_MODE=live npx ts-node debug/cdp-verify-error-collection.ts
+```
+
+**Manual verification in Chrome DevTools:**
+```javascript
+// Check handlers are installed:
+window._surfingkeysErrorHandlersInstalled
+
+// View stored errors:
+chrome.storage.local.get(['surfingkeys_errors'], console.log)
+
+// Trigger test error:
+throw new Error('TEST ERROR')
+
+// Trigger test rejection:
+Promise.reject(new Error('TEST REJECTION'))
+```
+
+**What gets captured:**
+- `window.onerror` - Unhandled JS errors
+- `window.onunhandledrejection` - Promise rejections
+- `chrome.runtime.lastError` - Chrome API errors
+- Context: background vs content_script
+- Stack traces, timestamps, URLs
+
+**Storage:**
+- Location: `chrome.storage.local` key `surfingkeys_errors`
+- Persists across extension reloads/restarts
+- Max 100 errors (FIFO rotation)
+- Each error ~0.5-2KB
+
+**See also:**
+- [ADR-005: Global Error Logging](adrs/adr-005-global-error-logging.md)
+- [Error Logging Analysis](investigation/ERROR_LOGGING_ANALYSIS.md)
+- Implementation: `src/common/errorCollector.js`
+
 ---
 
 ## testing.jest
