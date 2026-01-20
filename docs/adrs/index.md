@@ -21,12 +21,13 @@ Each ADR follows this structure:
 | ADR | Title | Status | Date | Key Driver |
 |-----|-------|--------|------|-----------|
 | [ADR-001](adr-001-esbuild-build-alternative.md) | esbuild as alternative bundler | Accepted | 2026-01-20 | 23x faster builds, improved dev experience |
+| [ADR-002](adr-002-repository-restructuring-upstream-sync.md) | Repository restructuring and upstream synchronization | Accepted | 2026-01-20 | Enable Manifest v3 adoption, preserve 8-year fork history |
 
 ## adrs.status_summary
 
 | Status | Count | ADRs |
 |--------|-------|------|
-| Accepted | 1 | ADR-001 |
+| Accepted | 2 | ADR-001, ADR-002 |
 | Proposed | 0 | - |
 | Deprecated | 0 | - |
 | Superseded | 0 | - |
@@ -35,7 +36,7 @@ Each ADR follows this structure:
 
 | Migration Status | Count | ADRs |
 |------------------|-------|------|
-| **YAML frontmatter complete** | 1 | ADR-001 |
+| **YAML frontmatter complete** | 2 | ADR-001, ADR-002 |
 
 **Status**: All ADRs using YAML frontmatter format.
 
@@ -43,7 +44,7 @@ Each ADR follows this structure:
 
 ### adrs.relationships.evolution_chains
 
-No evolution chains yet - ADR-001 is foundational.
+No evolution chains yet - all ADRs are independent foundational decisions.
 
 ### adrs.relationships.dependency_graph
 
@@ -51,6 +52,8 @@ No evolution chains yet - ADR-001 is foundational.
 Foundation Layer:
 ┌────────────────────────────────────────────────┐
 │ ADR-001: esbuild Build Alternative             │
+├────────────────────────────────────────────────┤
+│ ADR-002: Repository Restructuring & Upstream   │
 └────────────────────────────────────────────────┘
 ```
 
@@ -59,6 +62,7 @@ Foundation Layer:
 | Concern | ADRs | Dependencies |
 |---------|------|--------------|
 | **Build System** | ADR-001 | Foundation - no dependencies |
+| **Repository Management** | ADR-002 | Foundation - no dependencies |
 
 ## adrs.usage
 
