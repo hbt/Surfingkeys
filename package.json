@@ -26,6 +26,7 @@
     "test:cdp:reload-keyboard": "npx ts-node tests/cdp/cdp-reload-extension-keyboard.ts",
     "test:cdp:reload-messaging": "npx ts-node tests/cdp/cdp-reload-extension-messaging.ts",
     "test:cdp:all": "npx ts-node tests/cdp/cdp-runner.ts",
+    "test:cdp:headless": "node tests/cdp/run-headless.js",
     "test:cdp:debug:live": "cp .env.live .env && npx ts-node",
     "test:cdp:debug:headless": "cp .env.headless .env && npx ts-node",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .js,.ts --ignore-pattern 'src/nvim/**'"

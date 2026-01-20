@@ -8,16 +8,19 @@
  * - Verify hints are visible and positioned
  * - Press Escape → verify hints removed
  *
- * Usage: npx ts-node tests/cdp-dom.ts
+ * Usage:
+ *   Live browser:    npx ts-node tests/cdp/cdp-dom.ts
+ *   Headless mode:   CDP_PORT=9300 npx ts-node tests/cdp/cdp-dom.ts
  *
  * Prerequisites:
- * - Chrome running with --remote-debugging-port=9222
+ * - Chrome running with --remote-debugging-port (default: 9222)
  * - Surfingkeys extension loaded
  * - Fixtures server running on port 9873
  */
 
 import * as WebSocket from 'ws';
 import * as http from 'http';
+import { CDP_PORT, getCDPJsonUrl } from './cdp-config';
 
 interface CDPTarget {
     id: string;
@@ -31,7 +34,7 @@ let messageId = 1;
 
 async function checkCDPAvailable(): Promise<boolean> {
     return new Promise((resolve) => {
-        const req = http.get('http://localhost:9222/json', (res) => {
+        const req = http.get(getCDPJsonUrl(), (res) => {
             resolve(res.statusCode === 200);
         });
         req.on('error', () => resolve(false));
@@ -44,7 +47,7 @@ async function checkCDPAvailable(): Promise<boolean> {
 
 async function findExtensionBackground(): Promise<{ wsUrl: string; extensionId: string }> {
     const data = await new Promise<string>((resolve, reject) => {
-        const req = http.get('http://localhost:9222/json', (res) => {
+        const req = http.get(getCDPJsonUrl(), (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);
             res.on('end', () => resolve(body));
@@ -151,7 +154,7 @@ async function findContentPage(): Promise<string> {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const data = await new Promise<string>((resolve, reject) => {
-        const req = http.get('http://localhost:9222/json', (res) => {
+        const req = http.get(getCDPJsonUrl(), (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);
             res.on('end', () => resolve(body));
@@ -251,7 +254,7 @@ async function main() {
 
     const cdpAvailable = await checkCDPAvailable();
     if (!cdpAvailable) {
-        console.error('❌ Chrome DevTools Protocol not available on port 9222');
+        console.error(`❌ Chrome DevTools Protocol not available on port ${CDP_PORT}`);
         process.exit(1);
     }
 
