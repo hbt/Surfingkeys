@@ -20,6 +20,19 @@ interface CDPTarget {
     webSocketDebuggerUrl: string;
 }
 
+async function checkCDPAvailable(): Promise<boolean> {
+    return new Promise((resolve) => {
+        const req = http.get('http://localhost:9222/json', (res) => {
+            resolve(res.statusCode === 200);
+        });
+        req.on('error', () => resolve(false));
+        req.setTimeout(1000, () => {
+            req.destroy();
+            resolve(false);
+        });
+    });
+}
+
 async function findExtensionBackground(): Promise<string> {
     // Fetch targets from CDP
     const data = await new Promise<string>((resolve, reject) => {
@@ -52,6 +65,17 @@ async function findExtensionBackground(): Promise<string> {
 
 async function main() {
     console.log('CDP Basic Test - Console Log Capture\n');
+
+    // Check if CDP is available
+    const cdpAvailable = await checkCDPAvailable();
+    if (!cdpAvailable) {
+        console.error('❌ Chrome DevTools Protocol not available on port 9222\n');
+        console.log('Please launch Chrome with remote debugging enabled:\n');
+        console.log('  /home/hassen/config/scripts/private/bin/gchrb-dev\n');
+        console.log('Or manually:');
+        console.log('  google-chrome-stable --remote-debugging-port=9222\n');
+        process.exit(1);
+    }
 
     // Find background page
     const wsUrl = await findExtensionBackground();

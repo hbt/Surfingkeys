@@ -34,15 +34,17 @@ console.log('[TRACE] Feature X executed');
 
 ### testing.cdp.preflights
 
+**Automatic preflight check:** The test automatically checks if Chrome is running with debugging enabled and provides helpful error messages if not.
+
 **Requirements before running test:**
 
 1. **Chrome running with remote debugging**
    ```bash
-   # Launch Chrome with debugging port
-   google-chrome-stable --remote-debugging-port=9222 &
+   # Recommended: Use custom launcher
+   /home/hassen/config/scripts/private/bin/gchrb-dev
 
-   # Or use custom launcher (if you have one)
-   gchrb-dev  # Your dev Chrome launcher
+   # Or manually
+   google-chrome-stable --remote-debugging-port=9222 &
    ```
 
 2. **Surfingkeys extension loaded**
@@ -56,6 +58,11 @@ console.log('[TRACE] Feature X executed');
    # Ensures ws, @types/ws, ts-node are available
    ```
 
+**The test will automatically:**
+- Check if port 9222 is accessible
+- Show helpful error message if Chrome not running with debugging
+- Connect to extension background page if available
+
 ### testing.cdp.usage
 
 **Run the test:**
@@ -63,7 +70,19 @@ console.log('[TRACE] Feature X executed');
 npm run test:cdp
 ```
 
-**Expected output:**
+**If Chrome not running with debugging:**
+```
+❌ Chrome DevTools Protocol not available on port 9222
+
+Please launch Chrome with remote debugging enabled:
+
+  /home/hassen/config/scripts/private/bin/gchrb-dev
+
+Or manually:
+  google-chrome-stable --remote-debugging-port=9222
+```
+
+**Expected output (when Chrome running):**
 ```
 CDP Basic Test - Console Log Capture
 
