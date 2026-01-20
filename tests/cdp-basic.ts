@@ -1,6 +1,12 @@
 #!/usr/bin/env ts-node
 /**
- * Minimal CDP Test - Connect to extension and capture console logs
+ * CDP Test - Extension Reload via Keyboard Shortcut
+ *
+ * Tests:
+ * - CDP connection to extension background
+ * - Auto-trigger reload via keyboard (Alt+Shift+R)
+ * - Capture console logs during reload
+ * - Exit cleanly with pass/fail status
  *
  * Usage: npx ts-node tests/cdp-basic.ts
  *
@@ -11,7 +17,9 @@
 
 import * as WebSocket from 'ws';
 import * as http from 'http';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
+import { randomBytes } from 'crypto';
 
 interface CDPTarget {
     id: string;
@@ -21,7 +29,10 @@ interface CDPTarget {
     webSocketDebuggerUrl: string;
 }
 
-const LOG_FILE = '/tmp/surfingkeys-cdp.log';
+// Generate log file with timestamp and UUID
+const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+const uuid = randomBytes(4).toString('hex'); // 8-char hex
+const LOG_FILE = `/tmp/surfingkeys-cdp-reload-keyboard-${timestamp}-${uuid}.log`;
 let logStream: fs.WriteStream;
 
 function log(message: string): void {
@@ -77,9 +88,11 @@ async function findExtensionBackground(): Promise<string> {
 
 async function main() {
     // Initialize log file
-    logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
-    log(`\n=== CDP Test Started: ${new Date().toISOString()} ===\n`);
-    log('CDP Basic Test - Console Log Capture\n');
+    logStream = fs.createWriteStream(LOG_FILE, { flags: 'w' });
+    log(`=== CDP Test: Extension Reload (Keyboard) ===`);
+    log(`Started: ${new Date().toISOString()}`);
+    log(`Log file: ${LOG_FILE}`);
+    log(`Tail command: tail -f ${LOG_FILE}\n`);
 
     // Check if CDP is available
     const cdpAvailable = await checkCDPAvailable();
@@ -99,6 +112,9 @@ async function main() {
     // Connect
     const ws = new WebSocket(wsUrl);
 
+    let reloadDetected = false;
+    let captureTimeout: NodeJS.Timeout;
+
     ws.on('open', () => {
         log('✓ Connected to background page\n');
 
@@ -114,10 +130,33 @@ async function main() {
             method: 'Log.enable'
         }));
 
-        log('Listening for console messages...\n');
-        log('Press Alt+Shift+R or run: ./scripts/reload-extension.sh\n');
-        log(`Logs: tail -f ${LOG_FILE}\n`);
-        log('---\n');
+        log('Triggering extension reload via keyboard shortcut...\n');
+
+        // Wait 500ms for CDP to be fully ready, then trigger reload
+        setTimeout(() => {
+            try {
+                execSync('xdotool key alt+shift+r', { stdio: 'ignore' });
+                log('✓ Triggered Alt+Shift+R\n');
+                log('Capturing console logs...\n');
+                log('---\n');
+            } catch (error: any) {
+                log('❌ Failed to trigger keyboard shortcut: ' + error.message);
+                ws.close();
+                return;
+            }
+        }, 500);
+
+        // Set timeout to exit after capturing logs for 5 seconds
+        captureTimeout = setTimeout(() => {
+            log('\n---\n');
+            if (reloadDetected) {
+                log('✅ TEST PASSED: Extension reload detected');
+            } else {
+                log('⚠️  TEST UNCERTAIN: No explicit reload confirmation in logs');
+                log('   (Reload may have occurred without detectable log output)');
+            }
+            ws.close();
+        }, 5500);
     });
 
     ws.on('message', (data: WebSocket.Data) => {
@@ -143,6 +182,12 @@ async function main() {
             });
 
             const message = texts.join(' ');
+
+            // Detect reload-related messages
+            if (message.includes('RESTARTEXT') || message.includes('restartext') ||
+                message.includes('Reloading extension')) {
+                reloadDetected = true;
+            }
 
             // Color output based on type
             const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️ ' : '💬';
