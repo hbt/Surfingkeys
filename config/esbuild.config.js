@@ -96,6 +96,7 @@ async function build() {
         'pages/frontend': `./src/content_scripts/ui/frontend.js`,
         'pages/start': './src/content_scripts/start.js',
         'pages/ace': './src/content_scripts/ace.js',
+        'pages/error-viewer': './src/pages/error-viewer.js',
     };
 
     const moduleEntries = {

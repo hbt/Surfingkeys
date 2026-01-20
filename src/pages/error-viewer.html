@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Surfingkeys - Error Viewer</title>
+    <link rel="stylesheet" href="error-viewer.css">
+</head>
+<body>
+    <div id="error-viewer-container">
+        <header id="error-viewer-header">
+            <h1 id="error-viewer-title">🔍 Surfingkeys Error Viewer</h1>
+            <div id="error-viewer-stats">Loading...</div>
+        </header>
+
+        <div id="error-viewer-actions">
+            <button class="error-viewer-btn" id="btn-refresh">🔄 Refresh</button>
+            <button class="error-viewer-btn" id="btn-export">📥 Export JSON</button>
+            <button class="error-viewer-btn error-viewer-btn-danger" id="btn-clear">🗑️ Clear All</button>
+        </div>
+
+        <div id="error-viewer-filters">
+            <input type="text" id="error-viewer-search" placeholder="Search errors..." />
+            <select class="filter-select" id="filter-context">
+                <option value="">All Contexts</option>
+                <option value="background">Background</option>
+                <option value="content_script">Content Script</option>
+            </select>
+            <select class="filter-select" id="filter-type">
+                <option value="">All Types</option>
+                <option value="window.onerror">window.onerror</option>
+                <option value="unhandledrejection">Promise Rejection</option>
+                <option value="chrome.runtime.lastError">Chrome API Error</option>
+                <option value="manual">Manual Report</option>
+            </select>
+        </div>
+
+        <div id="error-list"></div>
+    </div>
+
+    <script src="error-viewer.js"></script>
+</body>
+</html>

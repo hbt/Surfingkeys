@@ -291,6 +291,28 @@ Public JavaScript interface exposed to user configuration scripts for customizin
 
 ---
 
+## observability
+
+### error.collector
+Global error handling system that captures unhandled JavaScript errors, promise rejections, and Chrome API errors from both background and content scripts.
+
+### error.viewer
+Page (`pages/error-viewer.html`) displaying all captured errors with filtering, search, and export capabilities. Accessible via extension popup menu.
+
+### error.storage
+Persistent error storage in `chrome.storage.local` under key `surfingkeys_errors`. Keeps last 100 errors with FIFO rotation.
+
+### error.handlers
+Global handlers installed at extension startup:
+- `window.onerror` - Catches unhandled JS errors
+- `window.onunhandledrejection` - Catches promise rejections
+- Manual reporting via `reportError(type, message, details)`
+
+### error.context
+Metadata captured with each error: type, message, context (background/content_script), timestamp, URL, stack trace, source file, line/column numbers, user agent.
+
+---
+
 ## actions
 
 ### feedkeys

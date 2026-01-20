@@ -1,0 +1,253 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: #0a0a0a;
+    color: #0f0;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 13px;
+}
+
+#error-viewer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+#error-viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #0f0;
+}
+
+#error-viewer-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0f0;
+    margin: 0;
+}
+
+#error-viewer-stats {
+    color: #888;
+}
+
+#error-viewer-actions {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.error-viewer-btn {
+    background: #222;
+    border: 1px solid #0f0;
+    color: #0f0;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.error-viewer-btn:hover {
+    background: #0f0;
+    color: #000;
+}
+
+.error-viewer-btn-danger {
+    border-color: #f00;
+    color: #f00;
+}
+
+.error-viewer-btn-danger:hover {
+    background: #f00;
+    color: #fff;
+}
+
+#error-viewer-filters {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#error-viewer-search {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #0f0;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+#error-viewer-search:focus {
+    outline: none;
+    border-color: #0f0;
+}
+
+.filter-select {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #0f0;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #0f0;
+}
+
+#error-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.error-item {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.error-item:hover {
+    border-color: #0f0;
+    background: #1a1a1a;
+}
+
+.error-item.expanded {
+    border-color: #0f0;
+}
+
+.error-item-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.error-type {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.error-type-onerror {
+    background: #c00;
+    color: #fff;
+}
+
+.error-type-rejection {
+    background: #f80;
+    color: #fff;
+}
+
+.error-type-lasterror {
+    background: #f0f;
+    color: #fff;
+}
+
+.error-type-manual {
+    background: #08f;
+    color: #fff;
+}
+
+.error-context {
+    color: #888;
+    font-size: 11px;
+}
+
+.error-message {
+    color: #ff6b6b;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.error-meta {
+    color: #888;
+    font-size: 11px;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.error-details {
+    display: none;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #333;
+}
+
+.error-item.expanded .error-details {
+    display: block;
+}
+
+.error-stack {
+    background: #000;
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 10px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    font-size: 11px;
+    color: #0f0;
+    line-height: 1.4;
+    border: 1px solid #333;
+}
+
+.error-detail-row {
+    margin: 5px 0;
+    color: #aaa;
+}
+
+.error-detail-label {
+    color: #0f0;
+    display: inline-block;
+    width: 120px;
+    font-weight: bold;
+}
+
+.error-detail-value {
+    color: #fff;
+}
+
+.error-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.error-copy-btn {
+    background: #222;
+    border: 1px solid #555;
+    color: #888;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 11px;
+}
+
+.error-copy-btn:hover {
+    border-color: #0f0;
+    color: #0f0;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+    font-size: 16px;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
