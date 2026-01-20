@@ -1,0 +1,36 @@
+# Chrome Extension APIs to download
+# Source: https://developer.chrome.com/docs/extensions/reference/api
+
+# Core APIs
+runtime
+action
+tabs
+windows
+storage
+scripting
+
+# Messaging & Communication
+runtime
+
+# Content & UI
+contextMenus
+commands
+sidePanel
+notifications
+
+# Browser Features
+bookmarks
+history
+downloads
+cookies
+webNavigation
+webRequest
+
+# User Data
+identity
+permissions
+
+# Development & Debugging
+devtools.inspectedWindow
+devtools.network
+devtools.panels
