@@ -24,6 +24,8 @@
     "test:cdp:reload-messaging": "npx ts-node tests/cdp-reload-messaging.ts",
     "test:cdp:api": "npx ts-node tests/cdp-chrome-api.ts",
     "test:cdp:all": "npx ts-node tests/cdp-runner.ts",
+    "test:cdp:debug:live": "cp .env.live .env && npx ts-node",
+    "test:cdp:debug:headless": "cp .env.headless .env && npx ts-node",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .js,.ts --ignore-pattern 'src/nvim/**'"
   },
   "repository": {
