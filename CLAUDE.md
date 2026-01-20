@@ -14,11 +14,12 @@ CDP monitor: `npm run test:cdp` (use run_in_background: true, logs to /tmp/surfi
 - docs/feature-tree.md 
 - docs/api.md General API (generated using npm run build:doc)
 - docs/cmds.md Keyboard commands (generated using npm run build:doc-cmds)
-- docs/testing.md How to test Surfingkeys
+- docs/testing.md How to test Surfingkeys (wip!)
 - docs/ui-flow.md UI screens and flows
 - docs/adrs ADRs 
 - docs/migration Current migration process 
 - docs/c4 C2 and C3 architecture 
+- docs/chrome-api and node_modules/@types/chrome/index.d.ts Official chrome extension and dev tools extensions APIs documentation in markdown retrieved using (scripts/fetch-all-chrome-apis.sh) and Typescript definitions for the chrome API
 
 
 
