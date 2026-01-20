@@ -6,7 +6,11 @@ This directory contains Chrome DevTools Protocol (CDP) debugging scripts for Sur
 
 1. Chrome running with remote debugging:
    ```bash
+   # Live mode (visible browser, port 9222)
    google-chrome-stable --remote-debugging-port=9222
+
+   # OR Headless mode (no GUI, port 9223)
+   gchrb-dev-headless
    ```
 
 2. Surfingkeys extension loaded in Chrome
@@ -15,6 +19,44 @@ This directory contains Chrome DevTools Protocol (CDP) debugging scripts for Sur
    ```bash
    node tests/fixtures-server.js
    ```
+
+## Configuration
+
+All debug scripts now use environment-based configuration via `.env` file:
+
+```bash
+# .env file (in project root)
+CDP_PORT=9222        # 9222 for live mode, 9223 for headless
+CDP_MODE=live        # 'live' or 'headless'
+CDP_HOST=localhost   # Usually localhost
+```
+
+### Switching Between Modes
+
+**Option 1: Edit .env file**
+```bash
+# For live mode (visible browser)
+CDP_PORT=9222
+CDP_MODE=live
+
+# For headless mode (no GUI)
+CDP_PORT=9223
+CDP_MODE=headless
+```
+
+**Option 2: Use run-test.sh helper**
+```bash
+# Run in live mode
+./debug/run-test.sh live debug/cdp-debug-verify-working.ts
+
+# Run in headless mode
+./debug/run-test.sh headless debug/cdp-test-hints-headless.ts
+```
+
+**Option 3: Override environment variables**
+```bash
+CDP_PORT=9223 CDP_MODE=headless npx ts-node debug/cdp-debug-verify-working.ts
+```
 
 ## Available Scripts
 

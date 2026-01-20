@@ -19,6 +19,7 @@
 
 import * as WebSocket from 'ws';
 import * as http from 'http';
+import { CDP_CONFIG } from './config/cdp-config';
 
 let messageId = 1;
 
@@ -44,7 +45,7 @@ function step(num: number, desc: string): void {
 
 async function findBg(): Promise<string> {
     const resp = await new Promise<string>((resolve, reject) => {
-        http.get('http://localhost:9222/json', (res) => {
+        http.get(`${CDP_CONFIG.endpoint}/json`, (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);
             res.on('end', () => resolve(body));
@@ -185,7 +186,7 @@ async function closeTab(bgWs: WebSocket, tabId: number): Promise<void> {
 async function findPage(url: string): Promise<string | null> {
     await new Promise(r => setTimeout(r, 1000));
     const resp = await new Promise<string>((resolve, reject) => {
-        http.get('http://localhost:9222/json', (res) => {
+        http.get(`${CDP_CONFIG.endpoint}/json`, (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);
             res.on('end', () => resolve(body));

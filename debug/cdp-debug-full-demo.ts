@@ -21,6 +21,7 @@
 
 import * as WebSocket from 'ws';
 import * as http from 'http';
+import { CDP_CONFIG } from './config/cdp-config';
 
 interface CDPTarget {
     id: string;
@@ -67,7 +68,7 @@ function debug(label: string, value: any): void {
 
 async function checkCDPAvailable(): Promise<boolean> {
     return new Promise((resolve) => {
-        const req = http.get('http://localhost:9222/json', (res) => {
+        const req = http.get(`${CDP_CONFIG.endpoint}/json`, (res) => {
             resolve(res.statusCode === 200);
         });
         req.on('error', () => resolve(false));
@@ -80,7 +81,7 @@ async function checkCDPAvailable(): Promise<boolean> {
 
 async function findExtensionBackground(): Promise<{ wsUrl: string; extensionId: string }> {
     const data = await new Promise<string>((resolve, reject) => {
-        const req = http.get('http://localhost:9222/json', (res) => {
+        const req = http.get(`${CDP_CONFIG.endpoint}/json`, (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);
             res.on('end', () => resolve(body));
@@ -210,7 +211,7 @@ async function findContentPage(): Promise<string> {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const data = await new Promise<string>((resolve, reject) => {
-        const req = http.get('http://localhost:9222/json', (res) => {
+        const req = http.get(`${CDP_CONFIG.endpoint}/json`, (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);
             res.on('end', () => resolve(body));

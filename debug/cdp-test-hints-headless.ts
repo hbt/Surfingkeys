@@ -5,8 +5,8 @@
  * Tests hint creation in HEADLESS mode.
  *
  * Prerequisites:
- * 1. Run: gchrb-dev-headless
- * 2. Load Surfingkeys extension in the headless Chrome instance
+ * 1. Set CDP_PORT and CDP_MODE in .env (or use defaults)
+ * 2. Run: gchrb-dev or gchrb-dev-headless (depending on mode)
  * 3. Run this test
  *
  * Expected: Hints should work because headless provides "virtual focus"
@@ -20,6 +20,7 @@
 
 import * as WebSocket from 'ws';
 import * as http from 'http';
+import { CDP_CONFIG } from './config/cdp-config';
 
 let messageId = 1;
 
@@ -34,7 +35,7 @@ const colors = {
 
 async function findBg(): Promise<string> {
     const resp = await new Promise<string>((resolve, reject) => {
-        http.get('http://localhost:9223/json', (res) => {
+        http.get(`${CDP_CONFIG.endpoint}/json`, (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);
             res.on('end', () => resolve(body));
@@ -119,7 +120,7 @@ async function closeTab(bgWs: WebSocket, tabId: number): Promise<void> {
 async function findPageByUrl(): Promise<string | null> {
     await new Promise(r => setTimeout(r, 2000));
     const resp = await new Promise<string>((resolve, reject) => {
-        http.get('http://localhost:9223/json', (res) => {
+        http.get(`${CDP_CONFIG.endpoint}/json`, (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);
             res.on('end', () => resolve(body));
@@ -180,7 +181,7 @@ async function main() {
     try {
         // Check if CDP is available
         const cdpCheck = await new Promise<boolean>((resolve) => {
-            const req = http.get('http://localhost:9223/json', (res) => {
+            const req = http.get(`${CDP_CONFIG.endpoint}/json`, (res) => {
                 resolve(res.statusCode === 200);
             });
             req.on('error', () => resolve(false));
@@ -191,10 +192,15 @@ async function main() {
         });
 
         if (!cdpCheck) {
-            console.log(`${colors.red}✗ Chrome not running on port 9223${colors.reset}\n`);
-            console.log('Please start headless Chrome first:\n');
-            console.log('  gchrb-dev-headless\n');
-            console.log('Then load the Surfingkeys extension and run this test again.\n');
+            console.log(`${colors.red}✗ Chrome not running on ${CDP_CONFIG.endpoint}${colors.reset}\n`);
+            console.log(`Mode: ${CDP_CONFIG.mode}, Port: ${CDP_CONFIG.port}\n`);
+            console.log('Please start Chrome first:\n');
+            if (CDP_CONFIG.isHeadless) {
+                console.log('  gchrb-dev-headless  (for headless mode)\n');
+            } else {
+                console.log('  gchrb-dev  (for live mode)\n');
+            }
+            console.log('Then run this test again.\n');
             process.exit(1);
         }
 

@@ -7,12 +7,13 @@
 
 import * as WebSocket from 'ws';
 import * as http from 'http';
+import { CDP_CONFIG } from './config/cdp-config';
 
 let messageId = 1;
 
 async function findBg(): Promise<string> {
     const resp = await new Promise<string>((resolve, reject) => {
-        http.get('http://localhost:9222/json', (res) => {
+        http.get(`${CDP_CONFIG.endpoint}/json`, (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);
             res.on('end', () => resolve(body));
