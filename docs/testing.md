@@ -42,9 +42,6 @@ console.log('[TRACE] Feature X executed');
    ```bash
    # Recommended: Use custom launcher
    /home/hassen/config/scripts/private/bin/gchrb-dev
-
-   # Or manually
-   google-chrome-stable --remote-debugging-port=9222 &
    ```
 
 2. **Surfingkeys extension loaded**
@@ -65,9 +62,26 @@ console.log('[TRACE] Feature X executed');
 
 ### testing.cdp.usage
 
-**Run the test:**
+**Run CDP monitor:**
 ```bash
 npm run test:cdp
+```
+
+This command:
+- Starts CDP monitor in background (auto-manages process)
+- Shows process ID and log file location
+- Displays last 10 lines from log
+- Exits immediately (non-blocking)
+- Monitor continues running in background
+- All output logged to `/tmp/surfingkeys-cdp.log`
+
+**Manual workflow (if needed):**
+```bash
+# Run the TypeScript test directly
+npx ts-node tests/cdp-basic.ts &
+
+# Tail logs in separate terminal
+tail -f /tmp/surfingkeys-cdp.log
 ```
 
 **If Chrome not running with debugging:**
@@ -77,13 +91,12 @@ npm run test:cdp
 Please launch Chrome with remote debugging enabled:
 
   /home/hassen/config/scripts/private/bin/gchrb-dev
-
-Or manually:
-  google-chrome-stable --remote-debugging-port=9222
 ```
 
 **Expected output (when Chrome running):**
 ```
+=== CDP Test Started: 2026-01-20T07:00:00.000Z ===
+
 CDP Basic Test - Console Log Capture
 
 ✓ Found background: Surfingkeys (service_worker)
@@ -93,6 +106,8 @@ Listening for console messages...
 
 Press Alt+Shift+R or run: ./scripts/reload-extension.sh
 
+Logs: tail -f /tmp/surfingkeys-cdp.log
+
 ---
 
 💬 [LOG] Background page loaded
@@ -101,10 +116,12 @@ Press Alt+Shift+R or run: ./scripts/reload-extension.sh
 
 **Interactive testing:**
 - Press `Alt+Shift+R` in Chrome to reload extension
-- Or run: `./scripts/reload-extension.sh`
-- Watch console logs appear in terminal
+- Or run: `xdotool key alt+shift+r`
+- Watch console logs appear in log file
 
-**Exit:** `Ctrl+C`
+**Log file location:** `/tmp/surfingkeys-cdp.log`
+
+**Exit:** `Ctrl+C` (if running in foreground) or `kill %1` (if backgrounded)
 
 ### testing.cdp.verification
 
@@ -125,7 +142,7 @@ Press Alt+Shift+R or run: ./scripts/reload-extension.sh
 
 **Checklist after system reboot:**
 
-- [ ] Launch Chrome with debugging: `gchrb-dev` or `google-chrome-stable --remote-debugging-port=9222`
+- [ ] Launch Chrome with debugging: `gchrb-dev` 
 - [ ] Load extension in Chrome
 - [ ] Verify debugging port: `curl http://localhost:9222/json`
 - [ ] Run test: `npm run test:cdp`
@@ -209,8 +226,11 @@ See [testing-strategy-analysis.md](testing-strategy-analysis.md) for when to use
 Agent: "Implementing fuzzy finder..."
 Agent: *writes code*
 Agent: *adds console.log('[TRACE] Fuzzy finder opened')*
-Agent: *runs npm run test:cdp*
-Agent: *verifies log appears when pressing ':'*
+Agent: *runs: npm run test:cdp (starts monitor in background)*
+Agent: *waits 2 seconds for monitor to start*
+Agent: *triggers: xdotool key alt+shift+r (reloads extension)*
+Agent: *waits 2 seconds for logs*
+Agent: *checks: grep "TRACE.*Fuzzy finder" /tmp/surfingkeys-cdp.log*
 Agent: "Feature verified ✅"
 ```
 

@@ -11,6 +11,7 @@
 
 import * as WebSocket from 'ws';
 import * as http from 'http';
+import * as fs from 'fs';
 
 interface CDPTarget {
     id: string;
@@ -18,6 +19,16 @@ interface CDPTarget {
     type: string;
     url: string;
     webSocketDebuggerUrl: string;
+}
+
+const LOG_FILE = '/tmp/surfingkeys-cdp.log';
+let logStream: fs.WriteStream;
+
+function log(message: string): void {
+    console.log(message);
+    if (logStream) {
+        logStream.write(message + '\n');
+    }
 }
 
 async function checkCDPAvailable(): Promise<boolean> {
@@ -54,26 +65,31 @@ async function findExtensionBackground(): Promise<string> {
     );
 
     if (!bg) {
-        console.error('❌ Surfingkeys background page not found');
-        console.log('Available targets:', targets.map(t => ({ title: t.title, type: t.type, url: t.url })));
+        log('❌ Surfingkeys background page not found');
+        log('Available targets: ' + JSON.stringify(targets.map(t => ({ title: t.title, type: t.type, url: t.url })), null, 2));
+        if (logStream) logStream.end();
         process.exit(1);
     }
 
-    console.log(`✓ Found background: ${bg.title} (${bg.type})`);
+    log(`✓ Found background: ${bg.title} (${bg.type})`);
     return bg.webSocketDebuggerUrl;
 }
 
 async function main() {
-    console.log('CDP Basic Test - Console Log Capture\n');
+    // Initialize log file
+    logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
+    log(`\n=== CDP Test Started: ${new Date().toISOString()} ===\n`);
+    log('CDP Basic Test - Console Log Capture\n');
 
     // Check if CDP is available
     const cdpAvailable = await checkCDPAvailable();
     if (!cdpAvailable) {
-        console.error('❌ Chrome DevTools Protocol not available on port 9222\n');
-        console.log('Please launch Chrome with remote debugging enabled:\n');
-        console.log('  /home/hassen/config/scripts/private/bin/gchrb-dev\n');
-        console.log('Or manually:');
-        console.log('  google-chrome-stable --remote-debugging-port=9222\n');
+        log('❌ Chrome DevTools Protocol not available on port 9222\n');
+        log('Please launch Chrome with remote debugging enabled:\n');
+        log('  /home/hassen/config/scripts/private/bin/gchrb-dev\n');
+        log('Or manually:');
+        log('  google-chrome-stable --remote-debugging-port=9222\n');
+        logStream.end();
         process.exit(1);
     }
 
@@ -84,7 +100,7 @@ async function main() {
     const ws = new WebSocket(wsUrl);
 
     ws.on('open', () => {
-        console.log('✓ Connected to background page\n');
+        log('✓ Connected to background page\n');
 
         // Enable Runtime domain to receive console messages
         ws.send(JSON.stringify({
@@ -98,9 +114,10 @@ async function main() {
             method: 'Log.enable'
         }));
 
-        console.log('Listening for console messages...\n');
-        console.log('Press Alt+Shift+R or run: ./scripts/reload-extension.sh\n');
-        console.log('---\n');
+        log('Listening for console messages...\n');
+        log('Press Alt+Shift+R or run: ./scripts/reload-extension.sh\n');
+        log(`Logs: tail -f ${LOG_FILE}\n`);
+        log('---\n');
     });
 
     ws.on('message', (data: WebSocket.Data) => {
@@ -129,7 +146,7 @@ async function main() {
 
             // Color output based on type
             const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️ ' : '💬';
-            console.log(`${prefix} [${type.toUpperCase()}] ${message}`);
+            log(`${prefix} [${type.toUpperCase()}] ${message}`);
         }
 
         // Exception thrown
@@ -139,30 +156,45 @@ async function main() {
             const lineNumber = exception.lineNumber;
             const url = exception.url;
 
-            console.log(`❌ [EXCEPTION] ${errorMsg}`);
+            log(`❌ [EXCEPTION] ${errorMsg}`);
             if (url) {
-                console.log(`   at ${url}:${lineNumber}`);
+                log(`   at ${url}:${lineNumber}`);
             }
         }
 
         // Log entries
         else if (msg.method === 'Log.entryAdded') {
             const entry = msg.params.entry;
-            console.log(`📝 [LOG] ${entry.text}`);
+            log(`📝 [LOG] ${entry.text}`);
         }
     });
 
     ws.on('error', (error) => {
-        console.error('❌ WebSocket error:', error.message);
+        log('❌ WebSocket error: ' + error.message);
     });
 
     ws.on('close', () => {
-        console.log('\n✓ Connection closed');
+        log('\n✓ Connection closed');
+        if (logStream) {
+            logStream.end();
+        }
+        process.exit(0);
+    });
+
+    // Handle process termination
+    process.on('SIGINT', () => {
+        log('\n\n✓ Test terminated by user');
+        if (logStream) {
+            logStream.end();
+        }
         process.exit(0);
     });
 }
 
 main().catch(error => {
-    console.error('❌ Fatal error:', error);
+    log('❌ Fatal error: ' + error);
+    if (logStream) {
+        logStream.end();
+    }
     process.exit(1);
 });

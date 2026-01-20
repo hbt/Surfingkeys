@@ -19,7 +19,7 @@
     "esbuild:prod": "node ./config/esbuild.config.js production",
     "watch": "node ./config/esbuild.config.js development --watch",
     "test": "jest",
-    "test:cdp": "npx ts-node tests/cdp-basic.ts",
+    "test:cdp": "./scripts/run-cdp-test.sh",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .js,.ts --ignore-pattern 'src/nvim/**'"
   },
   "repository": {
