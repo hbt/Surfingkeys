@@ -19,8 +19,10 @@
     "esbuild:prod": "node ./config/esbuild.config.js production",
     "watch": "node ./config/esbuild.config.js development --watch",
     "test": "jest",
-    "test:cdp": "npx ts-node tests/cdp-runner.ts",
+    "test:cdp:reload-keyboard": "npx ts-node tests/cdp-basic.ts",
+    "test:cdp:reload-messaging": "npx ts-node tests/cdp-reload-messaging.ts",
     "test:cdp:api": "npx ts-node tests/cdp-chrome-api.ts",
+    "test:cdp:all": "npx ts-node tests/cdp-runner.ts",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .js,.ts --ignore-pattern 'src/nvim/**'"
   },
   "repository": {
