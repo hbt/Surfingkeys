@@ -149,29 +149,31 @@ async function main() {
 
         // Wait for tracker to be set, then trigger reload
         setTimeout(() => {
-            log('Triggering extension reload by calling handler directly...\n');
+            log('Triggering extension reload via CDP Message Bridge...\n');
 
-            // Call the cdpReloadExtension handler directly
+            // Use the CDP Message Bridge to dispatch the reload action
             ws.send(JSON.stringify({
                 id: messageId++,
                 method: 'Runtime.evaluate',
                 params: {
                     expression: `
-                        console.log('[CDP-TEST] Calling cdpReloadExtension handler');
-                        if (typeof self !== 'undefined' && self.cdpReloadExtension) {
-                            console.log('[CDP-TEST] Handler found, calling it');
-                            // Create a mock message and sendResponse
-                            const mockMessage = {
-                                action: 'cdpReloadExtension',
-                                needResponse: true
-                            };
-                            const mockSender = {};
-                            const mockSendResponse = (response) => {
-                                console.log('[CDP-TEST] Response:', JSON.stringify(response));
-                            };
-                            self.cdpReloadExtension(mockMessage, mockSender, mockSendResponse);
+                        console.log('[CDP-TEST] Checking for message bridge...');
+                        if (typeof globalThis.__CDP_MESSAGE_BRIDGE__ !== 'undefined') {
+                            console.log('[CDP-TEST] Bridge found, listing available actions...');
+                            const actions = globalThis.__CDP_MESSAGE_BRIDGE__.listActions();
+                            console.log('[CDP-TEST] Available actions:', actions.length);
+                            console.log('[CDP-TEST] Actions:', actions.join(', '));
+
+                            console.log('[CDP-TEST] Dispatching cdpReloadExtension action...');
+                            const result = globalThis.__CDP_MESSAGE_BRIDGE__.dispatch(
+                                'cdpReloadExtension',
+                                {},
+                                true  // expectResponse
+                            );
+                            console.log('[CDP-TEST] Dispatch result:', JSON.stringify(result));
                         } else {
-                            console.error('[CDP-TEST] Handler not found!');
+                            console.error('[CDP-TEST] CDP Message Bridge not found!');
+                            console.error('[CDP-TEST] globalThis keys:', Object.keys(globalThis).filter(k => k.includes('CDP')));
                         }
                     `,
                     returnByValue: true,
@@ -182,7 +184,7 @@ async function main() {
             reloadTriggered = true;
             startTimeBeforeReload = Date.now();
 
-            log('✓ Reload trigger sent\n');
+            log('✓ Reload message dispatched via bridge\n');
             log('Waiting for extension to reload...\n');
         }, 1000);
     });

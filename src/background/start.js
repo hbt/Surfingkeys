@@ -484,6 +484,82 @@ function start(browser) {
         });
     }
 
+    // CDP Message Bridge - Exposes message dispatch for testing
+    // This allows CDP to send messages through the same infrastructure
+    // that chrome.runtime.sendMessage uses, but accessible from global scope
+    if (typeof globalThis !== 'undefined') {
+        globalThis.__CDP_MESSAGE_BRIDGE__ = {
+            /**
+             * Send a message through the extension's message handling system
+             * @param {string} action - The action/handler name (e.g., 'cdpReloadExtension')
+             * @param {object} payload - Additional message data
+             * @param {boolean} expectResponse - Whether to wait for a response
+             * @returns {*} The handler's return value
+             */
+            dispatch: function(action, payload, expectResponse) {
+                console.log('[CDP-BRIDGE] Dispatching action:', action);
+
+                if (!self.hasOwnProperty(action)) {
+                    console.error('[CDP-BRIDGE] No handler registered for action:', action);
+                    console.log('[CDP-BRIDGE] Available actions:', Object.keys(self).filter(k => typeof self[k] === 'function'));
+                    return { error: 'Handler not found', action: action };
+                }
+
+                // Create message object matching the extension's message format
+                var message = {
+                    action: action,
+                    needResponse: expectResponse || false
+                };
+
+                // Merge payload into message
+                if (payload) {
+                    for (var key in payload) {
+                        if (payload.hasOwnProperty(key)) {
+                            message[key] = payload[key];
+                        }
+                    }
+                }
+
+                // Create mock sender (represents CDP as sender)
+                var sender = {
+                    id: chrome.runtime.id,
+                    url: 'cdp://testing',
+                    origin: 'cdp'
+                };
+
+                // Create response handler
+                var responseData = null;
+                var sendResponse = function(response) {
+                    responseData = response;
+                    console.log('[CDP-BRIDGE] Handler response:', JSON.stringify(response));
+                };
+
+                // Dispatch through the normal message handler
+                try {
+                    var result = handleMessage(message, sender, sendResponse);
+                    console.log('[CDP-BRIDGE] Dispatch complete');
+                    return responseData || result;
+                } catch (error) {
+                    console.error('[CDP-BRIDGE] Error during dispatch:', error);
+                    return { error: error.message, action: action };
+                }
+            },
+
+            /**
+             * List all available message handlers
+             * @returns {string[]} Array of handler names
+             */
+            listActions: function() {
+                return Object.keys(self).filter(function(key) {
+                    return typeof self[key] === 'function';
+                });
+            }
+        };
+
+        console.log('[CDP-BRIDGE] Message bridge initialized');
+        console.log('[CDP-BRIDGE] Available actions:', globalThis.__CDP_MESSAGE_BRIDGE__.listActions().length);
+    }
+
     function _updateSettings(diffSettings, afterSet) {
         diffSettings.savedAt = new Date().getTime();
         _save(chrome.storage.local, diffSettings, function() {
@@ -673,6 +749,19 @@ function start(browser) {
             });
             _broadcastSettings(data);
         });
+    };
+    self.cdpReloadExtension = function(message, sender, sendResponse) {
+        console.log('[CDP-RELOAD] Reload request received via message');
+        // Send response immediately before reload
+        _response(message, sendResponse, {
+            status: 'reload_initiated',
+            timestamp: Date.now()
+        });
+        // Trigger reload after a short delay to ensure response is sent
+        setTimeout(function() {
+            console.log('[CDP-RELOAD] Triggering chrome.runtime.reload()');
+            chrome.runtime.reload();
+        }, 100);
     };
     self.loadSettingsFromUrl = function(message, sender, sendResponse) {
         _loadSettingsFromUrl(message.url, function(status) {

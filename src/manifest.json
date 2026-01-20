@@ -48,7 +48,8 @@
         "downloads",
         "topSites",
         "clipboardRead",
-        "clipboardWrite"
+        "clipboardWrite",
+        "management"
     ],
     "background": {
         "scripts": [
