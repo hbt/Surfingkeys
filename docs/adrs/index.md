@@ -22,12 +22,13 @@ Each ADR follows this structure:
 |-----|-------|--------|------|-----------|
 | [ADR-001](adr-001-esbuild-build-alternative.md) | esbuild as alternative bundler | Accepted | 2026-01-20 | 23x faster builds, improved dev experience |
 | [ADR-002](adr-002-repository-restructuring-upstream-sync.md) | Repository restructuring and upstream synchronization | Accepted | 2026-01-20 | Enable Manifest v3 adoption, preserve 8-year fork history |
+| [ADR-003](adr-003-cdp-message-bridge.md) | CDP Message Bridge for extension testing | Accepted | 2026-01-20 | Enable programmatic testing via Chrome DevTools Protocol |
 
 ## adrs.status_summary
 
 | Status | Count | ADRs |
 |--------|-------|------|
-| Accepted | 2 | ADR-001, ADR-002 |
+| Accepted | 3 | ADR-001, ADR-002, ADR-003 |
 | Proposed | 0 | - |
 | Deprecated | 0 | - |
 | Superseded | 0 | - |
@@ -36,9 +37,9 @@ Each ADR follows this structure:
 
 | Migration Status | Count | ADRs |
 |------------------|-------|------|
-| **YAML frontmatter complete** | 2 | ADR-001, ADR-002 |
+| **Namespaced format** | 3 | ADR-001, ADR-002, ADR-003 |
 
-**Status**: All ADRs using YAML frontmatter format.
+**Status**: All ADRs using namespaced section format (e.g., `meta.status`, `context.problem`).
 
 ## adrs.relationships
 
@@ -55,6 +56,12 @@ Foundation Layer:
 ├────────────────────────────────────────────────┤
 │ ADR-002: Repository Restructuring & Upstream   │
 └────────────────────────────────────────────────┘
+
+Testing Infrastructure Layer:
+┌────────────────────────────────────────────────┐
+│ ADR-003: CDP Message Bridge                    │
+│ (Depends on: ADR-001 for bundled code)         │
+└────────────────────────────────────────────────┘
 ```
 
 ### adrs.relationships.by_concern
@@ -63,6 +70,7 @@ Foundation Layer:
 |---------|------|--------------|
 | **Build System** | ADR-001 | Foundation - no dependencies |
 | **Repository Management** | ADR-002 | Foundation - no dependencies |
+| **Testing Infrastructure** | ADR-003 | Requires ADR-001 (esbuild bundled code structure) |
 
 ## adrs.usage
 
