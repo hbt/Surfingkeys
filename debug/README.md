@@ -1,6 +1,10 @@
 # CDP Debugging Scripts
 
-This directory contains Chrome DevTools Protocol (CDP) debugging scripts for Surfingkeys development.
+This directory contains Chrome DevTools Protocol (CDP) debugging scripts for **live experimentation and debugging** during Surfingkeys development.
+
+**Purpose:** Manual exploration, live code injection, and behavioral verification without rebuild cycles.
+
+**Not for:** Automated testing (use `tests/cdp/` with Jest framework instead).
 
 ## Prerequisites
 
@@ -290,6 +294,75 @@ Content Script Scope (isolated)
 - Use for: Chrome APIs, extension operations
 - Real commands tested: `yt` (duplicate tab), `gx$` (close tabs right)
 - Proves: Promise handling, state verification at each step
+
+## Debug Workflow
+
+### Typical Debug Session
+
+**1. Problem:** "Does the clipboard copy work correctly?"
+
+**2. Setup:**
+```bash
+# Start Chrome with debugging (if not already running)
+google-chrome-stable --remote-debugging-port=9222
+
+# Start fixtures server (if needed)
+node tests/fixtures-server.js
+```
+
+**3. Run Debug Script:**
+```bash
+npx ts-node debug/cdp-debug-live-modification-clipboard.ts
+```
+
+**4. What You See:**
+- Script creates test tab
+- Injects logging into `document.execCommand('copy')`
+- Triggers `ya` command (copy link with hints)
+- Shows what was copied in real-time
+- **No extension reload needed!**
+
+**5. Iterate:**
+```bash
+# Modify the script to test different scenarios
+# Run again immediately - fast iteration
+npx ts-node debug/cdp-debug-live-modification-clipboard.ts
+```
+
+### When to Use Debug Scripts
+
+**Use debug scripts when:**
+- ✅ Exploring how a feature works
+- ✅ Testing live code modifications
+- ✅ Understanding timing and execution order
+- ✅ Inspecting state at specific points
+- ✅ Rapid iteration without rebuilding
+
+**Use automated tests when:**
+- ✅ Verifying functionality works (regression testing)
+- ✅ Running in CI/CD
+- ✅ Testing multiple scenarios in parallel
+- ✅ Need pass/fail verification
+
+### Debug Script Template
+
+Create new debug scripts by copying existing ones:
+
+```bash
+# Copy a similar script
+cp debug/cdp-debug-verify-working.ts debug/cdp-debug-my-feature.ts
+
+# Modify to test your feature
+# Run immediately
+npx ts-node debug/cdp-debug-my-feature.ts
+```
+
+**Common patterns:**
+1. Create test tab → Setup state
+2. Inject logging → Observe behavior
+3. Modify functions → Test changes
+4. Verify state → Check results
+5. Repeat without rebuild
 
 ## Key Learnings
 
