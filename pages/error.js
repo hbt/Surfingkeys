@@ -7,7 +7,7 @@ runtime.command({
         var tabError = response.tabError[0];
         var errKey = "err-" + tabError.tabId + "-" + tabError.url;
         localStorage[errKey] = parseInt(localStorage[errKey]) || 0;
-        localStorage[errKey] = parseInt(localStorage[errKey])+1
+        localStorage[errKey] = parseInt(localStorage[errKey])+1;
         setInnerHTML(document.querySelector('#main-message .error-code'), tabError.error);
         var a = document.querySelector('#main-message a');
         setInnerHTML(a, tabError.url);
@@ -35,9 +35,9 @@ runtime.command({
         if(parseInt(localStorage[errKey]) < 4) {
             setInterval(() => {
                 window.location.href = tabError.url;
-            }, 1000 * parseInt(localStorage[errKey]))
+            }, 1000 * parseInt(localStorage[errKey]));
         } else {
-            delete localStorage[errKey]
+            delete localStorage[errKey];
         }
         
     }
