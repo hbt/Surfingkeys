@@ -253,12 +253,14 @@ git push origin archive/hbt-master-manifest-v2-fork-2018-2025
 
 Phase 1 complete when:
 - [x] Worktree created and functional
-- [ ] All 5 documentation files generated
-- [ ] Statistics provide clear scope picture
-- [ ] Glossary captures all custom concepts
-- [ ] Feature tree shows complete hierarchy
-- [ ] Documentation committed to archive branch
-- [ ] **Can answer:** "How many custom features exist and what are they?"
+- [x] All 3 documentation files generated (custom-commands.md, custom-glossary.md, custom-feature-tree.md)
+- [x] Statistics provide clear scope picture
+- [x] Glossary captures all custom concepts
+- [x] Feature tree shows complete hierarchy
+- [x] Documentation committed to archive branch
+- [x] **Can answer:** "How many custom features exist and what are they?"
+
+**Status:** ✅ COMPLETE (2026-01-20)
 
 ## phase1.execution_plan
 
