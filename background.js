@@ -1546,3 +1546,25 @@ var ChromeService = (function() {
     chrome.runtime.setUninstallURL("http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html");
     return self;
 })();
+
+// CDP Test Bridge - Generic Chrome API Proxy
+function handleCDPMessage(request, sender, sendResponse) {
+    console.log('[CDP Bridge] Got message:', request);
+    if (request.__cdp_test__) {
+        console.log('[CDP Bridge] Processing API call:', request.api);
+        var parts = request.api.split('.');
+        var obj = chrome;
+        for (var i = 0; i < parts.length; i++) {
+            obj = obj[parts[i]];
+        }
+        console.log('[CDP Bridge] Calling function');
+        obj(request.params || {}, function(result) {
+            console.log('[CDP Bridge] Got result:', result);
+            sendResponse({result: result, error: chrome.runtime.lastError});
+        });
+        return true;
+    }
+}
+
+chrome.runtime.onMessage.addListener(handleCDPMessage);
+chrome.runtime.onMessageExternal.addListener(handleCDPMessage);
