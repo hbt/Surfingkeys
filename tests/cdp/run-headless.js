@@ -22,6 +22,21 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
+// Log file setup
+const timestamp = new Date().toISOString().split('T')[0];
+const uniqueId = Math.random().toString(36).substring(2, 8);
+const LOG_FILE = `/tmp/cdp-headless-${timestamp}-${uniqueId}.log`;
+let logStream = null;
+
+function log(message, stdoutAlso = false) {
+    if (logStream) {
+        logStream.write(message + '\n');
+    }
+    if (stdoutAlso) {
+        console.log(message);
+    }
+}
+
 // Find an available port starting from the given port
 async function findAvailablePort(startPort = 9300, maxAttempts = 100) {
     for (let port = startPort; port < startPort + maxAttempts; port++) {
@@ -75,7 +90,7 @@ async function checkFixturesServer(port = 9873) {
 async function startFixturesServer() {
     const fixturesServerPath = path.join(__dirname, '../fixtures-server.js');
 
-    console.log('📂 Starting fixtures server...');
+    log('Starting fixtures server...');
 
     const server = spawn('node', [fixturesServerPath], {
         stdio: 'ignore',
@@ -88,7 +103,7 @@ async function startFixturesServer() {
     for (let i = 0; i < 20; i++) {
         await new Promise(resolve => setTimeout(resolve, 250));
         if (await checkFixturesServer()) {
-            console.log(`✓ Fixtures server started (PID: ${server.pid})\n`);
+            log(`Fixtures server started (PID: ${server.pid})`);
             return server.pid;
         }
     }
@@ -111,11 +126,23 @@ async function main() {
         process.exit(1);
     }
 
+    // Initialize log file
+    logStream = fs.createWriteStream(LOG_FILE, { flags: 'w' });
+    log('=== CDP Headless Test Runner ===');
+    log(`Started: ${new Date().toISOString()}`);
+    log(`Test file: ${testFile}`);
+    log(`Log file: ${LOG_FILE}\n`);
+
+    // Brief stdout message
+    console.log(`Running headless: ${path.basename(testFile)}`);
+    console.log(`Log: ${LOG_FILE}\n`);
+
     // Check if extension is built
     const extDir = path.join(__dirname, '../../dist-esbuild/development/chrome');
     if (!fs.existsSync(extDir)) {
         console.error('❌ Surfingkeys extension not found at:', extDir);
         console.error('   Please build the extension first: npm run esbuild:dev');
+        logStream.end();
         process.exit(1);
     }
 
@@ -124,25 +151,25 @@ async function main() {
     const fixturesServerRunning = await checkFixturesServer();
 
     if (fixturesServerRunning) {
-        console.log('✓ Fixtures server already running\n');
+        log('Fixtures server already running');
     } else {
         fixturesServerPid = await startFixturesServer();
     }
 
     // Find available port
-    console.log('🔍 Finding available port...');
+    log('Finding available port...');
     const port = await findAvailablePort();
-    console.log(`✓ Found available port: ${port}\n`);
+    log(`Found available port: ${port}`);
 
     // Create unique temporary user data directory
     const uniqueId = generateUniqueId();
     const userDataDir = path.join(os.tmpdir(), `chrome-headless-test-${uniqueId}`);
     fs.mkdirSync(userDataDir, { recursive: true });
 
-    console.log('🚀 Launching Chrome in headless mode...');
-    console.log(`   Port: ${port}`);
-    console.log(`   User data: ${userDataDir}`);
-    console.log(`   Extension: ${extDir}\n`);
+    log(`Launching Chrome in headless mode...`);
+    log(`  Port: ${port}`);
+    log(`  User data: ${userDataDir}`);
+    log(`  Extension: ${extDir}`);
 
     // Launch Chrome in headless mode
     const chromeArgs = [
@@ -167,25 +194,33 @@ async function main() {
 
     chrome.unref();
 
-    console.log(`✓ Chrome launched (PID: ${chrome.pid})\n`);
+    log(`Chrome launched (PID: ${chrome.pid})`);
 
     // Wait for Chrome to be ready
-    console.log('⏳ Waiting for Chrome DevTools Protocol to be ready...');
+    log('Waiting for Chrome DevTools Protocol to be ready...');
     await waitForCDP(port);
-    console.log(`✓ CDP ready at http://localhost:${port}\n`);
+    log(`CDP ready at http://localhost:${port}`);
 
-    // Run the test with CDP_PORT environment variable
-    console.log('🧪 Running test...');
-    console.log(`   Test: ${testFile}`);
-    console.log(`   CDP_PORT: ${port}\n`);
-    console.log('='.repeat(60) + '\n');
+    // Detect if this is a Jest test file or standalone script
+    const isJestTest = testPath.endsWith('.test.ts');
+    const command = isJestTest ? 'jest' : 'ts-node';
+    const streamingReporter = path.join(__dirname, 'streaming-reporter.js');
+    const args = isJestTest
+        ? ['--config=jest.config.cdp.js', '--reporters', streamingReporter, '--', testPath]
+        : [testPath];
 
-    const testProcess = spawn('npx', ['ts-node', testPath], {
+    log(`\nRunning test...`);
+    log(`  Test: ${testFile}`);
+    log(`  CDP_PORT: ${port}`);
+    log(`  Runner: ${command}\n`);
+
+    const testProcess = spawn('npx', [command, ...args], {
         env: {
             ...process.env,
-            CDP_PORT: port.toString()
+            CDP_PORT: port.toString(),
+            FORCE_COLOR: '1'  // Ensure colored output
         },
-        stdio: 'inherit'
+        stdio: ['inherit', 'inherit', 'inherit']  // Explicitly inherit all streams
     });
 
     // Handle test completion
@@ -195,38 +230,51 @@ async function main() {
         });
     });
 
-    console.log('\n' + '='.repeat(60));
+    log('\n' + '='.repeat(60));
+    log('Test completed with exit code: ' + testExitCode);
 
     // Cleanup
-    console.log('\n🧹 Cleaning up...');
+    log('\nCleaning up...');
 
     // Kill Chrome
     try {
         process.kill(chrome.pid, 'SIGTERM');
-        console.log(`✓ Killed Chrome (PID: ${chrome.pid})`);
+        log(`Killed Chrome (PID: ${chrome.pid})`);
     } catch (err) {
-        console.log(`⚠️  Chrome process may have already exited`);
+        log(`Chrome process may have already exited: ${err.message}`);
     }
 
     // Kill fixtures server if we started it
     if (fixturesServerPid) {
         try {
             process.kill(fixturesServerPid, 'SIGTERM');
-            console.log(`✓ Killed fixtures server (PID: ${fixturesServerPid})`);
+            log(`Killed fixtures server (PID: ${fixturesServerPid})`);
         } catch (err) {
-            console.log(`⚠️  Fixtures server process may have already exited`);
+            log(`Fixtures server process may have already exited: ${err.message}`);
         }
     }
 
     // Remove temporary user data directory
     try {
         fs.rmSync(userDataDir, { recursive: true, force: true });
-        console.log(`✓ Removed temp directory: ${userDataDir}`);
+        log(`Removed temp directory: ${userDataDir}`);
     } catch (err) {
-        console.log(`⚠️  Could not remove temp directory: ${err.message}`);
+        log(`Could not remove temp directory: ${err.message}`);
     }
 
-    console.log('\n✓ Cleanup complete\n');
+    log('Cleanup complete\n');
+
+    // Close log stream
+    if (logStream) {
+        logStream.end();
+    }
+
+    // Brief final message
+    if (testExitCode === 0) {
+        console.log(`✅ Tests passed\n`);
+    } else {
+        console.log(`❌ Tests failed (exit code: ${testExitCode})\n`);
+    }
 
     // Exit with same code as test
     process.exit(testExitCode || 0);
