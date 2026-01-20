@@ -20,6 +20,7 @@
     "watch": "node ./config/esbuild.config.js development --watch",
     "test": "jest",
     "test:cdp": "./scripts/run-cdp-test.sh",
+    "test:cdp:api": "npx ts-node tests/cdp-chrome-api.ts",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .js,.ts --ignore-pattern 'src/nvim/**'"
   },
   "repository": {
