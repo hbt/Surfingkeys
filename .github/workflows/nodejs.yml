@@ -21,9 +21,11 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-    - name: npm install and build
-      run: |
-        npm install
-        npm run build
+    - name: npm install
+      run: npm install
       env:
         CI: true
+    - name: Build extension
+      run: npm run build:dev
+    - name: Run CDP tests
+      run: npm run test:cdp:headless:seq
