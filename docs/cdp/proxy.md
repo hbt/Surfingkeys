@@ -55,12 +55,18 @@ Response includes tab count and titles.
 
 ### Example 4: Capture Screenshot
 
+Capture and save to `/tmp/screenshot-[timestamp].png`:
+
 ```bash
-TARGET=$(curl -s http://127.0.0.1:9222/json | jq -r '.[] | select(.url | contains("options.html")) | .id' | head -1)
-echo '{"targetId": "'$TARGET'", "method": "Runtime.evaluate", "params": {"expression": "chrome.tabs.captureVisibleTab().then(data => ({length: data.length, type: typeof data}))", "returnByValue": true, "awaitPromise": true}}' | websocat ws://127.0.0.1:9623
+TIMESTAMP=$(date +%s)
+TARGET=$(curl -s http://127.0.0.1:9222/json | jq -r '.[] | select(.url | test("options")) | .id' | head -1)
+printf '{"targetId": "'$TARGET'", "method": "Runtime.evaluate", "params": {"expression": "chrome.tabs.captureVisibleTab().then(data => data)", "returnByValue": true, "awaitPromise": true}}' | websocat -B 200000 ws://127.0.0.1:9623 > /tmp/response.json
+tail -1 /tmp/response.json | jq -r '.result.result.value' | sed 's/data:image\/jpeg;base64,//' | python3 -c "import sys, base64; sys.stdout.buffer.write(base64.b64decode(sys.stdin.read()))" > /tmp/screenshot-${TIMESTAMP}.png
+echo "Screenshot saved to: /tmp/screenshot-${TIMESTAMP}.png"
+ls -lh /tmp/screenshot-${TIMESTAMP}.png
 ```
 
-Response: Base64-encoded PNG data. Pipe to file: `| jq -r '.result.result.value' | base64 -d > screenshot.png`
+Response: JPEG image data. File size typically 80-100KB for standard window.
 
 ### Example 5: List Available Targets
 
