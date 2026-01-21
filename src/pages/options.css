@@ -1,6 +1,28 @@
+/* Dark theme inspired by Monokai */
+:root {
+    --dark-bg: #272822;
+    --dark-fg: #F8F8F2;
+    --dark-comment: #75715E;
+    --dark-red: #F92672;
+    --dark-orange: #FD971F;
+    --dark-yellow: #E6DB74;
+    --dark-green: #A6E22E;
+    --dark-cyan: #66D9EF;
+    --dark-purple: #AE81FF;
+    --dark-surface: #3E3D32;
+    --dark-surface-light: #49483E;
+}
+
+html {
+    background-color: var(--dark-bg);
+    color: var(--dark-fg);
+}
+
 body {
     margin: 5% 10%;
     width: 80%;
+    background-color: var(--dark-bg);
+    color: var(--dark-fg);
 }
 .ace_editor {
     display: inline-block;
@@ -13,47 +35,129 @@ textarea {
     display: inline-block;
     box-sizing: border-box;
     padding-left: 5px;
+    background-color: var(--dark-surface);
+    color: var(--dark-fg);
+    border: 1px solid var(--dark-surface-light);
+}
+
+/* Form elements */
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="email"],
+input[type="url"],
+select {
+    background-color: var(--dark-surface);
+    color: var(--dark-fg);
+    border: 1px solid var(--dark-surface-light);
+    padding: 6px 8px;
+    border-radius: 3px;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+select:focus {
+    background-color: var(--dark-surface-light);
+    border-color: var(--dark-cyan);
+    outline: none;
+}
+
+input[type="checkbox"] {
+    accent-color: var(--dark-cyan);
+}
+
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+    background-color: var(--dark-surface-light);
+    color: var(--dark-fg);
+    border: 1px solid var(--dark-comment);
+    padding: 6px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+button:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover,
+input[type="reset"]:hover {
+    background-color: var(--dark-surface);
+    border-color: var(--dark-cyan);
+}
+
+/* Links */
+a {
+    color: var(--dark-cyan);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--dark-yellow);
+    text-decoration: underline;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--dark-yellow);
+}
+
+/* Code-like elements */
+code, kbd, pre {
+    background-color: var(--dark-surface);
+    color: var(--dark-orange);
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 #save_container {
     float: right;
 }
 #save_container>a {
     padding-right: 8px;
-    border-right: 1px solid #000;
+    border-right: 1px solid var(--dark-comment);
 }
+
 .infoPointer {
     cursor: pointer;
     padding: 0px 2px;
     text-decoration: underline;
-    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#FFF785), color-stop(100%,#FFC542));
-    border: solid 1px #C38A22;
+    background: var(--dark-orange);
+    color: var(--dark-bg);
+    border: solid 1px var(--dark-orange);
     border-radius: 2px;
 }
+
 .info {
     padding: 8px;
     margin: 8px;
-    border: solid 2px #c8c8c8;
+    border: solid 2px var(--dark-surface-light);
     border-radius: 8px;
-    background: #e7e7e7;
+    background: var(--dark-surface);
+    color: var(--dark-fg);
 }
 
 span.tip {
     padding-left: 60px;
-    color: #04ad23;
+    color: var(--dark-green);
 }
 div.aphost {
     display: inline-block;
     width: 200px;
-    color: blue;
+    color: var(--dark-cyan);
 }
+
 div.aphost>span.remove {
     cursor: pointer;
+    color: var(--dark-red);
 }
 
 #searchAliases>div, #basicMappings>div {
     display: inline-block;
     padding: 1px 20px;
-    border-left: 1px solid #ccc;
+    border-left: 1px solid var(--dark-surface-light);
+    color: var(--dark-fg);
 }
 #searchAliases div.remove {
     cursor: pointer;
@@ -77,10 +181,12 @@ kbd {
     font: 11px Consolas, "Liberation Mono", Menlo, Courier, monospace;
     line-height: 10px;
     vertical-align: middle;
-    border: solid 1px #ccc;
-    border-bottom-color: #bbb;
+    border: solid 1px var(--dark-surface-light);
+    border-bottom-color: var(--dark-comment);
     border-radius: 3px;
-    box-shadow: inset 0 -1px 0 #bbb;
+    box-shadow: inset 0 -1px 0 var(--dark-comment);
+    background-color: var(--dark-surface);
+    color: var(--dark-yellow);
 }
 .kbd-span {
     width: 80px;
@@ -106,20 +212,30 @@ div.pressedKey kbd {
     box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.8);
     z-index: 2147483298;
     padding: 1rem;
-    background: white;
+    background: var(--dark-bg);
+    color: var(--dark-fg);
+    border: 1px solid var(--dark-surface-light);
 }
+
 #resetSettings {
-    color: blue;
+    color: var(--dark-red);
     cursor: pointer;
 }
+
 span.highlight {
-    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#FFF785), color-stop(100%,#FFC542));
+    background: var(--dark-yellow);
+    color: var(--dark-bg);
+    padding: 2px 4px;
+    border-radius: 2px;
 }
+
 .proxyPair {
     border-radius: 8px;
-    background: #f1f1f1;
+    background: var(--dark-surface);
     padding: 20px;
     margin: 8px 0px;
+    border: 1px solid var(--dark-surface-light);
+    color: var(--dark-fg);
 }
 div.deleteProxyPair {
     float: right;
@@ -131,6 +247,35 @@ div.deleteProxyPair {
 .proxyPair input, #localPath {
     width: 520px;
 }
+
+/* Section styles */
+.section {
+    border: 1px solid var(--dark-surface-light);
+    border-radius: 4px;
+    padding: 12px;
+    margin: 12px 0;
+    background-color: var(--dark-surface);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--dark-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--dark-surface-light);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--dark-comment);
+}
+
 @media only screen and (max-width: 767px) {
     body {
         margin: 0px 8px;
