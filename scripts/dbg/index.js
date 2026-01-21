@@ -12,12 +12,15 @@
  * Actions:
  *   reload              Reload the extension using multiple fallback methods
  *   clear-errors        Clear all stored extension errors
+ *   errors-clear        Clear all stored extension errors (alias)
+ *   errors-list         List all stored extension errors
  *   open-background     Open background service worker DevTools console
  *
  * Examples:
  *   bin/dbg reload
  *   bin/dbg reload | jq .
- *   bin/dbg clear-errors
+ *   bin/dbg errors-list
+ *   bin/dbg errors-clear
  */
 
 const fs = require('fs');
@@ -39,6 +42,8 @@ const colors = {
 const ACTIONS = {
     'reload': 'Reload the extension using multiple fallback methods',
     'clear-errors': 'Clear all stored extension errors',
+    'errors-clear': 'Clear all stored extension errors (alias)',
+    'errors-list': 'List all stored extension errors',
     'open-background': 'Open background service worker DevTools console'
 };
 
@@ -61,7 +66,8 @@ function showHelp() {
     console.log(`\n${colors.cyan}Examples:${colors.reset}`);
     console.log(`  bin/dbg reload`);
     console.log(`  bin/dbg reload | jq .    ${colors.dim}(JSON output)${colors.reset}`);
-    console.log(`  bin/dbg clear-errors\n`);
+    console.log(`  bin/dbg errors-list`);
+    console.log(`  bin/dbg errors-clear\n`);
 }
 
 /**

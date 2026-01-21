@@ -15,7 +15,8 @@
 #   bin/dbg reload | jq -r '.log'              (extract log file path)
 #   bin/dbg reload | jq -r '.log' | xargs cat  (view full log)
 #   bin/dbg reload | jq -r '.log' | xargs tail -5  (view last 5 log lines)
-#   bin/dbg clear-errors                       (clear stored errors)
+#   bin/dbg errors-list                        (list stored errors)
+#   bin/dbg errors-clear                       (clear stored errors)
 #   bin/dbg open-background                    (open DevTools console)
 #
 
