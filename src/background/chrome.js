@@ -15,53 +15,88 @@ import { installErrorHandlers } from '../common/errorCollector.js';
 installErrorHandlers('background');
 
 /**
- * Debug Mode Helper: Opens chrome://extensions error page when browser is in debug mode
+ * Debug Mode Helper: Opens chrome://extensions tabs when browser is in debug mode
  *
  * This function:
  * 1. Detects if browser is running with remote debugging enabled (CDP on port 9222)
- * 2. Checks if chrome://extensions error tab already exists (avoids duplicates on reload)
- * 3. Opens the tab only when in debug mode and tab doesn't exist
+ * 2. Checks if chrome://extensions tabs already exist (avoids duplicates on reload)
+ * 3. Opens both required tabs when in debug mode and tabs don't exist:
+ *    - chrome://extensions/ (for reload button access)
+ *    - chrome://extensions/?errors=<id> (for error extraction)
  *
  * Use case: During development, automatically show extension errors without manual navigation
  */
-(async function openExtensionErrorsPageInDebugMode() {
+(async function openExtensionTabsInDebugMode() {
     const extensionId = chrome.runtime.id;
-    const errorsPageUrl = `chrome://extensions/?errors=${extensionId}`;
 
     // 1. Detect debug mode by checking if CDP is available
     const isDebugMode = await detectDebugMode();
 
     if (!isDebugMode) {
-        console.log('[DEBUG HELPER] Not in debug mode, skipping extension errors tab');
+        console.log('[DEBUG HELPER] Not in debug mode, skipping extension tabs');
         return;
     }
 
-    console.log('[DEBUG HELPER] Debug mode detected, checking for existing extension errors tab');
+    console.log('[DEBUG HELPER] Debug mode detected, checking for existing extension tabs');
 
-    // 2. Check if tab already exists
-    const existingTab = await findExtensionErrorsTab(errorsPageUrl);
-
-    if (existingTab) {
-        console.log('[DEBUG HELPER] Extension errors tab already exists (tab ID:', existingTab.id, ')');
-        // Optionally activate the existing tab
-        // chrome.tabs.update(existingTab.id, { active: true });
-        return;
-    }
-
-    // 3. Create new tab only if it doesn't exist
-    console.log('[DEBUG HELPER] Creating new extension errors tab:', errorsPageUrl);
-
-    chrome.tabs.create({
-        url: errorsPageUrl,
-        active: false
-    }, (tab) => {
-        if (chrome.runtime.lastError) {
-            console.error('[DEBUG HELPER] Failed to open chrome://extensions:', chrome.runtime.lastError.message);
-        } else {
-            console.log('[DEBUG HELPER] Successfully created tab for chrome://extensions, tab ID:', tab?.id);
-        }
-    });
+    // Open both required tabs
+    await openRequiredExtensionTabs(extensionId);
 })();
+
+/**
+ * Opens both required chrome://extensions tabs if they don't exist
+ * @param {string} extensionId - The extension ID
+ * @returns {Promise<void>}
+ */
+async function openRequiredExtensionTabs(extensionId) {
+    const extensionsPageUrl = 'chrome://extensions/';
+    const errorsPageUrl = `chrome://extensions/?errors=${extensionId}`;
+
+    const promises = [];
+
+    // Check if main extensions page exists
+    const existingExtensionsTab = await findExtensionTab(extensionsPageUrl);
+
+    if (!existingExtensionsTab) {
+        console.log('[DEBUG HELPER] Creating chrome://extensions tab');
+        promises.push(new Promise((resolve, reject) => {
+            chrome.tabs.create({ url: extensionsPageUrl, active: false }, (tab) => {
+                if (chrome.runtime.lastError) {
+                    console.error('[DEBUG HELPER] Failed to open chrome://extensions:', chrome.runtime.lastError.message);
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    console.log('[DEBUG HELPER] Successfully created chrome://extensions tab, ID:', tab?.id);
+                    resolve(tab);
+                }
+            });
+        }));
+    } else {
+        console.log('[DEBUG HELPER] chrome://extensions tab already exists (tab ID:', existingExtensionsTab.id, ')');
+    }
+
+    // Check if errors page exists
+    const existingErrorsTab = await findExtensionTab(errorsPageUrl);
+
+    if (!existingErrorsTab) {
+        console.log('[DEBUG HELPER] Creating chrome://extensions/?errors tab');
+        promises.push(new Promise((resolve, reject) => {
+            chrome.tabs.create({ url: errorsPageUrl, active: false }, (tab) => {
+                if (chrome.runtime.lastError) {
+                    console.error('[DEBUG HELPER] Failed to open chrome://extensions/?errors:', chrome.runtime.lastError.message);
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    console.log('[DEBUG HELPER] Successfully created chrome://extensions/?errors tab, ID:', tab?.id);
+                    resolve(tab);
+                }
+            });
+        }));
+    } else {
+        console.log('[DEBUG HELPER] chrome://extensions/?errors tab already exists (tab ID:', existingErrorsTab.id, ')');
+    }
+
+    // Wait for all tab creation operations to complete
+    await Promise.all(promises);
+}
 
 /**
  * Detects if browser is running in debug mode (with remote debugging enabled)
@@ -91,20 +126,20 @@ async function detectDebugMode() {
 }
 
 /**
- * Finds existing chrome://extensions error tab for this extension
+ * Finds existing chrome://extensions tab for a given URL
  *
  * @param {string} targetUrl - The chrome://extensions URL to search for
  * @returns {Promise<chrome.tabs.Tab|null>} Existing tab or null
  */
-async function findExtensionErrorsTab(targetUrl) {
+async function findExtensionTab(targetUrl) {
     return new Promise((resolve) => {
         chrome.tabs.query({}, (tabs) => {
             // Chrome doesn't allow extensions to see chrome:// URLs in tab.url
-            // So we look for tabs with matching pendingUrl or check title
+            // So we look for tabs with matching pendingUrl or check if it starts with the target
             const matchingTab = tabs.find(tab =>
                 tab.url === targetUrl ||
                 tab.pendingUrl === targetUrl ||
-                (tab.url && tab.url.startsWith('chrome://extensions'))
+                (tab.url && tab.url.startsWith(targetUrl))
             );
 
             resolve(matchingTab || null);

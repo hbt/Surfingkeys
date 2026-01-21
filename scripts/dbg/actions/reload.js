@@ -436,37 +436,98 @@ async function reloadViaButton(extensionId) {
 }
 
 /**
- * Preflight check: Verify required tabs exist
+ * Ensure required tabs exist (create if missing)
+ * Since CDP can create chrome://extensions tabs without policy restrictions,
+ * we simply ensure they exist rather than complex checking/self-healing
  */
-async function checkRequiredTabs(extensionId) {
-    log('Preflight: Checking required tabs...');
+async function ensureRequiredTabs(extensionId) {
+    log('Ensuring required tabs exist...');
 
-    const targets = await fetchJson('/json');
-
-    // Check for chrome://extensions (for reload button)
-    const extensionsTab = targets.find(t =>
-        t.type === 'page' && t.url?.startsWith('chrome://extensions')
-    );
-
-    // Check for chrome://extensions/?errors=<id> (for error extraction)
-    const errorsTab = targets.find(t =>
-        t.type === 'page' && t.url?.includes(`chrome://extensions/?errors=${extensionId}`)
-    );
-
-    const result = {
-        extensionsTab: !!extensionsTab,
-        errorsTab: !!errorsTab,
-        bothExist: !!extensionsTab && !!errorsTab
-    };
-
-    if (result.bothExist) {
-        log('✓ Both required tabs exist');
-    } else {
-        if (!result.extensionsTab) log('✗ chrome://extensions tab missing');
-        if (!result.errorsTab) log(`✗ chrome://extensions/?errors=${extensionId} tab missing`);
+    const swWsUrl = await findServiceWorker();
+    if (!swWsUrl) {
+        log('✗ Service worker not found');
+        return { success: false, reason: 'service_worker_not_found' };
     }
 
-    return result;
+    const ws = new WebSocket(swWsUrl);
+
+    return new Promise((resolve) => {
+        ws.on('open', async () => {
+            try {
+                await sendCommand(ws, 'Runtime.enable');
+
+                // Ensure tabs exist via CDP evaluation
+                const result = await evaluateCode(ws, `
+                    (async function() {
+                        const extensionsPageUrl = 'chrome://extensions/';
+                        const errorsPageUrl = 'chrome://extensions/?errors=${extensionId}';
+
+                        async function findTab(targetUrl) {
+                            return new Promise((resolve) => {
+                                chrome.tabs.query({}, (tabs) => {
+                                    const tab = tabs.find(t =>
+                                        t.url === targetUrl ||
+                                        t.pendingUrl === targetUrl ||
+                                        (t.url && t.url.startsWith(targetUrl))
+                                    );
+                                    resolve(tab || null);
+                                });
+                            });
+                        }
+
+                        async function createTab(url) {
+                            return new Promise((resolve, reject) => {
+                                chrome.tabs.create({ url, active: false }, (tab) => {
+                                    if (chrome.runtime.lastError) {
+                                        reject(new Error(chrome.runtime.lastError.message));
+                                    } else {
+                                        resolve(tab);
+                                    }
+                                });
+                            });
+                        }
+
+                        const created = [];
+
+                        // Ensure main extensions page exists
+                        const extTab = await findTab(extensionsPageUrl);
+                        if (!extTab) {
+                            await createTab(extensionsPageUrl);
+                            created.push('extensions');
+                        }
+
+                        // Ensure errors page exists
+                        const errTab = await findTab(errorsPageUrl);
+                        if (!errTab) {
+                            await createTab(errorsPageUrl);
+                            created.push('errors');
+                        }
+
+                        return { created };
+                    })()
+                `);
+
+                ws.close();
+
+                if (result.created.length > 0) {
+                    log(`✓ Created missing tabs: ${result.created.join(', ')}`);
+                } else {
+                    log('✓ All required tabs already exist');
+                }
+
+                resolve({ success: true, created: result.created });
+            } catch (error) {
+                log(`✗ Error ensuring tabs: ${error.message}`);
+                ws.close();
+                resolve({ success: false, reason: error.message });
+            }
+        });
+
+        ws.on('error', (error) => {
+            log(`✗ WebSocket error: ${error.message}`);
+            resolve({ success: false, reason: error.message });
+        });
+    });
 }
 
 /**
@@ -729,22 +790,27 @@ async function run(args) {
 
         log(`Extension ID: ${extensionId}`);
 
-        // PREFLIGHT: Check required tabs
-        log('PREFLIGHT: Checking required tabs...');
-        const tabsCheck = await checkRequiredTabs(extensionId);
+        // STEP 0: Ensure required tabs exist
+        log('STEP 0: Ensure required tabs exist');
+        const tabsResult = await ensureRequiredTabs(extensionId);
 
-        if (!tabsCheck.bothExist) {
-            log('ERROR: Required tabs not open');
+        if (!tabsResult.success) {
+            log('ERROR: Failed to ensure required tabs');
             logStream.end();
 
             console.log(JSON.stringify({
                 success: false,
-                error: 'Required tabs not open',
-                details: 'Please open both:\n1. chrome://extensions\n2. chrome://extensions/?errors=' + extensionId,
-                preflightChecks: tabsCheck,
+                error: 'Failed to ensure required tabs',
+                details: `Could not create tabs: ${tabsResult.reason}`,
                 log: LOG_FILE
             }));
             process.exit(1);
+        }
+
+        if (tabsResult.created.length > 0) {
+            log(`✓ Created missing tabs: ${tabsResult.created.join(', ')}`);
+        } else {
+            log('✓ All required tabs already exist');
         }
 
         // STEP 1: Clear previous errors
@@ -822,7 +888,6 @@ async function run(args) {
             success: finalResult.success,
             method: finalResult.method,
             extensionId: extensionId,
-            preflightChecks: tabsCheck,
             attempts: attempts,
             log: LOG_FILE
         };
