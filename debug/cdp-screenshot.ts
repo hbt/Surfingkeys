@@ -46,13 +46,75 @@ async function getTargets(): Promise<CDPTarget[]> {
 }
 
 /**
- * Find options page target by URL matching
+ * Find or open options page target
  */
-async function findOptionsPage(): Promise<CDPTarget | null> {
+async function findOrOpenOptionsPage(): Promise<CDPTarget> {
   const targets = await getTargets();
-  return targets.find(t =>
+  let optionsPage = targets.find(t =>
     t.type === 'page' && t.url.includes('options.html')
-  ) || null;
+  );
+
+  if (optionsPage) {
+    return optionsPage;
+  }
+
+  // Options page not found, open it via extension background
+  console.log('📄 Options page not found, opening via extension...');
+
+  const extensionTarget = targets.find(t =>
+    t.type === 'service_worker' && t.url.includes('background.js')
+  );
+
+  if (!extensionTarget) {
+    throw new Error('Extension background not found - cannot open options page');
+  }
+
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(extensionTarget.webSocketDebuggerUrl);
+    const timeout = setTimeout(() => {
+      ws.close();
+      reject(new Error('Timeout opening options page'));
+    }, 10000);
+
+    ws.on('open', () => {
+      ws.send(JSON.stringify({
+        id: 1,
+        method: 'Runtime.evaluate',
+        params: {
+          expression: 'chrome.runtime.openOptionsPage()',
+          returnByValue: true
+        }
+      }));
+    });
+
+    ws.on('message', async (data) => {
+      const msg = JSON.parse(data.toString());
+      if (msg.id === 1) {
+        ws.close();
+        clearTimeout(timeout);
+
+        // Wait for options page to appear
+        await new Promise(r => setTimeout(r, 1000));
+
+        const newTargets = await getTargets();
+        const found = newTargets.find(t =>
+          t.type === 'page' && t.url.includes('options.html')
+        );
+
+        if (found) {
+          console.log('✓ Options page opened');
+          resolve(found);
+        } else {
+          reject(new Error('Failed to open options page'));
+        }
+      }
+    });
+
+    ws.on('error', (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+  });
 }
 
 /**
@@ -122,13 +184,8 @@ async function main(): Promise<void> {
   console.log(`   Endpoint: ${CDP_CONFIG.endpoint}\n`);
 
   try {
-    console.log('🔍 Finding options page...');
-    const target = await findOptionsPage();
-
-    if (!target) {
-      console.error('❌ Options page not found');
-      process.exit(1);
-    }
+    console.log('🔍 Finding or opening options page...');
+    const target = await findOrOpenOptionsPage();
 
     console.log(`✓ Found target: ${target.title}`);
     console.log(`  ID: ${target.id}`);
