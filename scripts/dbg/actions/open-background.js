@@ -8,7 +8,7 @@
  */
 
 const WebSocket = require('ws');
-const http = require('http');
+const { detectExtension, fetchJson, sendCommand, CDP_PORT } = require('../lib/extension-utils');
 
 // Color utilities
 const colors = {
@@ -19,51 +19,6 @@ const colors = {
     yellow: '\x1b[33m',
     red: '\x1b[31m'
 };
-
-let messageId = 1;
-const CDP_PORT = process.env.CDP_PORT || 9222;
-const CDP_ENDPOINT = `http://localhost:${CDP_PORT}`;
-
-/**
- * Fetch JSON from CDP endpoint
- */
-async function fetchJson(path) {
-    return new Promise((resolve, reject) => {
-        http.get(`${CDP_ENDPOINT}${path}`, (res) => {
-            let body = '';
-            res.on('data', chunk => body += chunk);
-            res.on('end', () => {
-                try {
-                    resolve(JSON.parse(body));
-                } catch (error) {
-                    reject(new Error(`Failed to parse JSON: ${error.message}`));
-                }
-            });
-        }).on('error', reject);
-    });
-}
-
-/**
- * Detect Surfingkeys extension ID
- */
-async function detectExtensionId() {
-    const targets = await fetchJson('/json');
-
-    // Look for Surfingkeys service worker
-    const sw = targets.find(t =>
-        t.type === 'service_worker' &&
-        (t.title === 'Surfingkeys' || t.url?.includes('surfingkeys'))
-    );
-
-    if (sw && sw.url) {
-        const match = sw.url.match(/chrome-extension:\/\/([a-z]+)/);
-        if (match) {
-            return match[1];
-        }
-    }
-
-    return null;
-}
 
 /**
  * Find chrome://extensions tab
@@ -84,32 +39,6 @@ async function findExtensionsTab(extensionId) {
     }
 
     return tab ? tab.webSocketDebuggerUrl : null;
-}
-
-/**
- * Send CDP command via WebSocket
- */
-function sendCommand(ws, method, params = {}) {
-    return new Promise((resolve, reject) => {
-        const id = messageId++;
-        const timeout = setTimeout(() => reject(new Error('Timeout')), 10000);
-
-        const handler = (data) => {
-            const msg = JSON.parse(data.toString());
-            if (msg.id === id) {
-                clearTimeout(timeout);
-                ws.removeListener('message', handler);
-                if (msg.error) {
-                    reject(new Error(msg.error.message));
-                } else {
-                    resolve(msg.result);
-                }
-            }
-        };
-
-        ws.on('message', handler);
-        ws.send(JSON.stringify({ id, method, params }));
-    });
 }
 
 /**
@@ -135,16 +64,18 @@ async function evaluateCode(ws, expression) {
 async function run(args) {
     console.log(`${colors.bright}Open Background DevTools Console${colors.reset}\n`);
 
-    // Detect extension
+    // Detect extension (with auto-wake if dormant)
     console.log(`${colors.cyan}Detecting extension...${colors.reset}`);
-    const extensionId = await detectExtensionId();
+    const logFn = (msg) => console.log(`  ${colors.dim || ''}${msg}${colors.reset}`);
+    const extInfo = await detectExtension(logFn);
 
-    if (!extensionId) {
-        console.error(`${colors.red}Error: Could not detect Surfingkeys extension ID${colors.reset}`);
+    if (!extInfo) {
+        console.error(`${colors.red}Error: Could not detect Surfingkeys extension${colors.reset}`);
         console.error(`Make sure the extension is installed and the browser is running with CDP on port ${CDP_PORT}\n`);
         process.exit(1);
     }
 
+    const extensionId = extInfo.id;
     console.log(`  Extension ID: ${colors.bright}${extensionId}${colors.reset}\n`);
 
     // Find chrome://extensions tab

@@ -8,7 +8,7 @@
  */
 
 const WebSocket = require('ws');
-const { detectExtension, findServiceWorker, sendCommand, CDP_PORT } = require('./extension-utils');
+const { detectExtension, findServiceWorker, sendCommand, CDP_PORT } = require('../lib/extension-utils');
 
 // Color utilities
 const colors = {
