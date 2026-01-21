@@ -48,6 +48,13 @@ function ensureCDPConnection(targetId) {
     ws.on('open', () => {
       log.info(`Connected to CDP target ${targetId.substring(0, 8)}... ✓`);
       cdpConnections.set(targetId, connObj);
+
+      // Subscribe to console and exception events
+      ws.send(JSON.stringify({
+        id: globalMessageId++,
+        method: 'Runtime.enable',
+      }));
+
       resolve(connObj);
     });
 
@@ -62,6 +69,26 @@ function ensureCDPConnection(targetId) {
           clearTimeout(pending.timeout);
           pending.resolve(msg);
           connObj.pendingRequests.delete(msg.id);
+        } else if (msg.method === 'Runtime.consoleAPICalled') {
+          // Capture console messages
+          const params = msg.params || {};
+          const level = params.type || 'log';
+          const args = params.args || [];
+          const message = args
+            .map(arg => {
+              if (arg.type === 'string') return arg.value;
+              if (arg.type === 'number') return String(arg.value);
+              if (arg.type === 'boolean') return String(arg.value);
+              if (arg.type === 'object' && arg.description) return arg.description;
+              return String(arg);
+            })
+            .join(' ');
+          log.response(`[${targetId.substring(0, 8)}...] [${level.toUpperCase()}] ${message}`);
+        } else if (msg.method === 'Runtime.exceptionThrown') {
+          // Capture exceptions
+          const exception = (msg.params || {}).exceptionDetails || {};
+          const message = exception.text || exception.description || 'Unknown exception';
+          log.response(`[${targetId.substring(0, 8)}...] [EXCEPTION] ${message}`);
         } else if (msg.method) {
           log.response(`[${targetId.substring(0, 8)}...] Event: ${msg.method}`);
         }

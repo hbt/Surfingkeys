@@ -22,6 +22,7 @@ const PROXY_PORT = 9623;
 const PROXY_HOST = '127.0.0.1';
 const CDP_PORT = 9222;
 const CDP_HOST = '127.0.0.1';
+const PROXY_LOG_FILE = '/tmp/dbg-proxy.log';
 
 let messageId = 1;
 
@@ -401,6 +402,11 @@ function formatResponse(response, options = {}) {
             output += '\n';
         }
 
+        // Show console capture info
+        if (response.metadata?.console?.logFile) {
+            output += `${colors.gray}Console log: ${response.metadata.console.logFile}${colors.reset}\n`;
+        }
+
         output += `${colors.gray}Timestamp: ${after.execution.timestamp}${colors.reset}\n`;
     }
 
@@ -505,6 +511,10 @@ ${colors.yellow}Examples:${colors.reset}
             metadata: {
                 before: metadataBefore,
                 after: metadataAfter,
+                console: {
+                    logFile: fs.existsSync(PROXY_LOG_FILE) ? PROXY_LOG_FILE : null,
+                    note: 'Captured by proxy (bin/dbg proxy-start)',
+                },
             },
         };
 
