@@ -177,6 +177,12 @@ function loadRawSettings(keys, cb, defaultSet) {
 }
 
 function _applyProxySettings(proxyConf) {
+    // Chrome doesn't allow modifying regular-scoped settings in incognito contexts
+    if (chrome.extension.inIncognitoContext) {
+        console.warn('[PROXY] Skipping proxy settings in incognito context');
+        return;
+    }
+
     if (!proxyConf.proxyMode || proxyConf.proxyMode === 'clear') {
         chrome.proxy.settings.clear({scope: 'regular'});
     } else {
