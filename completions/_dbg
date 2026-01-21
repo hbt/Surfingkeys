@@ -1,0 +1,85 @@
+#compdef dbg
+
+# Zsh completion script for bin/dbg
+#
+# Dynamically discovers actions from scripts/dbg/actions/ directory
+#
+# Installation:
+#   1. Copy this file to a directory in your $fpath (e.g., /usr/local/share/zsh/site-functions/)
+#   2. Or add the completions/ directory to your fpath in ~/.zshrc:
+#      fpath=(/path/to/surfingkeys/completions $fpath)
+#   3. Reload completions: autoload -U compinit && compinit
+
+_dbg() {
+    local -a actions
+    local actions_dir project_root
+
+    # Find project root by looking for bin/dbg
+    project_root="${${(%):-%x}:A:h:h}"  # Go up from completions/ to project root
+
+    # If bin/dbg doesn't exist at that location, try to find it
+    if [[ ! -f "$project_root/bin/dbg" ]]; then
+        # Look for bin/dbg in current directory and parent directories
+        local dir="$PWD"
+        while [[ "$dir" != "/" ]]; do
+            if [[ -f "$dir/bin/dbg" ]]; then
+                project_root="$dir"
+                break
+            fi
+            dir="${dir:h}"
+        done
+    fi
+
+    actions_dir="$project_root/scripts/dbg/actions"
+
+    # Dynamically discover actions from filesystem
+    if [[ -d "$actions_dir" ]]; then
+        for action_file in "$actions_dir"/*.js; do
+            if [[ -f "$action_file" ]]; then
+                local action="${action_file:t:r}"  # Get basename without extension
+                local description=""
+
+                # Try to extract description from JSDoc comment (line 3-4 typically)
+                description=$(sed -n '3,5s/^ \* \(.*\)/\1/p' "$action_file" | head -1)
+
+                # Fallback to generic description if parsing fails
+                if [[ -z "$description" || "$description" == "/**" || "$description" == "*/" ]]; then
+                    description="Run $action action"
+                fi
+
+                actions+=("$action:$description")
+            fi
+        done
+    else
+        # Fallback: static list if directory not found
+        actions=(
+            'reload:Reload the extension using multiple fallback methods'
+            'clear-errors:Clear all stored extension errors'
+            'errors-clear:Clear all stored extension errors (alias)'
+            'errors-list:List all stored extension errors'
+            'open-background:Open background service worker DevTools console'
+        )
+    fi
+
+    local -a options
+    options=(
+        '(- *)'{-h,--help}'[Show help message]'
+    )
+
+    _arguments -C -S -A "-*" \
+        "${options[@]}" \
+        '1: :->action' \
+        '*::arg:->args' && return 0
+
+    case $state in
+        action)
+            _describe -t actions 'action' actions && return 0
+            ;;
+    esac
+
+    return 1
+}
+
+# Bind completion to both the full path and the alias
+compdef _dbg bin/dbg
+compdef _dbg dbg

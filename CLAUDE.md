@@ -41,7 +41,6 @@ npm run test:cdp:live tests/cdp/cdp-keyboard.test.ts
 - docs/api.md General API (generated using npm run build:doc)
 - docs/cmds.md Keyboard commands (generated using npm run build:doc-cmds)
 - docs/ui-flow.md UI screens and flows
-- docs/testing.md (error logging, debugging, testing)
 - docs/adrs ADRs 
 - docs/migration Current migration process 
 - docs/c4 C2 and C3 architecture 
