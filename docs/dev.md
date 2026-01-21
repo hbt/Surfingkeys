@@ -32,6 +32,44 @@ echo '{"targetId": "'$TARGET'", "method": "Runtime.evaluate", "params": {"expres
 
 See [docs/cdp/proxy.md](./proxy.md) for more examples and request format details.
 
+## CDP + sk-cdp CLI (Recommended)
+
+**Strengths:**
+- Clean DX - no JSON escaping or shell quoting hell
+- Multi-line code support via heredocs
+- Auto-target discovery
+- Better error display
+- Proper output formatting
+- Fast iteration - still no build step
+
+**Weaknesses:**
+- One extra CLI tool to learn (but worth it)
+- Still runtime-only, not persistent
+
+**Usage:**
+
+Simple expression:
+```bash
+sk-cdp eval "document.body.style.backgroundColor"
+```
+
+Target selection:
+```bash
+sk-cdp eval --target options.html "document.querySelectorAll('input').length"
+```
+
+Multi-line code:
+```bash
+sk-cdp eval --target options.html <<'CODE'
+(function() {
+  const inputs = document.querySelectorAll('input');
+  return Array.from(inputs).map(i => i.type);
+})()
+CODE
+```
+
+See [docs/cdp/sk-cdp.md](./cdp/sk-cdp.md) for full reference and examples.
+
 ## CDP Debug Scripts (TypeScript)
 
 **Strengths:**
@@ -83,9 +121,19 @@ Automatically:
 
 ## Hybrid approach I actually used
 
-1. CDP + proxy for quick inspection/exploration
+1. **sk-cdp** for quick inspection/exploration (or websocat for ultra-quick one-liners)
 2. Source modification for actual implementation
-3. dbg reload for verification
+3. **bin/dbg reload** for verification
 4. Screenshot for final confirmation
 
-This workflow makes sense because CDP exploration is fast, source changes are persistent, dbg reload validates the real build pipeline, and screenshots provide visual confirmation that everything works as intended.
+This workflow makes sense because:
+- sk-cdp exploration is fast and clean (no JSON escaping)
+- Source changes are persistent
+- bin/dbg reload validates the real build pipeline (~400ms)
+- Screenshots provide visual confirmation
+
+**When to use what:**
+- Inspection: `sk-cdp eval "..."` (most of the time)
+- One-liner: `websocat ...` (when you already know the CDP command)
+- Complex scenario: CDP debug script in `debug/`
+- Shipping: Source code + `bin/dbg reload`

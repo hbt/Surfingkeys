@@ -10,7 +10,7 @@ more debugging: `./bin/dbg --help` - returns JSON
 
 See **[docs/dev.md](docs/dev.md)** for comprehensive guide to all 3 debugging strategies.
 
-### 1. CDP + Proxy (Fastest iteration)
+### 1a. CDP + Proxy via websocat (Fastest one-liners)
 Start proxy: `./bin/dbg proxy-start`
 
 One-liner CDP commands via websocat (instant feedback, no build):
@@ -20,7 +20,25 @@ echo '{"targetId": "...", "method": "Runtime.evaluate", "params": {...}}' | webs
 
 See [docs/cdp/proxy.md](docs/cdp/proxy.md) for examples.
 
-**Use this for:** Quick inspection, rapid iteration, testing code snippets
+**Use this for:** Very quick single-line checks, minimal overhead
+
+### 1b. CDP + sk-cdp CLI (Recommended for most cases)
+Start proxy: `./bin/dbg proxy-start`
+
+Simplified wrapper with no JSON escaping:
+```bash
+sk-cdp eval "document.body.style.backgroundColor"
+sk-cdp eval --target options.html "document.querySelectorAll('input').length"
+sk-cdp eval --target options.html <<'CODE'
+(function() {
+  return { test: 123 };
+})()
+CODE
+```
+
+See [docs/cdp/sk-cdp.md](docs/cdp/sk-cdp.md) for full reference.
+
+**Use this for:** Inspections, multi-line code, better error display, no escaping hell
 
 ### 2. CDP Debug Scripts (Reusable patterns)
 ```bash

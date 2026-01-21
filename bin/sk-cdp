@@ -1,0 +1,337 @@
+#!/usr/bin/env node
+/**
+ * sk-cdp - Simplified CDP CLI wrapper for Surfingkeys debugging
+ *
+ * Wraps the CDP proxy to eliminate JSON escaping and provide a better DX
+ *
+ * Examples:
+ *   sk-cdp eval "document.body.style.backgroundColor"
+ *   sk-cdp eval --target options.html "document.querySelectorAll('input').length"
+ *   sk-cdp eval --target options.html <<'CODE'
+ *     const inputs = document.querySelectorAll('input');
+ *     return Array.from(inputs).map(i => i.value);
+ *   CODE
+ */
+
+const http = require('http');
+const WebSocket = require('ws');
+const fs = require('fs');
+
+// Configuration
+const PROXY_PORT = 9623;
+const PROXY_HOST = '127.0.0.1';
+const CDP_PORT = 9222;
+const CDP_HOST = '127.0.0.1';
+
+let messageId = 1;
+
+const colors = {
+    reset: '\x1b[0m',
+    bright: '\x1b[1m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    cyan: '\x1b[36m',
+    red: '\x1b[31m',
+    gray: '\x1b[90m',
+};
+
+/**
+ * Parse command line arguments
+ */
+function parseArgs() {
+    const args = process.argv.slice(2);
+    const parsed = {
+        command: args[0],
+        target: null,
+        expression: null,
+        watchErrors: false,
+        json: false,
+        raw: false,
+        args: [],
+    };
+
+    let i = 1;
+    while (i < args.length) {
+        if (args[i] === '--target') {
+            parsed.target = args[++i];
+        } else if (args[i] === '--watch-errors') {
+            parsed.watchErrors = true;
+        } else if (args[i] === '--json') {
+            parsed.json = true;
+        } else if (args[i] === '--raw') {
+            parsed.raw = true;
+        } else if (!args[i].startsWith('--')) {
+            parsed.expression = args[i];
+            break;
+        }
+        i++;
+    }
+
+    return parsed;
+}
+
+/**
+ * Find target by URL pattern
+ */
+async function findTarget(pattern) {
+    return new Promise((resolve, reject) => {
+        http.get(`http://${CDP_HOST}:${CDP_PORT}/json`, (res) => {
+            let body = '';
+            res.on('data', chunk => (body += chunk));
+            res.on('end', () => {
+                try {
+                    const targets = JSON.parse(body);
+                    let target;
+
+                    if (!pattern) {
+                        // Find first extension page
+                        target = targets.find(t =>
+                            t.type === 'page' && t.url?.includes('chrome-extension')
+                        );
+                    } else {
+                        // Find by pattern
+                        target = targets.find(t =>
+                            t.type === 'page' && t.url?.includes(pattern)
+                        );
+                    }
+
+                    if (target) {
+                        resolve(target);
+                    } else {
+                        reject(new Error(`Target not found matching: ${pattern || 'extension'}`));
+                    }
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        }).on('error', reject);
+    });
+}
+
+/**
+ * Send command via proxy
+ */
+function sendViaProxy(targetId, method, params) {
+    return new Promise((resolve, reject) => {
+        const command = {
+            targetId,
+            method,
+            params,
+        };
+
+        const data = JSON.stringify(command);
+        const ws = new WebSocket(`ws://${PROXY_HOST}:${PROXY_PORT}`);
+
+        const timeout = setTimeout(() => {
+            ws.close();
+            reject(new Error('Timeout waiting for response'));
+        }, 5000);
+
+        ws.on('open', () => {
+            ws.send(data);
+        });
+
+        ws.on('message', (msg) => {
+            clearTimeout(timeout);
+            ws.close();
+
+            try {
+                const response = JSON.parse(msg);
+                resolve(response);
+            } catch (e) {
+                reject(e);
+            }
+        });
+
+        ws.on('error', (err) => {
+            clearTimeout(timeout);
+            reject(err);
+        });
+    });
+}
+
+/**
+ * Evaluate JavaScript expression on target
+ */
+async function evalExpression(targetId, expression) {
+    const response = await sendViaProxy(
+        targetId,
+        'Runtime.evaluate',
+        {
+            expression,
+            returnByValue: true,
+            awaitPromise: true,
+        }
+    );
+
+    return response;
+}
+
+/**
+ * Format response for display
+ */
+function formatResponse(response, options = {}) {
+    if (options.raw) {
+        return JSON.stringify(response, null, 2);
+    }
+
+    if (options.json) {
+        return JSON.stringify(response, null, 2);
+    }
+
+    // Pretty print
+    let output = '';
+
+    // Check for proxy-level errors
+    if (response.error) {
+        output += `${colors.red}❌ Error: ${response.error.message}${colors.reset}\n`;
+        return output;
+    }
+
+    // Extract result
+    const result = response.result?.result;
+
+    if (!result) {
+        output += `${colors.gray}(no result)${colors.reset}\n`;
+        return output;
+    }
+
+    // Check for JavaScript exceptions
+    if (response.result?.exceptionDetails) {
+        const exc = response.result.exceptionDetails;
+        output += `${colors.red}❌ Exception: ${result.description || exc.text}${colors.reset}\n`;
+        return output;
+    }
+
+    // Format based on type
+    if (result.type === 'string') {
+        output += `${colors.green}"${result.value}"${colors.reset}\n`;
+    } else if (result.type === 'number') {
+        output += `${colors.cyan}${result.value}${colors.reset}\n`;
+    } else if (result.type === 'boolean') {
+        output += `${colors.yellow}${result.value}${colors.reset}\n`;
+    } else if (result.type === 'object') {
+        if (result.subtype === 'error') {
+            output += `${colors.red}${result.description}${colors.reset}\n`;
+        } else {
+            output += `${colors.bright}${JSON.stringify(result.value, null, 2)}${colors.reset}\n`;
+        }
+    } else if (result.type === 'undefined') {
+        output += `${colors.gray}undefined${colors.reset}\n`;
+    } else {
+        output += `${result.type}: ${JSON.stringify(result.value)}\n`;
+    }
+
+    return output;
+}
+
+/**
+ * Read stdin if available
+ */
+function readStdin() {
+    return new Promise((resolve) => {
+        if (process.stdin.isTTY) {
+            resolve(null);
+            return;
+        }
+
+        let data = '';
+        process.stdin.setEncoding('utf8');
+
+        process.stdin.on('readable', () => {
+            let chunk;
+            while ((chunk = process.stdin.read()) !== null) {
+                data += chunk;
+            }
+        });
+
+        process.stdin.on('end', () => {
+            resolve(data.trim());
+        });
+    });
+}
+
+/**
+ * Main CLI handler
+ */
+async function main() {
+    const opts = parseArgs();
+
+    if (!opts.command) {
+        console.log(`${colors.bright}sk-cdp${colors.reset} - CDP debugging CLI
+
+${colors.yellow}Usage:${colors.reset}
+  sk-cdp eval [OPTIONS] "expression"
+  sk-cdp eval [OPTIONS] <<'CODE'
+    multiline code here
+  CODE
+
+${colors.yellow}Options:${colors.reset}
+  --target PATTERN    Target to debug (default: first extension page)
+  --watch-errors      Log any console errors
+  --json              Output raw JSON
+  --raw               Show raw response object
+
+${colors.yellow}Examples:${colors.reset}
+  sk-cdp eval "document.body.style.backgroundColor"
+  sk-cdp eval --target options.html "document.querySelectorAll('input').length"
+  sk-cdp eval --target options.html <<'CODE'
+    const inputs = document.querySelectorAll('input');
+    return Array.from(inputs).map(i => i.value);
+  CODE
+`);
+        process.exit(0);
+    }
+
+    if (opts.command !== 'eval') {
+        console.error(`${colors.red}Unknown command: ${opts.command}${colors.reset}`);
+        process.exit(1);
+    }
+
+    try {
+        // Get expression from args or stdin
+        let expression = opts.expression;
+
+        if (!expression) {
+            expression = await readStdin();
+        }
+
+        if (!expression) {
+            console.error(`${colors.red}No expression provided${colors.reset}`);
+            process.exit(1);
+        }
+
+        // Find target
+        const target = await findTarget(opts.target);
+
+        if (!target) {
+            throw new Error('No matching target found');
+        }
+
+        // Evaluate
+        const response = await evalExpression(target.id, expression);
+
+        // Format and display
+        const formatted = formatResponse(response, {
+            json: opts.json,
+            raw: opts.raw,
+        });
+
+        process.stdout.write(formatted);
+
+        // Check for errors if watching
+        if (opts.watchErrors && response.result?.exceptionDetails) {
+            console.error(
+                `${colors.red}⚠️  Exception: ${response.result.exceptionDetails.text}${colors.reset}`
+            );
+            process.exit(1);
+        }
+
+        process.exit(0);
+    } catch (error) {
+        console.error(`${colors.red}❌ ${error.message}${colors.reset}`);
+        process.exit(1);
+    }
+}
+
+main();
