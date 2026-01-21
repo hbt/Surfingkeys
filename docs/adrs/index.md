@@ -25,13 +25,16 @@ Each ADR follows this structure:
 | [ADR-003](adr-003-cdp-message-bridge.md) | CDP Message Bridge for extension testing | Accepted | 2026-01-20 | Enable programmatic testing via Chrome DevTools Protocol |
 | [ADR-004](adr-004-cdp-reload-test-simplification.md) | CDP Reload Test Simplification | Accepted | 2026-01-20 | Fix hanging test by simplifying scope to bridge verification |
 | [ADR-005](adr-005-global-error-logging.md) | Global Error Logging and Tracking | Accepted | 2026-01-21 | Capture and persist all unhandled errors for debugging |
-| [ADR-007](adr-007-startup-settings-persistence.md) | Startup Settings Persistence Pattern | Accepted | 2026-01-22 | Enable user config settings in early-firing background listeners |
+| [ADR-006](adr-006-config-consolidation.md) | Config Consolidation | Accepted | 2026-01-21 | Centralize and deduplicate user configuration handling |
+| [ADR-007](adr-007-service-worker-dormancy-wake.md) | Service Worker Dormancy and Wake Pattern | Accepted | 2026-01-21 | Auto-wake dormant service worker for reliable command execution |
+| [ADR-008](adr-008-startup-settings-persistence.md) | Startup Settings Persistence Pattern | Accepted | 2026-01-22 | Enable user config settings in early-firing background listeners |
+| [ADR-009](adr-009-command-metadata-system.md) | Command Metadata System for Persistent Identification | Accepted | 2026-01-22 | Track commands by ID instead of key for remap-safe statistics |
 
 ## adrs.status_summary
 
 | Status | Count | ADRs |
 |--------|-------|------|
-| Accepted | 6 | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-007 |
+| Accepted | 9 | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009 |
 | Proposed | 0 | - |
 | Deprecated | 0 | - |
 | Superseded | 0 | - |
@@ -40,7 +43,7 @@ Each ADR follows this structure:
 
 | Migration Status | Count | ADRs |
 |------------------|-------|------|
-| **Namespaced format** | 6 | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-007 |
+| **Namespaced format** | 9 | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009 |
 
 **Status**: All ADRs using namespaced section format (e.g., `meta.status`, `context.problem`).
 
@@ -75,6 +78,24 @@ Error Handling & Observability Layer:
 │ (Depends on: ADR-001 for bundled code)         │
 │ (Related to: ADR-003 for CDP testing pattern)  │
 └────────────────────────────────────────────────┘
+
+Configuration & Settings Layer:
+┌────────────────────────────────────────────────┐
+│ ADR-006: Config Consolidation                 │
+│ (Independent - foundational)                   │
+├────────────────────────────────────────────────┤
+│ ADR-007: Service Worker Dormancy/Wake         │
+│ (Independent - lifecycle management)           │
+├────────────────────────────────────────────────┤
+│ ADR-008: Startup Settings Persistence         │
+│ (Depends on: ADR-006 for config structure)     │
+└────────────────────────────────────────────────┘
+
+Analytics & Command Tracking Layer:
+┌────────────────────────────────────────────────┐
+│ ADR-009: Command Metadata System               │
+│ (Independent - extends tracking system)        │
+└────────────────────────────────────────────────┘
 ```
 
 ### adrs.relationships.by_concern
@@ -85,7 +106,8 @@ Error Handling & Observability Layer:
 | **Repository Management** | ADR-002 | Foundation - no dependencies |
 | **Testing Infrastructure** | ADR-003, ADR-004 | ADR-003 requires ADR-001 (esbuild bundled code structure)<br>ADR-004 requires ADR-003 (CDP message bridge) |
 | **Error Handling & Observability** | ADR-005 | ADR-005 requires ADR-001 (esbuild bundled code structure)<br>ADR-005 related to ADR-003 (CDP testing pattern) |
-| **Configuration & Settings** | ADR-007 | Independent - extends existing conf/updateSettings pattern |
+| **Configuration & Settings** | ADR-006, ADR-007, ADR-008 | ADR-006 foundation<br>ADR-007 independent (lifecycle)<br>ADR-008 requires ADR-006 (config structure) |
+| **Analytics & Command Tracking** | ADR-009 | Independent - extends usage tracking system |
 
 ## adrs.usage
 
