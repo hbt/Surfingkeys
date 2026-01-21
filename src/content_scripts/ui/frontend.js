@@ -720,6 +720,33 @@ const Front = (function() {
         }
     };
 
+    // Color map for shortcut characters - maps each character to a unique color
+    const charColorMap = {};
+    const charColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B195', '#FFCCAA'];
+    let colorIndex = 0;
+
+    function getCharColor(char) {
+        if (!charColorMap[char]) {
+            charColorMap[char] = charColors[colorIndex++ % charColors.length];
+        }
+        return charColorMap[char];
+    }
+
+    function colorizeNextKey(nextKey) {
+        const decodedKey = KeyboardUtils.decodeKeystroke(nextKey);
+        const firstChar = htmlEncode(decodedKey[0]);
+        const firstCharColor = getCharColor(decodedKey[0]);
+
+        if (decodedKey.length <= 1) {
+            // Single character: color and enlarge it
+            return `<span style="color:${firstCharColor};font-size:1.4em;font-weight:bold">${firstChar}</span>`;
+        }
+
+        // Multi-character: color and enlarge first, make rest white (neutral)
+        const restChars = htmlEncode(decodedKey.slice(1));
+        return `<span style="color:${firstCharColor};font-size:1.4em;font-weight:bold">${firstChar}</span><span style="color:#fff">${restChars}</span>`;
+    }
+
     function showRichHints(keyHints) {
         initL10n(function (locale) {
             var words = keyHints.accumulated;
@@ -728,7 +755,7 @@ const Front = (function() {
                 const annotation = localizeAnnotation(locale, cc[w].annotation);
                 if (annotation) {
                     const nextKey = w.substr(keyHints.accumulated.length);
-                    return `<div><span class=kbd-span><kbd>${htmlEncode(KeyboardUtils.decodeKeystroke(keyHints.accumulated))}<span class=candidates>${htmlEncode(KeyboardUtils.decodeKeystroke(nextKey))}</span></kbd></span><span class=annotation>${annotation}</span></div>`;
+                    return `<div><span class=kbd-span><kbd>${colorizeNextKey(nextKey)}</kbd></span><span class=annotation>${annotation}</span></div>`;
                 } else {
                     return "";
                 }
