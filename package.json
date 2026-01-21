@@ -22,6 +22,7 @@
     "test": "jest",
     "test:cdp:headless": "node tests/cdp/run-headless.js",
     "test:cdp:headless:all": "find tests/cdp -name '*.test.ts' -type f | xargs -P 16 -I {} npm run test:cdp:headless {}",
+    "test:cdp:headless:seq": "node tests/cdp/run-all-sequential.js",
     "test:cdp:live": "node tests/cdp/run-live.js",
     "debug:cdp:headless": "node debug/run-headless.js",
     "debug:cdp:live": "node debug/run-live.js",
