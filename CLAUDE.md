@@ -20,6 +20,14 @@ npm run debug:cdp:live debug/cdp-debug-live-modification-tabs.ts
 - **Debug scripts** (`debug/`): Temporary exploratory tools for investigation, prototyping, and iteration. May be kept in git for reference but are not maintained after the debugging session ends (e.g., may break with API changes)
 - **Test scripts** (`tests/`): Permanent, stable regression tests that are actively maintained and must remain functional
 
+### Service Worker Dormancy
+Chrome service workers go dormant after ~30 seconds of inactivity. When CDP scripts fail with "extension not found", wake the service worker by opening any extension page:
+```bash
+# Via browser API
+curl -s http://127.0.0.1:9222/json/version | jq -r .webSocketDebuggerUrl
+# Then send Target.createTarget with url: "chrome-extension://<id>/pages/options.html"
+```
+
 
 ## Automated Testing using Jest
 

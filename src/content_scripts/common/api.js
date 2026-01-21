@@ -442,6 +442,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
             }, type, useNeovim);
         },
         "front:openOmnibar": front.openOmnibar,
+        "front:showUsage": front.showUsage,
         "normal:feedkeys": normal.feedkeys,
         "normal:jumpVIMark": normal.jumpVIMark,
         "normal:passThrough": normal.passThrough,
@@ -523,6 +524,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
             showEditor: front.showEditor,
             showBanner,
             showPopup,
+            showUsage: front.showUsage,
         },
     };
 }

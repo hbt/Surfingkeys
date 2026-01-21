@@ -276,6 +276,9 @@ const api = {
         openOmnibar: (args) => {
             dispatchSKEvent('api', ['front:openOmnibar', args]);
         },
+        showUsage: () => {
+            dispatchSKEvent('api', ['front:showUsage']);
+        },
         showBanner,
         showPopup
     },
