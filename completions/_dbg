@@ -1,6 +1,6 @@
-#compdef dbg
+#compdef dbg bin/dbg
 
-# Zsh completion script for bin/dbg
+# Zsh completion script for bin/dbg and dbg alias
 #
 # Dynamically discovers actions from scripts/dbg/actions/ directory
 #
@@ -80,6 +80,4 @@ _dbg() {
     return 1
 }
 
-# Bind completion to both the full path and the alias
-compdef _dbg bin/dbg
-compdef _dbg dbg
+_dbg "$@"

@@ -41,6 +41,7 @@ const colors = {
 // Available actions with descriptions
 const ACTIONS = {
     'reload': 'Reload the extension using multiple fallback methods',
+    'config-set': 'Set external config file path in chrome.storage.local',
     'clear-errors': 'Clear all stored extension errors',
     'errors-clear': 'Clear all stored extension errors (alias)',
     'errors-list': 'List all stored extension errors',
