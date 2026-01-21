@@ -130,6 +130,64 @@ async function evaluateCode(ws, expression) {
 }
 
 /**
+ * Get extension start timestamp (to verify reload)
+ */
+async function getExtensionStartTime() {
+    const swWsUrl = await findServiceWorker();
+    if (!swWsUrl) {
+        return null;
+    }
+
+    const ws = new WebSocket(swWsUrl);
+
+    return new Promise((resolve) => {
+        ws.on('open', async () => {
+            try {
+                await sendCommand(ws, 'Runtime.enable');
+
+                // Get timestamp when extension started (or a unique identifier)
+                const startTime = await evaluateCode(ws, `
+                    (function() {
+                        // Use a global timestamp or create one
+                        if (!globalThis.__EXTENSION_START_TIME__) {
+                            globalThis.__EXTENSION_START_TIME__ = Date.now();
+                        }
+                        return globalThis.__EXTENSION_START_TIME__;
+                    })()
+                `);
+
+                ws.close();
+                resolve(startTime);
+            } catch (error) {
+                ws.close();
+                resolve(null);
+            }
+        });
+
+        ws.on('error', () => {
+            resolve(null);
+        });
+    });
+}
+
+/**
+ * Wait for service worker to become available after reload
+ */
+async function waitForServiceWorker(maxWaitMs = 5000) {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < maxWaitMs) {
+        const swWsUrl = await findServiceWorker();
+        if (swWsUrl) {
+            return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    return false;
+}
+
+/**
  * Method 1: Reload using CDP Message Bridge
  */
 async function reloadViaBridge(extensionId) {
@@ -142,9 +200,22 @@ async function reloadViaBridge(extensionId) {
     }
 
     log(`Connecting to service worker: ${swWsUrl}`);
+
+    // Step 1: Get timestamp BEFORE reload
+    log('Getting extension start timestamp before reload...');
+    const timestampBefore = await getExtensionStartTime();
+
+    if (!timestampBefore) {
+        log('✗ Could not get start timestamp');
+        return { success: false, error: 'Could not get start timestamp' };
+    }
+
+    log(`Start timestamp before reload: ${timestampBefore}`);
+
+    // Step 2: Trigger reload
     const ws = new WebSocket(swWsUrl);
 
-    return new Promise((resolve) => {
+    const reloadResult = await new Promise((resolve) => {
         ws.on('open', async () => {
             try {
                 await sendCommand(ws, 'Runtime.enable');
@@ -180,24 +251,86 @@ async function reloadViaBridge(extensionId) {
                 ws.close();
 
                 if (result && result.status === 'reload_initiated') {
-                    log('✓ Extension reload initiated successfully');
-                    resolve({ success: true, method: 'cdp_bridge', response: result });
+                    log('✓ Extension reload initiated');
+                    resolve({ initiated: true, response: result });
                 } else {
                     log(`✗ Unexpected response: ${JSON.stringify(result)}`);
-                    resolve({ success: false, error: 'Unexpected response from bridge', response: result });
+                    resolve({ initiated: false, error: 'Unexpected response from bridge', response: result });
                 }
             } catch (error) {
                 log(`✗ Error: ${error.message}`);
                 ws.close();
-                resolve({ success: false, error: error.message });
+                resolve({ initiated: false, error: error.message });
             }
         });
 
         ws.on('error', (error) => {
             log(`✗ WebSocket error: ${error.message}`);
-            resolve({ success: false, error: error.message });
+            resolve({ initiated: false, error: error.message });
         });
     });
+
+    if (!reloadResult.initiated) {
+        return { success: false, error: reloadResult.error };
+    }
+
+    // Step 3: Wait a bit for reload to actually happen (cdpReloadExtension has 100ms delay)
+    log('Waiting for reload to execute...');
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Step 4: Wait for service worker to come back up
+    log('Waiting for service worker to restart...');
+    const swAvailable = await waitForServiceWorker(5000);
+
+    if (!swAvailable) {
+        log('✗ Service worker did not restart within timeout');
+        return {
+            success: false,
+            error: 'Service worker did not restart',
+            reloadInitiated: true
+        };
+    }
+
+    log('Service worker available again');
+
+    // Step 5: Get timestamp AFTER reload
+    log('Getting extension start timestamp after reload...');
+    const timestampAfter = await getExtensionStartTime();
+
+    if (!timestampAfter) {
+        log('✗ Could not get start timestamp after reload');
+        return {
+            success: false,
+            error: 'Could not verify reload',
+            reloadInitiated: true,
+            serviceWorkerRestarted: true
+        };
+    }
+
+    log(`Start timestamp after reload: ${timestampAfter}`);
+
+    // Step 6: Verify timestamps are different
+    if (timestampAfter !== timestampBefore) {
+        log(`✓ Reload verified! Timestamp changed: ${timestampBefore} → ${timestampAfter}`);
+        return {
+            success: true,
+            method: 'cdp_bridge',
+            verified: true,
+            timestampBefore,
+            timestampAfter,
+            reloadDuration: Date.now() - reloadResult.response.timestamp
+        };
+    } else {
+        log(`✗ Timestamps match - reload may not have occurred`);
+        return {
+            success: false,
+            error: 'Reload verification failed - timestamps unchanged',
+            reloadInitiated: true,
+            serviceWorkerRestarted: true,
+            timestampBefore,
+            timestampAfter
+        };
+    }
 }
 
 /**
@@ -264,13 +397,10 @@ async function run(args) {
 
         logStream.end();
 
-        // Output JSON result
+        // Output JSON result (spread all result fields)
         console.log(JSON.stringify({
-            success: result.success,
-            method: result.method,
+            ...result,
             extensionId: extensionId,
-            response: result.response,
-            error: result.error,
             log: LOG_FILE
         }));
 
