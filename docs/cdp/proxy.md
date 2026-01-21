@@ -22,17 +22,64 @@ Set in `.env` file at project root.
 
 ## proxy.usage
 
-### Step 1: Get extension target ID
+### Quick Start: Get extension target ID
 
 ```bash
 TARGET=$(curl -s http://127.0.0.1:9222/json | jq -r '.[] | select(.url | contains("chrome-extension")) | .id' | head -1)
 ```
 
-### Step 2: Send command via proxy
+### Example 1: Open Options Page
 
 ```bash
-echo '{"targetId": "'$TARGET'", "method": "Runtime.evaluate", "params": {"expression": "new Promise((r)=>chrome.tabs.create({url:\"https://www.google.com\"},r))", "returnByValue": true, "awaitPromise": true}}' | websocat ws://127.0.0.1:9623
+TARGET=$(curl -s http://127.0.0.1:9222/json | jq -r '.[] | select(.url | contains("options.html")) | .id' | head -1)
+echo '{"targetId": "'$TARGET'", "method": "Runtime.evaluate", "params": {"expression": "chrome.runtime.openOptionsPage()", "returnByValue": true}}' | websocat ws://127.0.0.1:9623
 ```
+
+### Example 2: Inspect DOM (Count elements)
+
+```bash
+TARGET=$(curl -s http://127.0.0.1:9222/json | jq -r '.[] | select(.url | contains("options.html")) | .id' | head -1)
+echo '{"targetId": "'$TARGET'", "method": "Runtime.evaluate", "params": {"expression": "document.querySelectorAll(\"*\").length", "returnByValue": true}}' | websocat ws://127.0.0.1:9623
+```
+
+Response: `{"result":{"result":{"type":"number","value":422}}}`
+
+### Example 3: Query List of Open Tabs
+
+```bash
+TARGET=$(curl -s http://127.0.0.1:9222/json | jq -r '.[] | select(.url | contains("chrome-extension")) | .id' | head -1)
+echo '{"targetId": "'$TARGET'", "method": "Runtime.evaluate", "params": {"expression": "chrome.tabs.query({}).then(t => ({count: t.length, titles: t.map(tab => tab.title)}))", "returnByValue": true, "awaitPromise": true}}' | websocat ws://127.0.0.1:9623
+```
+
+Response includes tab count and titles.
+
+### Example 4: Capture Screenshot
+
+```bash
+TARGET=$(curl -s http://127.0.0.1:9222/json | jq -r '.[] | select(.url | contains("options.html")) | .id' | head -1)
+echo '{"targetId": "'$TARGET'", "method": "Runtime.evaluate", "params": {"expression": "chrome.tabs.captureVisibleTab().then(data => ({length: data.length, type: typeof data}))", "returnByValue": true, "awaitPromise": true}}' | websocat ws://127.0.0.1:9623
+```
+
+Response: Base64-encoded PNG data. Pipe to file: `| jq -r '.result.result.value' | base64 -d > screenshot.png`
+
+### Example 5: List Available Targets
+
+```bash
+curl -s http://127.0.0.1:9222/json | jq '.[] | select(.type == "page") | {id: .id, title: .title, type: .type}'
+```
+
+Shows all available pages and extensions currently attached to DevTools.
+
+### Example 6: Attach to Different Target
+
+Query a different target (e.g., Google Search page) instead of the options page:
+
+```bash
+TARGET=$(curl -s http://127.0.0.1:9222/json | jq -r '.[] | select(.title | contains("Google")) | .id' | head -1)
+echo '{"targetId": "'$TARGET'", "method": "Runtime.evaluate", "params": {"expression": "document.title", "returnByValue": true}}' | websocat ws://127.0.0.1:9623
+```
+
+Simply change the `select()` filter to target a different page by title, URL, or type.
 
 ## proxy.request-format
 
