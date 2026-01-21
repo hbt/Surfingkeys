@@ -7,6 +7,9 @@
  */
 
 module.exports = {
+    // Set root directory to project root (one level up from config/)
+    rootDir: '..',
+
     // Use node environment (not jsdom)
     testEnvironment: 'node',
 

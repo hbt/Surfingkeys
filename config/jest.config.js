@@ -1,4 +1,6 @@
 module.exports = {
+    // Set root directory to project root (one level up from config/)
+    rootDir: '..',
     testEnvironment: 'jsdom',
     clearMocks: true,
     collectCoverage: true,

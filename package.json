@@ -16,13 +16,13 @@
     "build:prod": "node ./config/esbuild.config.js production",
     "build": "npm-run-all clean test build:doc build:doc-chrome-api build:prod",
     "watch": "node ./config/esbuild.config.js development --watch",
-    "test": "jest",
+    "test": "jest --config=config/jest.config.js",
     "test:cdp:headless": "node tests/cdp/run-headless.js",
     "test:cdp:headless:all": "find tests/cdp -name '*.test.ts' -type f | xargs -P 16 -I {} npm run test:cdp:headless {}",
     "test:cdp:live": "node tests/cdp/run-live.js",
     "debug:cdp:headless": "node debug/run-headless.js",
     "debug:cdp:live": "node debug/run-live.js",
-    "lint": "eslint src tests debug scripts --ext .js,.ts"
+    "lint": "eslint --config config/eslint.config.js src tests debug scripts --ext .js,.ts"
   },
   "repository": {
     "type": "git",
