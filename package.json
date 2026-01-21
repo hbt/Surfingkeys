@@ -23,7 +23,7 @@
     "test:cdp:live": "node tests/cdp/run-live.js",
     "debug:cdp:headless": "node debug/run-headless.js",
     "debug:cdp:live": "node debug/run-live.js",
-    "lint": "npm-run-all --parallel lint:js lint:css",
+    "lint": "node scripts/run-lint.js",
     "lint:js": "eslint --config config/eslint.config.js src tests debug scripts --ext .js,.ts",
     "lint:css": "stylelint --config config/stylelint.config.js 'src/**/*.css'"
   },
