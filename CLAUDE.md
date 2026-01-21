@@ -3,27 +3,14 @@
 
 ## Development Commands
 
-build: `npm run esbuild:dev`
-reload extension: `xdotool key alt+shift+r`
-
-
-## Automated Testing using Jest
-
-### Run single test in headless mode (fully automated)
-npm run test:cdp:headless tests/cdp/cdp-keyboard.test.ts
-
-### Run all tests in parallel headless mode
-npm run test:cdp:headless:all
-
-### Run single test in live browser (requires manual setup)
-npm run test:cdp:live tests/cdp/cdp-keyboard.test.ts
-
+build after changes: `npm run esbuild:dev` - built timestamp appears in manifest
+reload extension: `./bin/dbg reload`  returns JSON
+more debugging: `./bin/dbg --help`  returns JSON
 
 ## Debugging and Live Development using CDP + Code Injection
 
 npm run debug:cdp:headless debug/cdp-debug-live-modification-tabs.ts
 npm run debug:cdp:live debug/cdp-debug-live-modification-tabs.ts
-
 
 ### Mode Selection
 - **Live mode**: Use when visual inspection or interactive iteration is needed (user will explicitly request this)
@@ -32,6 +19,18 @@ npm run debug:cdp:live debug/cdp-debug-live-modification-tabs.ts
 ### Debug Scripts vs Tests
 - **Debug scripts** (`debug/`): Temporary exploratory tools for investigation, prototyping, and iteration. May be kept in git for reference but are not maintained after the debugging session ends (e.g., may break with API changes)
 - **Test scripts** (`tests/`): Permanent, stable regression tests that are actively maintained and must remain functional
+
+
+## Automated Testing using Jest
+
+### Run single test in headless mode (fully automated)
+npm run test:cdp:headless tests/cdp/cdp-keyboard.test.ts
+
+### Run all tests in parallel headless mode (limit of 16 concurrent)
+npm run test:cdp:headless:all
+
+### Run single test in live browser (requires manual setup from user)
+npm run test:cdp:live tests/cdp/cdp-keyboard.test.ts
 
 
 
