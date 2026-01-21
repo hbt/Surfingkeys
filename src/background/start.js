@@ -3,6 +3,9 @@ import {
 } from '../common/utils.js';
 import llmClients from './llm.js';
 
+// TEMPORARY ERROR FOR TESTING RELOAD EDGE CASE
+// throw new Error('TEST ERROR: Simulating background script failure');
+
 function request(url, onReady, headers, data, onException) {
     headers = headers || {};
     const CHARTSET_RE = /(?:charset|encoding)\s*=\s*['"]? *([\w\-]+)/i;

@@ -11,6 +11,13 @@ function modifyManifest(browser, mode, manifestPath, outputPath) {
     // Inject version from package.json
     manifest.version = package.version;
 
+    // In development mode, append timestamp to description for visual reload verification
+    if (mode === 'development') {
+        const timestamp = new Date().toISOString();
+        const baseDescription = manifest.description.split(' [Built:')[0]; // Remove old timestamp if present
+        manifest.description = `${baseDescription} [Built: ${timestamp}]`;
+    }
+
     if (browser === "firefox") {
         manifest.options_ui = {
             page: "pages/options.html"
