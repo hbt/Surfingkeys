@@ -151,6 +151,139 @@ function sendViaProxy(targetId, method, params) {
 }
 
 /**
+ * Get metadata about the target and page
+ */
+async function getMetadata(targetId) {
+    const startTime = Date.now();
+
+    try {
+        // Get document and window info
+        const docResponse = await sendViaProxy(
+            targetId,
+            'Runtime.evaluate',
+            {
+                expression: `
+                    (function() {
+                        return {
+                            document: {
+                                url: document.location.href,
+                                title: document.title,
+                                readyState: document.readyState
+                            },
+                            window: {
+                                innerHeight: window.innerHeight,
+                                innerWidth: window.innerWidth,
+                                scrollX: window.scrollX,
+                                scrollY: window.scrollY,
+                                devicePixelRatio: window.devicePixelRatio
+                            },
+                            context: {
+                                isIframe: window !== window.top,
+                                hasShadowRoot: !!document.querySelector('[shadowroot]') ||
+                                              Array.from(document.querySelectorAll('*')).some(el => el.shadowRoot)
+                            }
+                        };
+                    })()
+                `,
+                returnByValue: true,
+            }
+        );
+
+        // Try to get tab info from chrome.tabs API
+        let tabInfo = null;
+        try {
+            const tabResponse = await sendViaProxy(
+                targetId,
+                'Runtime.evaluate',
+                {
+                    expression: `
+                        (function() {
+                            if (typeof chrome !== 'undefined' && chrome.tabs) {
+                                return new Promise(resolve => {
+                                    chrome.tabs.query({active: true, currentWindow: true}, tabs => {
+                                        if (tabs && tabs[0]) {
+                                            resolve({
+                                                id: tabs[0].id,
+                                                url: tabs[0].url,
+                                                title: tabs[0].title,
+                                                active: tabs[0].active,
+                                                status: tabs[0].status,
+                                                windowId: tabs[0].windowId,
+                                                index: tabs[0].index
+                                            });
+                                        } else {
+                                            resolve(null);
+                                        }
+                                    });
+                                });
+                            }
+                            return null;
+                        })()
+                    `,
+                    returnByValue: true,
+                    awaitPromise: true,
+                }
+            );
+            tabInfo = tabResponse.result?.result?.value;
+        } catch (e) {
+            // Tab API not available, that's ok
+        }
+
+        // Get element count with timing
+        const elemCountStartTime = Date.now();
+        const elemCountResponse = await sendViaProxy(
+            targetId,
+            'Runtime.evaluate',
+            {
+                expression: `document.querySelectorAll('*').length`,
+                returnByValue: true,
+            }
+        );
+        const elementCountTime = Date.now() - elemCountStartTime;
+        const elementCount = elemCountResponse.result?.result?.value;
+
+        const docInfo = docResponse.result?.result?.value;
+        const duration = Date.now() - startTime;
+
+        return {
+            execution: {
+                duration_ms: duration,
+                timestamp: new Date().toISOString(),
+            },
+            tab: tabInfo,
+            context: {
+                type: docInfo?.context?.isIframe ? 'iframe' : (docInfo?.context?.hasShadowRoot ? 'shadow-root' : 'page'),
+                isIframe: docInfo?.context?.isIframe,
+                isShadowRoot: docInfo?.context?.hasShadowRoot,
+                warnings: [],
+            },
+            document: {
+                url: docInfo?.document?.url,
+                title: docInfo?.document?.title,
+                readyState: docInfo?.document?.readyState,
+                elementCount,
+                elementCountTime_ms: elementCountTime,
+            },
+            viewport: {
+                innerHeight: docInfo?.window?.innerHeight,
+                innerWidth: docInfo?.window?.innerWidth,
+                scrollX: docInfo?.window?.scrollX,
+                scrollY: docInfo?.window?.scrollY,
+                devicePixelRatio: docInfo?.window?.devicePixelRatio,
+            },
+        };
+    } catch (error) {
+        return {
+            execution: {
+                duration_ms: Date.now() - startTime,
+                timestamp: new Date().toISOString(),
+            },
+            error: error.message,
+        };
+    }
+}
+
+/**
  * Evaluate JavaScript expression on target
  */
 async function evalExpression(targetId, expression) {
@@ -203,23 +336,72 @@ function formatResponse(response, options = {}) {
         return output;
     }
 
-    // Format based on type
+    // Format result value
+    let resultOutput = '';
     if (result.type === 'string') {
-        output += `${colors.green}"${result.value}"${colors.reset}\n`;
+        resultOutput = `${colors.green}"${result.value}"${colors.reset}`;
     } else if (result.type === 'number') {
-        output += `${colors.cyan}${result.value}${colors.reset}\n`;
+        resultOutput = `${colors.cyan}${result.value}${colors.reset}`;
     } else if (result.type === 'boolean') {
-        output += `${colors.yellow}${result.value}${colors.reset}\n`;
+        resultOutput = `${colors.yellow}${result.value}${colors.reset}`;
     } else if (result.type === 'object') {
         if (result.subtype === 'error') {
-            output += `${colors.red}${result.description}${colors.reset}\n`;
+            resultOutput = `${colors.red}${result.description}${colors.reset}`;
         } else {
-            output += `${colors.bright}${JSON.stringify(result.value, null, 2)}${colors.reset}\n`;
+            resultOutput = `${colors.bright}${JSON.stringify(result.value, null, 2)}${colors.reset}`;
         }
     } else if (result.type === 'undefined') {
-        output += `${colors.gray}undefined${colors.reset}\n`;
+        resultOutput = `${colors.gray}undefined${colors.reset}`;
     } else {
-        output += `${result.type}: ${JSON.stringify(result.value)}\n`;
+        resultOutput = `${result.type}: ${JSON.stringify(result.value)}`;
+    }
+
+    output += resultOutput + '\n';
+
+    // Show metadata summary if available
+    if (response.metadata) {
+        const before = response.metadata.before;
+        const after = response.metadata.after;
+
+        output += `\n${colors.gray}─ Metadata ─${colors.reset}\n`;
+        output += `${colors.gray}Duration: ${after.execution.duration_ms}ms${colors.reset}\n`;
+
+        if (before.tab && after.tab) {
+            // Compare tab info
+            if (before.tab.active !== after.tab.active) {
+                output += `${colors.yellow}⚠️  Tab active status changed${colors.reset}\n`;
+            }
+            if (before.tab.url !== after.tab.url) {
+                output += `${colors.yellow}⚠️  Tab URL changed${colors.reset}\n`;
+                output += `${colors.gray}  From: ${before.tab.url}${colors.reset}\n`;
+                output += `${colors.gray}  To: ${after.tab.url}${colors.reset}\n`;
+            }
+            if (before.tab.title !== after.tab.title) {
+                output += `${colors.yellow}⚠️  Tab title changed${colors.reset}\n`;
+            }
+        }
+
+        // Compare document state
+        if (before.document && after.document) {
+            if (before.document.readyState !== after.document.readyState) {
+                output += `${colors.cyan}Document ready state: ${before.document.readyState} → ${after.document.readyState}${colors.reset}\n`;
+            }
+            if (before.document.elementCount !== after.document.elementCount) {
+                const diff = after.document.elementCount - before.document.elementCount;
+                const sign = diff > 0 ? '+' : '';
+                output += `${colors.cyan}Elements: ${before.document.elementCount} → ${after.document.elementCount} (${sign}${diff})${colors.reset}\n`;
+            }
+        }
+
+        // Show context info
+        if (after.context) {
+            output += `${colors.gray}Context: ${after.context.type}${colors.reset}`;
+            if (after.context.isIframe) output += ` ${colors.yellow}[iframe]${colors.reset}`;
+            if (after.context.isShadowRoot) output += ` ${colors.yellow}[shadow-dom]${colors.reset}`;
+            output += '\n';
+        }
+
+        output += `${colors.gray}Timestamp: ${after.execution.timestamp}${colors.reset}\n`;
     }
 
     return output;
@@ -308,11 +490,26 @@ ${colors.yellow}Examples:${colors.reset}
             throw new Error('No matching target found');
         }
 
+        // Capture metadata before
+        const metadataBefore = await getMetadata(target.id);
+
         // Evaluate
         const response = await evalExpression(target.id, expression);
 
+        // Capture metadata after
+        const metadataAfter = await getMetadata(target.id);
+
+        // Combine response with metadata
+        const fullResponse = {
+            ...response,
+            metadata: {
+                before: metadataBefore,
+                after: metadataAfter,
+            },
+        };
+
         // Format and display
-        const formatted = formatResponse(response, {
+        const formatted = formatResponse(fullResponse, {
             json: opts.json,
             raw: opts.raw,
         });
