@@ -22,6 +22,9 @@ const CDP_PORT = process.env.CDP_PORT || 9222;
 const CDP_ENDPOINT = `http://localhost:${CDP_PORT}`;
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
 const MANIFEST_PATH = path.join(PROJECT_ROOT, 'dist/development/chrome/manifest.json');
+const FIXTURES_PORT = 9873;
+const FIXTURES_SERVER_PATH = path.join(PROJECT_ROOT, 'tests/fixtures-server.js');
+let fixturesServerProcess = null;
 
 // Create log file
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -33,6 +36,91 @@ const logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
  */
 function log(message) {
     logStream.write(`${new Date().toISOString()} ${message}\n`);
+}
+
+/**
+ * Check if fixtures server is running on port 9873
+ */
+function isFixturesServerRunning() {
+    return new Promise((resolve) => {
+        const req = http.get(`http://localhost:${FIXTURES_PORT}/hackernews.html`, (res) => {
+            req.abort();
+            resolve(true);
+        });
+
+        req.on('error', () => {
+            resolve(false);
+        });
+
+        req.setTimeout(1000);
+    });
+}
+
+/**
+ * Start fixtures server if it's not already running
+ */
+async function ensureFixturesServer() {
+    log('Checking if fixtures server is running on port 9873...');
+
+    const isRunning = await isFixturesServerRunning();
+
+    if (isRunning) {
+        log('✓ Fixtures server is already running');
+        return { success: true, started: false };
+    }
+
+    log('Fixtures server not running - starting it...');
+
+    if (!fs.existsSync(FIXTURES_SERVER_PATH)) {
+        log(`✗ Fixtures server not found at ${FIXTURES_SERVER_PATH}`);
+        return { success: false, error: 'Fixtures server script not found' };
+    }
+
+    return new Promise((resolve) => {
+        fixturesServerProcess = spawn('node', [FIXTURES_SERVER_PATH], {
+            cwd: PROJECT_ROOT,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            detached: false
+        });
+
+        let isReady = false;
+        const timeout = setTimeout(() => {
+            if (!isReady) {
+                log('⚠ Fixtures server startup timeout - assuming it started');
+                resolve({ success: true, started: true, warning: 'startup_timeout' });
+            }
+        }, 3000);
+
+        fixturesServerProcess.stdout.on('data', (data) => {
+            const message = data.toString();
+            log(`[Fixtures Server] ${message.trim()}`);
+
+            if (message.includes('running at http://127.0.0.1:9873')) {
+                isReady = true;
+                clearTimeout(timeout);
+                log('✓ Fixtures server started successfully');
+                resolve({ success: true, started: true });
+            }
+        });
+
+        fixturesServerProcess.stderr.on('data', (data) => {
+            const message = data.toString();
+            log(`[Fixtures Server Error] ${message.trim()}`);
+
+            if (message.includes('EADDRINUSE')) {
+                isReady = true;
+                clearTimeout(timeout);
+                log('✗ Port 9873 is already in use');
+                resolve({ success: false, error: 'Port 9873 already in use' });
+            }
+        });
+
+        fixturesServerProcess.on('error', (error) => {
+            clearTimeout(timeout);
+            log(`✗ Failed to start fixtures server: ${error.message}`);
+            resolve({ success: false, error: error.message });
+        });
+    });
 }
 
 /**
@@ -992,8 +1080,21 @@ async function run(args) {
     let buildInfo = null;
 
     try {
-        // STEP 0: Run build:dev first
-        log('STEP 0: Running build:dev');
+        // STEP 0: Ensure fixtures server is running
+        log('STEP 0: Ensure fixtures server is running');
+        const fixturesResult = await ensureFixturesServer();
+
+        if (!fixturesResult.success) {
+            log('⚠ Warning: Could not start fixtures server - continuing anyway');
+            warnings.push(`Fixtures server: ${fixturesResult.error}`);
+        } else {
+            if (fixturesResult.started) {
+                log('✓ Fixtures server is ready for CDP tests');
+            }
+        }
+
+        // STEP 1: Run build:dev
+        log('STEP 1: Running build:dev');
         const buildResult = await runBuild();
 
         if (!buildResult.success) {
@@ -1043,8 +1144,8 @@ async function run(args) {
 
         log(`Extension ID: ${extensionId}`);
 
-        // STEP 1: Ensure required tabs exist
-        log('STEP 1: Ensure required tabs exist');
+        // STEP 2: Ensure required tabs exist
+        log('STEP 2: Ensure required tabs exist');
         const tabsResult = await ensureRequiredTabs(extensionId);
 
         if (!tabsResult.success) {
@@ -1066,8 +1167,8 @@ async function run(args) {
             log('✓ All required tabs already exist');
         }
 
-        // STEP 2: Clear previous errors
-        log('STEP 2: Clear previous errors');
+        // STEP 3: Clear previous errors
+        log('STEP 3: Clear previous errors');
         const clearResult = await clearPreviousErrors(extensionId);
 
         if (clearResult.success) {
@@ -1076,8 +1177,8 @@ async function run(args) {
             log(`Could not clear errors: ${clearResult.reason} - proceeding anyway`);
         }
 
-        // STEP 3: CDP Bridge connectivity check
-        log('STEP 3: CDP Bridge connectivity check');
+        // STEP 4: CDP Bridge connectivity check
+        log('STEP 4: CDP Bridge connectivity check');
         const bridgeCheck = await checkCDPBridgeConnectivity();
         attempts.push({
             method: 'cdp_bridge_check',
@@ -1089,8 +1190,8 @@ async function run(args) {
             warnings.push('CDP Message Bridge not available - extension may be broken or dormant');
         }
 
-        // STEP 4: Reload via button click (PRIMARY METHOD)
-        log('STEP 4: Reload via button click (PRIMARY METHOD)');
+        // STEP 5: Reload via button click (PRIMARY METHOD)
+        log('STEP 5: Reload via button click (PRIMARY METHOD)');
         const buttonResult = await reloadViaButton(extensionId);
         attempts.push({
             method: 'reload_button',
@@ -1109,8 +1210,8 @@ async function run(args) {
             log('Waiting 1s for Chrome to populate errors...');
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // STEP 5: Extract fresh errors
-            log('STEP 5: Extract fresh errors from chrome://extensions');
+            // STEP 6: Extract fresh errors
+            log('STEP 6: Extract fresh errors from chrome://extensions');
             errors = await extractExtensionErrors(extensionId);
 
             if (errors && errors.hasErrors) {
@@ -1118,8 +1219,8 @@ async function run(args) {
                 warnings.push('Extension has errors from THIS reload');
             }
 
-            // STEP 6: Last resort - keyboard (UNRELIABLE)
-            log('STEP 6: Last resort - keyboard shortcut (UNRELIABLE)');
+            // STEP 7: Last resort - keyboard (UNRELIABLE)
+            log('STEP 7: Last resort - keyboard shortcut (UNRELIABLE)');
             const keyboardResult = await reloadViaKeyboard();
             attempts.push({
                 method: 'keyboard',
