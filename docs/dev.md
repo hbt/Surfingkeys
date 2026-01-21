@@ -36,35 +36,40 @@ See [docs/cdp/proxy.md](./proxy.md) for more examples and request format details
 
 **Strengths:**
 - Clean DX - no JSON escaping or shell quoting hell
+- Target shortcuts: `bg`, `sw`, `options`, `frontend`, `popup`
+- Auto-target discovery (service_worker, page, iframe)
 - Multi-line code support via heredocs
-- Auto-target discovery
-- Better error display
-- Proper output formatting
-- Fast iteration - still no build step
+- `--json` output for scripting and agents
+- Better error messages with suggestions
 
 **Weaknesses:**
 - One extra CLI tool to learn (but worth it)
 - Still runtime-only, not persistent
 
-**Usage:**
+**Commands:**
 
-Simple expression:
 ```bash
-sk-cdp eval "document.body.style.backgroundColor"
+sk-cdp targets                                    # List all CDP targets
+sk-cdp targets --json                             # Machine-readable output
+sk-cdp eval --target bg "chrome.runtime.id"       # Eval in service worker
+sk-cdp eval --target options "document.title"     # Eval in options page
+sk-cdp eval --target google.com "document.title"  # Eval in matching tab
+sk-cdp send --target bg "Runtime.evaluate" '{}'   # Raw CDP method
 ```
 
-Target selection:
-```bash
-sk-cdp eval --target options.html "document.querySelectorAll('input').length"
-```
+**Target Shortcuts:**
+
+| Shortcut | Target Type | Pattern |
+|----------|-------------|---------|
+| `bg`, `sw`, `background` | service_worker | background.js |
+| `options` | page | options.html |
+| `frontend` | iframe | frontend.html |
+| `popup` | page | popup.html |
 
 Multi-line code:
 ```bash
-sk-cdp eval --target options.html <<'CODE'
-(function() {
-  const inputs = document.querySelectorAll('input');
-  return Array.from(inputs).map(i => i.type);
-})()
+sk-cdp eval --target bg <<'CODE'
+new Promise(r => chrome.storage.local.get(null, r))
 CODE
 ```
 

@@ -5,8 +5,10 @@
 
 **Quick CDP inspection (most common):**
 ```bash
-./bin/sk-cdp eval "document.body.style.backgroundColor"
-./bin/sk-cdp eval --target options.html "document.querySelectorAll('input').length"
+./bin/sk-cdp eval --target bg "chrome.runtime.id"        # Service worker
+./bin/sk-cdp eval --target google.com "document.title"   # Any matching tab
+./bin/sk-cdp targets                                      # List all targets
+./bin/sk-cdp targets --json                               # Machine-readable
 ```
 
 **Proxy & logging:**
@@ -38,17 +40,23 @@ See [docs/cdp/proxy.md](docs/cdp/proxy.md) for examples.
 ### 1b. CDP + sk-cdp CLI (Recommended for most cases)
 Start proxy: `./bin/dbg proxy-start` (captures all console & exceptions to `/tmp/dbg-proxy.log`)
 
-Simplified wrapper with no JSON escaping:
+**Commands:**
 ```bash
-./bin/sk-cdp eval "document.body.style.backgroundColor"
-./bin/sk-cdp eval --target options.html "document.querySelectorAll('input').length"
+./bin/sk-cdp eval --target bg "chrome.runtime.id"     # Eval in service worker
+./bin/sk-cdp eval --target options "document.title"   # Eval in options page
+./bin/sk-cdp targets                                   # List all CDP targets
+./bin/sk-cdp targets --json                            # Machine-readable output
+./bin/sk-cdp send --target bg "Runtime.evaluate" '{}'  # Raw CDP method
 ```
+
+**Target Shortcuts:** `bg`, `sw`, `background`, `options`, `frontend`, `popup`
 
 **Features:**
 - No JSON escaping or shell quoting
-- Auto-target discovery and multi-line code support
+- Target shortcuts for common extension contexts
+- Auto-target discovery (service_worker, page, iframe)
 - Automatic metadata: Duration, DOM changes, tab state, console log reference
-- Detects when side effects fail (e.g., button clicks that don't work)
+- `--json` output for scripting and agents
 
 See [docs/cdp/sk-cdp.md](docs/cdp/sk-cdp.md) for full reference.
 
