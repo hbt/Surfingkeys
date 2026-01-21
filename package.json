@@ -25,7 +25,7 @@
     "test:cdp:live": "node tests/cdp/run-live.js",
     "debug:cdp:headless": "node debug/run-headless.js",
     "debug:cdp:live": "node debug/run-live.js",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .js,.ts --ignore-pattern 'src/nvim/**'"
+    "lint": "eslint src --ext .js,.ts"
   },
   "repository": {
     "type": "git",
