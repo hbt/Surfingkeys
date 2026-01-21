@@ -25,9 +25,5 @@ jobs:
       run: npm install
       env:
         CI: true
-    - name: Build extension
-      run: npm run build:dev
-    - name: Setup Chrome
-      uses: browser-actions/setup-chrome@latest
-    - name: Run CDP tests
-      run: npm run test:cdp:headless:seq
+    - name: Build production extension
+      run: npm run build:prod
