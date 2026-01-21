@@ -26,6 +26,12 @@
         },
         "proxyThis": {
             "description": "Toggle current site in autoproxy_hosts."
+        },
+        "_execute_action": {
+            "suggested_key": {
+                "default": "Alt+E"
+            },
+            "description": "Restore focus from address bar/DevTools to page content."
         }
     },
     "browser_action": {

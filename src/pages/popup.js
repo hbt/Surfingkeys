@@ -7,6 +7,23 @@ String.prototype.format = function() {
     return formatted;
 };
 
+// Restore focus hack: focus input to steal focus from address bar/DevTools
+// Then close popup and trigger tab switch hack
+(function restoreFocusHack() {
+    window.focus();
+    document.body.focus();
+    var input = document.getElementById('restoreFocusInput');
+    if (input) input.focus();
+
+    // Close popup and trigger tab switch hack after brief delay
+    setTimeout(function() {
+        window.close();
+    }, 50);
+
+    // Send message to background for tab switch hack
+    chrome.runtime.sendMessage({ action: 'restoreFocusHack' });
+})();
+
 var disableAll = document.getElementById('disableAll'),
     version = "Surfingkeys " + chrome.runtime.getManifest().version;
 

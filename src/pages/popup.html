@@ -23,9 +23,16 @@ a:hover {
       display: none;
   }
 }
+/* Hidden input for restore focus hack */
+#restoreFocusInput {
+    position: absolute;
+    left: -9999px;
+}
         </style>
     </head>
     <body>
+        <!-- Hidden input to capture focus for restore focus hack -->
+        <input type="text" id="restoreFocusInput" />
         <a id="disableAll" href="#">Disable Surfingkeys</a>
         <a href="/pages/options.html" target="_blank">Settings</a>
         <a href="/pages/error-viewer.html" target="_blank">Error Viewer</a>

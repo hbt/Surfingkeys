@@ -677,6 +677,24 @@ function start(browser) {
             });
         });
     };
+    self.restoreFocusHack = function(message, sender, sendResponse) {
+        // Tab switch hack to restore focus to page content
+        // Quick switch to another tab and back forces Chrome to focus page
+        chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+            if (tabs.length === 0) return;
+            var currentTab = tabs[0];
+            chrome.tabs.query({ windowId: currentTab.windowId }, function(allTabs) {
+                if (allTabs.length > 1) {
+                    var otherTab = allTabs.find(function(t) { return t.id !== currentTab.id; });
+                    if (otherTab) {
+                        chrome.tabs.update(otherTab.id, { active: true }, function() {
+                            chrome.tabs.update(currentTab.id, { active: true });
+                        });
+                    }
+                }
+            });
+        });
+    };
     self.toggleMouseQuery = function(message, sender, sendResponse) {
         loadSettings('mouseSelectToQuery', function(data) {
             if (sender.tab && sender.tab.url.indexOf(chrome.runtime.getURL("/")) !== 0) {
