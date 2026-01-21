@@ -1027,6 +1027,94 @@ async function extractExtensionErrors(extensionId) {
 }
 
 /**
+ * Reload all tabs in all windows via Chrome tabs API
+ * Uses CDP to evaluate chrome.tabs.query/reload in service worker
+ */
+async function reloadAllTabs() {
+    log('Reloading all tabs via chrome.tabs API...');
+
+    const swWsUrl = await findServiceWorker();
+    if (!swWsUrl) {
+        log('✗ Service worker not found - cannot reload tabs');
+        return { success: false, error: 'service_worker_not_found', count: 0 };
+    }
+
+    const ws = new WebSocket(swWsUrl);
+
+    return new Promise((resolve) => {
+        ws.on('open', async () => {
+            try {
+                await sendCommand(ws, 'Runtime.enable');
+
+                const result = await evaluateCode(ws, `
+                    (function() {
+                        return new Promise((resolve) => {
+                            chrome.tabs.query({}, (tabs) => {
+                                const err = chrome.runtime.lastError;
+                                if (err) {
+                                    resolve({ error: err.message, count: 0 });
+                                    return;
+                                }
+
+                                // Filter out chrome:// and extension pages
+                                const reloadableTabs = tabs.filter(t =>
+                                    t.url &&
+                                    !t.url.startsWith('chrome://') &&
+                                    !t.url.startsWith('chrome-extension://') &&
+                                    !t.url.startsWith('about:')
+                                );
+
+                                let reloaded = 0;
+                                reloadableTabs.forEach((tab) => {
+                                    chrome.tabs.reload(tab.id, { bypassCache: false }, () => {
+                                        if (!chrome.runtime.lastError) {
+                                            reloaded++;
+                                        }
+                                    });
+                                });
+
+                                // Small delay to let reload calls complete
+                                setTimeout(() => {
+                                    resolve({
+                                        count: reloadableTabs.length,
+                                        total: tabs.length
+                                    });
+                                }, 100);
+                            });
+                        });
+                    })()
+                `);
+
+                ws.close();
+
+                if (result.error) {
+                    log(`✗ Error reloading tabs: ${result.error}`);
+                    resolve({ success: false, error: result.error, count: 0 });
+                } else {
+                    log(`✓ Reloaded ${result.count} tabs (${result.total} total, skipped chrome:// pages)`);
+                    resolve({ success: true, count: result.count, total: result.total });
+                }
+            } catch (error) {
+                log(`✗ Error: ${error.message}`);
+                ws.close();
+                resolve({ success: false, error: error.message, count: 0 });
+            }
+        });
+
+        ws.on('error', (error) => {
+            log(`✗ WebSocket error: ${error.message}`);
+            resolve({ success: false, error: error.message, count: 0 });
+        });
+
+        // Timeout after 10 seconds
+        setTimeout(() => {
+            ws.close();
+            resolve({ success: false, error: 'timeout', count: 0 });
+        }, 10000);
+    });
+}
+
+/**
  * LAST RESORT: Reload using keyboard shortcut (Alt+Shift+R)
  * WARNING: UNRELIABLE - This is a shot in the dark
  * - Does not work when extension is broken
@@ -1235,6 +1323,13 @@ async function run(args) {
             finalResult = keyboardResult;
         }
 
+        // STEP 8: Reload all tabs (after extension reload completes)
+        let tabsReloaded = null;
+        if (finalResult.success) {
+            log('STEP 8: Reload all tabs');
+            tabsReloaded = await reloadAllTabs();
+        }
+
         logStream.end();
 
         // Build comprehensive JSON response
@@ -1272,6 +1367,18 @@ async function run(args) {
                 runtimeErrors: errors.runtimeErrors,
                 hasErrors: errors.hasErrors
             };
+        }
+
+        // Add tabs reload info
+        if (tabsReloaded) {
+            response.tabsReloaded = {
+                success: tabsReloaded.success,
+                count: tabsReloaded.count,
+                total: tabsReloaded.total
+            };
+            if (tabsReloaded.error) {
+                response.tabsReloaded.error = tabsReloaded.error;
+            }
         }
 
         // Add error field if present
