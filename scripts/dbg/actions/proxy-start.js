@@ -1,51 +1,29 @@
 /**
  * CDP Proxy Start Action
  *
- * Starts a WebSocket proxy that provides:
- * - Connection pooling to multiple CDP targets
- * - Stateless REST-like interface via websocat
- * - Persistent CDP connections managed transparently
+ * Starts a WebSocket proxy for stateless CDP communication.
+ * See docs/cdp/proxy.md for usage instructions.
  *
  * Output: JSON only to stdout
- * Logs: Written to /tmp/dbg-proxy-<timestamp>.log
- *
- * Example: Open a Google tab
- * -------------------------
- * EXTENSION_IFRAME=$(curl -s http://127.0.0.1:9222/json | jq -r '.[] | select(.url | contains("chrome-extension")) | .id' | head -1)
- * echo "{
- *   \"targetId\": \"$EXTENSION_IFRAME\",
- *   \"method\": \"Runtime.evaluate\",
- *   \"params\": {
- *     \"expression\": \"new Promise((r)=>chrome.tabs.create({url:'https://www.google.com'},r))\",
- *     \"returnByValue\": true,
- *     \"awaitPromise\": true
- *   }
- * }" | websocat ws://127.0.0.1:9223 | jq '.result.result.value | {id, url, title}'
+ * Logs: Written to /tmp/dbg-proxy.log
  */
 
 const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 
-const CDP_HOST = '127.0.0.1';
-const CDP_PORT = process.env.CDP_PORT || 9222;
-const PROXY_PORT = process.env.PROXY_PORT || 9223;
-const DEFAULT_TARGET_ID = process.env.DEFAULT_TARGET_ID || '';
+const { config, outputJSON, isProxyRunning } = require('./proxy-config');
 
 let globalMessageId = 1;
 const cdpConnections = new Map();
-
-// Create log file
-const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-const LOG_FILE = `/tmp/dbg-proxy-${timestamp}.log`;
-const logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
+const logStream = fs.createWriteStream(config.LOG_FILE, { flags: 'a' });
 
 // Log utilities
 const log = {
-  info: (msg) => logStream.write(`[PROXY] ${msg}\n`),
-  request: (msg) => logStream.write(`  → ${msg}\n`),
-  response: (msg) => logStream.write(`  ← ${msg}\n`),
-  error: (msg) => logStream.write(`[ERROR] ${msg}\n`)
+  info: (msg) => logStream.write(`[${new Date().toISOString()}] [PROXY] ${msg}\n`),
+  request: (msg) => logStream.write(`[${new Date().toISOString()}]   → ${msg}\n`),
+  response: (msg) => logStream.write(`[${new Date().toISOString()}]   ← ${msg}\n`),
+  error: (msg) => logStream.write(`[${new Date().toISOString()}] [ERROR] ${msg}\n`)
 };
 
 /**
@@ -53,7 +31,6 @@ const log = {
  */
 function ensureCDPConnection(targetId) {
   return new Promise((resolve, reject) => {
-    // Check if we already have a connection
     if (cdpConnections.has(targetId)) {
       const conn = cdpConnections.get(targetId);
       if (conn.ws.readyState === WebSocket.OPEN) {
@@ -62,8 +39,7 @@ function ensureCDPConnection(targetId) {
       }
     }
 
-    // Create new connection
-    const wsUrl = `ws://${CDP_HOST}:${CDP_PORT}/devtools/page/${targetId}`;
+    const wsUrl = `ws://${config.CDP_HOST}:${config.CDP_PORT}/devtools/page/${targetId}`;
     log.info(`Connecting to CDP target: ${targetId}`);
 
     const ws = new WebSocket(wsUrl);
@@ -80,7 +56,6 @@ function ensureCDPConnection(targetId) {
         const msg = JSON.parse(data.toString());
 
         if (msg.id && connObj.pendingRequests.has(msg.id)) {
-          // This is a response to one of our requests
           const pending = connObj.pendingRequests.get(msg.id);
           log.response(`[${targetId.substring(0, 8)}...] Response ID ${msg.id}`);
 
@@ -88,7 +63,6 @@ function ensureCDPConnection(targetId) {
           pending.resolve(msg);
           connObj.pendingRequests.delete(msg.id);
         } else if (msg.method) {
-          // This is an unsolicited event from CDP
           log.response(`[${targetId.substring(0, 8)}...] Event: ${msg.method}`);
         }
       } catch (err) {
@@ -147,7 +121,7 @@ function sendToCDP(targetId, method, params) {
  * Start the proxy server
  */
 function startProxy() {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const server = http.createServer();
     const wss = new WebSocket.Server({ server });
 
@@ -158,17 +132,16 @@ function startProxy() {
       clientWs.on('message', async (data) => {
         try {
           const request = JSON.parse(data.toString());
-          const targetId = request.targetId || DEFAULT_TARGET_ID;
+          const targetId = request.targetId;
 
           if (!targetId) {
-            throw new Error('No targetId provided and no DEFAULT_TARGET_ID set');
+            throw new Error('No targetId provided in request');
           }
 
           log.request(`Client request: ${request.method} (target: ${targetId.substring(0, 8)}...)`);
 
           const response = await sendToCDP(targetId, request.method, request.params);
 
-          // Send back to client (without ID, to look stateless)
           const clientResponse = {
             result: response.result,
             ...(response.error && { error: response.error })
@@ -197,14 +170,14 @@ function startProxy() {
       });
     });
 
-    server.listen(PROXY_PORT, () => {
-      log.info(`Proxy listening on ws://127.0.0.1:${PROXY_PORT}`);
-      log.info(`Forwarding to CDP at ws://${CDP_HOST}:${CDP_PORT}`);
-      log.info('Connection pooling enabled');
-      if (DEFAULT_TARGET_ID) {
-        log.info(`Default target: ${DEFAULT_TARGET_ID}`);
-      }
-      resolve();
+    server.on('error', (err) => {
+      reject(err);
+    });
+
+    server.listen(config.PROXY_PORT, () => {
+      log.info(`Proxy listening on ws://127.0.0.1:${config.PROXY_PORT}`);
+      log.info(`Forwarding to CDP at ws://${config.CDP_HOST}:${config.CDP_PORT}`);
+      resolve(server);
     });
   });
 }
@@ -213,67 +186,78 @@ function startProxy() {
  * Main action runner
  */
 async function run(args) {
+  // Check if already running
+  const status = isProxyRunning();
+  if (status.running) {
+    outputJSON({
+      success: false,
+      error: 'Proxy already running',
+      pid: status.pid,
+      port: config.PROXY_PORT,
+      hint: 'Use "bin/dbg proxy-stop" to stop it first',
+      docs: 'docs/cdp/proxy.md'
+    }, 1);
+    return;
+  }
+
   try {
-    // Start proxy server (non-blocking)
-    startProxy().then(() => {
-      log.info('=== CDP Proxy Started ===');
+    const server = await startProxy();
 
-      // Keep process alive
-      process.on('SIGTERM', () => {
-        log.info('SIGTERM received, shutting down gracefully...');
-        process.exit(0);
-      });
+    // Write PID file
+    fs.writeFileSync(config.PID_FILE, process.pid.toString());
 
-      process.on('SIGINT', () => {
-        log.info('SIGINT received, shutting down gracefully...');
-        process.exit(0);
-      });
-    }).catch((err) => {
-      log.error(`Failed to start proxy: ${err.message}`);
-      process.exit(1);
+    log.info('=== CDP Proxy Started ===');
+
+    // Setup graceful shutdown
+    const shutdown = () => {
+      log.info('Shutting down gracefully...');
+      if (fs.existsSync(config.PID_FILE)) {
+        fs.unlinkSync(config.PID_FILE);
+      }
+      server.close();
+      process.exit(0);
+    };
+
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', shutdown);
+
+    // Output success JSON
+    outputJSON({
+      success: true,
+      pid: process.pid,
+      proxy: {
+        host: '127.0.0.1',
+        port: config.PROXY_PORT,
+        url: `ws://127.0.0.1:${config.PROXY_PORT}`
+      },
+      cdp: {
+        host: config.CDP_HOST,
+        port: config.CDP_PORT
+      },
+      log: config.LOG_FILE,
+      docs: 'docs/cdp/proxy.md'
     });
 
-    // Give server a moment to start, then output JSON and exit
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Keep process alive - server will handle connections
 
-    // Output JSON response to stdout (then exit)
-    console.log(
-      JSON.stringify({
-        success: true,
-        message: 'CDP Proxy started in background',
-        proxy: {
-          host: '127.0.0.1',
-          port: PROXY_PORT,
-          url: `ws://127.0.0.1:${PROXY_PORT}`
-        },
-        cdp: {
-          host: CDP_HOST,
-          port: CDP_PORT
-        },
-        pid: process.pid,
-        log: LOG_FILE,
-        usage: {
-          default: `echo '{"method":"Runtime.enable"}' | websocat ws://127.0.0.1:${PROXY_PORT}`,
-          custom: `echo '{"targetId":"TARGET_ID","method":"Runtime.enable"}' | websocat ws://127.0.0.1:${PROXY_PORT}`
-        }
-      })
-    );
-
-    // Return without exiting - let the server keep running
-    // The HTTP/WebSocket server will keep Node alive
   } catch (error) {
     log.error(`Fatal: ${error.message}`);
-    logStream.end();
 
-    console.log(
-      JSON.stringify({
+    if (error.code === 'EADDRINUSE') {
+      outputJSON({
+        success: false,
+        error: `Port ${config.PROXY_PORT} is already in use`,
+        port: config.PROXY_PORT,
+        hint: 'Check if proxy is running: "bin/dbg proxy-status"',
+        docs: 'docs/cdp/proxy.md'
+      }, 1);
+    } else {
+      outputJSON({
         success: false,
         error: error.message,
-        log: LOG_FILE
-      })
-    );
-
-    process.exit(1);
+        docs: 'docs/cdp/proxy.md'
+      }, 1);
+    }
   }
 }
 
