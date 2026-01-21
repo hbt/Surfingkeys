@@ -1,8 +1,9 @@
 /**
  * Reload Extension Action
  *
- * Reloads the Surfingkeys extension using CDP Message Bridge.
- * Falls back to keyboard shortcut if bridge method fails.
+ * Builds and reloads the Surfingkeys extension.
+ * 1. Runs npm run build:dev
+ * 2. Reloads extension via CDP
  *
  * Output: JSON only to stdout
  * Logs: Written to /tmp/dbg-reload-<timestamp>.log
@@ -13,11 +14,14 @@
 const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const path = require('path');
+const { spawn, execSync } = require('child_process');
 
 let messageId = 1;
 const CDP_PORT = process.env.CDP_PORT || 9222;
 const CDP_ENDPOINT = `http://localhost:${CDP_PORT}`;
+const PROJECT_ROOT = path.resolve(__dirname, '../../..');
+const MANIFEST_PATH = path.join(PROJECT_ROOT, 'dist/development/chrome/manifest.json');
 
 // Create log file
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -29,6 +33,96 @@ const logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
  */
 function log(message) {
     logStream.write(`${new Date().toISOString()} ${message}\n`);
+}
+
+/**
+ * Run npm run build:dev and capture output
+ * Returns { success, output, error, duration }
+ */
+function runBuild() {
+    log('Running npm run build:dev...');
+    const startTime = Date.now();
+
+    return new Promise((resolve) => {
+        const proc = spawn('npm', ['run', 'build:dev'], {
+            cwd: PROJECT_ROOT,
+            shell: true,
+            stdio: ['ignore', 'pipe', 'pipe']
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        proc.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
+
+        proc.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
+
+        proc.on('close', (code) => {
+            const duration = Date.now() - startTime;
+            const output = stdout + stderr;
+
+            if (code === 0) {
+                log(`✓ Build completed in ${duration}ms`);
+                resolve({
+                    success: true,
+                    output: output.trim(),
+                    duration
+                });
+            } else {
+                log(`✗ Build failed (exit code ${code})`);
+                log(`Build output:\n${output}`);
+                resolve({
+                    success: false,
+                    exitCode: code,
+                    output: output.trim(),
+                    error: `Build failed with exit code ${code}`,
+                    duration
+                });
+            }
+        });
+
+        proc.on('error', (error) => {
+            const duration = Date.now() - startTime;
+            log(`✗ Build error: ${error.message}`);
+            resolve({
+                success: false,
+                error: error.message,
+                duration
+            });
+        });
+    });
+}
+
+/**
+ * Read build timestamp from manifest.json
+ * Returns timestamp string or null if not found
+ */
+function readBuildTimestamp() {
+    try {
+        if (!fs.existsSync(MANIFEST_PATH)) {
+            log(`Manifest not found at ${MANIFEST_PATH}`);
+            return null;
+        }
+
+        const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
+        const description = manifest.description || '';
+
+        // Extract timestamp from "[Built: 2026-01-21T12:49:04.114Z]"
+        const match = description.match(/\[Built: ([^\]]+)\]/);
+        if (match) {
+            return match[1];
+        }
+
+        log('Build timestamp not found in manifest description');
+        return null;
+    } catch (error) {
+        log(`Error reading manifest: ${error.message}`);
+        return null;
+    }
 }
 
 /**
@@ -895,8 +989,41 @@ async function run(args) {
 
     const attempts = [];
     const warnings = [];
+    let buildInfo = null;
 
     try {
+        // STEP 0: Run build:dev first
+        log('STEP 0: Running build:dev');
+        const buildResult = await runBuild();
+
+        if (!buildResult.success) {
+            log('ERROR: Build failed');
+            logStream.end();
+
+            console.log(JSON.stringify({
+                success: false,
+                error: 'Build failed',
+                build: {
+                    success: false,
+                    error: buildResult.error,
+                    exitCode: buildResult.exitCode,
+                    duration: buildResult.duration,
+                    output: buildResult.output
+                },
+                log: LOG_FILE
+            }));
+            process.exit(1);
+        }
+
+        // Get build timestamp from manifest
+        const buildTimestamp = readBuildTimestamp();
+        buildInfo = {
+            success: true,
+            duration: buildResult.duration,
+            timestamp: buildTimestamp
+        };
+        log(`Build timestamp: ${buildTimestamp}`);
+
         // Detect extension ID
         log('Detecting extension...');
         const extensionId = await detectExtensionId();
@@ -916,8 +1043,8 @@ async function run(args) {
 
         log(`Extension ID: ${extensionId}`);
 
-        // STEP 0: Ensure required tabs exist
-        log('STEP 0: Ensure required tabs exist');
+        // STEP 1: Ensure required tabs exist
+        log('STEP 1: Ensure required tabs exist');
         const tabsResult = await ensureRequiredTabs(extensionId);
 
         if (!tabsResult.success) {
@@ -939,8 +1066,8 @@ async function run(args) {
             log('✓ All required tabs already exist');
         }
 
-        // STEP 1: Clear previous errors
-        log('STEP 1: Clear previous errors');
+        // STEP 2: Clear previous errors
+        log('STEP 2: Clear previous errors');
         const clearResult = await clearPreviousErrors(extensionId);
 
         if (clearResult.success) {
@@ -949,8 +1076,8 @@ async function run(args) {
             log(`Could not clear errors: ${clearResult.reason} - proceeding anyway`);
         }
 
-        // STEP 2: CDP Bridge connectivity check
-        log('STEP 2: CDP Bridge connectivity check');
+        // STEP 3: CDP Bridge connectivity check
+        log('STEP 3: CDP Bridge connectivity check');
         const bridgeCheck = await checkCDPBridgeConnectivity();
         attempts.push({
             method: 'cdp_bridge_check',
@@ -962,8 +1089,8 @@ async function run(args) {
             warnings.push('CDP Message Bridge not available - extension may be broken or dormant');
         }
 
-        // STEP 3: Reload via button click (PRIMARY METHOD)
-        log('STEP 3: Reload via button click (PRIMARY METHOD)');
+        // STEP 4: Reload via button click (PRIMARY METHOD)
+        log('STEP 4: Reload via button click (PRIMARY METHOD)');
         const buttonResult = await reloadViaButton(extensionId);
         attempts.push({
             method: 'reload_button',
@@ -982,8 +1109,8 @@ async function run(args) {
             log('Waiting 1s for Chrome to populate errors...');
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // STEP 4: Extract fresh errors
-            log('STEP 4: Extract fresh errors from chrome://extensions');
+            // STEP 5: Extract fresh errors
+            log('STEP 5: Extract fresh errors from chrome://extensions');
             errors = await extractExtensionErrors(extensionId);
 
             if (errors && errors.hasErrors) {
@@ -991,8 +1118,8 @@ async function run(args) {
                 warnings.push('Extension has errors from THIS reload');
             }
 
-            // STEP 5: Last resort - keyboard (UNRELIABLE)
-            log('STEP 5: Last resort - keyboard shortcut (UNRELIABLE)');
+            // STEP 6: Last resort - keyboard (UNRELIABLE)
+            log('STEP 6: Last resort - keyboard shortcut (UNRELIABLE)');
             const keyboardResult = await reloadViaKeyboard();
             attempts.push({
                 method: 'keyboard',
@@ -1014,6 +1141,7 @@ async function run(args) {
             success: finalResult.success,
             method: finalResult.method,
             extensionId: extensionId,
+            build: buildInfo,
             attempts: attempts,
             log: LOG_FILE
         };

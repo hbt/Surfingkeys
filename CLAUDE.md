@@ -3,9 +3,8 @@
 
 ## Development Commands
 
-build after changes: `npm run build:dev` - built timestamp appears in manifest
-reload extension: `./bin/dbg reload`  returns JSON
-more debugging: `./bin/dbg --help`  returns JSON
+reload extension: `./bin/dbg reload` - builds and reloads (returns JSON with build.timestamp)
+more debugging: `./bin/dbg --help` - returns JSON
 
 ## Debugging and Live Development using CDP + Code Injection
 
@@ -19,14 +18,6 @@ npm run debug:cdp:live debug/cdp-debug-live-modification-tabs.ts
 ### Debug Scripts vs Tests
 - **Debug scripts** (`debug/`): Temporary exploratory tools for investigation, prototyping, and iteration. May be kept in git for reference but are not maintained after the debugging session ends (e.g., may break with API changes)
 - **Test scripts** (`tests/`): Permanent, stable regression tests that are actively maintained and must remain functional
-
-### Service Worker Dormancy
-Chrome service workers go dormant after ~30 seconds of inactivity. When CDP scripts fail with "extension not found", wake the service worker by opening any extension page:
-```bash
-# Via browser API
-curl -s http://127.0.0.1:9222/json/version | jq -r .webSocketDebuggerUrl
-# Then send Target.createTarget with url: "chrome-extension://<id>/pages/options.html"
-```
 
 
 ## Automated Testing using Jest
