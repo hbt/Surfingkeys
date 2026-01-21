@@ -14,6 +14,104 @@ import { installErrorHandlers } from '../common/errorCollector.js';
 // Install global error handlers for background script
 installErrorHandlers('background');
 
+/**
+ * Debug Mode Helper: Opens chrome://extensions error page when browser is in debug mode
+ *
+ * This function:
+ * 1. Detects if browser is running with remote debugging enabled (CDP on port 9222)
+ * 2. Checks if chrome://extensions error tab already exists (avoids duplicates on reload)
+ * 3. Opens the tab only when in debug mode and tab doesn't exist
+ *
+ * Use case: During development, automatically show extension errors without manual navigation
+ */
+(async function openExtensionErrorsPageInDebugMode() {
+    const extensionId = chrome.runtime.id;
+    const errorsPageUrl = `chrome://extensions/?errors=${extensionId}`;
+
+    // 1. Detect debug mode by checking if CDP is available
+    const isDebugMode = await detectDebugMode();
+
+    if (!isDebugMode) {
+        console.log('[DEBUG HELPER] Not in debug mode, skipping extension errors tab');
+        return;
+    }
+
+    console.log('[DEBUG HELPER] Debug mode detected, checking for existing extension errors tab');
+
+    // 2. Check if tab already exists
+    const existingTab = await findExtensionErrorsTab(errorsPageUrl);
+
+    if (existingTab) {
+        console.log('[DEBUG HELPER] Extension errors tab already exists (tab ID:', existingTab.id, ')');
+        // Optionally activate the existing tab
+        // chrome.tabs.update(existingTab.id, { active: true });
+        return;
+    }
+
+    // 3. Create new tab only if it doesn't exist
+    console.log('[DEBUG HELPER] Creating new extension errors tab:', errorsPageUrl);
+
+    chrome.tabs.create({
+        url: errorsPageUrl,
+        active: false
+    }, (tab) => {
+        if (chrome.runtime.lastError) {
+            console.error('[DEBUG HELPER] Failed to open chrome://extensions:', chrome.runtime.lastError.message);
+        } else {
+            console.log('[DEBUG HELPER] Successfully created tab for chrome://extensions, tab ID:', tab?.id);
+        }
+    });
+})();
+
+/**
+ * Detects if browser is running in debug mode (with remote debugging enabled)
+ * Checks if Chrome DevTools Protocol (CDP) is available on port 9222
+ *
+ * Note: Only checks port 9222 to avoid false positives from headless modes
+ *
+ * @returns {Promise<boolean>} True if debug mode is detected
+ */
+async function detectDebugMode() {
+    try {
+        const response = await fetch('http://localhost:9222/json/version', {
+            method: 'GET',
+            signal: AbortSignal.timeout(500) // 500ms timeout
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('[DEBUG HELPER] CDP detected on port 9222 - Browser:', data.Browser);
+            return true;
+        }
+    } catch (error) {
+        // Expected when not in debug mode or port not accessible
+    }
+
+    return false;
+}
+
+/**
+ * Finds existing chrome://extensions error tab for this extension
+ *
+ * @param {string} targetUrl - The chrome://extensions URL to search for
+ * @returns {Promise<chrome.tabs.Tab|null>} Existing tab or null
+ */
+async function findExtensionErrorsTab(targetUrl) {
+    return new Promise((resolve) => {
+        chrome.tabs.query({}, (tabs) => {
+            // Chrome doesn't allow extensions to see chrome:// URLs in tab.url
+            // So we look for tabs with matching pendingUrl or check title
+            const matchingTab = tabs.find(tab =>
+                tab.url === targetUrl ||
+                tab.pendingUrl === targetUrl ||
+                (tab.url && tab.url.startsWith('chrome://extensions'))
+            );
+
+            resolve(matchingTab || null);
+        });
+    });
+}
+
 function loadRawSettings(keys, cb, defaultSet) {
     var rawSet = defaultSet || {};
     chrome.storage.local.get(null, function(localSet) {
