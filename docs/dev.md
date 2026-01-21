@@ -237,6 +237,16 @@ sk-cdp eval --target options.html "/* code */ return result"
 npm run debug:cdp:live debug/cdp-screenshot.ts
 ```
 
+### Sending Keyboard Input
+
+To send keystrokes to a target page, use `Input.dispatchKeyEvent` with three events: `keyDown`, `char`, and `keyUp`:
+
+```bash
+./bin/sk-cdp send --target options "Input.dispatchKeyEvent" '{"type": "keyDown", "key": "f"}' && sleep 0.05 && ./bin/sk-cdp send --target options "Input.dispatchKeyEvent" '{"type": "char", "text": "f"}' && sleep 0.05 && ./bin/sk-cdp send --target options "Input.dispatchKeyEvent" '{"type": "keyUp", "key": "f"}'
+```
+
+This sends the `f` key to the options page. Replace `"f"` with any other key (e.g., `;` for semicolon).
+
 **Key advantages of sk-cdp + proxy logging:**
 - ✅ Metadata shows you when code does nothing (failures detected)
 - ✅ Console logs persist for investigation

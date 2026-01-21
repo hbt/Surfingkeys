@@ -200,20 +200,23 @@ body {
     bottom: 0;
     right: 20%;
     z-index: 2147483000;
-    padding: 4px 8px 0 8px;
+    padding: 12px 16px 8px 16px;
     border-radius: 4px 4px 0px 0px;
     border: 1px solid #777;
-    font-size: 12px;
+    font-size: 18px;
 }
 #sk_status>span {
-    line-height: 16px;
+    line-height: 24px;
 }
 .expandRichHints span.annotation {
-    padding-left: 4px;
-    color: #56b6c2;
+    padding-left: 12px;
+    color: #e0e0e0;
+    font-size: 20px;
+    font-weight: 500;
+    min-width: 280px;
 }
 .expandRichHints .kbd-span {
-    min-width: 30px;
+    min-width: 80px;
     text-align: right;
     display: inline-block;
 }
@@ -222,21 +225,41 @@ body {
     font-weight: bold;
 }
 .expandRichHints kbd {
-    padding: 1px 2px;
+    padding: 6px 10px;
+    font-size: 15px;
+    background: #2a2a2a;
+    color: #4ae54a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    font-weight: bold;
 }
 #sk_find {
     border-style: none;
     outline: none;
 }
 #sk_keystroke {
-    padding: 6px;
+    padding: 12px 8px;
     position: fixed;
     float: right;
     bottom: 0px;
     z-index: 2147483000;
     right: 0px;
-    background: #000;
+    background: #1a1a1a;
     color: #fff;
+    font-size: 16px;
+    border-radius: 8px;
+    max-width: 600px;
+}
+#sk_keystroke > div {
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+#sk_keystroke > div:last-child {
+    border-bottom: none;
 }
 #sk_usage, #sk_popup, #sk_editor {
     overflow: auto;
