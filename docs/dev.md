@@ -46,12 +46,14 @@ See [docs/cdp/proxy.md](./proxy.md) for more examples and request format details
 
 ```bash
 npm run debug:cdp:live debug/cdp-screenshot.ts
+npm run debug:cdp:headless debug/cdp-screenshot.ts
 ```
 
-Output: `/tmp/screenshot-[timestamp].png` (PNG, ~60KB)
+Output: `/tmp/screenshot-[timestamp].png` (PNG, 50-60KB)
 
 The script demonstrates the reusable CDP pattern:
 - Direct WebSocket connection to Chrome DevTools
+- Auto-opens options page if not already open
 - Clean error handling and logging
 - Timestamp-based output filename
 - Works in both headless and live modes
