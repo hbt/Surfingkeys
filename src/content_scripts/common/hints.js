@@ -2,6 +2,7 @@ import { RUNTIME, dispatchSKEvent, runtime } from './runtime.js';
 import Mode from './mode';
 import KeyboardUtils from './keyboardUtils';
 import Trie from './trie';
+import { getAnnotationString } from '../../common/commandMetadata.js';
 import {
     createElementWithContent,
     dispatchMouseEvent,
@@ -120,7 +121,8 @@ kbd {
     getAnnotations(self.mappings).forEach((b) => {
         const menuItem = createElementWithContent('div', "", {class: "menu-item"});
         menuItem.appendChild(createElementWithContent('kbd', htmlEncode(KeyboardUtils.decodeKeystroke(b.word))));
-        menuItem.appendChild(createElementWithContent('span', b.annotation));
+        const annotationStr = getAnnotationString(b.annotation);
+        menuItem.appendChild(createElementWithContent('span', annotationStr));
         menu.appendChild(menuItem);
     });
 

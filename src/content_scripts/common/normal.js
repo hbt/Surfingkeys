@@ -818,7 +818,13 @@ function createNormal(insert) {
     });
 
     self.mappings.add("cS", {
-        annotation: "Reset scroll target",
+        annotation: {
+            short: "Reset scroll target",
+            unique_id: "cmd_scroll_reset_target",
+            category: "scroll",
+            description: "Reset the scroll target to document body",
+            tags: ["scroll", "target"]
+        },
         feature_group: 2,
         code: function() {
             scrollNodes = null;
@@ -842,85 +848,169 @@ function createNormal(insert) {
     };
 
     self.mappings.add("e", {
-        annotation: "Scroll half page up",
+        annotation: {
+            short: "Scroll half page up",
+            unique_id: "cmd_scroll_half_page_up",
+            category: "scroll",
+            description: "Scroll the page up by half a page",
+            tags: ["scroll", "page", "vim"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: self.scroll.bind(self, "pageUp")
     });
     self.mappings.add("U", {
-        annotation: "Scroll full page up",
+        annotation: {
+            short: "Scroll full page up",
+            unique_id: "cmd_scroll_full_page_up",
+            category: "scroll",
+            description: "Scroll the page up by one full page",
+            tags: ["scroll", "page", "vim"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: self.scroll.bind(self, "fullPageUp")
     });
     self.mappings.add("d", {
-        annotation: "Scroll half page down",
+        annotation: {
+            short: "Scroll half page down",
+            unique_id: "cmd_scroll_half_page_down",
+            category: "scroll",
+            description: "Scroll the page down by half a page",
+            tags: ["scroll", "page", "vim"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: self.scroll.bind(self, "pageDown")
     });
     self.mappings.add("P", {
-        annotation: "Scroll full page down",
+        annotation: {
+            short: "Scroll full page down",
+            unique_id: "cmd_scroll_full_page_down",
+            category: "scroll",
+            description: "Scroll the page down by one full page",
+            tags: ["scroll", "page", "vim"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: self.scroll.bind(self, "fullPageDown")
     });
     self.mappings.add("gg", {
-        annotation: "Scroll to the top of the page",
+        annotation: {
+            short: "Scroll to the top of the page",
+            unique_id: "cmd_scroll_top",
+            category: "scroll",
+            description: "Scroll to the very top of the page",
+            tags: ["scroll", "vim", "navigation"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: self.scroll.bind(self, "top")
     });
     self.mappings.add("G", {
-        annotation: "Scroll to the bottom of the page",
+        annotation: {
+            short: "Scroll to the bottom of the page",
+            unique_id: "cmd_scroll_bottom",
+            category: "scroll",
+            description: "Scroll to the very bottom of the page",
+            tags: ["scroll", "vim", "navigation"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: bindScrollForHints("bottom")
     });
     self.mappings.add("j", {
-        annotation: "Scroll down",
+        annotation: {
+            short: "Scroll down",
+            unique_id: "cmd_scroll_down",
+            category: "scroll",
+            description: "Scroll the page down by one line",
+            tags: ["scroll", "vim", "movement"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: bindScrollForHints("down")
     });
     self.mappings.add("k", {
-        annotation: "Scroll up",
+        annotation: {
+            short: "Scroll up",
+            unique_id: "cmd_scroll_up",
+            category: "scroll",
+            description: "Scroll the page up by one line",
+            tags: ["scroll", "vim", "movement"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: bindScrollForHints("up")
     });
     self.mappings.add("h", {
-        annotation: "Scroll left",
+        annotation: {
+            short: "Scroll left",
+            unique_id: "cmd_scroll_left",
+            category: "scroll",
+            description: "Scroll the page left by one line",
+            tags: ["scroll", "vim", "movement"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: bindScrollForHints("left")
     });
     self.mappings.add("l", {
-        annotation: "Scroll right",
+        annotation: {
+            short: "Scroll right",
+            unique_id: "cmd_scroll_right",
+            category: "scroll",
+            description: "Scroll the page right by one line",
+            tags: ["scroll", "vim", "movement"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: bindScrollForHints("right")
     });
     self.mappings.add("0", {
-        annotation: "Scroll all the way to the left",
+        annotation: {
+            short: "Scroll all the way to the left",
+            unique_id: "cmd_scroll_leftmost",
+            category: "scroll",
+            description: "Scroll to the leftmost position of the page",
+            tags: ["scroll", "navigation"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: bindScrollForHints("leftmost")
     });
     self.mappings.add("$", {
-        annotation: "Scroll all the way to the right",
+        annotation: {
+            short: "Scroll all the way to the right",
+            unique_id: "cmd_scroll_rightmost",
+            category: "scroll",
+            description: "Scroll to the rightmost position of the page",
+            tags: ["scroll", "navigation"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: bindScrollForHints("rightmost")
     });
     self.mappings.add("%", {
-        annotation: "Scroll to percentage of current page",
+        annotation: {
+            short: "Scroll to percentage of current page",
+            unique_id: "cmd_scroll_percentage",
+            category: "scroll",
+            description: "Scroll to a percentage of the current page (requires numeric prefix)",
+            tags: ["scroll", "navigation"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: self.scroll.bind(self, "byRatio")
     });
     self.mappings.add("cs", {
-        annotation: "Change scroll target",
+        annotation: {
+            short: "Change scroll target",
+            unique_id: "cmd_scroll_change_target",
+            category: "scroll",
+            description: "Change the scroll target between main page and nested scrollable elements",
+            tags: ["scroll", "target"]
+        },
         feature_group: 2,
         repeatIgnore: true,
         code: function() {

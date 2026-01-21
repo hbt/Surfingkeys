@@ -17,6 +17,7 @@ import {
 import { RUNTIME, runtime } from '../common/runtime.js';
 import KeyboardUtils from '../common/keyboardUtils';
 import Mode from '../common/mode';
+import { getAnnotationString } from '../../common/commandMetadata.js';
 import createClipboard from '../common/clipboard.js';
 import createInsert from '../common/insert.js';
 import createNormal from '../common/normal.js';
@@ -408,7 +409,8 @@ const Front = (function() {
             metas = metas.concat(getAnnotations(omnibar.mappings));
             metas.forEach(function(meta) {
                 const w = KeyboardUtils.decodeKeystroke(meta.word);
-                const annotation = localizeAnnotation(locale, meta.annotation);
+                const annotationStr = getAnnotationString(meta.annotation);
+                const annotation = localizeAnnotation(locale, annotationStr);
                 const item = `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotation}</span></div>`;
                 help_groups[meta.feature_group].push(item);
             });
@@ -759,7 +761,8 @@ const Front = (function() {
             var words = keyHints.accumulated;
             var cc = keyHints.candidates;
             words = Object.keys(cc).sort().map(function (w) {
-                const annotation = localizeAnnotation(locale, cc[w].annotation);
+                const annotationStr = getAnnotationString(cc[w].annotation);
+                const annotation = localizeAnnotation(locale, annotationStr);
                 if (annotation) {
                     const nextKey = w.substr(keyHints.accumulated.length);
                     return `<div><span class=kbd-span><kbd>${colorizeNextKey(nextKey)}</kbd></span><span class=annotation>${annotation}</span></div>`;

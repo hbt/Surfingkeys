@@ -6,6 +6,7 @@ import {
 import { RUNTIME, dispatchSKEvent, runtime } from './runtime.js';
 import KeyboardUtils from './keyboardUtils';
 import { trackCommandUsage } from '../../common/usageTracker.js';
+import { getAnnotationString } from '../../common/commandMetadata.js';
 
 var mode_stack = [];
 
@@ -325,7 +326,8 @@ Mode.handleMapKey = function(event, onNoMatched) {
                     event.sk_stopPropagation = (!this.map_node.meta.stopPropagation
                         || this.map_node.meta.stopPropagation(key));
                     if (RUNTIME.repeats > runtime.conf.repeatThreshold) {
-                        dispatchSKEvent("front", ['showDialog', `Do you really want to repeat this action (${this.map_node.meta.annotation}) ${RUNTIME.repeats} times?`, () => {
+                        const annotationStr = getAnnotationString(this.map_node.meta.annotation);
+                        dispatchSKEvent("front", ['showDialog', `Do you really want to repeat this action (${annotationStr}) ${RUNTIME.repeats} times?`, () => {
                             while(RUNTIME.repeats > 0) {
                                 code();
                                 RUNTIME.repeats--;
