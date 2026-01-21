@@ -1,0 +1,279 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: #0a0a0a;
+    color: #0f0;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 13px;
+}
+
+#stats-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+#stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #0f0;
+}
+
+#stats-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0f0;
+    margin: 0;
+}
+
+#stats-summary {
+    color: #888;
+}
+
+#stats-actions {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.stats-btn {
+    background: #222;
+    border: 1px solid #0f0;
+    color: #0f0;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.stats-btn:hover {
+    background: #0f0;
+    color: #000;
+}
+
+.stats-btn-danger {
+    border-color: #f00;
+    color: #f00;
+}
+
+.stats-btn-danger:hover {
+    background: #f00;
+    color: #fff;
+}
+
+/* Tabs */
+#stats-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.stats-tab {
+    background: transparent;
+    border: 1px solid #333;
+    color: #888;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 4px 4px 0 0;
+    font-family: inherit;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.stats-tab:hover {
+    color: #0f0;
+    border-color: #0f0;
+}
+
+.stats-tab.active {
+    background: #0f0;
+    color: #000;
+    border-color: #0f0;
+    font-weight: bold;
+}
+
+/* Tab Panels */
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* Command list items */
+.command-item {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.command-item:hover {
+    border-color: #0f0;
+    background: #1a1a1a;
+}
+
+.command-key {
+    background: #222;
+    border: 1px solid #0f0;
+    color: #0f0;
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-weight: bold;
+    font-size: 14px;
+    min-width: 40px;
+    text-align: center;
+    display: inline-block;
+}
+
+.command-info {
+    flex: 1;
+    margin-left: 15px;
+}
+
+.command-annotation {
+    color: #fff;
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+.command-meta {
+    color: #666;
+    font-size: 11px;
+}
+
+.command-count {
+    background: #0f0;
+    color: #000;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.command-mode {
+    color: #08f;
+    font-size: 11px;
+    margin-left: 10px;
+}
+
+/* Recent item specifics */
+.recent-item {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: all 0.2s;
+}
+
+.recent-item:hover {
+    border-color: #0f0;
+    background: #1a1a1a;
+}
+
+.recent-time {
+    color: #666;
+    font-size: 11px;
+    min-width: 150px;
+}
+
+.recent-url {
+    color: #555;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 300px;
+}
+
+/* Overview styles */
+#overview-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.overview-card {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.overview-card h3 {
+    color: #0f0;
+    margin: 0 0 15px 0;
+    font-size: 14px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #222;
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    color: #888;
+}
+
+.stat-value {
+    color: #fff;
+    font-weight: bold;
+}
+
+.stat-value.highlight {
+    color: #0f0;
+    font-size: 18px;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+    font-size: 16px;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+/* Bar chart for frequency */
+.frequency-bar {
+    height: 4px;
+    background: #222;
+    border-radius: 2px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+.frequency-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0f0, #0a0);
+    border-radius: 2px;
+    transition: width 0.3s;
+}

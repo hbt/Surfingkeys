@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Surfingkeys - Usage Statistics</title>
+    <link rel="stylesheet" href="stats-viewer.css">
+</head>
+<body>
+    <div id="stats-container">
+        <header id="stats-header">
+            <h1 id="stats-title">Usage Statistics</h1>
+            <div id="stats-summary">Loading...</div>
+        </header>
+
+        <div id="stats-actions">
+            <button class="stats-btn" id="btn-refresh">Refresh</button>
+            <button class="stats-btn" id="btn-export">Export JSON</button>
+            <button class="stats-btn stats-btn-danger" id="btn-clear">Clear All</button>
+        </div>
+
+        <div id="stats-tabs">
+            <button class="stats-tab active" data-tab="frequent">Frequently Used</button>
+            <button class="stats-tab" data-tab="recent">Recently Used</button>
+            <button class="stats-tab" data-tab="overview">Overview</button>
+        </div>
+
+        <div id="tab-content">
+            <!-- Frequently Used Tab -->
+            <div id="tab-frequent" class="tab-panel active">
+                <div id="frequent-list"></div>
+            </div>
+
+            <!-- Recently Used Tab -->
+            <div id="tab-recent" class="tab-panel">
+                <div id="recent-list"></div>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="tab-overview" class="tab-panel">
+                <div id="overview-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="stats-viewer.js"></script>
+</body>
+</html>

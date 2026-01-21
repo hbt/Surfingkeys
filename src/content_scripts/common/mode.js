@@ -5,6 +5,7 @@ import {
 } from './utils.js';
 import { RUNTIME, dispatchSKEvent, runtime } from './runtime.js';
 import KeyboardUtils from './keyboardUtils';
+import { trackCommandUsage } from '../../common/usageTracker.js';
 
 var mode_stack = [];
 
@@ -276,6 +277,12 @@ Mode.handleMapKey = function(event, onNoMatched) {
         actionDone = true;
     } else if (this.pendingMap) {
         this.setLastKeys && this.setLastKeys(this.map_node.meta.word + key);
+        // Track command usage for statistics (pendingMap commands)
+        trackCommandUsage(
+            this.map_node.meta.word + key,
+            this.map_node.meta.annotation,
+            thisMode.name
+        );
         var pf = this.pendingMap.bind(this);
         event.sk_stopPropagation = (!this.map_node.meta.stopPropagation
             || this.map_node.meta.stopPropagation(key));
@@ -308,6 +315,12 @@ Mode.handleMapKey = function(event, onNoMatched) {
                     event.sk_stopPropagation = true;
                 } else {
                     this.setLastKeys && this.setLastKeys(this.map_node.meta.word);
+                    // Track command usage for statistics
+                    trackCommandUsage(
+                        this.map_node.meta.word,
+                        this.map_node.meta.annotation,
+                        thisMode.name
+                    );
                     RUNTIME.repeats = parseInt(this.repeats) || 1;
                     event.sk_stopPropagation = (!this.map_node.meta.stopPropagation
                         || this.map_node.meta.stopPropagation(key));
