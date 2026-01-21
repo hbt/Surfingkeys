@@ -24,7 +24,7 @@ const colors = {
     magenta: '\x1b[35m'
 };
 
-async function findBg(): Promise<string> {
+async function getAllTargets(): Promise<any[]> {
     const resp = await new Promise<string>((resolve, reject) => {
         http.get(`${CDP_CONFIG.endpoint}/json`, (res) => {
             let body = '';
@@ -32,8 +32,11 @@ async function findBg(): Promise<string> {
             res.on('end', () => resolve(body));
         }).on('error', reject);
     });
+    return JSON.parse(resp);
+}
 
-    const targets = JSON.parse(resp);
+async function findBg(): Promise<string> {
+    const targets = await getAllTargets();
     const bg = targets.find((t: any) => t.title === 'Surfingkeys' || t.url.includes('background.js'));
     if (!bg) throw new Error('Background not found');
     return bg.webSocketDebuggerUrl;
@@ -80,15 +83,7 @@ async function createTab(bgWs: WebSocket, url: string): Promise<number> {
 
 async function findPage(url: string): Promise<string | null> {
     await new Promise(r => setTimeout(r, 1000));
-    const resp = await new Promise<string>((resolve, reject) => {
-        http.get(`${CDP_CONFIG.endpoint}/json`, (res) => {
-            let body = '';
-            res.on('data', chunk => body += chunk);
-            res.on('end', () => resolve(body));
-        }).on('error', reject);
-    });
-
-    const targets = JSON.parse(resp);
+    const targets = await getAllTargets();
     const page = targets.find((t: any) =>
         t.type === 'page' && t.url.includes(url)
     );
@@ -118,7 +113,7 @@ async function sendKey(ws: WebSocket, key: string): Promise<void> {
     await new Promise(r => setTimeout(r, 100));
 }
 
-async function injectCode(ws: WebSocket, code: string): Promise<any> {
+async function injectIntoIframe(ws: WebSocket, code: string): Promise<any> {
     return new Promise((resolve, reject) => {
         const id = messageId++;
         const timeout = setTimeout(() => reject(new Error('Timeout')), 5000);
@@ -150,7 +145,7 @@ async function injectCode(ws: WebSocket, code: string): Promise<any> {
 }
 
 async function main() {
-    console.log(`${colors.bright}${colors.cyan}Live Fuzzy Finder Development${colors.reset}\n`);
+    console.log(`${colors.bright}${colors.cyan}Live Fuzzy Finder Demo${colors.reset}\n`);
 
     const bgWs = new WebSocket(await findBg());
 
@@ -176,188 +171,174 @@ async function main() {
 
             console.log(`${colors.yellow}Step 3: Triggering help menu...${colors.reset}`);
             await sendKey(pageWs, '?');
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 2000));
             console.log(`   ${colors.green}✓ Help menu opened${colors.reset}\n`);
 
-            console.log(`${colors.yellow}Step 4: Injecting fuzzy finder...${colors.reset}`);
+            // Find iframe CDP target
+            console.log(`${colors.yellow}Step 4: Connecting to frontend iframe...${colors.reset}`);
+            const targets = await getAllTargets();
+            const iframeTarget = targets.find((t: any) =>
+                t.type === 'iframe' && t.url.includes('frontend.html')
+            );
+
+            if (!iframeTarget) {
+                throw new Error('Frontend iframe target not found');
+            }
+
+            const iframeWs = new WebSocket(iframeTarget.webSocketDebuggerUrl);
+            await new Promise(resolve => iframeWs.on('open', resolve));
+            iframeWs.send(JSON.stringify({ id: messageId++, method: 'Runtime.enable' }));
+            await new Promise(r => setTimeout(r, 100));
+            console.log(`   ${colors.green}✓ Connected to iframe${colors.reset}\n`);
+
+            // Wait for content
+            console.log(`${colors.yellow}Step 5: Waiting for help content...${colors.reset}`);
+            let itemCount = 0;
+            for (let i = 0; i < 20; i++) {
+                itemCount = await injectIntoIframe(iframeWs,
+                    'document.querySelector("#sk_usage > div")?.querySelectorAll("div").length || 0'
+                );
+                if (itemCount > 30) {
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 200));
+            }
+            console.log(`   ${colors.green}✓ Content loaded (${itemCount} elements)${colors.reset}\n`);
+
+            console.log(`${colors.yellow}Step 6: Injecting fuzzy finder...${colors.reset}`);
 
             const fuzzyFinderCode = `
 (function() {
-    // Find the UI iframe in shadow root
-    const uiHostDivs = Array.from(document.querySelectorAll('div')).filter(div => div.shadowRoot);
-    if (uiHostDivs.length === 0) {
-        console.error('No shadow root found!');
-        return 'ERROR: No shadow root';
-    }
+    const usageContainer = document.querySelector('#sk_usage');
+    if (!usageContainer) return 'ERROR: Help menu not found';
+    if (document.querySelector('#sk_fuzzy_search')) return 'Already injected';
 
-    const shadowRoot = uiHostDivs[0].shadowRoot;
-    const iframe = shadowRoot.querySelector('iframe.sk_ui');
-    if (!iframe) {
-        console.error('UI iframe not found!');
-        return 'ERROR: No iframe';
-    }
-
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-    const usageContainer = iframeDoc.querySelector('#sk_usage');
-    if (!usageContainer) {
-        console.error('Help menu not found in iframe!');
-        return 'ERROR: Help menu not found';
-    }
-
-    // Check if fuzzy finder already exists
-    if (iframeDoc.querySelector('#sk_fuzzy_search')) {
-        console.log('Fuzzy finder already injected');
-        return 'Already injected';
-    }
-
-    // Create search input in iframe document
-    const searchInput = iframeDoc.createElement('input');
-    const iframeWin = iframe.contentWindow;
+    const searchInput = document.createElement('input');
     searchInput.id = 'sk_fuzzy_search';
     searchInput.type = 'text';
-    searchInput.placeholder = 'Search commands... (Ctrl+F to focus)';
+    searchInput.placeholder = 'Type to search commands...';
     searchInput.style.cssText = \`
         width: calc(100% - 20px);
         margin: 10px;
-        padding: 8px 12px;
+        padding: 10px 14px;
         font-size: 14px;
         border: 2px solid #4CAF50;
-        border-radius: 4px;
+        border-radius: 6px;
         outline: none;
-        background: #2b2b2b;
+        background: #1a1a1a;
         color: #fff;
         font-family: monospace;
         box-sizing: border-box;
     \`;
 
-    // Store original content for filtering
     const contentDiv = usageContainer.querySelector('div');
-    if (!contentDiv) {
-        console.error('Help content not found!');
-        return;
-    }
+    if (!contentDiv) return 'ERROR: Help content not found';
 
-    // Parse all help items
     const allItems = [];
-    const featureGroups = contentDiv.querySelectorAll(':scope > div');
+    let currentGroup = -1;
+    let currentCategoryName = '';
 
-    featureGroups.forEach((group, groupIndex) => {
-        const categoryName = group.querySelector('.feature_name span')?.textContent || '';
-        const items = group.querySelectorAll(':scope > div:not(.feature_name)');
+    const allDivs = Array.from(contentDiv.querySelectorAll(':scope > div'));
 
-        items.forEach(item => {
-            const kbd = item.querySelector('.kbd-span kbd')?.textContent || '';
-            const annotation = item.querySelector('.annotation')?.textContent || '';
+    allDivs.forEach((div) => {
+        if (div.classList.contains('feature_name') || div.querySelector('.feature_name')) {
+            currentGroup++;
+            currentCategoryName = div.querySelector('span')?.textContent || '';
+        } else {
+            const kbd = div.querySelector('.kbd-span kbd')?.textContent || '';
+            const annotation = div.querySelector('.annotation')?.textContent || '';
 
-            allItems.push({
-                groupIndex,
-                categoryName,
-                kbd,
-                annotation,
-                element: item.parentElement,
-                item: item
-            });
-        });
+            if (kbd && annotation) {
+                allItems.push({
+                    groupIndex: currentGroup,
+                    categoryName: currentCategoryName,
+                    kbd,
+                    annotation,
+                    item: div
+                });
+            }
+        }
     });
 
-    console.log('Parsed ' + allItems.length + ' help items');
-
-    // Simple fuzzy match function (searches in description only)
     function fuzzyMatch(text, query) {
         if (!query) return true;
-
         text = text.toLowerCase();
         query = query.toLowerCase();
-
-        // Simple substring match for now
         return text.includes(query);
     }
 
-    // Filter function
     function filterItems(query) {
         let visibleCount = 0;
-        const groupVisibility = {};
+        const groupVisibility = new Set();
 
         allItems.forEach(itemData => {
-            // Search only in annotation (description)
             const matches = fuzzyMatch(itemData.annotation, query);
 
             if (matches) {
                 itemData.item.style.display = '';
                 visibleCount++;
-                groupVisibility[itemData.groupIndex] = true;
+                groupVisibility.add(itemData.groupIndex);
             } else {
                 itemData.item.style.display = 'none';
             }
         });
 
         // Show/hide group headers
-        featureGroups.forEach((group, idx) => {
-            if (groupVisibility[idx]) {
-                group.style.display = '';
-            } else {
-                group.style.display = 'none';
+        allDivs.forEach((div, idx) => {
+            if (div.classList.contains('feature_name') || div.querySelector('.feature_name')) {
+                const headerIndex = allDivs.slice(0, idx).filter(d =>
+                    d.classList.contains('feature_name') || d.querySelector('.feature_name')
+                ).length;
+
+                div.style.display = groupVisibility.has(headerIndex) ? '' : 'none';
             }
         });
 
-        console.log('Filtered: ' + visibleCount + ' / ' + allItems.length + ' items visible');
+        return { total: allItems.length, visible: visibleCount };
     }
 
-    // Store filter function in iframe window
-    iframeWin._skFuzzyFilter = filterItems;
+    window._skFuzzyFilter = filterItems;
 
-    // Add event listener
     searchInput.addEventListener('input', (e) => {
         filterItems(e.target.value);
     });
 
-    // Add keyboard shortcut (Ctrl+F) to focus search
-    iframeDoc.addEventListener('keydown', (e) => {
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key === 'f' && usageContainer.style.display !== 'none') {
             e.preventDefault();
             searchInput.focus();
         }
-        // ESC clears search
-        if (e.key === 'Escape' && iframeDoc.activeElement === searchInput) {
+        if (e.key === 'Escape' && document.activeElement === searchInput) {
             e.stopPropagation();
             searchInput.value = '';
             filterItems('');
-            searchInput.blur();
         }
     });
 
-    // Insert search input at the top
     usageContainer.insertBefore(searchInput, contentDiv);
-
-    // Auto-focus the search input
     searchInput.focus();
 
-    console.log('✓ Fuzzy finder injected successfully!');
-    return 'Fuzzy finder ready';
+    return 'Fuzzy finder ready - ' + allItems.length + ' commands indexed';
 })();
 `;
 
-            const result = await injectCode(pageWs, fuzzyFinderCode);
-            console.log(`   ${colors.green}✓ ${result || 'Fuzzy finder injected'}${colors.reset}\n`);
+            const result = await injectIntoIframe(iframeWs, fuzzyFinderCode);
+            console.log(`   ${colors.green}✓ ${result}${colors.reset}\n`);
 
             console.log(`${colors.bright}${colors.green}═══════════════════════════════════════════${colors.reset}`);
-            console.log(`${colors.bright}${colors.green}  Fuzzy Finder is Now Active!${colors.reset}`);
+            console.log(`${colors.bright}${colors.green}  Fuzzy Finder Demo Ready!${colors.reset}`);
             console.log(`${colors.bright}${colors.green}═══════════════════════════════════════════${colors.reset}\n`);
 
-            console.log(`${colors.cyan}Features:${colors.reset}`);
-            console.log(`  • Search input at top of help menu`);
-            console.log(`  • Searches in descriptions only`);
-            console.log(`  • Real-time filtering as you type`);
-            console.log(`  • Ctrl+F to focus search`);
-            console.log(`  • ESC to clear search\n`);
+            console.log(`${colors.cyan}Try these searches in the browser:${colors.reset}`);
+            console.log(`  • "scroll" - scrolling commands`);
+            console.log(`  • "tab" - tab management`);
+            console.log(`  • "close" - close actions`);
+            console.log(`  • "bookmark" - bookmark commands`);
+            console.log(`  • "copy" - clipboard operations\n`);
 
-            console.log(`${colors.magenta}Try typing:${colors.reset}`);
-            console.log(`  • "scroll" - find scrolling commands`);
-            console.log(`  • "tab" - find tab-related commands`);
-            console.log(`  • "bookmark" - find bookmark commands\n`);
-
-            console.log(`${colors.yellow}Browser stays open for testing.${colors.reset}`);
-            console.log(`${colors.yellow}Press Ctrl+C when ready to iterate or finish.${colors.reset}\n`);
+            console.log(`${colors.magenta}Browser window is open for testing.${colors.reset}`);
+            console.log(`${colors.magenta}Press Ctrl+C when done.${colors.reset}\n`);
 
             // Keep connection open
             await new Promise(() => {});
