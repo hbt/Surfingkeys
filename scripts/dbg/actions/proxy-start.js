@@ -8,6 +8,19 @@
  *
  * Output: JSON only to stdout
  * Logs: Written to /tmp/dbg-proxy-<timestamp>.log
+ *
+ * Example: Open a Google tab
+ * -------------------------
+ * EXTENSION_IFRAME=$(curl -s http://127.0.0.1:9222/json | jq -r '.[] | select(.url | contains("chrome-extension")) | .id' | head -1)
+ * echo "{
+ *   \"targetId\": \"$EXTENSION_IFRAME\",
+ *   \"method\": \"Runtime.evaluate\",
+ *   \"params\": {
+ *     \"expression\": \"new Promise((r)=>chrome.tabs.create({url:'https://www.google.com'},r))\",
+ *     \"returnByValue\": true,
+ *     \"awaitPromise\": true
+ *   }
+ * }" | websocat ws://127.0.0.1:9223 | jq '.result.result.value | {id, url, title}'
  */
 
 const WebSocket = require('ws');
