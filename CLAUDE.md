@@ -3,7 +3,7 @@
 
 ## Development Commands
 
-build after changes: `npm run esbuild:dev` - built timestamp appears in manifest
+build after changes: `npm run build:dev` - built timestamp appears in manifest
 reload extension: `./bin/dbg reload`  returns JSON
 more debugging: `./bin/dbg --help`  returns JSON
 
