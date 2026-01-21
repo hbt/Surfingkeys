@@ -25,7 +25,9 @@
     "debug:cdp:live": "node debug/run-live.js",
     "lint": "node scripts/run-lint.js",
     "lint:js": "eslint --config config/eslint.config.js src tests debug scripts --ext .js,.ts",
-    "lint:css": "stylelint --config config/stylelint.config.js 'src/**/*.css'"
+    "lint:css": "stylelint --config config/stylelint.config.js 'src/**/*.css'",
+    "validate:mappings": "node scripts/validate-mappings.js",
+    "validate:mappings:prefixes": "node scripts/validate-mappings.js --prefixes"
   },
   "repository": {
     "type": "git",
