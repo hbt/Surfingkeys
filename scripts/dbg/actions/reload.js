@@ -1,31 +1,35 @@
 /**
  * Reload Extension Action
  *
- * Reloads the Surfingkeys extension using multiple fallback methods:
- * 1. chrome.developerPrivate.reload() via CDP (requires chrome://extensions tab)
- * 2. chrome.management.setEnabled() toggle via CDP
- * 3. Keyboard shortcut simulation (last resort)
+ * Reloads the Surfingkeys extension using CDP Message Bridge.
+ * Falls back to keyboard shortcut if bridge method fails.
+ *
+ * Output: JSON only to stdout
+ * Logs: Written to /tmp/dbg-reload-<timestamp>.log
  *
  * Independent implementation - does not depend on debug/ directory
  */
 
 const WebSocket = require('ws');
 const http = require('http');
+const fs = require('fs');
 const { spawn } = require('child_process');
-
-// Color utilities
-const colors = {
-    reset: '\x1b[0m',
-    bright: '\x1b[1m',
-    cyan: '\x1b[36m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
-    red: '\x1b[31m'
-};
 
 let messageId = 1;
 const CDP_PORT = process.env.CDP_PORT || 9222;
 const CDP_ENDPOINT = `http://localhost:${CDP_PORT}`;
+
+// Create log file
+const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+const LOG_FILE = `/tmp/dbg-reload-${timestamp}.log`;
+const logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
+
+/**
+ * Log to file only
+ */
+function log(message) {
+    logStream.write(`${new Date().toISOString()} ${message}\n`);
+}
 
 /**
  * Fetch JSON from CDP endpoint
@@ -52,10 +56,10 @@ async function fetchJson(path) {
 async function detectExtensionId() {
     const targets = await fetchJson('/json');
 
-    // Look for Surfingkeys service worker
+    // Look for Surfingkeys service worker (background.js)
     const sw = targets.find(t =>
         t.type === 'service_worker' &&
-        (t.title === 'Surfingkeys' || t.url?.includes('surfingkeys'))
+        t.url?.includes('background.js')
     );
 
     if (sw && sw.url) {
@@ -69,24 +73,17 @@ async function detectExtensionId() {
 }
 
 /**
- * Find chrome://extensions tab
+ * Find Surfingkeys service worker
  */
-async function findExtensionsTab(extensionId) {
+async function findServiceWorker() {
     const targets = await fetchJson('/json');
 
-    // Try exact match first
-    let tab = targets.find(t =>
-        t.type === 'page' && t.url?.includes(`chrome://extensions/?errors=${extensionId}`)
+    const sw = targets.find(t =>
+        t.type === 'service_worker' &&
+        t.url?.includes('background.js')
     );
 
-    // Fall back to any chrome://extensions page
-    if (!tab) {
-        tab = targets.find(t =>
-            t.type === 'page' && t.url?.startsWith('chrome://extensions')
-        );
-    }
-
-    return tab ? tab.webSocketDebuggerUrl : null;
+    return sw ? sw.webSocketDebuggerUrl : null;
 }
 
 /**
@@ -116,7 +113,7 @@ function sendCommand(ws, method, params = {}) {
 }
 
 /**
- * Evaluate code in chrome://extensions context
+ * Evaluate code in service worker context
  */
 async function evaluateCode(ws, expression) {
     const result = await sendCommand(ws, 'Runtime.evaluate', {
@@ -133,67 +130,72 @@ async function evaluateCode(ws, expression) {
 }
 
 /**
- * Method 1: Reload using chrome.developerPrivate.reload()
+ * Method 1: Reload using CDP Message Bridge
  */
-async function reloadViaDeveloperPrivate(extensionId) {
-    console.log(`${colors.yellow}Method 1: chrome.developerPrivate.reload()${colors.reset}`);
+async function reloadViaBridge(extensionId) {
+    log('Method 1: CDP Message Bridge - __CDP_MESSAGE_BRIDGE__.dispatch()');
 
-    const tabWsUrl = await findExtensionsTab(extensionId);
-    if (!tabWsUrl) {
-        console.log(`  ${colors.red}✗ chrome://extensions tab not found${colors.reset}`);
-        return false;
+    const swWsUrl = await findServiceWorker();
+    if (!swWsUrl) {
+        log('✗ Service worker not found');
+        return { success: false, error: 'Service worker not found' };
     }
 
-    const ws = new WebSocket(tabWsUrl);
+    log(`Connecting to service worker: ${swWsUrl}`);
+    const ws = new WebSocket(swWsUrl);
 
     return new Promise((resolve) => {
         ws.on('open', async () => {
             try {
                 await sendCommand(ws, 'Runtime.enable');
+                log('Connected to service worker');
 
+                // Check if bridge is available
+                const bridgeAvailable = await evaluateCode(ws, `
+                    typeof globalThis.__CDP_MESSAGE_BRIDGE__ !== 'undefined'
+                `);
+
+                if (!bridgeAvailable) {
+                    log('✗ CDP Message Bridge not available');
+                    ws.close();
+                    resolve({ success: false, error: 'CDP Message Bridge not available' });
+                    return;
+                }
+
+                log('CDP Message Bridge found');
+
+                // Dispatch reload command via bridge
                 const result = await evaluateCode(ws, `
-                    (async function() {
-                        const extensionId = '${extensionId}';
-
-                        return new Promise((resolve) => {
-                            if (!chrome.developerPrivate || !chrome.developerPrivate.reload) {
-                                resolve({
-                                    success: false,
-                                    error: 'chrome.developerPrivate.reload not available'
-                                });
-                                return;
-                            }
-
-                            chrome.developerPrivate.reload(extensionId, {}, () => {
-                                const err = chrome.runtime.lastError;
-                                if (err) {
-                                    resolve({ success: false, error: err.message });
-                                } else {
-                                    resolve({ success: true });
-                                }
-                            });
-                        });
+                    (function() {
+                        return globalThis.__CDP_MESSAGE_BRIDGE__.dispatch(
+                            'cdpReloadExtension',
+                            {},
+                            true
+                        );
                     })()
                 `);
 
+                log(`Bridge response: ${JSON.stringify(result)}`);
+
                 ws.close();
 
-                if (result.success) {
-                    console.log(`  ${colors.green}✓ Extension reloaded successfully${colors.reset}`);
-                    resolve(true);
+                if (result && result.status === 'reload_initiated') {
+                    log('✓ Extension reload initiated successfully');
+                    resolve({ success: true, method: 'cdp_bridge', response: result });
                 } else {
-                    console.log(`  ${colors.red}✗ Failed: ${result.error}${colors.reset}`);
-                    resolve(false);
+                    log(`✗ Unexpected response: ${JSON.stringify(result)}`);
+                    resolve({ success: false, error: 'Unexpected response from bridge', response: result });
                 }
             } catch (error) {
-                console.log(`  ${colors.red}✗ Error: ${error.message}${colors.reset}`);
+                log(`✗ Error: ${error.message}`);
                 ws.close();
-                resolve(false);
+                resolve({ success: false, error: error.message });
             }
         });
 
-        ws.on('error', () => {
-            resolve(false);
+        ws.on('error', (error) => {
+            log(`✗ WebSocket error: ${error.message}`);
+            resolve({ success: false, error: error.message });
         });
     });
 }
@@ -202,24 +204,24 @@ async function reloadViaDeveloperPrivate(extensionId) {
  * Method 2: Reload using keyboard shortcut (Alt+Shift+R)
  */
 async function reloadViaKeyboard() {
-    console.log(`${colors.yellow}Method 2: Keyboard shortcut (Alt+Shift+R)${colors.reset}`);
+    log('Method 2: Keyboard shortcut (Alt+Shift+R)');
 
     return new Promise((resolve) => {
         const proc = spawn('xdotool', ['key', 'alt+shift+r']);
 
         proc.on('close', (code) => {
             if (code === 0) {
-                console.log(`  ${colors.green}✓ Keyboard shortcut triggered${colors.reset}`);
-                resolve(true);
+                log('✓ Keyboard shortcut triggered');
+                resolve({ success: true, method: 'keyboard' });
             } else {
-                console.log(`  ${colors.red}✗ xdotool failed (exit code: ${code})${colors.reset}`);
-                resolve(false);
+                log(`✗ xdotool failed (exit code: ${code})`);
+                resolve({ success: false, error: `xdotool exit code: ${code}` });
             }
         });
 
-        proc.on('error', () => {
-            console.log(`  ${colors.red}✗ xdotool not available${colors.reset}`);
-            resolve(false);
+        proc.on('error', (error) => {
+            log(`✗ xdotool not available: ${error.message}`);
+            resolve({ success: false, error: 'xdotool not available' });
         });
     });
 }
@@ -228,35 +230,62 @@ async function reloadViaKeyboard() {
  * Main action runner
  */
 async function run(args) {
-    console.log(`${colors.bright}Reload Extension${colors.reset}\n`);
+    log('=== Reload Extension Action ===');
+    log(`CDP Port: ${CDP_PORT}`);
 
-    // Detect extension ID
-    console.log(`${colors.cyan}Detecting extension...${colors.reset}`);
-    const extensionId = await detectExtensionId();
+    try {
+        // Detect extension ID
+        log('Detecting extension...');
+        const extensionId = await detectExtensionId();
 
-    if (!extensionId) {
-        console.error(`${colors.red}Error: Could not detect Surfingkeys extension ID${colors.reset}`);
-        console.error(`Make sure the extension is installed and the browser is running with CDP on port ${CDP_PORT}\n`);
-        process.exit(1);
-    }
+        if (!extensionId) {
+            log('ERROR: Could not detect Surfingkeys extension ID');
+            logStream.end();
 
-    console.log(`  Extension ID: ${colors.bright}${extensionId}${colors.reset}\n`);
+            console.log(JSON.stringify({
+                success: false,
+                error: 'Extension not detected',
+                details: `Browser must be running with CDP on port ${CDP_PORT}`,
+                log: LOG_FILE
+            }));
+            process.exit(1);
+        }
 
-    // Try methods in order
-    let success = await reloadViaDeveloperPrivate(extensionId);
+        log(`Extension ID: ${extensionId}`);
 
-    if (!success) {
-        console.log();
-        success = await reloadViaKeyboard();
-    }
+        // Try CDP Message Bridge method
+        let result = await reloadViaBridge(extensionId);
 
-    console.log();
+        // Fallback to keyboard if bridge failed
+        if (!result.success) {
+            log('Bridge method failed, trying keyboard fallback...');
+            result = await reloadViaKeyboard();
+        }
 
-    if (success) {
-        console.log(`${colors.green}✅ Extension reload completed${colors.reset}\n`);
-        process.exit(0);
-    } else {
-        console.log(`${colors.red}❌ All reload methods failed${colors.reset}\n`);
+        logStream.end();
+
+        // Output JSON result
+        console.log(JSON.stringify({
+            success: result.success,
+            method: result.method,
+            extensionId: extensionId,
+            response: result.response,
+            error: result.error,
+            log: LOG_FILE
+        }));
+
+        process.exit(result.success ? 0 : 1);
+
+    } catch (error) {
+        log(`FATAL ERROR: ${error.message}`);
+        log(error.stack);
+        logStream.end();
+
+        console.log(JSON.stringify({
+            success: false,
+            error: error.message,
+            log: LOG_FILE
+        }));
         process.exit(1);
     }
 }

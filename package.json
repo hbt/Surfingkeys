@@ -25,7 +25,6 @@
     "test:cdp:live": "node tests/cdp/run-live.js",
     "debug:cdp:headless": "node debug/run-headless.js",
     "debug:cdp:live": "node debug/run-live.js",
-    "dbg": "node scripts/dbg/index.js",
     "lint": "eslint src tests debug scripts --ext .js,.ts"
   },
   "repository": {

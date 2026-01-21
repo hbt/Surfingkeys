@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#
+# Debug Command Wrapper
+#
+# Provides clean JSON-based interface for common debugging operations.
+# All actions output JSON to stdout, logs go to /tmp/dbg-<action>-<timestamp>.log
+#
+# Usage:
+#   bin/dbg <action> [options]
+#   bin/dbg                                    (show help)
+#
+# Examples:
+#   bin/dbg reload                             (reload extension)
+#   bin/dbg reload | jq .                      (pretty JSON output)
+#   bin/dbg reload | jq -r '.log'              (extract log file path)
+#   bin/dbg reload | jq -r '.log' | xargs cat  (view full log)
+#   bin/dbg reload | jq -r '.log' | xargs tail -5  (view last 5 log lines)
+#   bin/dbg clear-errors                       (clear stored errors)
+#   bin/dbg open-background                    (open DevTools console)
+#
+
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Execute the Node.js controller
+exec node "$PROJECT_ROOT/scripts/dbg/index.js" "$@"

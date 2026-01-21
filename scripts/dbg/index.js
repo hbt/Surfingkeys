@@ -6,8 +6,8 @@
  * Actions are independent and self-contained (no dependencies on debug/ directory).
  *
  * Usage:
- *   npm run dbg <action> [options]
- *   npm run dbg                       (show help)
+ *   bin/dbg <action> [options]
+ *   bin/dbg                       (show help)
  *
  * Actions:
  *   reload              Reload the extension using multiple fallback methods
@@ -15,9 +15,9 @@
  *   open-background     Open background service worker DevTools console
  *
  * Examples:
- *   npm run dbg reload
- *   npm run dbg clear-errors
- *   npm run dbg open-background
+ *   bin/dbg reload
+ *   bin/dbg reload | jq .
+ *   bin/dbg clear-errors
  */
 
 const fs = require('fs');
@@ -50,8 +50,8 @@ function showHelp() {
     console.log(`${colors.dim}Provides a clean interface for common debugging operations.${colors.reset}\n`);
 
     console.log(`${colors.cyan}Usage:${colors.reset}`);
-    console.log(`  npm run dbg <action> [options]`);
-    console.log(`  npm run dbg              ${colors.dim}(show this help)${colors.reset}\n`);
+    console.log(`  bin/dbg <action> [options]`);
+    console.log(`  bin/dbg                  ${colors.dim}(show this help)${colors.reset}\n`);
 
     console.log(`${colors.cyan}Actions:${colors.reset}`);
     Object.entries(ACTIONS).forEach(([action, description]) => {
@@ -59,9 +59,9 @@ function showHelp() {
     });
 
     console.log(`\n${colors.cyan}Examples:${colors.reset}`);
-    console.log(`  npm run dbg reload`);
-    console.log(`  npm run dbg clear-errors`);
-    console.log(`  npm run dbg open-background\n`);
+    console.log(`  bin/dbg reload`);
+    console.log(`  bin/dbg reload | jq .    ${colors.dim}(JSON output)${colors.reset}`);
+    console.log(`  bin/dbg clear-errors\n`);
 }
 
 /**
@@ -94,15 +94,16 @@ async function main() {
         process.exit(1);
     }
 
-    console.log(`${colors.dim}[dbg] Running action: ${colors.bright}${action}${colors.reset}\n`);
-
     try {
         const actionModule = require(actionPath);
         const actionArgs = args.slice(1);
         await actionModule.run(actionArgs);
     } catch (error) {
-        console.error(`${colors.red}Error executing action "${action}":${colors.reset}`);
-        console.error(error);
+        // Actions output JSON on their own, so just exit with error code
+        console.error(JSON.stringify({
+            success: false,
+            error: `Failed to execute action: ${error.message}`
+        }));
         process.exit(1);
     }
 }
