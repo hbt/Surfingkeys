@@ -26,6 +26,7 @@ import createAPI from '../common/api.js';
 import createDefaultMappings from '../common/default.js';
 import createOmnibar from './omnibar.js';
 import createCommands from './command.js';
+import { setupHelpFilter } from './fuzzyFilter.js';
 
 const Front = (function() {
     const clipboard = createClipboard();
@@ -428,6 +429,12 @@ const Front = (function() {
         showElement(_usage, () => {
             buildUsage(message.metas, function(usage) {
                 setSanitizedContent(_usage, usage);
+                // Setup fuzzy filter for searching commands
+                const filterAPI = setupHelpFilter(_usage);
+                if (filterAPI && filterAPI.searchInput) {
+                    // Focus search input after a short delay to ensure DOM is ready
+                    setTimeout(() => filterAPI.searchInput.focus(), 100);
+                }
             });
         });
     };
