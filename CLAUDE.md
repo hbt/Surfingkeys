@@ -5,8 +5,8 @@
 
 **Quick CDP inspection (most common):**
 ```bash
-sk-cdp eval "document.body.style.backgroundColor"
-sk-cdp eval --target options.html "document.querySelectorAll('input').length"
+./bin/sk-cdp eval "document.body.style.backgroundColor"
+./bin/sk-cdp eval --target options.html "document.querySelectorAll('input').length"
 ```
 
 **Proxy & logging:**
@@ -40,8 +40,8 @@ Start proxy: `./bin/dbg proxy-start` (captures all console & exceptions to `/tmp
 
 Simplified wrapper with no JSON escaping:
 ```bash
-sk-cdp eval "document.body.style.backgroundColor"
-sk-cdp eval --target options.html "document.querySelectorAll('input').length"
+./bin/sk-cdp eval "document.body.style.backgroundColor"
+./bin/sk-cdp eval --target options.html "document.querySelectorAll('input').length"
 ```
 
 **Features:**
