@@ -3,15 +3,27 @@
 
 ## Development Commands
 
-reload extension: `./bin/dbg reload` - builds and reloads (returns JSON with build.timestamp)
-more debugging: `./bin/dbg --help` - returns JSON
+**Quick CDP inspection (most common):**
+```bash
+sk-cdp eval "document.body.style.backgroundColor"
+sk-cdp eval --target options.html "document.querySelectorAll('input').length"
+```
+
+**Proxy & logging:**
+- Start proxy: `./bin/dbg proxy-start` (auto-captures console & exceptions to `/tmp/dbg-proxy.log`)
+- Stop proxy: `./bin/dbg proxy-stop`
+- Check status: `./bin/dbg proxy-status`
+
+**Reload & build:**
+- Reload extension: `./bin/dbg reload` - builds and reloads (returns JSON with build.timestamp)
+- More debugging: `./bin/dbg --help` - returns JSON
 
 ## Debugging Approaches
 
 See **[docs/dev.md](docs/dev.md)** for comprehensive guide to all 3 debugging strategies.
 
 ### 1a. CDP + Proxy via websocat (Fastest one-liners)
-Start proxy: `./bin/dbg proxy-start`
+Start proxy: `./bin/dbg proxy-start` (auto-logs all console & exceptions to `/tmp/dbg-proxy.log`)
 
 One-liner CDP commands via websocat (instant feedback, no build):
 ```bash
@@ -21,24 +33,26 @@ echo '{"targetId": "...", "method": "Runtime.evaluate", "params": {...}}' | webs
 See [docs/cdp/proxy.md](docs/cdp/proxy.md) for examples.
 
 **Use this for:** Very quick single-line checks, minimal overhead
+**Logging:** All console output automatically captured by proxy
 
 ### 1b. CDP + sk-cdp CLI (Recommended for most cases)
-Start proxy: `./bin/dbg proxy-start`
+Start proxy: `./bin/dbg proxy-start` (captures all console & exceptions to `/tmp/dbg-proxy.log`)
 
 Simplified wrapper with no JSON escaping:
 ```bash
 sk-cdp eval "document.body.style.backgroundColor"
 sk-cdp eval --target options.html "document.querySelectorAll('input').length"
-sk-cdp eval --target options.html <<'CODE'
-(function() {
-  return { test: 123 };
-})()
-CODE
 ```
+
+**Features:**
+- No JSON escaping or shell quoting
+- Auto-target discovery and multi-line code support
+- Automatic metadata: Duration, DOM changes, tab state, console log reference
+- Detects when side effects fail (e.g., button clicks that don't work)
 
 See [docs/cdp/sk-cdp.md](docs/cdp/sk-cdp.md) for full reference.
 
-**Use this for:** Inspections, multi-line code, better error display, no escaping hell
+**Use this for:** Inspections, side-effect verification, full debugging observability
 
 ### 2. CDP Debug Scripts (Reusable patterns)
 ```bash

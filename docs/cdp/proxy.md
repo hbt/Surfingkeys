@@ -1,12 +1,15 @@
 # CDP Proxy
 
 WebSocket proxy for stateless CDP communication with Chrome extensions.
+Automatically captures all console messages and exceptions to `/tmp/dbg-proxy.log`.
+
+**Recommended:** Use [`sk-cdp`](./sk-cdp.md) CLI instead of raw websocat for better DX.
 
 ## proxy.commands
 
 | Command | Description |
 |---------|-------------|
-| `bin/dbg proxy-start` | Start proxy server |
+| `bin/dbg proxy-start` | Start proxy server (auto-captures console & exceptions) |
 | `bin/dbg proxy-stop` | Stop proxy server |
 | `bin/dbg proxy-status` | Check if running |
 
@@ -103,8 +106,29 @@ Simply change the `select()` filter to target a different page by title, URL, or
 
 ## proxy.logs
 
-Logs written to `/tmp/dbg-proxy.log`
+Proxy writes all activity AND console/exception events to `/tmp/dbg-proxy.log`:
 
 ```bash
+# View all logs in real-time
 tail -f /tmp/dbg-proxy.log
+
+# Filter console messages only
+tail -f /tmp/dbg-proxy.log | grep "\[LOG\]\|\[ERROR\]\|\[EXCEPTION\]"
+
+# Search for specific messages
+grep "Error" /tmp/dbg-proxy.log
+grep "TypeError" /tmp/dbg-proxy.log
 ```
+
+**Log format:**
+```
+[2026-01-21T16:34:57.094Z]   ← [9AFA5CE2...] [LOG] console.log message
+[2026-01-21T16:34:57.095Z]   ← [9AFA5CE2...] [ERROR] console.error message
+[2026-01-21T16:34:57.096Z]   ← [9AFA5CE2...] [EXCEPTION] TypeError: Cannot read property
+```
+
+**What gets captured:**
+- Console messages (log, warn, error, info, debug levels)
+- Uncaught exceptions with stack traces
+- All events for all targets simultaneously
+- Timestamped for correlation with client requests

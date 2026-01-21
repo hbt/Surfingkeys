@@ -68,7 +68,79 @@ sk-cdp eval --target options.html <<'CODE'
 CODE
 ```
 
+**Observability: Metadata & Verification**
+
+sk-cdp automatically captures metadata before and after execution to verify side effects:
+
+```bash
+sk-cdp eval --target options.html "document.title"
+# Output:
+# "Surfingkeys Settings"
+#
+# ─ Metadata ─
+# Duration: 6ms
+# Context: page
+# Console log: /tmp/dbg-proxy.log
+# Timestamp: 2026-01-21T16:28:41.291Z
+```
+
+**Metadata includes:**
+- **Execution**: Duration and timestamp
+- **Tab info**: URL, title, active status, window ID (via Chrome tabs API)
+- **Document**: Readiness state, element count with query timing
+- **Viewport**: Height, width, scroll position, DPI
+- **Context**: Detects page vs iframe vs shadow-DOM
+- **Changes**: Before/after comparisons for DOM mutations, URL changes, tab switches
+- **Console**: Reference to proxy log file for all events
+
+**Example: Verify a DOM mutation:**
+```bash
+sk-cdp eval --target options.html <<'CODE'
+(function() {
+  const el = document.createElement('div');
+  el.textContent = 'Test';
+  document.body.appendChild(el);
+  return 'Added element';
+})()
+CODE
+# Output shows: Elements: 421 → 422 (+1)
+```
+
 See [docs/cdp/sk-cdp.md](./cdp/sk-cdp.md) for full reference and examples.
+
+### Console & Exception Logging
+
+The proxy automatically captures all console messages and exceptions from all targets:
+
+```bash
+# Start proxy - automatically subscribes to Runtime events
+./bin/dbg proxy-start
+```
+
+**What gets logged to `/tmp/dbg-proxy.log`:**
+- Console messages (log, warn, error, info, debug)
+- Uncaught exceptions with stack traces
+- Timestamps and target identification
+
+**Access logs from sk-cdp:**
+```bash
+sk-cdp eval --target options.html "console.log('test')"
+# Output includes: Console log: /tmp/dbg-proxy.log
+
+# View logs in real-time
+tail -f /tmp/dbg-proxy.log | grep "\[LOG\]\|\[ERROR\]\|\[EXCEPTION\]"
+
+# Search for specific messages
+grep "Error" /tmp/dbg-proxy.log
+grep "target_id" /tmp/dbg-proxy.log
+```
+
+**Example log output:**
+```
+[2026-01-21T16:34:57.094Z]   ← [9AFA5CE2...] [LOG] console.log message
+[2026-01-21T16:34:57.095Z]   ← [9AFA5CE2...] [ERROR] console.error message
+[2026-01-21T16:34:57.096Z]   ← [9AFA5CE2...] [EXCEPTION] TypeError: Cannot read property 'x' of undefined
+```
 
 ## CDP Debug Scripts (TypeScript)
 
@@ -133,7 +205,36 @@ This workflow makes sense because:
 - Screenshots provide visual confirmation
 
 **When to use what:**
-- Inspection: `sk-cdp eval "..."` (most of the time)
-- One-liner: `websocat ...` (when you already know the CDP command)
-- Complex scenario: CDP debug script in `debug/`
-- Shipping: Source code + `bin/dbg reload`
+- **Inspection**: `sk-cdp eval "..."` (most of the time) - with automatic metadata & console logging
+- **One-liner**: `websocat ...` (when you already know the CDP command)
+- **Complex scenario**: CDP debug script in `debug/` - for reusable, documented patterns
+- **Shipping**: Source code + `bin/dbg reload` - persistent changes through build pipeline
+
+**Debugging workflow:**
+```bash
+# 1. Explore & inspect with sk-cdp (instant feedback + metadata)
+sk-cdp eval --target options.html "document.querySelectorAll('input').length"
+
+# 2. Check console/error logs captured by proxy
+tail /tmp/dbg-proxy.log | grep ERROR
+
+# 3. Test side effects (mutations, navigation, tab changes)
+sk-cdp eval --target options.html "/* code */ return result"
+# Metadata shows before/after changes
+
+# 4. Make real changes
+# Edit source files
+
+# 5. Verify through build pipeline
+./bin/dbg reload
+
+# 6. Take screenshots for final confirmation
+npm run debug:cdp:live debug/cdp-screenshot.ts
+```
+
+**Key advantages of sk-cdp + proxy logging:**
+- ✅ Metadata shows you when code does nothing (failures detected)
+- ✅ Console logs persist for investigation
+- ✅ No timeout waiting - events logged immediately
+- ✅ Works for all targets concurrently
+- ✅ DOM mutations visible in before/after comparison
