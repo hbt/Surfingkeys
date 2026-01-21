@@ -1,14 +1,16 @@
 /**
  * Errors List Action
  *
- * Lists all stored extension errors from chrome.storage.local
- * Used by the error collection system.
+ * Lists all extension errors from:
+ * 1. chrome.storage.local (Surfingkeys custom error collection)
+ * 2. chrome://extensions/?errors=<id> page (Chrome's native errors via developerPrivate API)
  *
  * Independent implementation - does not depend on debug/ directory
  */
 
 const WebSocket = require('ws');
-const { detectExtension, findServiceWorker, sendCommand, CDP_PORT } = require('../lib/extension-utils');
+const http = require('http');
+const { detectExtension, sendCommand, CDP_PORT } = require('../lib/extension-utils');
 
 // Color utilities
 const colors = {
@@ -23,9 +25,40 @@ const colors = {
 };
 
 const STORAGE_KEY = 'surfingkeys_errors';
+const CDP_ENDPOINT = `http://localhost:${CDP_PORT}`;
 
 /**
- * Evaluate code in service worker context
+ * Fetch JSON from CDP endpoint
+ */
+function fetchJson(path) {
+    return new Promise((resolve, reject) => {
+        http.get(`${CDP_ENDPOINT}${path}`, (res) => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(body));
+                } catch (error) {
+                    reject(new Error(`Failed to parse JSON: ${error.message}`));
+                }
+            });
+        }).on('error', reject);
+    });
+}
+
+/**
+ * Find chrome://extensions/?errors=<id> tab
+ */
+async function findExtensionsErrorTab(extensionId) {
+    const targets = await fetchJson('/json');
+    const tab = targets.find(t =>
+        t.type === 'page' && t.url && t.url.includes(`chrome://extensions/?errors=${extensionId}`)
+    );
+    return tab ? tab.webSocketDebuggerUrl : null;
+}
+
+/**
+ * Evaluate code in a WebSocket context
  */
 async function evaluateCode(ws, expression) {
     const result = await sendCommand(ws, 'Runtime.evaluate', {
@@ -42,9 +75,9 @@ async function evaluateCode(ws, expression) {
 }
 
 /**
- * Format error for display
+ * Format stored error for display
  */
-function formatError(err, idx) {
+function formatStoredError(err, idx) {
     const lines = [];
     lines.push(`${colors.bright}[${idx + 1}]${colors.reset} ${colors.yellow}${err.type}${colors.reset}`);
     lines.push(`    ${colors.cyan}Message:${colors.reset} ${err.message}`);
@@ -64,6 +97,103 @@ function formatError(err, idx) {
     }
 
     return lines.join('\n');
+}
+
+/**
+ * Format Chrome native error for display
+ */
+function formatChromeError(err, idx) {
+    const lines = [];
+    lines.push(`${colors.bright}[${idx + 1}]${colors.reset} ${colors.red}${err.severity || 'error'}${colors.reset}`);
+    lines.push(`    ${colors.cyan}Message:${colors.reset} ${err.message}`);
+    lines.push(`    ${colors.cyan}Source:${colors.reset} ${err.source}`);
+
+    if (err.contextUrl) {
+        lines.push(`    ${colors.cyan}Context URL:${colors.reset} ${err.contextUrl}`);
+    }
+
+    if (err.stackTrace && err.stackTrace.length > 0) {
+        lines.push(`    ${colors.cyan}Stack:${colors.reset}`);
+        err.stackTrace.slice(0, 5).forEach(frame => {
+            const fn = frame.functionName || '(anonymous)';
+            lines.push(`      ${colors.dim}at ${fn} (${frame.url}:${frame.lineNumber}:${frame.columnNumber})${colors.reset}`);
+        });
+    }
+
+    return lines.join('\n');
+}
+
+/**
+ * Get Chrome native errors from chrome://extensions page
+ */
+async function getChromeNativeErrors(extensionId) {
+    const tabWsUrl = await findExtensionsErrorTab(extensionId);
+
+    if (!tabWsUrl) {
+        return {
+            available: false,
+            reason: `chrome://extensions/?errors=${extensionId} tab not open`
+        };
+    }
+
+    return new Promise((resolve) => {
+        const ws = new WebSocket(tabWsUrl);
+        const timeout = setTimeout(() => {
+            ws.close();
+            resolve({ available: false, reason: 'Timeout connecting to extensions page' });
+        }, 5000);
+
+        ws.on('open', async () => {
+            try {
+                await sendCommand(ws, 'Runtime.enable');
+
+                const result = await evaluateCode(ws, `
+                    (function() {
+                        return new Promise((resolve) => {
+                            if (!chrome.developerPrivate || !chrome.developerPrivate.getExtensionInfo) {
+                                resolve({ error: 'chrome.developerPrivate.getExtensionInfo not available' });
+                                return;
+                            }
+
+                            chrome.developerPrivate.getExtensionInfo('${extensionId}', (details) => {
+                                const err = chrome.runtime.lastError;
+                                if (err) {
+                                    resolve({ error: err.message });
+                                } else {
+                                    resolve({
+                                        manifestErrors: details.manifestErrors || [],
+                                        runtimeErrors: details.runtimeErrors || []
+                                    });
+                                }
+                            });
+                        });
+                    })()
+                `);
+
+                clearTimeout(timeout);
+                ws.close();
+
+                if (result.error) {
+                    resolve({ available: false, reason: result.error });
+                } else {
+                    resolve({
+                        available: true,
+                        manifestErrors: result.manifestErrors,
+                        runtimeErrors: result.runtimeErrors
+                    });
+                }
+            } catch (error) {
+                clearTimeout(timeout);
+                ws.close();
+                resolve({ available: false, reason: error.message });
+            }
+        });
+
+        ws.on('error', (error) => {
+            clearTimeout(timeout);
+            resolve({ available: false, reason: error.message });
+        });
+    });
 }
 
 /**
@@ -98,8 +228,56 @@ async function run(args) {
             await sendCommand(ws, 'Runtime.enable');
             console.log(`  ${colors.green}✓ Connected${colors.reset}\n`);
 
-            // Get errors from storage
-            console.log(`${colors.cyan}Reading errors from storage...${colors.reset}`);
+            let totalErrors = 0;
+
+            // ============================================================
+            // SECTION 1: Chrome Native Errors (from chrome://extensions)
+            // ============================================================
+            console.log('='.repeat(70));
+            console.log(`${colors.bright}CHROME NATIVE ERRORS${colors.reset} (from chrome://extensions/?errors=)`);
+            console.log('='.repeat(70));
+            console.log();
+
+            const chromeErrors = await getChromeNativeErrors(extensionId);
+
+            if (!chromeErrors.available) {
+                console.log(`  ${colors.yellow}⚠ ${chromeErrors.reason}${colors.reset}`);
+                console.log(`  ${colors.dim}Open: chrome://extensions/?errors=${extensionId}${colors.reset}\n`);
+            } else {
+                const manifestErrors = chromeErrors.manifestErrors || [];
+                const runtimeErrors = chromeErrors.runtimeErrors || [];
+
+                if (manifestErrors.length > 0) {
+                    console.log(`${colors.yellow}Manifest Errors: ${manifestErrors.length}${colors.reset}\n`);
+                    manifestErrors.forEach((err, idx) => {
+                        console.log(formatChromeError(err, idx));
+                        console.log();
+                    });
+                    totalErrors += manifestErrors.length;
+                }
+
+                if (runtimeErrors.length > 0) {
+                    console.log(`${colors.yellow}Runtime Errors: ${runtimeErrors.length}${colors.reset}\n`);
+                    runtimeErrors.forEach((err, idx) => {
+                        console.log(formatChromeError(err, idx));
+                        console.log();
+                    });
+                    totalErrors += runtimeErrors.length;
+                }
+
+                if (manifestErrors.length === 0 && runtimeErrors.length === 0) {
+                    console.log(`  ${colors.green}✨ No Chrome native errors${colors.reset}\n`);
+                }
+            }
+
+            // ============================================================
+            // SECTION 2: Stored Errors (from chrome.storage.local)
+            // ============================================================
+            console.log('='.repeat(70));
+            console.log(`${colors.bright}STORED ERRORS${colors.reset} (from chrome.storage.local)`);
+            console.log('='.repeat(70));
+            console.log();
+
             const storedErrors = await evaluateCode(ws, `
                 (function() {
                     return new Promise((resolve) => {
@@ -110,27 +288,20 @@ async function run(args) {
                 })()
             `);
 
-            console.log(`  Found ${colors.bright}${storedErrors.length}${colors.reset} stored error(s)\n`);
-
-            if (storedErrors.length === 0) {
-                console.log(`${colors.green}✨ No errors found${colors.reset}\n`);
-                ws.close();
-                process.exit(0);
-                return;
+            if (storedErrors.length > 0) {
+                console.log(`  Found ${colors.bright}${storedErrors.length}${colors.reset} stored error(s)\n`);
+                storedErrors.forEach((err, idx) => {
+                    console.log(formatStoredError(err, idx));
+                    console.log();
+                });
+                totalErrors += storedErrors.length;
+            } else {
+                console.log(`  ${colors.green}✨ No stored errors${colors.reset}\n`);
             }
 
-            // Display stored errors
-            console.log('='.repeat(70));
-            console.log(`${colors.bright}STORED ERRORS${colors.reset} (from chrome.storage.local)`);
-            console.log('='.repeat(70));
-            console.log();
-
-            storedErrors.forEach((err, idx) => {
-                console.log(formatError(err, idx));
-                console.log();
-            });
-
-            // Check for in-memory errors
+            // ============================================================
+            // SECTION 3: In-Memory Errors
+            // ============================================================
             console.log('='.repeat(70));
             console.log(`${colors.bright}IN-MEMORY ERRORS${colors.reset}`);
             console.log('='.repeat(70));
@@ -148,26 +319,40 @@ async function run(args) {
             if (memoryErrors && memoryErrors.length > 0) {
                 console.log(`  Found ${colors.bright}${memoryErrors.length}${colors.reset} error(s) in memory\n`);
                 memoryErrors.forEach((err, idx) => {
-                    console.log(formatError(err, idx));
+                    console.log(formatStoredError(err, idx));
                     console.log();
                 });
+                totalErrors += memoryErrors.length;
             } else {
                 console.log(`  ${colors.dim}No in-memory errors${colors.reset}\n`);
             }
 
-            // Summary
+            // ============================================================
+            // SUMMARY
+            // ============================================================
             console.log('='.repeat(70));
             console.log(`${colors.bright}SUMMARY${colors.reset}`);
             console.log('='.repeat(70));
+
+            if (chromeErrors.available) {
+                console.log(`  Chrome manifest errors: ${colors.bright}${chromeErrors.manifestErrors?.length || 0}${colors.reset}`);
+                console.log(`  Chrome runtime errors: ${colors.bright}${chromeErrors.runtimeErrors?.length || 0}${colors.reset}`);
+            }
             console.log(`  Stored errors: ${colors.bright}${storedErrors.length}${colors.reset}`);
             console.log(`  In-memory errors: ${colors.bright}${memoryErrors ? memoryErrors.length : 0}${colors.reset}`);
+            console.log(`  ${colors.bright}Total: ${totalErrors}${colors.reset}`);
             console.log();
+
+            if (totalErrors === 0) {
+                console.log(`${colors.green}✅ No errors found${colors.reset}\n`);
+            }
+
             console.log(`${colors.dim}To view in browser: chrome-extension://${extensionId}/pages/error-viewer.html${colors.reset}`);
             console.log(`${colors.dim}To clear errors: bin/dbg errors-clear${colors.reset}`);
             console.log();
 
             ws.close();
-            process.exit(0);
+            process.exit(totalErrors > 0 ? 1 : 0);
 
         } catch (error) {
             console.error(`${colors.red}Error: ${error.message}${colors.reset}\n`);
