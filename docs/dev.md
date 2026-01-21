@@ -21,8 +21,6 @@ They want my professional assessment of workflow preferences, strengths, and wea
 Start/stop proxy server:
 ```bash
 ./bin/dbg proxy-start
-./bin/dbg proxy-stop
-./bin/dbg proxy-status
 ```
 
 **Example: Open options page**
@@ -43,6 +41,22 @@ See [docs/cdp/proxy.md](./proxy.md) for more examples and request format details
 **Weaknesses:**
 - Slower iteration - write, save, npm run cycle
 - Still not persistent, runtime-only
+
+**Gold Standard Screenshot:**
+
+```bash
+npm run debug:cdp:live debug/cdp-screenshot.ts
+```
+
+Output: `/tmp/screenshot-[timestamp].png` (PNG, ~60KB)
+
+The script demonstrates the reusable CDP pattern:
+- Direct WebSocket connection to Chrome DevTools
+- Clean error handling and logging
+- Timestamp-based output filename
+- Works in both headless and live modes
+
+See `debug/cdp-screenshot.ts` for the implementation pattern.
 
 ## Direct source modification + dbg reload
 
