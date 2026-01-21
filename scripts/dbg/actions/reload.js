@@ -51,9 +51,9 @@ async function fetchJson(path) {
 }
 
 /**
- * Detect Surfingkeys extension ID
+ * Detect Surfingkeys extension ID from service worker
  */
-async function detectExtensionId() {
+async function detectExtensionIdFromServiceWorker() {
     const targets = await fetchJson('/json');
 
     // Look for Surfingkeys service worker (background.js)
@@ -70,6 +70,132 @@ async function detectExtensionId() {
     }
 
     return null;
+}
+
+/**
+ * Detect Surfingkeys extension ID from iframe (works even when service worker is dormant)
+ */
+async function detectExtensionIdFromIframe() {
+    const targets = await fetchJson('/json');
+
+    // Look for Surfingkeys iframe (frontend.html)
+    const iframe = targets.find(t =>
+        t.type === 'iframe' &&
+        t.url?.includes('chrome-extension://') &&
+        t.url?.includes('frontend.html')
+    );
+
+    if (iframe && iframe.url) {
+        const match = iframe.url.match(/chrome-extension:\/\/([a-z]+)/);
+        if (match) {
+            return { id: match[1], wsUrl: iframe.webSocketDebuggerUrl };
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Wake dormant service worker by opening extension page via browser CDP
+ * Uses Target.createTarget to open extension page directly (bypasses stale iframe contexts)
+ */
+async function wakeServiceWorker(iframeWsUrl, extensionId) {
+    log('Service worker is dormant - waking up via browser CDP...');
+
+    // Get browser WebSocket URL
+    const versionInfo = await fetchJson('/json/version');
+    const browserWsUrl = versionInfo.webSocketDebuggerUrl;
+
+    if (!browserWsUrl) {
+        log('✗ Could not get browser WebSocket URL');
+        return { success: false, error: 'no_browser_ws' };
+    }
+
+    const ws = new WebSocket(browserWsUrl);
+
+    return new Promise((resolve) => {
+        ws.on('open', async () => {
+            try {
+                // Create a new target with the extension options page
+                const optionsUrl = `chrome-extension://${extensionId}/pages/options.html`;
+                log(`Creating target: ${optionsUrl}`);
+
+                const result = await sendCommand(ws, 'Target.createTarget', {
+                    url: optionsUrl
+                });
+
+                ws.close();
+
+                if (result.targetId) {
+                    log(`✓ Created target ${result.targetId} to wake service worker`);
+                    resolve({ success: true, targetId: result.targetId });
+                } else {
+                    log('✗ Failed to create target');
+                    resolve({ success: false });
+                }
+            } catch (error) {
+                log(`✗ Error waking service worker: ${error.message}`);
+                ws.close();
+                resolve({ success: false, error: error.message });
+            }
+        });
+
+        ws.on('error', (error) => {
+            log(`✗ WebSocket error: ${error.message}`);
+            resolve({ success: false, error: error.message });
+        });
+
+        // Timeout after 5 seconds
+        setTimeout(() => {
+            ws.close();
+            resolve({ success: false, error: 'timeout' });
+        }, 5000);
+    });
+}
+
+/**
+ * Detect extension ID, waking service worker if needed
+ */
+async function detectExtensionId() {
+    // First try: service worker (ideal case)
+    let extensionId = await detectExtensionIdFromServiceWorker();
+    if (extensionId) {
+        log(`Extension detected from service worker: ${extensionId}`);
+        return extensionId;
+    }
+
+    // Second try: iframe (service worker may be dormant)
+    log('Service worker not found, checking for extension iframe...');
+    const iframeInfo = await detectExtensionIdFromIframe();
+
+    if (!iframeInfo) {
+        log('No extension iframe found either');
+        return null;
+    }
+
+    log(`Extension detected from iframe: ${iframeInfo.id}`);
+
+    // Wake the service worker
+    const wakeResult = await wakeServiceWorker(iframeInfo.wsUrl, iframeInfo.id);
+
+    if (!wakeResult.success) {
+        log('Failed to wake service worker, but proceeding with extension ID');
+        return iframeInfo.id;
+    }
+
+    // Wait for service worker to appear
+    log('Waiting for service worker to become available...');
+    for (let i = 0; i < 30; i++) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const swId = await detectExtensionIdFromServiceWorker();
+        if (swId) {
+            log(`✓ Service worker is now awake`);
+            return swId;
+        }
+    }
+
+    log('Service worker did not appear after wake, proceeding with iframe-detected ID');
+    return iframeInfo.id;
 }
 
 /**
