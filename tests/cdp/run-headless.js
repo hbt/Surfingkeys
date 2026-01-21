@@ -190,7 +190,10 @@ async function main() {
         'about:blank'
     ];
 
-    const chrome = spawn('google-chrome-beta', chromeArgs, {
+    // Use CHROME env var if set (by browser-actions/setup-chrome), otherwise fall back to google-chrome-beta
+    const chromeBinary = process.env.CHROME || 'google-chrome-beta';
+
+    const chrome = spawn(chromeBinary, chromeArgs, {
         stdio: 'ignore',
         detached: true
     });
