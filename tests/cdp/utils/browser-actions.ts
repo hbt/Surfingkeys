@@ -158,3 +158,86 @@ export async function waitFor(
 
     throw new Error(`Timeout waiting for condition (${timeoutMs}ms)`);
 }
+
+/**
+ * Send a function key (F1-F12)
+ * Function keys require windowsVirtualKeyCode and special handling
+ */
+export async function sendFunctionKey(ws: WebSocket, fKey: string, delayMs: number = 50): Promise<void> {
+    // F1=112, F2=113, ... F12=123
+    const fNum = parseInt(fKey.replace('F', ''), 10);
+    if (isNaN(fNum) || fNum < 1 || fNum > 12) {
+        throw new Error(`Invalid function key: ${fKey}`);
+    }
+    const windowsVirtualKeyCode = 111 + fNum;
+
+    // keyDown
+    ws.send(JSON.stringify({
+        id: globalMessageId++,
+        method: 'Input.dispatchKeyEvent',
+        params: {
+            type: 'keyDown',
+            key: fKey,
+            code: fKey,
+            windowsVirtualKeyCode
+        }
+    }));
+
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+
+    // keyUp
+    ws.send(JSON.stringify({
+        id: globalMessageId++,
+        method: 'Input.dispatchKeyEvent',
+        params: {
+            type: 'keyUp',
+            key: fKey,
+            code: fKey,
+            windowsVirtualKeyCode
+        }
+    }));
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+}
+
+/**
+ * Capture a screenshot of the page
+ */
+export async function captureScreenshot(ws: WebSocket, format: 'png' | 'jpeg' = 'png'): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const id = globalMessageId++;
+        const timeout = setTimeout(() => reject(new Error('Screenshot timeout')), 5000);
+
+        const handler = (data: WebSocket.Data) => {
+            const msg = JSON.parse(data.toString());
+            if (msg.id === id) {
+                clearTimeout(timeout);
+                ws.removeListener('message', handler);
+                if (msg.error) {
+                    reject(new Error(msg.error.message));
+                } else {
+                    resolve(msg.result.data);
+                }
+            }
+        };
+
+        ws.on('message', handler);
+
+        // Enable Page domain first
+        ws.send(JSON.stringify({
+            id: globalMessageId++,
+            method: 'Page.enable'
+        }));
+
+        setTimeout(() => {
+            ws.send(JSON.stringify({
+                id,
+                method: 'Page.captureScreenshot',
+                params: {
+                    format,
+                    captureBeyondViewport: false
+                }
+            }));
+        }, 100);
+    });
+}
