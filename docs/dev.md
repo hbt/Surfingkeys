@@ -10,49 +10,49 @@ They want my professional assessment of workflow preferences, strengths, and wea
 
 **Strengths:**
 - Fastest iteration - one-liners, instant feedback
-- No build step needed
-- Perfect for inspection and quick testing
-- Minimal context switching
-- Can test on already-open pages without reload
+- No build step, perfect for quick inspection
 
 **Weaknesses:**
-- Not persistent - changes disappear on page reload
-- Only for runtime inspection/injection
-- Can't test persistence or multi-session behavior
-- Not suitable for testing config saves
-- Hard to debug complex scenarios
+- Not persistent - changes disappear on reload
+- Only for runtime injection, not config/data
+
+**Usage:**
+
+Start/stop proxy server:
+```bash
+./bin/dbg proxy-start
+./bin/dbg proxy-stop
+./bin/dbg proxy-status
+```
+
+**Example: Open options page**
+
+```bash
+TARGET=$(curl -s http://127.0.0.1:9222/json | jq -r '.[] | select(.url | contains("chrome-extension")) | .id' | head -1)
+echo '{"targetId": "'$TARGET'", "method": "Runtime.evaluate", "params": {"expression": "chrome.runtime.openOptionsPage()", "returnByValue": true}}' | websocat ws://127.0.0.1:9623
+```
+
+See [docs/cdp/proxy.md](./proxy.md) for more examples and request format details.
 
 ## CDP Debug Scripts (TypeScript)
 
 **Strengths:**
-- Reusable and documented
+- Reusable, documented, and maintainable
 - Better for complex operations
-- Can be kept in git for reference
-- More readable than one-liners
-- Good for automated testing
 
 **Weaknesses:**
-- Slower iteration - need to write, save, npm run
-- Still not persistent
-- Build overhead
-- More boilerplate
-- Similar limitation to proxy - only runtime
+- Slower iteration - write, save, npm run cycle
+- Still not persistent, runtime-only
 
 ## Direct source modification + dbg reload
 
 **Strengths:**
-- Changes are persistent
-- Tests the actual build pipeline
-- Can verify CSS, JS changes in real context
-- Tests the full reload cycle
-- Can commit changes
-- Sees how changes affect everything
+- Changes are persistent and testable through full build pipeline
+- Can commit and see real-world effects
 
 **Weaknesses:**
-- Slower feedback loop - need to edit, build, reload
-- Build takes time (though only ~400ms here)
-- Need to verify changes take effect
-- Screenshot/verification adds latency
+- Slower feedback loop - edit, build, reload cycle
+- Verification overhead adds latency
 
 ## Hybrid approach I actually used
 
