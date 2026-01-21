@@ -238,7 +238,7 @@ function _applyProxySettings(proxyConf) {
 }
 
 function _setNewTabUrl(){
-    return  "chrome://newtab/";
+    return  "https://www.google.com";
 }
 
 function _getContainerName(self, _response){

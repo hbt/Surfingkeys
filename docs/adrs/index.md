@@ -25,12 +25,13 @@ Each ADR follows this structure:
 | [ADR-003](adr-003-cdp-message-bridge.md) | CDP Message Bridge for extension testing | Accepted | 2026-01-20 | Enable programmatic testing via Chrome DevTools Protocol |
 | [ADR-004](adr-004-cdp-reload-test-simplification.md) | CDP Reload Test Simplification | Accepted | 2026-01-20 | Fix hanging test by simplifying scope to bridge verification |
 | [ADR-005](adr-005-global-error-logging.md) | Global Error Logging and Tracking | Accepted | 2026-01-21 | Capture and persist all unhandled errors for debugging |
+| [ADR-007](adr-007-startup-settings-persistence.md) | Startup Settings Persistence Pattern | Accepted | 2026-01-22 | Enable user config settings in early-firing background listeners |
 
 ## adrs.status_summary
 
 | Status | Count | ADRs |
 |--------|-------|------|
-| Accepted | 5 | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005 |
+| Accepted | 6 | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-007 |
 | Proposed | 0 | - |
 | Deprecated | 0 | - |
 | Superseded | 0 | - |
@@ -39,7 +40,7 @@ Each ADR follows this structure:
 
 | Migration Status | Count | ADRs |
 |------------------|-------|------|
-| **Namespaced format** | 5 | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005 |
+| **Namespaced format** | 6 | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-007 |
 
 **Status**: All ADRs using namespaced section format (e.g., `meta.status`, `context.problem`).
 
@@ -84,6 +85,7 @@ Error Handling & Observability Layer:
 | **Repository Management** | ADR-002 | Foundation - no dependencies |
 | **Testing Infrastructure** | ADR-003, ADR-004 | ADR-003 requires ADR-001 (esbuild bundled code structure)<br>ADR-004 requires ADR-003 (CDP message bridge) |
 | **Error Handling & Observability** | ADR-005 | ADR-005 requires ADR-001 (esbuild bundled code structure)<br>ADR-005 related to ADR-003 (CDP testing pattern) |
+| **Configuration & Settings** | ADR-007 | Independent - extends existing conf/updateSettings pattern |
 
 ## adrs.usage
 

@@ -215,13 +215,12 @@ function start(browser) {
         tabMessages = {},
         tabURLs = {};
 
-    var newTabUrl = browser._setNewTabUrl();
-
     var conf = {
         llm: { },
         focusAfterClosed: "right",
         tabsMRUOrder: true,
         newTabPosition: 'default',
+        newTabUrl: browser._setNewTabUrl(),
         showTabIndices: false,
         interceptedErrors: []
     };
@@ -345,10 +344,22 @@ function start(browser) {
             _lastActiveTabId = tabId;
         }
     }
+
+    // Track tabs redirected from newtab to focus page content after load
+    const newTabRedirectedTabs = new Set();
+
     chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
         if (changeInfo.status === "complete") {
             if (tab.active) {
                 _tabActivated(tabId);
+            }
+            // Focus page content for redirected newtab tabs
+            if (newTabRedirectedTabs.has(tabId)) {
+                newTabRedirectedTabs.delete(tabId);
+                chrome.scripting.executeScript({
+                    target: { tabId: tabId },
+                    func: () => document.body.focus()
+                }).catch(() => {});
             }
         }
         if (browser.detectTabTitleChange && changeInfo.title) {
@@ -366,6 +377,18 @@ function start(browser) {
 
     chrome.tabs.onCreated.addListener(function(tab) {
         _updateTabIndices();
+        // Redirect chrome://newtab/ to configured newTabUrl (e.g., google.com)
+        const tabUrl = tab.pendingUrl || tab.url;
+        if (tabUrl === "chrome://newtab/") {
+            // Check storage for user-configured newTabUrl, fall back to conf.newTabUrl
+            chrome.storage.local.get('newTabUrl', function(data) {
+                const targetUrl = data.newTabUrl || conf.newTabUrl;
+                if (targetUrl !== "chrome://newtab/") {
+                    newTabRedirectedTabs.add(tab.id);
+                    chrome.tabs.update(tab.id, { url: targetUrl });
+                }
+            });
+        }
     });
     chrome.tabs.onMoved.addListener(function() {
         _updateTabIndices();
@@ -1321,6 +1344,11 @@ function start(browser) {
         message.url = 'view-source:' + sender.tab.url;
         self.openLink(message, sender, sendResponse);
     };
+    self.openNewtab = function(message, sender, sendResponse) {
+        message.url = conf.newTabUrl;
+        message.tab = { tabbed: true };
+        self.openLink(message, sender, sendResponse);
+    };
     function onFullSettingsRequested(data) {
         data.isMV3 = isMV3;
         data.useNeovim = browser.nvimServer && browser.nvimServer.instance;
@@ -1390,10 +1418,14 @@ function start(browser) {
         let error = "";
         if (message.scope === "snippets") {
             // For settings from snippets, don't broadcast the update
-            // neither persist into storage
+            // neither persist into storage (except newTabUrl which needs storage for onCreated)
             for (var k in message.settings) {
                 if (conf.hasOwnProperty(k)) {
                     conf[k] = message.settings[k];
+                    // Persist newTabUrl to storage for onCreated listener
+                    if (k === 'newTabUrl') {
+                        chrome.storage.local.set({ newTabUrl: message.settings[k] });
+                    }
                 }
             }
             const llmConf = conf.llm;
@@ -1584,7 +1616,7 @@ function start(browser) {
                         if (!tabGroup.hasOwnProperty(tab.windowId)) {
                             tabGroup[tab.windowId] = [];
                         }
-                        if (tab.url !== newTabUrl) {
+                        if (tab.url !== conf.newTabUrl) {
                             tabGroup[tab.windowId].push(tab.url);
                         }
                     }
@@ -1628,7 +1660,7 @@ function start(browser) {
                     });
                 }
                 chrome.tabs.query({
-                    url: newTabUrl
+                    url: conf.newTabUrl
                 }, function(tabs) {
                     chrome.tabs.remove(tabs.map(function(t) {
                         return t.id;

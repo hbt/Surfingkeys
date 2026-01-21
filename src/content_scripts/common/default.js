@@ -793,7 +793,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
 
         mapkey('on', '#3Open newtab', function() {
-            tabOpenLink("chrome://newtab/");
+            RUNTIME('openNewtab');
         });
         mapkey('ga', '#12Open Chrome About', function() {
             tabOpenLink("chrome://help/");
