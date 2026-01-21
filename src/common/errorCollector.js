@@ -4,6 +4,8 @@
  * Catches and stores all unhandled errors and promise rejections.
  * Stores errors in chrome.storage.local for persistence across reloads.
  *
+ * Works in both window contexts (content scripts) and service worker contexts (background).
+ *
  * Usage:
  * - In background.js: import and call installErrorHandlers('background')
  * - In content.js: import and call installErrorHandlers('content_script')
@@ -14,14 +16,21 @@
  * @param {string} context - 'background' or 'content_script' or 'page'
  */
 function installErrorHandlers(context) {
+    // Use globalThis for compatibility with both window and service worker contexts
+    // Service workers don't have 'window', they have 'self'
+    const globalScope = typeof globalThis !== 'undefined' ? globalThis :
+                       typeof self !== 'undefined' ? self :
+                       typeof window !== 'undefined' ? window :
+                       this;
+
     // Don't install if already installed
-    if (window._surfingkeysErrorHandlersInstalled) {
+    if (globalScope._surfingkeysErrorHandlersInstalled) {
         console.log('[ERROR COLLECTOR] Already installed in', context);
         return;
     }
 
-    window._surfingkeysErrorHandlersInstalled = true;
-    window._surfingkeysErrors = [];
+    globalScope._surfingkeysErrorHandlersInstalled = true;
+    globalScope._surfingkeysErrors = [];
 
     const STORAGE_KEY = 'surfingkeys_errors';
     const MAX_ERRORS = 100;
@@ -50,11 +59,11 @@ function installErrorHandlers(context) {
         });
 
         // Also keep in memory for immediate access
-        window._surfingkeysErrors.push(errorData);
+        globalScope._surfingkeysErrors.push(errorData);
 
         // Limit in-memory errors too
-        if (window._surfingkeysErrors.length > MAX_ERRORS) {
-            window._surfingkeysErrors.shift();
+        if (globalScope._surfingkeysErrors.length > MAX_ERRORS) {
+            globalScope._surfingkeysErrors.shift();
         }
     }
 
@@ -65,18 +74,18 @@ function installErrorHandlers(context) {
     function getContext() {
         return {
             context: context,
-            url: typeof window !== 'undefined' && window.location ? window.location.href : 'unknown',
+            url: globalScope.location ? globalScope.location.href : 'unknown',
             userAgent: navigator.userAgent,
             timestamp: new Date().toISOString()
         };
     }
 
-    // 1. window.onerror - catches unhandled JS errors
-    const originalOnError = window.onerror;
-    window.onerror = function(message, source, lineno, colno, error) {
+    // 1. onerror - catches unhandled JS errors
+    const originalOnError = globalScope.onerror;
+    globalScope.onerror = function(message, source, lineno, colno, error) {
         const errorData = {
             ...getContext(),
-            type: 'window.onerror',
+            type: 'onerror',
             message: message || 'Unknown error',
             source: source || 'unknown',
             lineno: lineno || 0,
@@ -84,7 +93,7 @@ function installErrorHandlers(context) {
             stack: error && error.stack ? error.stack : 'No stack trace'
         };
 
-        console.error('[ERROR HANDLER] window.onerror caught:', errorData.message);
+        console.error('[ERROR HANDLER] onerror caught:', errorData.message);
         console.error('  Source:', errorData.source, 'Line:', errorData.lineno, 'Col:', errorData.colno);
         console.error('  Stack:', errorData.stack);
 
@@ -99,8 +108,8 @@ function installErrorHandlers(context) {
     };
 
     // 2. onunhandledrejection - catches unhandled promise rejections
-    const originalOnRejection = window.onunhandledrejection;
-    window.onunhandledrejection = function(event) {
+    const originalOnRejection = globalScope.onunhandledrejection;
+    globalScope.onunhandledrejection = function(event) {
         const reason = event.reason;
         const errorData = {
             ...getContext(),
@@ -123,8 +132,8 @@ function installErrorHandlers(context) {
     };
 
     console.log('[ERROR COLLECTOR] ✓ Installed global error handlers in', context);
-    console.log('[ERROR COLLECTOR]   - window.onerror');
-    console.log('[ERROR COLLECTOR]   - window.onunhandledrejection');
+    console.log('[ERROR COLLECTOR]   - onerror');
+    console.log('[ERROR COLLECTOR]   - onunhandledrejection');
 }
 
 /**
@@ -144,11 +153,16 @@ function getStoredErrors() {
  * @returns {Promise<void>}
  */
 function clearStoredErrors() {
+    const globalScope = typeof globalThis !== 'undefined' ? globalThis :
+                       typeof self !== 'undefined' ? self :
+                       typeof window !== 'undefined' ? window :
+                       this;
+
     return new Promise((resolve) => {
         chrome.storage.local.set({ surfingkeys_errors: [] }, () => {
             console.log('[ERROR COLLECTOR] Cleared all stored errors');
-            if (window._surfingkeysErrors) {
-                window._surfingkeysErrors = [];
+            if (globalScope._surfingkeysErrors) {
+                globalScope._surfingkeysErrors = [];
             }
             resolve();
         });
@@ -160,7 +174,12 @@ function clearStoredErrors() {
  * @returns {Array} Array of error objects
  */
 function getMemoryErrors() {
-    return window._surfingkeysErrors || [];
+    const globalScope = typeof globalThis !== 'undefined' ? globalThis :
+                       typeof self !== 'undefined' ? self :
+                       typeof window !== 'undefined' ? window :
+                       this;
+
+    return globalScope._surfingkeysErrors || [];
 }
 
 /**
@@ -170,12 +189,17 @@ function getMemoryErrors() {
  * @param {object} details - Additional details
  */
 function reportError(type, message, details = {}) {
+    const globalScope = typeof globalThis !== 'undefined' ? globalThis :
+                       typeof self !== 'undefined' ? self :
+                       typeof window !== 'undefined' ? window :
+                       this;
+
     const errorData = {
         context: 'manual',
         type: type,
         message: message,
         details: details,
-        url: typeof window !== 'undefined' && window.location ? window.location.href : 'unknown',
+        url: globalScope.location ? globalScope.location.href : 'unknown',
         userAgent: navigator.userAgent,
         timestamp: new Date().toISOString()
     };
@@ -194,8 +218,8 @@ function reportError(type, message, details = {}) {
         chrome.storage.local.set({ surfingkeys_errors: errors });
     });
 
-    if (window._surfingkeysErrors) {
-        window._surfingkeysErrors.push(errorData);
+    if (globalScope._surfingkeysErrors) {
+        globalScope._surfingkeysErrors.push(errorData);
     }
 }
 
