@@ -138,10 +138,10 @@ async function main() {
     console.log(`Log: ${LOG_FILE}\n`);
 
     // Check if extension is built
-    const extDir = path.join(__dirname, '../../dist-esbuild/development/chrome');
+    const extDir = path.join(__dirname, '../../dist/development/chrome');
     if (!fs.existsSync(extDir)) {
         console.error('❌ Surfingkeys extension not found at:', extDir);
-        console.error('   Please build the extension first: npm run esbuild:dev');
+        console.error('   Please build the extension first: npm run build:dev');
         logStream.end();
         process.exit(1);
     }
@@ -209,7 +209,7 @@ async function main() {
     const command = isJestTest ? 'jest' : 'ts-node';
     const streamingReporter = path.join(__dirname, 'streaming-reporter.js');
     const args = isJestTest
-        ? ['--config=jest.config.cdp.js', '--reporters', streamingReporter, '--', testPath]
+        ? ['--config=config/jest.config.cdp.js', '--reporters', streamingReporter, '--', testPath]
         : [testPath];
 
     log(`\nRunning test...`);

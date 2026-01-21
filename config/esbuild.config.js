@@ -85,7 +85,7 @@ async function build() {
     const mode = process.argv[2] || 'development';
     const isWatch = process.argv.includes('--watch');
     const browser = process.env.browser || 'chrome';
-    const buildPath = path.resolve(__dirname, `../dist-esbuild/${mode}/${browser}`);
+    const buildPath = path.resolve(__dirname, `../dist/${mode}/${browser}`);
 
     console.log(`Building for ${browser} in ${mode} mode${isWatch ? ' (watch)' : ''}...`);
     console.log(`Output: ${buildPath}`);
