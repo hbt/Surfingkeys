@@ -29,7 +29,7 @@ describe('markdown viewer', () => {
                     get: jest.fn()
                 }
             }
-        }
+        };
         global.DOMRect = jest.fn();
         window.focus = jest.fn();
         document.documentElement.innerHTML = html.toString();

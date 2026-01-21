@@ -58,7 +58,7 @@ describe('background start', () => {
                     addListener: jest.fn()
                 }
             },
-        }
+        };
         global.DOMRect = jest.fn();
 
         start = require('src/background/start.js').start;

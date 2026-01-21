@@ -13,7 +13,7 @@ describe('normal mode', () => {
             extension: {
                 getURL: jest.fn()
             }
-        }
+        };
         global.DOMRect = jest.fn();
 
         runtime = require('src/content_scripts/common/runtime.js').runtime;

@@ -21,7 +21,7 @@ describe('ui front', () => {
                     get: jest.fn()
                 }
             }
-        }
+        };
         global.DOMRect = jest.fn();
         document.documentElement.innerHTML = html.toString();
         Front = require('src/content_scripts/ui/frontend');

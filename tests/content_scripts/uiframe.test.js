@@ -17,14 +17,14 @@ describe('uiframe.js', () => {
             extension: {
                 getURL: jest.fn()
             }
-        }
+        };
         global.DOMRect = jest.fn();
 
         jest.mock('../../src/content_scripts/common/normal.js', () => (insert) => {
             mockNormal = {
                 enter: jest.fn(),
                 mappings: new MockTrie()
-            }
+            };
             mockNormal.mappings.add('e', {
                 code: mockHalfPageUp
             });

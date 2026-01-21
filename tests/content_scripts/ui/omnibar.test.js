@@ -21,7 +21,7 @@ describe('ui omnibar', () => {
                     get: jest.fn()
                 }
             }
-        }
+        };
         global.DOMRect = jest.fn();
         window.focus = jest.fn();
         window.postMessage({surfingkeys_frontend_data: { action: "initFrontend", origin: document.location.origin }}, document.location.origin);
