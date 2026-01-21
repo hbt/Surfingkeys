@@ -7,7 +7,7 @@
  *
  * Usage:
  *   npm run dbg <action> [options]
- *   npm run dbg --help
+ *   npm run dbg                       (show help)
  *
  * Actions:
  *   reload              Reload the extension using multiple fallback methods
@@ -51,7 +51,7 @@ function showHelp() {
 
     console.log(`${colors.cyan}Usage:${colors.reset}`);
     console.log(`  npm run dbg <action> [options]`);
-    console.log(`  npm run dbg --help\n`);
+    console.log(`  npm run dbg              ${colors.dim}(show this help)${colors.reset}\n`);
 
     console.log(`${colors.cyan}Actions:${colors.reset}`);
     Object.entries(ACTIONS).forEach(([action, description]) => {
