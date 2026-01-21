@@ -60,15 +60,26 @@ The script demonstrates the reusable CDP pattern:
 
 See `debug/cdp-screenshot.ts` for the implementation pattern.
 
-## Direct source modification + dbg reload
+## Direct source modification + bin/dbg reload
 
 **Strengths:**
 - Changes are persistent and testable through full build pipeline
 - Can commit and see real-world effects
 
 **Weaknesses:**
-- Slower feedback loop - edit, build, reload cycle
+- Slower feedback loop - edit, reload cycle
 - Verification overhead adds latency
+
+**Usage:**
+
+```bash
+bin/dbg reload
+```
+
+Automatically:
+1. Rebuilds the extension (npm run build)
+2. Reloads the extension in Chrome
+3. Returns JSON with build timestamp for verification
 
 ## Hybrid approach I actually used
 
