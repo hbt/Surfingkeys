@@ -4,13 +4,17 @@
  *
  * Wraps the CDP proxy to eliminate JSON escaping and provide a better DX
  *
+ * Commands:
+ *   eval       Evaluate JavaScript in a target
+ *   targets    List all available CDP targets
+ *   send       Send raw CDP method to a target
+ *
  * Examples:
  *   sk-cdp eval "document.body.style.backgroundColor"
  *   sk-cdp eval --target options.html "document.querySelectorAll('input').length"
- *   sk-cdp eval --target options.html <<'CODE'
- *     const inputs = document.querySelectorAll('input');
- *     return Array.from(inputs).map(i => i.value);
- *   CODE
+ *   sk-cdp targets
+ *   sk-cdp targets --json
+ *   sk-cdp send --target bg "Runtime.evaluate" '{"expression": "1+1"}'
  */
 
 const http = require('http');
@@ -23,6 +27,16 @@ const PROXY_HOST = '127.0.0.1';
 const CDP_PORT = 9222;
 const CDP_HOST = '127.0.0.1';
 const PROXY_LOG_FILE = '/tmp/dbg-proxy.log';
+
+// Target shortcuts - common patterns for quick access
+const TARGET_SHORTCUTS = {
+    'bg': { type: 'service_worker', pattern: 'background.js' },
+    'sw': { type: 'service_worker', pattern: 'background.js' },
+    'background': { type: 'service_worker', pattern: 'background.js' },
+    'options': { type: 'page', pattern: 'options.html' },
+    'frontend': { type: 'iframe', pattern: 'frontend.html' },
+    'popup': { type: 'page', pattern: 'popup.html' },
+};
 
 let messageId = 1;
 
@@ -48,12 +62,13 @@ function parseArgs() {
         watchErrors: false,
         json: false,
         raw: false,
-        args: [],
+        args: [],  // Remaining positional args after expression
     };
 
     let i = 1;
+    let foundExpression = false;
     while (i < args.length) {
-        if (args[i] === '--target') {
+        if (args[i] === '--target' || args[i] === '-t') {
             parsed.target = args[++i];
         } else if (args[i] === '--watch-errors') {
             parsed.watchErrors = true;
@@ -62,8 +77,12 @@ function parseArgs() {
         } else if (args[i] === '--raw') {
             parsed.raw = true;
         } else if (!args[i].startsWith('--')) {
-            parsed.expression = args[i];
-            break;
+            if (!foundExpression) {
+                parsed.expression = args[i];
+                foundExpression = true;
+            } else {
+                parsed.args.push(args[i]);
+            }
         }
         i++;
     }
@@ -72,41 +91,77 @@ function parseArgs() {
 }
 
 /**
- * Find target by URL pattern
+ * Fetch all CDP targets
  */
-async function findTarget(pattern) {
+async function fetchTargets() {
     return new Promise((resolve, reject) => {
         http.get(`http://${CDP_HOST}:${CDP_PORT}/json`, (res) => {
             let body = '';
             res.on('data', chunk => (body += chunk));
             res.on('end', () => {
                 try {
-                    const targets = JSON.parse(body);
-                    let target;
-
-                    if (!pattern) {
-                        // Find first extension page
-                        target = targets.find(t =>
-                            t.type === 'page' && t.url?.includes('chrome-extension')
-                        );
-                    } else {
-                        // Find by pattern
-                        target = targets.find(t =>
-                            t.type === 'page' && t.url?.includes(pattern)
-                        );
-                    }
-
-                    if (target) {
-                        resolve(target);
-                    } else {
-                        reject(new Error(`Target not found matching: ${pattern || 'extension'}`));
-                    }
+                    resolve(JSON.parse(body));
                 } catch (e) {
                     reject(e);
                 }
             });
-        }).on('error', reject);
+        }).on('error', (err) => {
+            if (err.code === 'ECONNREFUSED') {
+                reject(new Error(`CDP not available at ${CDP_HOST}:${CDP_PORT}. Is Chrome running with --remote-debugging-port=${CDP_PORT}?`));
+            } else {
+                reject(err);
+            }
+        });
     });
+}
+
+/**
+ * Find target by pattern or shortcut
+ */
+async function findTarget(pattern) {
+    const targets = await fetchTargets();
+
+    // Check for shortcut first
+    if (pattern && TARGET_SHORTCUTS[pattern.toLowerCase()]) {
+        const shortcut = TARGET_SHORTCUTS[pattern.toLowerCase()];
+        const target = targets.find(t =>
+            t.type === shortcut.type && t.url?.includes(shortcut.pattern)
+        );
+        if (target) return target;
+        throw new Error(`Target shortcut '${pattern}' not found. Available shortcuts: ${Object.keys(TARGET_SHORTCUTS).join(', ')}`);
+    }
+
+    // No pattern - find first extension page or service worker
+    if (!pattern) {
+        // Prefer service worker (background)
+        let target = targets.find(t =>
+            t.type === 'service_worker' && t.url?.includes('chrome-extension')
+        );
+        if (!target) {
+            // Fall back to extension page
+            target = targets.find(t =>
+                t.type === 'page' && t.url?.includes('chrome-extension')
+            );
+        }
+        if (target) return target;
+        throw new Error('No extension target found. Is the extension loaded?');
+    }
+
+    // Pattern matching - search all target types
+    const target = targets.find(t => t.url?.includes(pattern));
+
+    if (target) return target;
+
+    // Helpful error with suggestions
+    const extensionTargets = targets.filter(t => t.url?.includes('chrome-extension'));
+    const suggestions = extensionTargets.slice(0, 3).map(t => `  - ${t.type}: ${t.url.split('/').pop()}`);
+
+    let errorMsg = `Target not found matching: ${pattern}`;
+    if (suggestions.length > 0) {
+        errorMsg += `\n\nAvailable extension targets:\n${suggestions.join('\n')}`;
+        errorMsg += `\n\nShortcuts: ${Object.keys(TARGET_SHORTCUTS).join(', ')}`;
+    }
+    throw new Error(errorMsg);
 }
 
 /**
@@ -440,103 +495,277 @@ function readStdin() {
 }
 
 /**
- * Main CLI handler
+ * Show help message
  */
-async function main() {
-    const opts = parseArgs();
+function showHelp() {
+    console.log(`${colors.bright}sk-cdp${colors.reset} - CDP debugging CLI for Surfingkeys
 
-    if (!opts.command) {
-        console.log(`${colors.bright}sk-cdp${colors.reset} - CDP debugging CLI
+${colors.yellow}Commands:${colors.reset}
+  ${colors.green}eval${colors.reset}       Evaluate JavaScript expression in a target
+  ${colors.green}targets${colors.reset}    List all available CDP targets
+  ${colors.green}send${colors.reset}       Send raw CDP method to a target
 
 ${colors.yellow}Usage:${colors.reset}
   sk-cdp eval [OPTIONS] "expression"
   sk-cdp eval [OPTIONS] <<'CODE'
     multiline code here
   CODE
+  sk-cdp targets [--json]
+  sk-cdp send --target TARGET METHOD [PARAMS_JSON]
 
 ${colors.yellow}Options:${colors.reset}
-  --target PATTERN    Target to debug (default: first extension page)
-  --watch-errors      Log any console errors
-  --json              Output raw JSON
-  --raw               Show raw response object
+  --target PATTERN    Target to debug (use shortcut or URL pattern)
+  --json              Output raw JSON (machine-readable)
+  --raw               Show raw CDP response object
+  --watch-errors      Exit with error code on exceptions
+
+${colors.yellow}Target Shortcuts:${colors.reset}
+  ${colors.cyan}bg, sw, background${colors.reset}   Service worker (background.js)
+  ${colors.cyan}options${colors.reset}              Options page
+  ${colors.cyan}frontend${colors.reset}             Frontend iframe
+  ${colors.cyan}popup${colors.reset}                Popup page
 
 ${colors.yellow}Examples:${colors.reset}
-  sk-cdp eval "document.body.style.backgroundColor"
-  sk-cdp eval --target options.html "document.querySelectorAll('input').length"
-  sk-cdp eval --target options.html <<'CODE'
-    const inputs = document.querySelectorAll('input');
-    return Array.from(inputs).map(i => i.value);
+  ${colors.gray}# List all targets${colors.reset}
+  sk-cdp targets
+
+  ${colors.gray}# Evaluate in service worker (background)${colors.reset}
+  sk-cdp eval --target bg "chrome.runtime.id"
+
+  ${colors.gray}# Evaluate in options page${colors.reset}
+  sk-cdp eval --target options "document.title"
+
+  ${colors.gray}# Quick check on any google.com tab${colors.reset}
+  sk-cdp eval --target google.com "document.title"
+
+  ${colors.gray}# Send raw CDP method${colors.reset}
+  sk-cdp send --target bg "Runtime.evaluate" '{"expression":"1+1","returnByValue":true}'
+
+  ${colors.gray}# Multiline code via heredoc${colors.reset}
+  sk-cdp eval --target bg <<'CODE'
+    new Promise(r => chrome.storage.local.get(null, r))
   CODE
+
+${colors.yellow}Notes:${colors.reset}
+  - Requires CDP proxy: ${colors.cyan}./bin/dbg proxy-start${colors.reset}
+  - Console logs captured in: ${colors.cyan}/tmp/dbg-proxy.log${colors.reset}
+  - JSON output (--json) is best for scripting/agents
 `);
+}
+
+/**
+ * List all CDP targets
+ */
+async function listTargets(opts) {
+    const targets = await fetchTargets();
+
+    // Group by type
+    const grouped = {};
+    for (const t of targets) {
+        if (!grouped[t.type]) grouped[t.type] = [];
+        grouped[t.type].push(t);
+    }
+
+    if (opts.json) {
+        // Machine-readable output
+        const output = {
+            targets: targets.map(t => ({
+                id: t.id,
+                type: t.type,
+                url: t.url,
+                title: t.title,
+                webSocketDebuggerUrl: t.webSocketDebuggerUrl,
+            })),
+            shortcuts: TARGET_SHORTCUTS,
+            summary: {
+                total: targets.length,
+                byType: Object.fromEntries(
+                    Object.entries(grouped).map(([k, v]) => [k, v.length])
+                ),
+            },
+        };
+        console.log(JSON.stringify(output, null, 2));
+        return;
+    }
+
+    // Human-readable output
+    console.log(`${colors.bright}CDP Targets${colors.reset} (${targets.length} total)\n`);
+
+    const typeOrder = ['service_worker', 'page', 'iframe', 'other'];
+    const typeLabels = {
+        service_worker: '🔧 Service Workers',
+        page: '📄 Pages',
+        iframe: '🖼️  Iframes',
+        other: '❓ Other',
+    };
+
+    for (const type of typeOrder) {
+        const items = grouped[type] || [];
+        if (items.length === 0) continue;
+
+        console.log(`${colors.yellow}${typeLabels[type] || type}${colors.reset} (${items.length})`);
+
+        for (const t of items.slice(0, 10)) {
+            const urlShort = t.url?.length > 80 ? t.url.substring(0, 77) + '...' : t.url;
+            const isExtension = t.url?.includes('chrome-extension');
+
+            let line = `  ${colors.gray}${t.id.substring(0, 8)}${colors.reset}`;
+            line += isExtension ? ` ${colors.green}${urlShort}${colors.reset}` : ` ${urlShort}`;
+
+            // Show matching shortcut
+            for (const [shortcut, config] of Object.entries(TARGET_SHORTCUTS)) {
+                if (t.type === config.type && t.url?.includes(config.pattern)) {
+                    line += ` ${colors.cyan}[${shortcut}]${colors.reset}`;
+                    break;
+                }
+            }
+
+            console.log(line);
+        }
+
+        if (items.length > 10) {
+            console.log(`  ${colors.gray}... and ${items.length - 10} more${colors.reset}`);
+        }
+        console.log();
+    }
+
+    console.log(`${colors.gray}Use --json for machine-readable output${colors.reset}`);
+}
+
+/**
+ * Send raw CDP method
+ */
+async function sendRawMethod(opts) {
+    if (!opts.target) {
+        throw new Error('--target is required for send command');
+    }
+
+    // Method is in expression, params JSON is in args[0]
+    const method = opts.expression;
+    const paramsJson = (opts.args && opts.args[0]) || '{}';
+
+    if (!method) {
+        throw new Error('Method name is required. Usage: sk-cdp send --target bg "Runtime.evaluate" \'{"expression":"1+1"}\'');
+    }
+
+    let params;
+    try {
+        params = JSON.parse(paramsJson);
+    } catch (e) {
+        throw new Error(`Invalid JSON params: ${e.message}`);
+    }
+
+    const target = await findTarget(opts.target);
+    const response = await sendViaProxy(target.id, method, params);
+
+    if (opts.json) {
+        console.log(JSON.stringify(response, null, 2));
+    } else {
+        console.log(formatResponse(response, opts));
+    }
+}
+
+/**
+ * Main CLI handler
+ */
+async function main() {
+    const args = process.argv.slice(2);
+
+    // Handle help flags before parsing
+    if (args.length === 0 || args[0] === '--help' || args[0] === '-h' || args[0] === 'help') {
+        showHelp();
         process.exit(0);
     }
 
-    if (opts.command !== 'eval') {
-        console.error(`${colors.red}Unknown command: ${opts.command}${colors.reset}`);
+    const opts = parseArgs();
+
+    try {
+        switch (opts.command) {
+            case 'targets':
+            case 'list':
+                await listTargets(opts);
+                break;
+
+            case 'send':
+                await sendRawMethod(opts);
+                break;
+
+            case 'eval':
+                await runEval(opts);
+                break;
+
+            default:
+                console.error(`${colors.red}Unknown command: ${opts.command}${colors.reset}`);
+                console.error(`\nAvailable commands: eval, targets, send`);
+                console.error(`Run ${colors.cyan}sk-cdp --help${colors.reset} for usage`);
+                process.exit(1);
+        }
+    } catch (error) {
+        console.error(`${colors.red}❌ ${error.message}${colors.reset}`);
+        process.exit(1);
+    }
+}
+
+/**
+ * Run eval command
+ */
+async function runEval(opts) {
+    // Get expression from args or stdin
+    let expression = opts.expression;
+
+    if (!expression) {
+        expression = await readStdin();
+    }
+
+    if (!expression) {
+        console.error(`${colors.red}No expression provided${colors.reset}`);
+        console.error(`\nUsage: sk-cdp eval [--target TARGET] "expression"`);
         process.exit(1);
     }
 
-    try {
-        // Get expression from args or stdin
-        let expression = opts.expression;
+    // Find target
+    const target = await findTarget(opts.target);
 
-        if (!expression) {
-            expression = await readStdin();
-        }
+    // Capture metadata before
+    const metadataBefore = await getMetadata(target.id);
 
-        if (!expression) {
-            console.error(`${colors.red}No expression provided${colors.reset}`);
-            process.exit(1);
-        }
+    // Evaluate
+    const response = await evalExpression(target.id, expression);
 
-        // Find target
-        const target = await findTarget(opts.target);
+    // Capture metadata after
+    const metadataAfter = await getMetadata(target.id);
 
-        if (!target) {
-            throw new Error('No matching target found');
-        }
-
-        // Capture metadata before
-        const metadataBefore = await getMetadata(target.id);
-
-        // Evaluate
-        const response = await evalExpression(target.id, expression);
-
-        // Capture metadata after
-        const metadataAfter = await getMetadata(target.id);
-
-        // Combine response with metadata
-        const fullResponse = {
-            ...response,
-            metadata: {
-                before: metadataBefore,
-                after: metadataAfter,
-                console: {
-                    logFile: fs.existsSync(PROXY_LOG_FILE) ? PROXY_LOG_FILE : null,
-                    note: 'Captured by proxy (bin/dbg proxy-start)',
-                },
+    // Combine response with metadata
+    const fullResponse = {
+        ...response,
+        target: {
+            id: target.id,
+            type: target.type,
+            url: target.url,
+        },
+        metadata: {
+            before: metadataBefore,
+            after: metadataAfter,
+            console: {
+                logFile: fs.existsSync(PROXY_LOG_FILE) ? PROXY_LOG_FILE : null,
+                note: 'Captured by proxy (bin/dbg proxy-start)',
             },
-        };
+        },
+    };
 
-        // Format and display
-        const formatted = formatResponse(fullResponse, {
-            json: opts.json,
-            raw: opts.raw,
-        });
+    // Format and display
+    const formatted = formatResponse(fullResponse, {
+        json: opts.json,
+        raw: opts.raw,
+    });
 
-        process.stdout.write(formatted);
+    process.stdout.write(formatted);
 
-        // Check for errors if watching
-        if (opts.watchErrors && response.result?.exceptionDetails) {
-            console.error(
-                `${colors.red}⚠️  Exception: ${response.result.exceptionDetails.text}${colors.reset}`
-            );
-            process.exit(1);
-        }
-
-        process.exit(0);
-    } catch (error) {
-        console.error(`${colors.red}❌ ${error.message}${colors.reset}`);
+    // Check for errors if watching
+    if (opts.watchErrors && response.result?.exceptionDetails) {
+        console.error(
+            `${colors.red}⚠️  Exception: ${response.result.exceptionDetails.text}${colors.reset}`
+        );
         process.exit(1);
     }
 }
