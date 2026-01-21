@@ -45,7 +45,8 @@ const ACTIONS = {
     'clear-errors': 'Clear all stored extension errors',
     'errors-clear': 'Clear all stored extension errors (alias)',
     'errors-list': 'List all stored extension errors',
-    'open-background': 'Open background service worker DevTools console'
+    'open-background': 'Open background service worker DevTools console',
+    'proxy-start': 'Start CDP proxy for stateless WebSocket CLI interface'
 };
 
 /**
