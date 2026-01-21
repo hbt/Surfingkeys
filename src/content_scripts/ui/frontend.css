@@ -1,43 +1,45 @@
 .sk_theme {
-    background: #fff;
-    color: #000;
+    background: #1e1e1e;
+    color: #d4d4d4;
 }
 .sk_theme input {
-    color: #000;
+    color: #d4d4d4;
+    background: #2d2d2d;
 }
 .sk_theme .url {
-    color: #222;
+    color: #b0b0b0;
 }
 .sk_theme .annotation {
-    color: #222;
+    color: #b0b0b0;
 }
 .sk_theme kbd {
-    background: #ddd;
-    color: #111;
+    background: #2d2d2d;
+    color: #e8e8e8;
+    border: 1px solid #555;
 }
 .sk_theme .frame {
     background: rgba(129, 120, 222, 0.62);
 }
 .sk_theme .omnibar_highlight {
-    color: #b90c0c;
+    color: #ff6b6b;
 }
 .sk_theme .omnibar_folder {
-    color: #4b3acc;
+    color: #8b9cff;
 }
 .sk_theme .omnibar_timestamp {
-    color: #cc4b9c;
+    color: #ff88cc;
 }
 .sk_theme .omnibar_visitcount {
-    color: #1e46e9;
+    color: #5e8eff;
 }
 .sk_theme .prompt, .sk_theme .resultPage {
-    color: #aaa;
+    color: #888;
 }
 .sk_theme .feature_name {
-    color: #e09b7e;
+    color: #f59e42;
 }
 .sk_theme .separator {
-    color: #b5b507;
+    color: #d4d420;
 }
 
 body {
