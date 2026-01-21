@@ -735,6 +735,13 @@ const Front = (function() {
     function colorizeNextKey(nextKey) {
         const decodedKey = KeyboardUtils.decodeKeystroke(nextKey);
         const firstChar = htmlEncode(decodedKey[0]);
+
+        // Check if colorful hints are enabled
+        if (!runtime.conf.colorfulKeystrokeHints) {
+            // Return plain text without coloring
+            return `<span style="color:#fff">${htmlEncode(decodedKey)}</span>`;
+        }
+
         const firstCharColor = getCharColor(decodedKey[0]);
 
         if (decodedKey.length <= 1) {

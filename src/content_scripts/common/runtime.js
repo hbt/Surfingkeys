@@ -81,6 +81,7 @@ const runtime = (function() {
             prevLinkRegex: /(\b(prev|previous)\b)|上页|上一页|前页|上頁|上一頁|前頁|<<|«/i,
             repeatThreshold: 9,
             richHintsForKeystroke: 1000,
+            colorfulKeystrokeHints: true,
             scrollStepSize: 70,
             showModeStatus: false,
             showProxyInStatusBar: false,
