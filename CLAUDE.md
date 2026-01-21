@@ -6,14 +6,40 @@
 reload extension: `./bin/dbg reload` - builds and reloads (returns JSON with build.timestamp)
 more debugging: `./bin/dbg --help` - returns JSON
 
-## Debugging and Live Development using CDP + Code Injection
+## Debugging Approaches
 
-npm run debug:cdp:headless debug/cdp-debug-live-modification-tabs.ts
-npm run debug:cdp:live debug/cdp-debug-live-modification-tabs.ts
+See **[docs/dev.md](docs/dev.md)** for comprehensive guide to all 3 debugging strategies.
 
-### Mode Selection
-- **Live mode**: Use when visual inspection or interactive iteration is needed (user will explicitly request this)
-- **Headless mode**: Default for automated debugging without browser UI
+### 1. CDP + Proxy (Fastest iteration)
+Start proxy: `./bin/dbg proxy-start`
+
+One-liner CDP commands via websocat (instant feedback, no build):
+```bash
+echo '{"targetId": "...", "method": "Runtime.evaluate", "params": {...}}' | websocat ws://127.0.0.1:9623
+```
+
+See [docs/cdp/proxy.md](docs/cdp/proxy.md) for examples.
+
+**Use this for:** Quick inspection, rapid iteration, testing code snippets
+
+### 2. CDP Debug Scripts (Reusable patterns)
+```bash
+npm run debug:cdp:live debug/cdp-screenshot.ts
+npm run debug:cdp:headless debug/cdp-screenshot.ts
+```
+
+Gold standard screenshot: `debug/cdp-screenshot.ts` (works headless & live)
+
+**Use this for:** Complex debugging, reusable patterns, reproducible debugging
+
+### 3. Direct Modification + bin/dbg reload (Persistent changes)
+```bash
+bin/dbg reload
+```
+
+Automatically builds and reloads extension.
+
+**Use this for:** Testing actual implementation, verifying build pipeline
 
 ### Debug Scripts vs Tests
 - **Debug scripts** (`debug/`): Temporary exploratory tools for investigation, prototyping, and iteration. May be kept in git for reference but are not maintained after the debugging session ends (e.g., may break with API changes)
@@ -35,15 +61,17 @@ npm run test:cdp:live tests/cdp/cdp-keyboard.test.ts
 
 ## Documentation
 
-- docs/glossary.md Terms and Acronyms
-- docs/feature-tree.md 
-- docs/api.md General API (generated using npm run build:doc)
-- docs/cmds.md Keyboard commands (generated using npm run build:doc-cmds)
-- docs/ui-flow.md UI screens and flows
-- docs/adrs ADRs 
-- docs/migration Current migration process 
-- docs/c4 C2 and C3 architecture 
-- docs/chrome-api and node_modules/@types/chrome/index.d.ts Official chrome extension and dev tools extensions APIs documentation in markdown retrieved using (scripts/fetch-all-chrome-apis.sh) and Typescript definitions for the chrome API
+- **docs/dev.md** - Development workflow: 3 debugging approaches (proxy, debug scripts, bin/dbg reload)
+- docs/glossary.md - Terms and Acronyms
+- docs/feature-tree.md
+- docs/api.md - General API (generated using npm run build:doc)
+- docs/cmds.md - Keyboard commands (generated using npm run build:doc-cmds)
+- docs/ui-flow.md - UI screens and flows
+- docs/adrs - ADRs
+- docs/migration - Current migration process
+- docs/c4 - C2 and C3 architecture
+- docs/chrome-api - Chrome extension and DevTools protocol API documentation
+- docs/cdp/proxy.md - CDP proxy examples and request formats
 
 
 
