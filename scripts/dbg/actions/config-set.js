@@ -1,8 +1,9 @@
 /**
- * Config Set Action
+ * Preflight Checks for Config Set
  *
- * Retrieves advancedMode setting from chrome.storage.local
- * Uses CDP Message Bridge to communicate with the extension.
+ * Collects runtime checks before setting config file:
+ * - advancedMode: Current advanced mode setting from chrome.storage.local
+ * - userScriptsAvailable: Whether chrome.userScripts API is available (MV3 requirement)
  *
  * Usage: bin/dbg config-set
  *
@@ -107,15 +108,18 @@ async function evaluateCode(ws, expression) {
 }
 
 /**
- * Get advancedMode from chrome.storage.local
+ * Collect preflight checks: advancedMode and userScripts availability
  */
-async function getAdvancedMode(ws) {
-    log(`Retrieving advancedMode...`);
+async function getPreflightChecks(ws) {
+    log(`Collecting preflight checks...`);
 
     const code = `
         new Promise((resolve) => {
             chrome.storage.local.get('showAdvanced', (data) => {
-                resolve(data.showAdvanced);
+                resolve({
+                    advancedMode: data.showAdvanced,
+                    userScriptsAvailable: !!chrome.userScripts
+                });
             });
         })
     `;
@@ -128,7 +132,7 @@ async function getAdvancedMode(ws) {
  * Main action
  */
 async function run(args) {
-    log(`Advanced Mode Checker Started`);
+    log(`Preflight Checks Started`);
 
     try {
         // Find service worker
@@ -155,15 +159,15 @@ async function run(args) {
                     await sendCommand(ws, 'Runtime.enable');
                     log('✓ Runtime domain enabled');
 
-                    // Get advancedMode
-                    const advancedModeResult = await getAdvancedMode(ws);
-                    log(`✓ Advanced mode retrieved: ${JSON.stringify(advancedModeResult)}`);
+                    // Collect preflight checks
+                    const preflightChecks = await getPreflightChecks(ws);
+                    log(`✓ Preflight checks collected: ${JSON.stringify(preflightChecks)}`);
 
                     ws.close();
 
                     resolve({
                         success: true,
-                        advancedMode: advancedModeResult,
+                        preflight: preflightChecks,
                         log: LOG_FILE
                     });
 
