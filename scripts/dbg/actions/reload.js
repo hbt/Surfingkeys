@@ -1262,7 +1262,15 @@ async function run(args) {
         if (clearResult.success) {
             log('✓ Previous errors cleared');
         } else {
-            log(`Could not clear errors: ${clearResult.reason} - proceeding anyway`);
+            log(`ERROR: Could not clear errors: ${clearResult.reason}`);
+            if (clearResult.reason === 'button_not_found') {
+                log('FATAL: Clear button not found on chrome://extensions/?errors= page');
+                log('This indicates the extension may have corruption or UI issues');
+                log('Unable to proceed with reload without clearing existing errors');
+                throw new Error(`Cannot clear extension errors: ${clearResult.reason}`);
+            } else {
+                log(`Warning: Proceeding despite error clearing: ${clearResult.reason}`);
+            }
         }
 
         // STEP 4: CDP Bridge connectivity check
