@@ -176,6 +176,23 @@ The script demonstrates the reusable CDP pattern:
 
 See `debug/cdp-screenshot.ts` for the implementation pattern.
 
+### Headless Reporter Options
+
+`tests/cdp/run-headless.js` supports alternative Jest reporters so you can see
+full stack traces while debugging:
+
+- Default: streaming reporter (fast, minimal)
+- `--reporter=default`: use Jest's built-in verbose reporter
+- `--reporter=both`: run streaming and default reporters together
+- Environment variable: `CDP_HEADLESS_REPORTER=default npm run test:cdp:headless -- tests/cdp/...`
+
+This makes it easier to capture console output and detailed failure context
+without editing the runner script.
+
+Headless runs also auto-enable Chrome's Developer Mode by seeding
+`extensions.ui.developer_mode=true` in the temporary profile so that
+`chrome.userScripts` is available for config loading in MV3 builds.
+
 ## Direct source modification + bin/dbg reload
 
 **Strengths:**

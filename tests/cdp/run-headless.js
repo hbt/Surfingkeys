@@ -14,6 +14,7 @@
  * Usage:
  *   node tests/cdp/run-headless.js tests/cdp/cdp-keyboard.ts
  *   npm run test:cdp:headless tests/cdp/cdp-keyboard.ts
+ *   node tests/cdp/run-headless.js --reporter=default tests/cdp/cdp-keyboard.ts
  */
 
 const { spawn, execSync } = require('child_process');
@@ -111,12 +112,84 @@ async function startFixturesServer() {
     throw new Error('Fixtures server failed to start');
 }
 
+function parseCli(argv) {
+    const parsed = {
+        reporter: process.env.CDP_HEADLESS_REPORTER || 'streaming',
+        positional: []
+    };
+
+    const args = [...argv];
+    while (args.length) {
+        const arg = args.shift();
+        if (arg === '--reporter' || arg === '--reporters') {
+            const value = args.shift();
+            if (!value) {
+                console.error('❌ Missing value for --reporter');
+                process.exit(1);
+            }
+            parsed.reporter = value;
+        } else if (arg.startsWith('--reporter=')) {
+            parsed.reporter = arg.split('=')[1];
+        } else if (arg.startsWith('--reporters=')) {
+            parsed.reporter = arg.split('=')[1];
+        } else {
+            parsed.positional.push(arg);
+        }
+    }
+
+    return parsed;
+}
+
+function normalizeReporter(value) {
+    if (!value) {
+        return 'streaming';
+    }
+    const normalized = value.toString().toLowerCase();
+    if (normalized === 'default' || normalized === 'verbose' || normalized === 'jest') {
+        return 'default';
+    }
+    if (normalized === 'both' || normalized === 'all') {
+        return 'both';
+    }
+    if (normalized === 'none' || normalized === 'quiet') {
+        return 'none';
+    }
+    return 'streaming';
+}
+
+function buildReporterArgs(mode, streamingReporterPath) {
+    switch (mode) {
+    case 'default':
+        return {
+            label: 'jest-default',
+            args: ['--reporters', 'default']
+        };
+    case 'both':
+        return {
+            label: 'streaming+default',
+            args: ['--reporters', streamingReporterPath, '--reporters', 'default']
+        };
+    case 'none':
+        return {
+            label: 'jest-default (implicit)',
+            args: []
+        };
+    case 'streaming':
+    default:
+        return {
+            label: 'streaming',
+            args: ['--reporters', streamingReporterPath]
+        };
+    }
+}
+
 async function main() {
-    const testFile = process.argv[2];
+    const cli = parseCli(process.argv.slice(2));
+    const testFile = cli.positional[0];
 
     if (!testFile) {
-        console.error('❌ Usage: node run-headless.js <test-file>');
-        console.error('   Example: node run-headless.js tests/cdp/cdp-keyboard.ts');
+        console.error('❌ Usage: node run-headless.js [--reporter=<streaming|default|both>] <test-file>');
+        console.error('   Example: node run-headless.js --reporter=default tests/cdp/cdp-keyboard.ts');
         process.exit(1);
     }
 
@@ -169,6 +242,22 @@ async function main() {
     const userDataDir = path.join(os.tmpdir(), `chrome-headless-test-${uniqueId}`);
     fs.mkdirSync(userDataDir, { recursive: true });
 
+    // Pre-create Default profile preferences so developer mode is enabled automatically.
+    const defaultProfileDir = path.join(userDataDir, 'Default');
+    fs.mkdirSync(defaultProfileDir, { recursive: true });
+    const preferencesPath = path.join(defaultProfileDir, 'Preferences');
+    if (!fs.existsSync(preferencesPath)) {
+        const prefPayload = {
+            extensions: {
+                ui: {
+                    developer_mode: true
+                }
+            }
+        };
+        fs.writeFileSync(preferencesPath, JSON.stringify(prefPayload, null, 2));
+        log('Initialized Chrome preferences (developer mode enabled)');
+    }
+
     log(`Launching Chrome in headless mode...`);
     log(`  Port: ${port}`);
     log(`  User data: ${userDataDir}`);
@@ -184,6 +273,8 @@ async function main() {
         '--disable-dev-shm-usage',
         `--disable-extensions-except=${extDir}`,
         `--load-extension=${extDir}`,
+        '--enable-experimental-extension-apis',
+        '--enable-features=UserScriptsAPI',
         '--simulate-outdated-no-au=Tue, 31 Dec 2099 23:59:59 GMT',
         '--password-store=basic',
         '--disable-infobars',
@@ -211,14 +302,23 @@ async function main() {
     const isJestTest = testPath.endsWith('.test.ts');
     const command = isJestTest ? 'jest' : 'ts-node';
     const streamingReporter = path.join(__dirname, 'streaming-reporter.js');
+    const reporterMode = normalizeReporter(cli.reporter);
+    if (cli.reporter && reporterMode === 'streaming' && cli.reporter.toLowerCase() !== 'streaming') {
+        log(`Reporter "${cli.reporter}" not recognized. Falling back to streaming reporter.`);
+    }
+    const reporterConfig = buildReporterArgs(reporterMode, streamingReporter);
     const args = isJestTest
-        ? ['--config=config/jest.config.cdp.js', '--reporters', streamingReporter, '--', testPath]
+        ? ['--config=config/jest.config.cdp.js', ...reporterConfig.args, '--', testPath]
         : [testPath];
 
     log(`\nRunning test...`);
     log(`  Test: ${testFile}`);
     log(`  CDP_PORT: ${port}`);
-    log(`  Runner: ${command}\n`);
+    log(`  Runner: ${command}`);
+    if (isJestTest) {
+        log(`  Reporter: ${reporterConfig.label}`);
+    }
+    log('');
 
     const testProcess = spawn('npx', [command, ...args], {
         env: {
