@@ -144,15 +144,18 @@ function validate(configPath, cmdsPath) {
     const defaultMappings = extractDefaultMappings(cmdsPath);
     const userMappings = extractUserMappings(configPath);
 
-    console.log(`Default mappings: ${defaultMappings.size}`);
+    console.log(`Default mappings (unique keys): ${defaultMappings.size}`);
+    console.log(`  Note: SurfingKeys supports multiple modes (Normal/Visual/Insert)`);
+    console.log(`  Use: npm run report:migration for mode-based breakdown`);
     console.log(`User mappings: ${userMappings.size}`);
 
     // Show migration status
     const migratedCount = countMigratedCommands();
     const totalMappings = defaultMappings.size;
     const migrationPercent = totalMappings > 0 ? ((migratedCount / totalMappings) * 100).toFixed(1) : 0;
-    console.log(`Migrated commands: ${migratedCount}/${totalMappings} (${migrationPercent}%)`);
-    console.log(`For detailed locations: npm run report:migration\n`);
+    console.log(`\nCommand Metadata Migration:`);
+    console.log(`  Migrated (with unique_id): ${migratedCount}`);
+    console.log(`  Percentage of unique keys: ${migrationPercent}%\n`);
 
     if (userMappings.size === 0) {
         console.log('No user mappings found. Your config is clean!\n');
