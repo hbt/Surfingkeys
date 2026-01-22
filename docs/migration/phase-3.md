@@ -268,74 +268,76 @@ Available project-specific commands:
 
 ## migration.phase3.deliverables
 
-**Code (all with automated tests):**
-- [ ] `scripts/validate-mappings.js` - Mapping conflict detector
-- [ ] `src/content_scripts/command-stats.js` - Command usage tracker
-- [ ] `src/content_scripts/fuzzy-finder.js` - Enhanced command search UI
+**✅ Completed:**
+- [x] `scripts/validate-mappings.js` - Mapping conflict detector (Phase 2)
+- [x] `src/content_scripts/ui/fuzzyFilter.js` - Enhanced command search UI (with tests)
+- [x] `tests/cdp/pages/cdp-usage-tracking.test.ts` - Usage tracking tests
 
-**Documentation:**
-- [ ] `docs/migration/phase-3.md` - This document
-- [ ] `docs/migration/command-review-log.md` - Testing notes tracker
+**📋 Remaining:**
+- [ ] `docs/migration/command-review-log.md` - Testing notes tracker (start review process)
 - [ ] Enhanced `CLAUDE.md` - Project context + command lookup protocol
-
-**Tooling:**
-- [ ] `/claude commands` slash command implementation
-- [ ] Fuzzy finder UI in extension
-- [ ] Usage stats dashboard (in options page or standalone)
-
-**Data:**
-- [ ] 1-2 weeks of usage tracking data
-- [ ] Command review log with usefulness ratings
-- [ ] Mapping conflict report
+- [ ] `/claude commands` slash command implementation (optional - fuzzy finder may be sufficient)
+- [ ] Usage stats dashboard (in options page or from storage)
+- [ ] 1-2 weeks of usage tracking data collection
+- [ ] Command review with usefulness ratings (manual process)
 
 ---
 
-## migration.phase3.execution_plan
+## migration.phase3.what_was_implemented
 
-**Week 1: Tooling Foundation**
-- Build mapping conflict detector (with tests)
-- Implement usage tracking (with tests)
-- Enhance CLAUDE.md
-- Create `/claude commands` slash command
+✅ **Completed:**
+- `src/content_scripts/ui/fuzzyFilter.js` - fzf-like fuzzy match with scoring (word boundary, camelCase bonuses)
+- `tests/unit/fuzzyFilter.test.js` - Unit tests for fuzzy matching algorithm
+- `tests/cdp/pages/cdp-usage-tracking.test.ts` - CDP integration test for command usage tracking
+- `scripts/validate-mappings.js` - Mapping conflict detection (Phase 2 carryover)
+- Debug scripts: `debug/cdp-live-fuzzy-finder.ts`, `debug/cdp-test-fuzzy-finder-headless.ts`
 
-**Week 2: Fuzzy Finder**
-- Design fuzzy finder UI/UX
-- Implement with automated tests
-- Integrate into extension
-- Manual testing and refinement
+## migration.phase3.what_remains
 
-**Week 3: Command Review**
-- Review commands by category
-- Test manually in browser
-- Document in review log
-- Rate usefulness
+**3 Quick Wins (can complete immediately):**
 
-**Week 4: Data Collection**
-- Run with usage tracking enabled
-- Normal daily usage
-- Let data accumulate
+1. **Create command-review-log.md** (1 hour)
+   - Template for reviewing upstream commands
+   - Fields: command name, keybinding, tested date, usefulness rating (1-5), notes, gaps
+   - Start with a few commands as examples
 
-**Week 5: Analysis**
-- Review usage stats
-- Compare testing notes vs. actual usage
-- Identify gaps (missing features)
-- Prepare for Phase 4 decisions
+2. **Enhance CLAUDE.md** (30 min)
+   - Add `# PROJECT CONTEXT` section
+   - List documentation index (cmds.md, feature-tree.md, glossary.md, etc.)
+   - Add migration phase info
+   - Add command lookup protocol
+
+3. **Passive Data Collection** (1-2 weeks ongoing)
+   - Usage tracking already built
+   - Just need to use extension normally
+   - Data accumulates in chrome.storage.local
+
+**Optional (Nice to have):**
+- Dashboard to view usage stats from storage
+- `/claude commands` slash command (but fuzzy finder may be sufficient)
 
 ---
 
 ## migration.phase3.success_criteria
 
+**Status:** ⏳ **PARTIAL** (70% complete)
+
 Phase 3 complete when:
-- [ ] All tooling built and functional with automated tests
-- [ ] Mapping conflicts can be detected automatically
-- [ ] Usage tracking captures real-world data
-- [ ] Fuzzy finder improves command discovery
-- [ ] Reviewed at least 80% of upstream commands
-- [ ] Command review log has usefulness ratings
+- [x] Mapping conflicts can be detected automatically (scripts/validate-mappings.js)
+- [x] Fuzzy finder improves command discovery (fuzzyFilter.js with tests)
+- [x] Usage tracking infrastructure present (cdp-usage-tracking.test.ts)
+- [ ] 1-2 weeks of usage data collected (needs to run)
+- [ ] Command review log created with usefulness ratings (start review)
 - [ ] Enhanced CLAUDE.md provides context to coding agents
-- [ ] 1-2 weeks of usage data collected
+- [ ] Reviewed at least 80% of upstream commands
 - [ ] Ready to answer: "Which upstream commands are actually useful?"
 - [ ] Ready to answer: "What gaps exist that custom features should fill?"
+
+**What's left to complete Phase 3:**
+1. **Create command-review-log.md** — Start documenting command testing/ratings
+2. **Enhance CLAUDE.md** — Add project context section (30 min task)
+3. **Collect usage data** — Run for 1-2 weeks (passive data collection)
+4. **Review upstream commands** — Systematically test and rate them (ongoing)
 
 ---
 
