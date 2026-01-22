@@ -48,7 +48,9 @@ const ACTIONS = {
     'open-background': 'Open background service worker DevTools console',
     'proxy-start': 'Start CDP proxy for stateless WebSocket CLI interface',
     'proxy-stop': 'Stop the running CDP proxy server',
-    'proxy-status': 'Check if CDP proxy is running'
+    'proxy-status': 'Check if CDP proxy is running',
+    'test-server-start': 'Start fixtures server for CDP tests (port 9873)',
+    'test-server-stop': 'Stop the running fixtures server'
 };
 
 /**

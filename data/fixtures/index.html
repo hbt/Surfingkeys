@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surfingkeys Fixtures Server</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        p {
+            color: #666;
+            line-height: 1.6;
+        }
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        a {
+            color: #2196f3;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✓ Surfingkeys Fixtures Server</h1>
+        <p>This is the fixtures server for Surfingkeys CDP tests.</p>
+
+        <div class="info">
+            <strong>Server:</strong> <code>tests/fixtures-server.js</code><br>
+            <strong>Port:</strong> <code>9873</code><br>
+            <strong>Directory:</strong> <code>data/fixtures/</code>
+        </div>
+
+        <h2>Available Fixtures</h2>
+        <p>The following test pages are available:</p>
+        <ul>
+            <li><a href="/hackernews.html">hackernews.html</a> - Hacker News clone for link hints testing</li>
+            <li><a href="/index.html">index.html</a> - This page</li>
+        </ul>
+
+        <h2>Usage</h2>
+        <p>Start the fixtures server:</p>
+        <code>node tests/fixtures-server.js</code>
+
+        <p>Then access test pages at:</p>
+        <code>http://127.0.0.1:9873/</code><br>
+        <code>http://127.0.0.1:9873/hackernews.html</code>
+
+        <h2>For Developers</h2>
+        <p>The server automatically:</p>
+        <ul>
+            <li>Serves files from <code>data/fixtures/</code></li>
+            <li>Handles root path (<code>/</code>) by serving <code>index.html</code></li>
+            <li>Sets proper Content-Type headers</li>
+            <li>Enables CORS for all origins</li>
+            <li>Validates that all served files stay within the fixtures directory</li>
+        </ul>
+    </div>
+</body>
+</html>

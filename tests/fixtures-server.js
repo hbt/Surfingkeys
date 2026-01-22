@@ -17,7 +17,12 @@ const FIXTURES_DIR = path.join(__dirname, '../data/fixtures');
 
 const server = http.createServer((req, res) => {
     // Remove query string and decode URL
-    const urlPath = decodeURIComponent(req.url.split('?')[0]);
+    let urlPath = decodeURIComponent(req.url.split('?')[0]);
+
+    // Serve index.html for root path
+    if (urlPath === '/') {
+        urlPath = '/index.html';
+    }
 
     // Security: Only serve files from fixtures directory
     const filePath = path.join(FIXTURES_DIR, urlPath);
