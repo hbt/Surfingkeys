@@ -548,7 +548,7 @@ ${colors.yellow}Examples:${colors.reset}
 
 ${colors.yellow}Notes:${colors.reset}
   - Requires CDP proxy: ${colors.cyan}./bin/dbg proxy-start${colors.reset}
-  - Console logs captured in: ${colors.cyan}/tmp/dbg-proxy.log${colors.reset}
+  - Console logs captured in: ${colors.cyan}/tmp/dbg-proxy.jsonl${colors.reset}
   - JSON output (--json) is best for scripting/agents
 `);
 }
