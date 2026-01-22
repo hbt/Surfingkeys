@@ -15,6 +15,7 @@ const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { spawn, execSync } = require('child_process');
 
 let messageId = 1;
@@ -1027,6 +1028,161 @@ async function extractExtensionErrors(extensionId) {
 }
 
 /**
+ * Calculate SHA256 hash of file content (Node.js side)
+ */
+function calculateFileHash(fileContent) {
+    try {
+        const buffer = Buffer.from(fileContent, 'utf-8');
+        const hashBuffer = crypto.createHash('sha256').update(buffer).digest();
+        const hashHex = hashBuffer.toString('hex');
+        return hashHex;
+    } catch (err) {
+        throw new Error(`Failed to calculate hash: ${err.message}`);
+    }
+}
+
+/**
+ * Check extension health after reload (non-blocking post-validation)
+ */
+async function checkExtensionHealth() {
+    log('Checking extension health...');
+
+    const swWsUrl = await findServiceWorker();
+    if (!swWsUrl) {
+        log('✗ Service worker not found for health check');
+        return null;
+    }
+
+    const ws = new WebSocket(swWsUrl);
+
+    return new Promise((resolve) => {
+        ws.on('open', async () => {
+            try {
+                await sendCommand(ws, 'Runtime.enable');
+
+                const storageData = await evaluateCode(ws, `
+                    new Promise(async (resolve) => {
+                        chrome.storage.local.get(['showAdvanced', 'snippets', 'localPath'], async (data) => {
+                            const snippets = data.snippets || '';
+                            const localPath = data.localPath || '';
+                            const showAdvanced = data.showAdvanced || false;
+
+                            // Calculate hash of stored snippets
+                            let storedSnippetsHash = null;
+                            try {
+                                const encoder = new TextEncoder();
+                                const buffer = encoder.encode(snippets);
+                                const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+                                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                                storedSnippetsHash = hashHex;
+                            } catch (e) {
+                                storedSnippetsHash = 'error';
+                            }
+
+                            resolve({
+                                showAdvanced: showAdvanced,
+                                snippetsLength: snippets.length,
+                                storedSnippetsHash: storedSnippetsHash,
+                                localPathValue: localPath
+                            });
+                        });
+                    })
+                `);
+
+                ws.close();
+
+                // Now check if file exists and compare hashes
+                let fileHash = null;
+                let fileExists = false;
+                let hashMatch = false;
+                let fileSize = null;
+
+                if (storageData.localPathValue) {
+                    try {
+                        let filePath = storageData.localPathValue;
+                        if (filePath.startsWith('file://')) {
+                            filePath = decodeURIComponent(new URL(filePath).pathname);
+                        }
+
+                        log(`Comparing file at: ${filePath}`);
+                        log(`Stored snippets hash: ${storageData.storedSnippetsHash}`);
+                        log(`Stored snippets size: ${storageData.snippetsLength} bytes`);
+
+                        if (fs.existsSync(filePath)) {
+                            fileExists = true;
+                            try {
+                                const fileContent = fs.readFileSync(filePath, 'utf-8');
+                                fileHash = calculateFileHash(fileContent);
+                                fileSize = fileContent.length;
+                                hashMatch = fileHash === storageData.storedSnippetsHash;
+
+                                log(`File hash:           ${fileHash}`);
+                                log(`File size:           ${fileSize} bytes`);
+                                log(`Stored hash:         ${storageData.storedSnippetsHash}`);
+                                log(`Hash match:          ${hashMatch}`);
+
+                                if (!hashMatch) {
+                                    log(`⚠ Hash mismatch! File and storage differ.`);
+                                    log(`  First 100 chars of file: ${fileContent.substring(0, 100)}`);
+                                }
+                            } catch (err) {
+                                log(`✗ Error reading/hashing file: ${err.message}`);
+                                log(`Stack: ${err.stack}`);
+                                fileHash = 'error';
+                            }
+                        } else {
+                            log(`✗ Config file not found: ${filePath}`);
+                        }
+                    } catch (err) {
+                        log(`✗ Error during file comparison: ${err.message}`);
+                        log(`Stack: ${err.stack}`);
+                        fileHash = 'error';
+                    }
+                } else {
+                    log(`No localPath stored - skipping file comparison`);
+                }
+
+                const health = {
+                    advanced_mode_enabled: {
+                        value: storageData.showAdvanced
+                    },
+                    snippets_present: {
+                        stored: storageData.snippetsLength > 0,
+                        length: storageData.snippetsLength,
+                        hash: storageData.storedSnippetsHash
+                    },
+                    localPath_present: {
+                        stored: !!storageData.localPathValue,
+                        value: storageData.localPathValue
+                    },
+                    file_hash_match: {
+                        file_exists: fileExists,
+                        file_size: fileSize,
+                        stored_size: storageData.snippetsLength,
+                        file_hash: fileHash,
+                        stored_snippets_hash: storageData.storedSnippetsHash,
+                        match: hashMatch
+                    }
+                };
+
+                logStream.write(`${new Date().toISOString()} ✓ Extension health checked\n`);
+                resolve(health);
+            } catch (error) {
+                log(`✗ Error checking health: ${error.message}`);
+                ws.close();
+                resolve(null);
+            }
+        });
+
+        ws.on('error', (error) => {
+            log(`✗ WebSocket error: ${error.message}`);
+            resolve(null);
+        });
+    });
+}
+
+/**
  * Reload all tabs in all windows via Chrome tabs API
  * Uses CDP to evaluate chrome.tabs.query/reload in service worker
  */
@@ -1064,22 +1220,21 @@ async function reloadAllTabs() {
                                     !t.url.startsWith('about:')
                                 );
 
-                                let reloaded = 0;
-                                reloadableTabs.forEach((tab) => {
-                                    chrome.tabs.reload(tab.id, { bypassCache: false }, () => {
-                                        if (!chrome.runtime.lastError) {
-                                            reloaded++;
-                                        }
-                                    });
-                                });
+                                // Wait for all reload callbacks to complete
+                                const reloadPromises = reloadableTabs.map(tab =>
+                                    new Promise((resolveTab) => {
+                                        chrome.tabs.reload(tab.id, { bypassCache: false }, () => {
+                                            resolveTab();
+                                        });
+                                    })
+                                );
 
-                                // Small delay to let reload calls complete
-                                setTimeout(() => {
+                                Promise.all(reloadPromises).then(() => {
                                     resolve({
                                         count: reloadableTabs.length,
                                         total: tabs.length
                                     });
-                                }, 100);
+                                });
                             });
                         });
                     })()
@@ -1338,6 +1493,13 @@ async function run(args) {
             tabsReloaded = await reloadAllTabs();
         }
 
+        // STEP 9: Check extension health (non-blocking)
+        let healthCheck = null;
+        if (finalResult.success) {
+            log('STEP 9: Check extension health');
+            healthCheck = await checkExtensionHealth();
+        }
+
         logStream.end();
 
         // Build comprehensive JSON response
@@ -1387,6 +1549,11 @@ async function run(args) {
             if (tabsReloaded.error) {
                 response.tabsReloaded.error = tabsReloaded.error;
             }
+        }
+
+        // Add health check info (non-blocking, doesn't affect success)
+        if (healthCheck) {
+            response.health = healthCheck;
         }
 
         // Add error field if present

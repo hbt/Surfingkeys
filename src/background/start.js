@@ -1067,10 +1067,10 @@ function start(browser) {
         }
     }
     self.nextTab = function(message, sender, sendResponse) {
-        _nextTab(sender.tab, message.repeats);
+        _nextTab(sender.tab, message.repeats || 1);
     };
     self.previousTab = function(message, sender, sendResponse) {
-        _nextTab(sender.tab, -message.repeats);
+        _nextTab(sender.tab, -(message.repeats || 1));
     };
     function _roundRepeatTabs(tab, repeats, operation) {
         if (tab) {
@@ -1391,7 +1391,13 @@ function start(browser) {
                     };
                     if (r.length > 0) {
                         if (r[0].js[0].code !== code) {
-                            chrome.userScripts.unregister({ids:[userScriptId]}, registerSettingSnippets);
+                            // Unregister first, then register with new code
+                            chrome.userScripts.unregister({ids:[userScriptId]}).then(() => {
+                                registerSettingSnippets();
+                            }).catch(() => {
+                                // If unregister fails (e.g., already unregistered), just register
+                                registerSettingSnippets();
+                            });
                         }
                     } else {
                         registerSettingSnippets();
