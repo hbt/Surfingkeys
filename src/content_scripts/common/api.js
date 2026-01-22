@@ -121,6 +121,47 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
     }
 
     /**
+     * Create a shortcut in normal mode using command metadata (unique_id).
+     * This maps a key to an existing command by its unique_id identifier,
+     * enabling proper command tracking and migration from string annotations.
+     *
+     * @param {string} keys the key sequence for the shortcut.
+     * @param {string} unique_id the unique command identifier (e.g., "cmd_scroll_down").
+     * @param {object} [options=null] `domain`: regex for domain filtering.
+     *
+     * @example
+     * mapcmdkey('<F2>', 'cmd_show_usage', { domain: /example.com/i });
+     */
+    function mapcmdkey(keys, unique_id, options) {
+        // Command metadata mapping: dispatch based on unique_id
+        // This is the migration mechanism from string annotations to unique_id
+        const annotation = unique_id;
+        let commandCode = function() {
+            LOG("warn", `No handler for command: ${unique_id}`);
+        };
+
+        // Command registry: map unique_ids to their implementations
+        const commandRegistry = {
+            'cmd_show_usage': function() {
+                front.showUsage();
+            },
+            'cmd_scroll_down': function() {
+                normal.scroll('down');
+            },
+            'cmd_scroll_up': function() {
+                normal.scroll('up');
+            },
+            // Add more commands as they are migrated...
+        };
+
+        if (commandRegistry[unique_id]) {
+            commandCode = commandRegistry[unique_id];
+        }
+
+        mapkey(keys, annotation, commandCode, options);
+    }
+
+    /**
      * Map a key sequence to another in normal mode.
      *
      * @param {string} new_keystroke a key sequence to replace
@@ -484,6 +525,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         getClickableElements,
         lmap,
         map,
+        mapcmdkey,
         unmap,
         unmapAllExcept,
         iunmap,

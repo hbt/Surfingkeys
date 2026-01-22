@@ -20,7 +20,7 @@ const config = {
   CDP_PORT: parseInt(process.env.CDP_PORT, 10) || 9222,
   PROXY_PORT: parseInt(process.env.CDP_PROXY_PORT, 10) || 9623,
   PID_FILE: '/tmp/dbg-proxy.pid',
-  LOG_FILE: '/tmp/dbg-proxy.log'
+  LOG_FILE: '/tmp/dbg-proxy.jsonl'
 };
 
 /**

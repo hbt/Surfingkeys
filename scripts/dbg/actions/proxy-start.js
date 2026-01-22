@@ -5,7 +5,7 @@
  * See docs/cdp/proxy.md for usage instructions.
  *
  * Output: JSON only to stdout
- * Logs: Written to /tmp/dbg-proxy.log
+ * Logs: Written to /tmp/dbg-proxy.jsonl (JSONL format, one JSON object per line)
  */
 
 const WebSocket = require('ws');
@@ -23,13 +23,17 @@ const logStream = fs.createWriteStream(config.LOG_FILE, { flags: 'a' });
 const DISCOVERY_INTERVAL = 2000;  // Poll for new targets every 2 seconds
 let discoveryLoopHandle = null;
 
-// Log utilities
-const log = {
-  info: (msg) => logStream.write(`[${new Date().toISOString()}] [PROXY] ${msg}\n`),
-  request: (msg) => logStream.write(`[${new Date().toISOString()}]   → ${msg}\n`),
-  response: (msg) => logStream.write(`[${new Date().toISOString()}]   ← ${msg}\n`),
-  error: (msg) => logStream.write(`[${new Date().toISOString()}] [ERROR] ${msg}\n`)
-};
+/**
+ * Write a single-line JSON entry to the log file
+ */
+function logEntry(type, data) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    type,
+    ...data
+  };
+  logStream.write(JSON.stringify(entry) + '\n');
+}
 
 /**
  * Extract stack trace location from stackTrace object
@@ -48,7 +52,7 @@ function getStackLocation(stackTrace) {
 /**
  * Handle CDP message from any target (client or passive)
  */
-function handleCDPMessage(msg, targetId, targetUrl) {
+function handleCDPMessage(msg, targetId, targetUrl, isPassive = false) {
   try {
     if (msg.method === 'Runtime.consoleAPICalled') {
       // Capture console messages
@@ -65,39 +69,38 @@ function handleCDPMessage(msg, targetId, targetUrl) {
         })
         .join(' ');
 
-      // Extract location from stackTrace if available
-      const stackLocation = getStackLocation(params.stackTrace);
-      const locationPart = stackLocation ? ` at ${stackLocation}` : '';
-
-      const shortTarget = targetId.substring(0, 8);
-      const urlPart = targetUrl ? ` {${targetUrl}}` : '';
-      log.response(`[${shortTarget}...]${urlPart} [${level.toUpperCase()}] ${message}${locationPart}`);
+      logEntry('CONSOLE', {
+        targetId,
+        targetUrl,
+        isPassive,
+        level: level.toUpperCase(),
+        message,
+        stackTrace: params.stackTrace || null,
+        args: params.args || []
+      });
     } else if (msg.method === 'Runtime.exceptionThrown') {
       // Capture exceptions
       const exception = (msg.params || {}).exceptionDetails || {};
-      const message = exception.text || exception.description || 'Unknown exception';
-      const location = `${exception.url || '?'}:${exception.lineNumber || '?'}:${exception.columnNumber || '?'}`;
-      const scriptInfo = exception.scriptId ? ` [scriptId: ${exception.scriptId}]` : '';
 
-      // Also try to extract from stackTrace if location fields are missing
-      let stackTraceLocation = '';
-      if ((!exception.url || exception.lineNumber === undefined) && exception.stackTrace) {
-        const stackLoc = getStackLocation(exception.stackTrace);
-        if (stackLoc) {
-          stackTraceLocation = ` | Stack: ${stackLoc}`;
-        }
-      }
-
-      const shortTarget = targetId.substring(0, 8);
-      const urlPart = targetUrl ? ` {${targetUrl}}` : '';
-      log.response(`[${shortTarget}...]${urlPart} [EXCEPTION] ${message} at ${location}${scriptInfo}${stackTraceLocation}`);
+      logEntry('EXCEPTION', {
+        targetId,
+        targetUrl,
+        isPassive,
+        message: exception.text || exception.description || 'Unknown exception',
+        exceptionDetails: exception
+      });
     } else if (msg.method) {
-      const shortTarget = targetId.substring(0, 8);
-      const urlPart = targetUrl ? ` {${targetUrl}}` : '';
-      log.response(`[${shortTarget}...]${urlPart} Event: ${msg.method}`);
+      logEntry('EVENT', {
+        targetId,
+        targetUrl,
+        isPassive,
+        method: msg.method
+      });
     }
   } catch (err) {
-    log.error(`Failed to handle CDP message: ${err.message}`);
+    logEntry('ERROR', {
+      message: `Failed to handle CDP message: ${err.message}`
+    });
   }
 }
 
@@ -115,13 +118,20 @@ function ensureCDPConnection(targetId) {
     }
 
     const wsUrl = `ws://${config.CDP_HOST}:${config.CDP_PORT}/devtools/page/${targetId}`;
-    log.info(`Connecting to CDP target: ${targetId}`);
+    logEntry('PROXY', {
+      message: `Connecting to CDP target`,
+      targetId
+    });
 
     const ws = new WebSocket(wsUrl);
     const connObj = { ws, pendingRequests: new Map() };
 
     ws.on('open', () => {
-      log.info(`Connected to CDP target ${targetId.substring(0, 8)}... ✓`);
+      logEntry('PROXY', {
+        message: `Connected to CDP target`,
+        targetId,
+        status: 'connected'
+      });
       cdpConnections.set(targetId, connObj);
 
       // Subscribe to console and exception events
@@ -139,28 +149,41 @@ function ensureCDPConnection(targetId) {
 
         if (msg.id && connObj.pendingRequests.has(msg.id)) {
           const pending = connObj.pendingRequests.get(msg.id);
-          log.response(`[${targetId.substring(0, 8)}...] Response ID ${msg.id}`);
+          logEntry('RESPONSE', {
+            targetId,
+            requestId: msg.id
+          });
 
           clearTimeout(pending.timeout);
           pending.resolve(msg);
           connObj.pendingRequests.delete(msg.id);
         } else {
           // Handle events (console, exceptions, etc.)
-          handleCDPMessage(msg, targetId, connObj.targetUrl);
+          handleCDPMessage(msg, targetId, connObj.targetUrl, false);
         }
       } catch (err) {
-        log.error(`Failed to parse CDP message: ${err.message}`);
+        logEntry('ERROR', {
+          message: `Failed to parse CDP message: ${err.message}`,
+          targetId
+        });
       }
     });
 
     ws.on('error', (err) => {
-      log.error(`CDP connection error (${targetId.substring(0, 8)}...): ${err.message}`);
+      logEntry('ERROR', {
+        message: `CDP connection error: ${err.message}`,
+        targetId
+      });
       cdpConnections.delete(targetId);
       reject(err);
     });
 
     ws.on('close', () => {
-      log.info(`CDP connection closed (${targetId.substring(0, 8)}...)`);
+      logEntry('PROXY', {
+        message: `CDP connection closed`,
+        targetId,
+        status: 'closed'
+      });
       cdpConnections.delete(targetId);
     });
 
@@ -186,12 +209,21 @@ function sendToCDP(targetId, method, params) {
         connObj.pendingRequests.set(id, { resolve, timeout });
 
         const request = { id, method, ...(params && { params }) };
-        log.request(`[${targetId.substring(0, 8)}...] Sending to CDP: ID ${id}, method ${method}`);
+        logEntry('REQUEST', {
+          targetId,
+          requestId: id,
+          cdpMethod: method
+        });
 
         connObj.ws.send(JSON.stringify(request), (err) => {
           if (err) {
             clearTimeout(timeout);
             connObj.pendingRequests.delete(id);
+            logEntry('ERROR', {
+              message: `Failed to send CDP request: ${err.message}`,
+              targetId,
+              requestId: id
+            });
             reject(err);
           }
         });
@@ -235,7 +267,11 @@ function discoverTargets() {
           });
 
           disappearedIds.forEach(id => {
-            log.info(`Target disappeared: ${id.substring(0, 8)}...`);
+            logEntry('PROXY', {
+              message: `Target disappeared`,
+              targetId: id,
+              status: 'disappeared'
+            });
             targetMap.delete(id);
 
             // Close passive connection if exists
@@ -250,12 +286,16 @@ function discoverTargets() {
 
           resolve(targets);
         } catch (err) {
-          log.error(`Failed to parse targets JSON: ${err.message}`);
+          logEntry('ERROR', {
+            message: `Failed to parse targets JSON: ${err.message}`
+          });
           resolve([]);
         }
       });
     }).on('error', (err) => {
-      log.error(`Failed to discover targets: ${err.message}`);
+      logEntry('ERROR', {
+        message: `Failed to discover targets: ${err.message}`
+      });
       resolve([]);
     });
   });
@@ -279,7 +319,13 @@ function autoAttachTarget(targetId, targetUrl) {
     const connObj = { ws, targetUrl, isPasive: true };
 
     ws.on('open', () => {
-      log.info(`Passive connection opened: ${targetId.substring(0, 8)}... {${targetUrl}}`);
+      logEntry('PROXY', {
+        message: `Passive connection opened`,
+        targetId,
+        targetUrl,
+        status: 'connected',
+        isPassive: true
+      });
       passiveConnections.set(targetId, connObj);
 
       // Subscribe to events
@@ -294,20 +340,34 @@ function autoAttachTarget(targetId, targetUrl) {
     ws.on('message', (data) => {
       try {
         const msg = JSON.parse(data.toString());
-        handleCDPMessage(msg, targetId, targetUrl);
+        handleCDPMessage(msg, targetId, targetUrl, true);
       } catch (err) {
-        log.error(`Failed to parse passive message: ${err.message}`);
+        logEntry('ERROR', {
+          message: `Failed to parse passive message: ${err.message}`,
+          targetId,
+          targetUrl
+        });
       }
     });
 
     ws.on('error', (err) => {
-      log.error(`Passive connection error (${targetId.substring(0, 8)}...): ${err.message}`);
+      logEntry('ERROR', {
+        message: `Passive connection error: ${err.message}`,
+        targetId,
+        targetUrl
+      });
       passiveConnections.delete(targetId);
       resolve(null);
     });
 
     ws.on('close', () => {
-      log.info(`Passive connection closed: ${targetId.substring(0, 8)}...`);
+      logEntry('PROXY', {
+        message: `Passive connection closed`,
+        targetId,
+        targetUrl,
+        status: 'closed',
+        isPassive: true
+      });
       passiveConnections.delete(targetId);
     });
 
@@ -333,7 +393,10 @@ function startDiscoveryLoop() {
     });
   }, DISCOVERY_INTERVAL);
 
-  log.info(`Discovery loop started (interval: ${DISCOVERY_INTERVAL}ms)`);
+  logEntry('PROXY', {
+    message: `Discovery loop started`,
+    discoveryInterval: DISCOVERY_INTERVAL
+  });
 }
 
 /**
@@ -342,7 +405,9 @@ function startDiscoveryLoop() {
 function stopDiscoveryLoop() {
   if (discoveryLoopHandle) {
     clearInterval(discoveryLoopHandle);
-    log.info('Discovery loop stopped');
+    logEntry('PROXY', {
+      message: `Discovery loop stopped`
+    });
   }
 }
 
@@ -355,7 +420,10 @@ function startProxy() {
     const wss = new WebSocket.Server({ server });
 
     wss.on('connection', (clientWs) => {
-      log.info('Client connected');
+      logEntry('PROXY', {
+        message: 'Client connected',
+        status: 'connected'
+      });
       let clientConnected = true;
 
       clientWs.on('message', async (data) => {
@@ -367,7 +435,11 @@ function startProxy() {
             throw new Error('No targetId provided in request');
           }
 
-          log.request(`Client request: ${request.method} (target: ${targetId.substring(0, 8)}...)`);
+          logEntry('REQUEST', {
+            message: 'Client request',
+            targetId,
+            cdpMethod: request.method
+          });
 
           const response = await sendToCDP(targetId, request.method, request.params);
 
@@ -378,10 +450,14 @@ function startProxy() {
 
           if (clientConnected && clientWs.readyState === WebSocket.OPEN) {
             clientWs.send(JSON.stringify(clientResponse));
-            log.response('Sent response to client');
+            logEntry('RESPONSE', {
+              message: 'Sent response to client'
+            });
           }
         } catch (err) {
-          log.error(`Request error: ${err.message}`);
+          logEntry('ERROR', {
+            message: `Request error: ${err.message}`
+          });
           if (clientConnected && clientWs.readyState === WebSocket.OPEN) {
             clientWs.send(JSON.stringify({ error: { message: err.message } }));
           }
@@ -390,11 +466,16 @@ function startProxy() {
 
       clientWs.on('close', () => {
         clientConnected = false;
-        log.info('Client disconnected');
+        logEntry('PROXY', {
+          message: 'Client disconnected',
+          status: 'disconnected'
+        });
       });
 
       clientWs.on('error', (err) => {
-        log.error(`Client error: ${err.message}`);
+        logEntry('ERROR', {
+          message: `Client error: ${err.message}`
+        });
         clientConnected = false;
       });
     });
@@ -404,8 +485,13 @@ function startProxy() {
     });
 
     server.listen(config.PROXY_PORT, () => {
-      log.info(`Proxy listening on ws://127.0.0.1:${config.PROXY_PORT}`);
-      log.info(`Forwarding to CDP at ws://${config.CDP_HOST}:${config.CDP_PORT}`);
+      logEntry('PROXY', {
+        message: `Proxy listening`,
+        proxyUrl: `ws://127.0.0.1:${config.PROXY_PORT}`,
+        cdpHost: config.CDP_HOST,
+        cdpPort: config.CDP_PORT,
+        status: 'listening'
+      });
       resolve(server);
     });
   });
@@ -435,14 +521,21 @@ async function run(args) {
     // Write PID file
     fs.writeFileSync(config.PID_FILE, process.pid.toString());
 
-    log.info('=== CDP Proxy Started ===');
+    logEntry('PROXY', {
+      message: 'CDP Proxy Started',
+      pid: process.pid,
+      status: 'started'
+    });
 
     // Start passive target discovery loop
     startDiscoveryLoop();
 
     // Setup graceful shutdown
     const shutdown = () => {
-      log.info('Shutting down gracefully...');
+      logEntry('PROXY', {
+        message: 'Shutting down gracefully',
+        status: 'shutting_down'
+      });
       stopDiscoveryLoop();
 
       // Close all passive connections
@@ -483,7 +576,10 @@ async function run(args) {
     // Keep process alive - server will handle connections
 
   } catch (error) {
-    log.error(`Fatal: ${error.message}`);
+    logEntry('ERROR', {
+      message: `Fatal: ${error.message}`,
+      errorCode: error.code
+    });
 
     if (error.code === 'EADDRINUSE') {
       outputJSON({
@@ -502,5 +598,6 @@ async function run(args) {
     }
   }
 }
+
 
 module.exports = { run };
