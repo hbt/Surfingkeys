@@ -358,6 +358,10 @@ for (const [mode, counts] of Object.entries(modeBreakdown).sort()) {
 }
 
 // Export as JSON for programmatic use
-const jsonOutput = path.join(__dirname, '..', 'migrated-commands.json');
+const genDir = path.join(__dirname, '..', 'data', 'gen');
+if (!fs.existsSync(genDir)) {
+    fs.mkdirSync(genDir, { recursive: true });
+}
+const jsonOutput = path.join(genDir, 'migrated-commands.json');
 fs.writeFileSync(jsonOutput, JSON.stringify({ migrated, notMigrated, summary: { totalMigrated: migrated.length, totalNotMigrated: notMigrated.length } }, null, 2));
-console.log(`\n✅ Detailed output saved to: migrated-commands.json`);
+console.log(`\n✅ Detailed output saved to: data/gen/migrated-commands.json`);
