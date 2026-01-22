@@ -241,3 +241,10 @@ export async function captureScreenshot(ws: WebSocket, format: 'png' | 'jpeg' = 
         }, 100);
     });
 }
+
+/**
+ * Get settings value from background service worker
+ */
+export async function getSettingValue(ws: WebSocket, settingKey: string): Promise<any> {
+    return executeInTarget(ws, `(globalThis.runtime?.conf?.${settingKey} !== undefined ? globalThis.runtime.conf.${settingKey} : 'UNDEFINED')`);
+}

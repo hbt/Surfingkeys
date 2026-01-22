@@ -2,7 +2,7 @@
 /**
  * Simple HTTP server for CDP test fixtures
  *
- * Serves ONLY the src/pages/fixtures/ directory
+ * Serves ONLY the data/fixtures/ directory
  * Port: 9873 (uncommon to avoid conflicts)
  *
  * Usage: node tests/fixtures-server.js
@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = 9873;
-const FIXTURES_DIR = path.join(__dirname, '../src/pages/fixtures');
+const FIXTURES_DIR = path.join(__dirname, '../data/fixtures');
 
 const server = http.createServer((req, res) => {
     // Remove query string and decode URL
