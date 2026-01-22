@@ -24,5 +24,5 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Execute the Node.js controller
-exec node "$PROJECT_ROOT/scripts/dbg/index.js" "$@"
+# // TODO(hbt) NEXT [dev] rewrite those in ts to experiment
+exec bun "$PROJECT_ROOT/scripts/dbg/index.js" "$@"
