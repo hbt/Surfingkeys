@@ -55,6 +55,7 @@ sk-cdp eval --target bg "chrome.runtime.id"       # Eval in service worker
 sk-cdp eval --target options "document.title"     # Eval in options page
 sk-cdp eval --target google.com "document.title"  # Eval in matching tab
 sk-cdp send --target bg "Runtime.evaluate" '{}'   # Raw CDP method
+sk-cdp eval --target frontend "chrome.runtime.openOptionsPage()"  # Open options page
 ```
 
 **Target Shortcuts:**
