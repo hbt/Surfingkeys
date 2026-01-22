@@ -1,11 +1,10 @@
 /**
  * Config Set Action
  *
- * Sets the external config file path in chrome.storage.local
+ * Retrieves advancedMode setting from chrome.storage.local
  * Uses CDP Message Bridge to communicate with the extension.
  *
- * Usage: bin/dbg config-set <filepath>
- * Example: bin/dbg config-set file:///home/hassen/surfingkeys-2026.js
+ * Usage: bin/dbg config-set
  *
  * Output: JSON only to stdout
  * Logs: Written to /tmp/dbg-config-set-<timestamp>.log
@@ -108,42 +107,15 @@ async function evaluateCode(ws, expression) {
 }
 
 /**
- * Set config path in chrome.storage.local
+ * Get advancedMode from chrome.storage.local
  */
-async function setConfigPath(ws, filepath) {
-    log(`Setting config path: ${filepath}`);
-
-    const code = `
-        new Promise((resolve, reject) => {
-            chrome.storage.local.set({
-                localPath: '${filepath.replace(/'/g, "\\'")}'
-            }, () => {
-                if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
-                } else {
-                    resolve({ success: true, path: '${filepath}' });
-                }
-            });
-        })
-    `;
-
-    const result = await evaluateCode(ws, code);
-    return result;
-}
-
-/**
- * Verify config path was set
- */
-async function verifyConfigPath(ws, expectedPath) {
-    log(`Verifying config path...`);
+async function getAdvancedMode(ws) {
+    log(`Retrieving advancedMode...`);
 
     const code = `
         new Promise((resolve) => {
-            chrome.storage.local.get('localPath', (data) => {
-                resolve({
-                    stored: data.localPath,
-                    matches: data.localPath === '${expectedPath.replace(/'/g, "\\'")}'
-                });
+            chrome.storage.local.get('showAdvanced', (data) => {
+                resolve(data.showAdvanced);
             });
         })
     `;
@@ -156,22 +128,7 @@ async function verifyConfigPath(ws, expectedPath) {
  * Main action
  */
 async function run(args) {
-    const filepath = args[0];
-
-    if (!filepath) {
-        console.log(JSON.stringify({
-            success: false,
-            error: 'Missing argument: filepath required',
-            usage: 'bin/dbg config-set <filepath>',
-            example: 'bin/dbg config-set file:///home/hassen/surfingkeys-2026.js',
-            log: LOG_FILE
-        }));
-        logStream.end();
-        process.exit(1);
-    }
-
-    log(`Config Set Action Started`);
-    log(`Filepath: ${filepath}`);
+    log(`Advanced Mode Checker Started`);
 
     try {
         // Find service worker
@@ -198,24 +155,15 @@ async function run(args) {
                     await sendCommand(ws, 'Runtime.enable');
                     log('✓ Runtime domain enabled');
 
-                    // Set the config path
-                    const setResult = await setConfigPath(ws, filepath);
-                    log(`✓ Config path set: ${JSON.stringify(setResult)}`);
-
-                    // Wait a moment for storage
-                    await new Promise(r => setTimeout(r, 200));
-
-                    // Verify it was set
-                    const verifyResult = await verifyConfigPath(ws, filepath);
-                    log(`✓ Verification result: ${JSON.stringify(verifyResult)}`);
+                    // Get advancedMode
+                    const advancedModeResult = await getAdvancedMode(ws);
+                    log(`✓ Advanced mode retrieved: ${JSON.stringify(advancedModeResult)}`);
 
                     ws.close();
 
                     resolve({
                         success: true,
-                        filepath: filepath,
-                        set: setResult,
-                        verified: verifyResult,
+                        advancedMode: advancedModeResult,
                         log: LOG_FILE
                     });
 
@@ -225,7 +173,6 @@ async function run(args) {
                     resolve({
                         success: false,
                         error: error.message,
-                        filepath: filepath,
                         log: LOG_FILE
                     });
                 }
@@ -236,7 +183,6 @@ async function run(args) {
                 resolve({
                     success: false,
                     error: `WebSocket error: ${error.message}`,
-                    filepath: filepath,
                     log: LOG_FILE
                 });
             });
@@ -254,7 +200,6 @@ async function run(args) {
         console.log(JSON.stringify({
             success: false,
             error: error.message,
-            filepath: filepath,
             log: LOG_FILE
         }));
         process.exit(1);
