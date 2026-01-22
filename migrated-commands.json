@@ -4,6 +4,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 820,
       "key": "cS",
+      "mode": "Normal",
       "shortName": "Reset scroll target",
       "uniqueId": "cmd_scroll_reset_target"
     },
@@ -11,6 +12,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 850,
       "key": "e",
+      "mode": "Normal",
       "shortName": "Scroll half page up",
       "uniqueId": "cmd_scroll_half_page_up"
     },
@@ -18,6 +20,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 862,
       "key": "U",
+      "mode": "Normal",
       "shortName": "Scroll full page up",
       "uniqueId": "cmd_scroll_full_page_up"
     },
@@ -25,6 +28,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 874,
       "key": "d",
+      "mode": "Normal",
       "shortName": "Scroll half page down",
       "uniqueId": "cmd_scroll_half_page_down"
     },
@@ -32,6 +36,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 886,
       "key": "P",
+      "mode": "Normal",
       "shortName": "Scroll full page down",
       "uniqueId": "cmd_scroll_full_page_down"
     },
@@ -39,6 +44,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 898,
       "key": "gg",
+      "mode": "Normal",
       "shortName": "Scroll to the top of the page",
       "uniqueId": "cmd_scroll_top"
     },
@@ -46,6 +52,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 910,
       "key": "G",
+      "mode": "Normal",
       "shortName": "Scroll to the bottom of the page",
       "uniqueId": "cmd_scroll_bottom"
     },
@@ -53,6 +60,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 922,
       "key": "j",
+      "mode": "Normal",
       "shortName": "Scroll down",
       "uniqueId": "cmd_scroll_down"
     },
@@ -60,6 +68,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 934,
       "key": "k",
+      "mode": "Normal",
       "shortName": "Scroll up",
       "uniqueId": "cmd_scroll_up"
     },
@@ -67,6 +76,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 946,
       "key": "h",
+      "mode": "Normal",
       "shortName": "Scroll left",
       "uniqueId": "cmd_scroll_left"
     },
@@ -74,6 +84,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 958,
       "key": "l",
+      "mode": "Normal",
       "shortName": "Scroll right",
       "uniqueId": "cmd_scroll_right"
     },
@@ -81,6 +92,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 970,
       "key": "0",
+      "mode": "Normal",
       "shortName": "Scroll all the way to the left",
       "uniqueId": "cmd_scroll_leftmost"
     },
@@ -88,6 +100,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 982,
       "key": "$",
+      "mode": "Normal",
       "shortName": "Scroll all the way to the right",
       "uniqueId": "cmd_scroll_rightmost"
     },
@@ -95,6 +108,7 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 994,
       "key": "%",
+      "mode": "Normal",
       "shortName": "Scroll to percentage of current page",
       "uniqueId": "cmd_scroll_percentage"
     },
@@ -102,287 +116,1927 @@
       "file": "content_scripts/common/normal.js",
       "lineNum": 1006,
       "key": "cs",
+      "mode": "Normal",
       "shortName": "Change scroll target",
       "uniqueId": "cmd_scroll_change_target"
     }
   ],
   "notMigrated": [
     {
+      "file": "content_scripts/common/api.js",
+      "lineNum": 86,
+      "key": "<Space>",
+      "mode": "Normal",
+      "shortName": "pause/resume on youtube",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 31,
+      "key": "[[",
+      "mode": "Normal",
+      "shortName": "Click on the previous link on current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 32,
+      "key": "]]",
+      "mode": "Normal",
+      "shortName": "Click on the next link on current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 33,
+      "key": "T",
+      "mode": "Normal",
+      "shortName": "Choose a tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 36,
+      "key": ";G",
+      "mode": "Normal",
+      "shortName": "Group this tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 39,
+      "key": "?",
+      "mode": "Normal",
+      "shortName": "Show usage",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 42,
+      "key": "Q",
+      "mode": "Normal",
+      "shortName": "Open omnibar for word translation",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 52,
+      "key": "<Ctrl-i>",
+      "mode": "Normal",
+      "shortName": "Open vim editor for current input",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 52,
+      "key": "<Ctrl-i>",
+      "mode": "Insert",
+      "shortName": "Open vim editor for current input",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 57,
+      "key": "<Ctrl-Alt-i>",
+      "mode": "Normal",
+      "shortName": "Open neovim for current input",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 57,
+      "key": "<Ctrl-Alt-i>",
+      "mode": "Insert",
+      "shortName": "Open neovim for current input",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 60,
+      "key": ";s",
+      "mode": "Normal",
+      "shortName": "Toggle PDF viewer from SurfingKeys",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 99,
+      "key": ";ql",
+      "mode": "Normal",
+      "shortName": "Show last action",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 105,
+      "key": "gi",
+      "mode": "Normal",
+      "shortName": "Go to the first edit box",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 108,
+      "key": "i",
+      "mode": "Normal",
+      "shortName": "Go to edit box",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 111,
+      "key": "I",
+      "mode": "Normal",
+      "shortName": "Go to edit box with vim editor",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 116,
+      "key": "L",
+      "mode": "Normal",
+      "shortName": "Enter regional Hints mode",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 120,
+      "key": "zv",
+      "mode": "Normal",
+      "shortName": "Enter visual mode, and select whole element",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 123,
+      "key": "yv",
+      "mode": "Normal",
+      "shortName": "Yank text of an element",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 128,
+      "key": "ymv",
+      "mode": "Normal",
+      "shortName": "Yank text of multiple elements",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 136,
+      "key": "V",
+      "mode": "Normal",
+      "shortName": "Restore visual mode",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 139,
+      "key": "*",
+      "mode": "Normal",
+      "shortName": "Find selected text in current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 144,
+      "key": "<Ctrl-u>",
+      "mode": "Normal",
+      "shortName": "Backward 20 lines",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 144,
+      "key": "<Ctrl-u>",
+      "mode": "Visual",
+      "shortName": "Backward 20 lines",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 147,
+      "key": "<Ctrl-d>",
+      "mode": "Normal",
+      "shortName": "Forward 20 lines",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 147,
+      "key": "<Ctrl-d>",
+      "mode": "Visual",
+      "shortName": "Forward 20 lines",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 151,
+      "key": "m",
+      "mode": "Normal",
+      "shortName": "Add current URL to vim-like marks",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 157,
+      "key": "w",
+      "mode": "Normal",
+      "shortName": "Switch frames",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 179,
+      "key": "yg",
+      "mode": "Normal",
+      "shortName": "Capture current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 189,
+      "key": "gu",
+      "mode": "Normal",
+      "shortName": "Go up one path in the URL",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 208,
+      "key": ";m",
+      "mode": "Normal",
+      "shortName": "mouse out last element",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 212,
+      "key": ";pp",
+      "mode": "Normal",
+      "shortName": "Paste html on current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 228,
+      "key": ";t",
+      "mode": "Normal",
+      "shortName": "Translate selected text with google",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 235,
+      "key": "t",
+      "mode": "Normal",
+      "shortName": "Translate selected text with google",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 235,
+      "key": "t",
+      "mode": "Visual",
+      "shortName": "Translate selected text with google",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 237,
+      "key": "O",
+      "mode": "Normal",
+      "shortName": "Open detected links from text",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 243,
+      "key": ".",
+      "mode": "Normal",
+      "shortName": "Repeat last action",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 264,
+      "key": "f",
+      "mode": "Normal",
+      "shortName": "Open a link, press SHIFT to flip overlapped hints, hold SPACE to hide hints",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 268,
+      "key": "v",
+      "mode": "Normal",
+      "shortName": "Toggle visual mode",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 272,
+      "key": "n",
+      "mode": "Normal",
+      "shortName": "Next found text",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 276,
+      "key": "N",
+      "mode": "Normal",
+      "shortName": "Previous found text",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 280,
+      "key": ";fs",
+      "mode": "Normal",
+      "shortName": "Display hints to focus scrollable elements",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 284,
+      "key": "q",
+      "mode": "Normal",
+      "shortName": "Translate word under cursor",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 284,
+      "key": "q",
+      "mode": "Visual",
+      "shortName": "Translate word under cursor",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 313,
+      "key": "cq",
+      "mode": "Normal",
+      "shortName": "Query word with Hints",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 331,
+      "key": "zr",
+      "mode": "Normal",
+      "shortName": "zoom reset",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 336,
+      "key": "zi",
+      "mode": "Normal",
+      "shortName": "zoom in",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 341,
+      "key": "zo",
+      "mode": "Normal",
+      "shortName": "zoom out",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 348,
+      "key": "ZZ",
+      "mode": "Normal",
+      "shortName": "Save session and quit",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 354,
+      "key": "ZR",
+      "mode": "Normal",
+      "shortName": "Restore last session",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 360,
+      "key": "af",
+      "mode": "Normal",
+      "shortName": "Open a link in active new tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 363,
+      "key": "gf",
+      "mode": "Normal",
+      "shortName": "Open a link in non-active new tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 366,
+      "key": "cf",
+      "mode": "Normal",
+      "shortName": "Open multiple links in a new tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 370,
+      "key": "<Ctrl-h>",
+      "mode": "Normal",
+      "shortName": "Mouse over elements.",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 380,
+      "key": "<Ctrl-j>",
+      "mode": "Normal",
+      "shortName": "Mouse out elements.",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 383,
+      "key": "ya",
+      "mode": "Normal",
+      "shortName": "Copy a link URL to the clipboard",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 388,
+      "key": "yma",
+      "mode": "Normal",
+      "shortName": "Copy multiple link URLs to the clipboard",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 405,
+      "key": "yc",
+      "mode": "Normal",
+      "shortName": "Copy a column of a table",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 413,
+      "key": "ymc",
+      "mode": "Normal",
+      "shortName": "Copy multiple columns of a table",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 429,
+      "key": "yq",
+      "mode": "Normal",
+      "shortName": "Copy pre text",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 438,
+      "key": "q",
+      "mode": "Normal",
+      "shortName": "Click on an Image or a button",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 441,
+      "key": "<Alt-p>",
+      "mode": "Normal",
+      "shortName": "pin/unpin current tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 444,
+      "key": "<Alt-m>",
+      "mode": "Normal",
+      "shortName": "mute/unmute current tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 447,
+      "key": "B",
+      "mode": "Normal",
+      "shortName": "Go one tab history back",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 450,
+      "key": "F",
+      "mode": "Normal",
+      "shortName": "Go one tab history forward",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 453,
+      "key": "<Ctrl-6>",
+      "mode": "Normal",
+      "shortName": "Go to last used tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 456,
+      "key": "gT",
+      "mode": "Normal",
+      "shortName": "Go to first activated tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 459,
+      "key": "gt",
+      "mode": "Normal",
+      "shortName": "Go to last activated tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 462,
+      "key": "gp",
+      "mode": "Normal",
+      "shortName": "Go to the playing tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 473,
+      "key": "S",
+      "mode": "Normal",
+      "shortName": "Go back in history",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 476,
+      "key": "D",
+      "mode": "Normal",
+      "shortName": "Go forward in history",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 479,
+      "key": "r",
+      "mode": "Normal",
+      "shortName": "Reload the page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 482,
+      "key": "oi",
+      "mode": "Normal",
+      "shortName": "Open incognito window",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 488,
+      "key": "H",
+      "mode": "Normal",
+      "shortName": "Open opened URL in current tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 491,
+      "key": "om",
+      "mode": "Normal",
+      "shortName": "Open URL from vim-like marks",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 494,
+      "key": ":",
+      "mode": "Normal",
+      "shortName": "Open commands",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 497,
+      "key": "A",
+      "mode": "Normal",
+      "shortName": "Open llm chat",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 500,
+      "key": "A",
+      "mode": "Normal",
+      "shortName": "Open llm chat",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 500,
+      "key": "A",
+      "mode": "Visual",
+      "shortName": "Open llm chat",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 506,
+      "key": "yi",
+      "mode": "Normal",
+      "shortName": "Yank text of an input",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 511,
+      "key": "x",
+      "mode": "Normal",
+      "shortName": "Close current tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 514,
+      "key": ";w",
+      "mode": "Normal",
+      "shortName": "Focus top window",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 517,
+      "key": "cc",
+      "mode": "Normal",
+      "shortName": "Open selected link or link from clipboard",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 526,
+      "key": ";cq",
+      "mode": "Normal",
+      "shortName": "Clear all URLs in queue to be opened",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 529,
+      "key": "ys",
+      "mode": "Normal",
+      "shortName": "Copy current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 533,
+      "key": "yj",
+      "mode": "Normal",
+      "shortName": "Copy current settings",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 540,
+      "key": ";pj",
+      "mode": "Normal",
+      "shortName": "Restore settings data from clipboard",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 547,
+      "key": "yt",
+      "mode": "Normal",
+      "shortName": "Duplicate current tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 550,
+      "key": "yT",
+      "mode": "Normal",
+      "shortName": "Duplicate current tab in background",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 553,
+      "key": "yy",
+      "mode": "Normal",
+      "shortName": "Copy current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 561,
+      "key": "yY",
+      "mode": "Normal",
+      "shortName": "Copy all tabs",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 566,
+      "key": "yh",
+      "mode": "Normal",
+      "shortName": "Copy current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 570,
+      "key": "yl",
+      "mode": "Normal",
+      "shortName": "Copy current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 573,
+      "key": "yQ",
+      "mode": "Normal",
+      "shortName": "Copy all query history of OmniQuery.",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 613,
+      "key": "yf",
+      "mode": "Normal",
+      "shortName": "Copy form data in JSON on current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 620,
+      "key": ";pf",
+      "mode": "Normal",
+      "shortName": "Fill form with data from yf",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 656,
+      "key": "yp",
+      "mode": "Normal",
+      "shortName": "Copy form data for POST on current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 666,
+      "key": "g?",
+      "mode": "Normal",
+      "shortName": "Reload current page without query string(all parts after question mark)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 669,
+      "key": "g#",
+      "mode": "Normal",
+      "shortName": "Reload current page without hash fragment",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 672,
+      "key": "gU",
+      "mode": "Normal",
+      "shortName": "Go to root of current URL hierarchy",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 675,
+      "key": "gxt",
+      "mode": "Normal",
+      "shortName": "Close tab on left",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 678,
+      "key": "gxT",
+      "mode": "Normal",
+      "shortName": "Close tab on right",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 681,
+      "key": "gx0",
+      "mode": "Normal",
+      "shortName": "Close all tabs on left",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 684,
+      "key": "gx$",
+      "mode": "Normal",
+      "shortName": "Close all tabs on right",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 687,
+      "key": "gxx",
+      "mode": "Normal",
+      "shortName": "Close all tabs except current one",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 690,
+      "key": "gxp",
+      "mode": "Normal",
+      "shortName": "Close playing tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 693,
+      "key": ";e",
+      "mode": "Normal",
+      "shortName": "Edit Settings",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 696,
+      "key": ";u",
+      "mode": "Normal",
+      "shortName": "Edit current URL with vim editor, and open in new tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 701,
+      "key": ";U",
+      "mode": "Normal",
+      "shortName": "Edit current URL with vim editor, and reload",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 749,
+      "key": "on",
+      "mode": "Normal",
+      "shortName": "Open newtab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 753,
+      "key": "cp",
+      "mode": "Normal",
+      "shortName": "Toggle proxy for current site",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 762,
+      "key": ";cp",
+      "mode": "Normal",
+      "shortName": "Copy proxy info",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 769,
+      "key": ";ap",
+      "mode": "Normal",
+      "shortName": "Apply proxy info from clipboard",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 786,
+      "key": "gr",
+      "mode": "Normal",
+      "shortName": "Read selected text or text from clipboard",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 791,
+      "key": "gr",
+      "mode": "Normal",
+      "shortName": "Read selected text",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 791,
+      "key": "gr",
+      "mode": "Visual",
+      "shortName": "Read selected text",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 795,
+      "key": "on",
+      "mode": "Normal",
+      "shortName": "Open newtab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 798,
+      "key": "ga",
+      "mode": "Normal",
+      "shortName": "Open Chrome About",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 801,
+      "key": "gb",
+      "mode": "Normal",
+      "shortName": "Open Chrome Bookmarks",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 804,
+      "key": "gc",
+      "mode": "Normal",
+      "shortName": "Open Chrome Cache",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 807,
+      "key": "gd",
+      "mode": "Normal",
+      "shortName": "Open Chrome Downloads",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 810,
+      "key": "gh",
+      "mode": "Normal",
+      "shortName": "Open Chrome History",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 813,
+      "key": "gk",
+      "mode": "Normal",
+      "shortName": "Open Chrome Cookies",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 816,
+      "key": "ge",
+      "mode": "Normal",
+      "shortName": "Open Chrome Extensions",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 819,
+      "key": "gn",
+      "mode": "Normal",
+      "shortName": "Open Chrome net-internals",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 822,
+      "key": ";i",
+      "mode": "Normal",
+      "shortName": "Open Chrome Inspect",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 825,
+      "key": ";v",
+      "mode": "Normal",
+      "shortName": "Open neovim",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 830,
+      "key": "X",
+      "mode": "Normal",
+      "shortName": "Restore closed tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 835,
+      "key": "t",
+      "mode": "Normal",
+      "shortName": "Open a URL",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 838,
+      "key": "go",
+      "mode": "Normal",
+      "shortName": "Open a URL in current tab",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 841,
+      "key": "ox",
+      "mode": "Normal",
+      "shortName": "Open recently closed URL",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 844,
+      "key": "b",
+      "mode": "Normal",
+      "shortName": "Open a bookmark",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 847,
+      "key": "ab",
+      "mode": "Normal",
+      "shortName": "Bookmark current page to selected folder",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 854,
+      "key": "oh",
+      "mode": "Normal",
+      "shortName": "Open URL from history",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 857,
+      "key": "W",
+      "mode": "Normal",
+      "shortName": "Move current tab to another window",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 860,
+      "key": ";gt",
+      "mode": "Normal",
+      "shortName": "Gather filtered tabs into current window",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 865,
+      "key": ";gw",
+      "mode": "Normal",
+      "shortName": "Gather all tabs into current window",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 868,
+      "key": "<<",
+      "mode": "Normal",
+      "shortName": "Move current tab to left",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 873,
+      "key": ">>",
+      "mode": "Normal",
+      "shortName": "Move current tab to right",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 878,
+      "key": "yd",
+      "mode": "Normal",
+      "shortName": "Copy current downloading URL",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 888,
+      "key": "gs",
+      "mode": "Normal",
+      "shortName": "View page source",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 891,
+      "key": ";pm",
+      "mode": "Normal",
+      "shortName": "Preview markdown",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 894,
+      "key": ";di",
+      "mode": "Normal",
+      "shortName": "Download image",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 901,
+      "key": ";j",
+      "mode": "Normal",
+      "shortName": "Close Downloads Shelf",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 904,
+      "key": ";dh",
+      "mode": "Normal",
+      "shortName": "Delete history older than 30 days",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 909,
+      "key": ";yh",
+      "mode": "Normal",
+      "shortName": "Yank histories",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 914,
+      "key": ";ph",
+      "mode": "Normal",
+      "shortName": "Put histories from clipboard",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/default.js",
+      "lineNum": 919,
+      "key": ";db",
+      "mode": "Normal",
+      "shortName": "Remove bookmark for current page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/hints.js",
+      "lineNum": 77,
+      "key": "<Esc>",
+      "mode": "Omnibar",
+      "shortName": "Exit regional hints mode",
+      "uniqueId": null
+    },
+    {
       "file": "content_scripts/common/hints.js",
       "lineNum": 85,
       "key": "ct",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "copy text from target element",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/hints.js",
       "lineNum": 93,
       "key": "ch",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "copy html from target element",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/hints.js",
       "lineNum": 101,
       "key": "d",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "delete target element",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/hints.js",
       "lineNum": 110,
       "key": "l",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "learn more about target element",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/hints.js",
+      "lineNum": 335,
+      "key": "q",
+      "mode": "Normal",
+      "shortName": "click on images",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/hints.js",
+      "lineNum": 576,
+      "key": "zz",
+      "mode": "Normal",
+      "shortName": "Hide replies",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/hints.js",
+      "lineNum": 975,
+      "key": "yA",
+      "mode": "Normal",
+      "shortName": "Copy a link URL to the clipboard",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/insert.js",
+      "lineNum": 60,
+      "key": "<Ctrl-e>",
+      "mode": "Omnibar",
+      "shortName": "Move the cursor to the end of the line",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/insert.js",
+      "lineNum": 80,
+      "key": "<Ctrl-u>",
+      "mode": "Omnibar",
+      "shortName": "Delete all entered characters before the cursor",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/insert.js",
+      "lineNum": 95,
+      "key": "<Alt-b>",
+      "mode": "Omnibar",
+      "shortName": "Move the cursor Backward 1 word",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/insert.js",
+      "lineNum": 109,
+      "key": "<Alt-f>",
+      "mode": "Omnibar",
+      "shortName": "Move the cursor Forward 1 word",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/insert.js",
+      "lineNum": 123,
+      "key": "<Alt-w>",
+      "mode": "Omnibar",
+      "shortName": "Delete a word backwards",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/insert.js",
+      "lineNum": 143,
+      "key": "<Alt-d>",
+      "mode": "Omnibar",
+      "shortName": "Delete a word forwards",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/insert.js",
+      "lineNum": 163,
+      "key": "<Esc>",
+      "mode": "Omnibar",
+      "shortName": "Exit insert mode",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/insert.js",
       "lineNum": 193,
       "key": ":",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Input emoji",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 58,
+      "key": "<Alt-i>",
+      "mode": "Omnibar",
+      "shortName": "Enter normal mode",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/normal.js",
       "lineNum": 63,
       "key": "p",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Enter ephemeral normal mode to temporarily enable SurfingKeys",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 324,
+      "key": "<Alt-i>",
+      "mode": "Omnibar",
+      "shortName": "Enter PassThrough mode to temporarily suppress SurfingKeys",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/normal.js",
       "lineNum": 331,
       "key": "p",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Enter ephemeral PassThrough mode to temporarily suppress SurfingKeys",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/normal.js",
       "lineNum": 800,
       "key": "yG",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Capture current full page",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/normal.js",
       "lineNum": 807,
       "key": "yS",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Capture scrolling element",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/normal.js",
       "lineNum": 1021,
       "key": "/",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Find in current page",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/normal.js",
       "lineNum": 1030,
       "key": "E",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Go one tab left",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/normal.js",
       "lineNum": 1038,
       "key": "R",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Go one tab right",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 123,
       "key": "l",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "forward character",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 128,
       "key": "h",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "backward character",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 133,
       "key": "j",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "forward line",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 138,
       "key": "k",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "backward line",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 143,
       "key": "w",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "forward word",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 148,
       "key": "e",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "forward word",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 153,
       "key": "b",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "backward word",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 158,
       "key": ")",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "forward sentence",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 163,
       "key": "(",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "backward sentence",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 168,
       "key": "}",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "forward paragraphboundary",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 173,
       "key": "{",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "backward paragraphboundary",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 178,
       "key": "0",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "backward lineboundary",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 183,
       "key": "$",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "forward lineboundary",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 188,
       "key": "G",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "forward documentboundary",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 206,
       "key": "gg",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "backward documentboundary",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 229,
       "key": "o",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Go to Other end of highlighted text",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 284,
       "key": "*",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Search word under the cursor",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 296,
+      "key": "<Enter>",
+      "mode": "Omnibar",
+      "shortName": "Click on node under cursor.",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 303,
+      "key": "<Shift-Enter>",
+      "mode": "Omnibar",
+      "shortName": "Click on node under cursor.",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 310,
       "key": "zt",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "make cursor at top of window.",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 320,
       "key": "zz",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "make cursor at center of window.",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 330,
       "key": "zb",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "make cursor at bottom of window.",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 340,
       "key": "f",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Forward to next char.",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 349,
       "key": "F",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Backward to next char.",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 358,
       "key": ";",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Repeat latest f, F",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 367,
       "key": ",",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Repeat latest f, F in opposite direction",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 377,
       "key": "p",
-      "shortName": "(unnamed)",
+      "mode": "Normal",
+      "shortName": "Expand selection to parent element",
       "uniqueId": null
     },
     {
       "file": "content_scripts/common/visual.js",
       "lineNum": 400,
       "key": "V",
+      "mode": "Normal",
+      "shortName": "Select a word(w) or line(l) or sentence(s) or paragraph(p)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/front.js",
+      "lineNum": 264,
+      "key": ";U",
+      "mode": "Normal",
+      "shortName": "Edit current URL with vim editor, and reload",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/front.js",
+      "lineNum": 338,
+      "key": "ou",
+      "mode": "Normal",
+      "shortName": "Open AWS services",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/markdown.js",
+      "lineNum": 22,
+      "key": ";h",
+      "mode": "Normal",
+      "shortName": "Toggle this section",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/markdown.js",
+      "lineNum": 71,
+      "key": "sm",
+      "mode": "Normal",
+      "shortName": "Edit markdown source",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/markdown.js",
+      "lineNum": 75,
+      "key": ";s",
+      "mode": "Normal",
+      "shortName": "Switch markdown parser",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/markdown.js",
+      "lineNum": 80,
+      "key": "cc",
+      "mode": "Normal",
+      "shortName": "Copy generated html code",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/markdown.js",
+      "lineNum": 111,
+      "key": "of",
+      "mode": "Normal",
+      "shortName": "Open local file.",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 9,
+      "key": "setProxy",
+      "mode": "Command",
+      "shortName": "setProxy <proxy_host>:<proxy_port> [proxy_type|PROXY]",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 18,
+      "key": "setProxyMode",
+      "mode": "Command",
+      "shortName": "setProxyMode <always|direct|byhost|system|clear>",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 32,
+      "key": "listVoices",
+      "mode": "Command",
+      "shortName": "list tts voices",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 42,
+      "key": "testVoices",
+      "mode": "Command",
+      "shortName": "testVoices <locale> <text>",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 75,
+      "key": "stopReading",
+      "mode": "Command",
+      "shortName": "Stop reading.",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 78,
+      "key": "feedkeys",
+      "mode": "Command",
+      "shortName": "feed mapkeys",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 81,
+      "key": "quit",
+      "mode": "Command",
+      "shortName": "quit chrome",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 84,
+      "key": "clearHistory",
+      "mode": "Command",
+      "shortName": "clearHistory <find|cmd|...>",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 89,
+      "key": "listSession",
+      "mode": "Command",
+      "shortName": "list session",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 98,
+      "key": "createSession",
+      "mode": "Command",
+      "shortName": "createSession [name]",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 103,
+      "key": "deleteSession",
+      "mode": "Command",
+      "shortName": "deleteSession [name]",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 109,
+      "key": "openSession",
+      "mode": "Command",
+      "shortName": "openSession [name]",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 114,
+      "key": "listQueueURLs",
+      "mode": "Command",
+      "shortName": "list URLs in queue waiting for open",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 121,
+      "key": "clearQueueURLs",
+      "mode": "Command",
+      "shortName": "clear URLs in queue waiting for open",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 124,
+      "key": "createTabGroup",
+      "mode": "Command",
+      "shortName": "group all tabs by domain: createTabGroup [title] [grey|blue|red|yellow|green|pink|purple|cyan|orange]",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/command.js",
+      "lineNum": 127,
+      "key": "timeStamp",
+      "mode": "Command",
+      "shortName": "print time stamp in human readable format",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 58,
+      "key": "<Ctrl-d>",
+      "mode": "Omnibar",
+      "shortName": "Delete focused item from bookmark or history",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 89,
+      "key": "<Ctrl-i>",
+      "mode": "Omnibar",
+      "shortName": "Edit selected URL with vim editor, then open",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 122,
+      "key": "<Ctrl-j>",
+      "mode": "Omnibar",
       "shortName": "(unnamed)",
       "uniqueId": null
     },
     {
-      "file": "content_scripts/common/visual.js",
-      "lineNum": 602,
-      "key": "y",
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 138,
+      "key": "<Ctrl-.>",
+      "mode": "Omnibar",
+      "shortName": "Show results of next page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 153,
+      "key": "<Ctrl-,>",
+      "mode": "Omnibar",
+      "shortName": "Show results of previous page",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 168,
+      "key": "<Ctrl-c>",
+      "mode": "Omnibar",
+      "shortName": "Copy selected item url or all listed item urls",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 192,
+      "key": "<Ctrl-D>",
+      "mode": "Omnibar",
+      "shortName": "Delete all listed items from bookmark or history",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 216,
+      "key": "<Ctrl-r>",
+      "mode": "Omnibar",
+      "shortName": "Re-sort history by visitCount or lastVisitTime",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 226,
+      "key": "<Esc>",
+      "mode": "Omnibar",
+      "shortName": "Close Omnibar",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 234,
+      "key": "<Ctrl-m>",
+      "mode": "Omnibar",
+      "shortName": "Create vim-like mark for selected item",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 375,
+      "key": "<Tab>",
+      "mode": "Omnibar",
+      "shortName": "Forward cycle through the candidates.",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 382,
+      "key": "<Shift-Tab>",
+      "mode": "Omnibar",
+      "shortName": "Backward cycle through the candidates.",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 389,
+      "key": "<Ctrl-n>",
+      "mode": "Omnibar",
+      "shortName": "Forward cycle through the input history.",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/ui/omnibar.js",
+      "lineNum": 400,
+      "key": "<Ctrl-p>",
+      "mode": "Omnibar",
+      "shortName": "Backward cycle through the input history.",
+      "uniqueId": null
+    },
+    {
+      "file": "pages/neovim.js",
+      "lineNum": 40,
+      "key": "<Alt-i>",
+      "mode": "Normal",
       "shortName": "(unnamed)",
       "uniqueId": null
     }
   ],
   "summary": {
     "totalMigrated": 15,
-    "totalNotMigrated": 39
+    "totalNotMigrated": 239
   }
 }
