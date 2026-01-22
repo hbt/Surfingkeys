@@ -27,7 +27,8 @@
     "lint:js": "eslint --config config/eslint.config.js src tests debug scripts --ext .js,.ts",
     "lint:css": "stylelint --config config/stylelint.config.js 'src/**/*.css'",
     "validate:mappings": "node scripts/validate-mappings.js",
-    "validate:mappings:prefixes": "node scripts/validate-mappings.js --prefixes"
+    "validate:mappings:prefixes": "node scripts/validate-mappings.js --prefixes",
+    "report:migration": "node scripts/find-migrated-commands.js"
   },
   "repository": {
     "type": "git",

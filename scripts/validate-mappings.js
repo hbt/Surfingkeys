@@ -151,7 +151,8 @@ function validate(configPath, cmdsPath) {
     const migratedCount = countMigratedCommands();
     const totalMappings = defaultMappings.size;
     const migrationPercent = totalMappings > 0 ? ((migratedCount / totalMappings) * 100).toFixed(1) : 0;
-    console.log(`Migrated commands: ${migratedCount}/${totalMappings} (${migrationPercent}%)\n`);
+    console.log(`Migrated commands: ${migratedCount}/${totalMappings} (${migrationPercent}%)`);
+    console.log(`For detailed locations: npm run report:migration\n`);
 
     if (userMappings.size === 0) {
         console.log('No user mappings found. Your config is clean!\n');
