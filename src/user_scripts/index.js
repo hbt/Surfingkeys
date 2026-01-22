@@ -37,6 +37,11 @@ function mapkey(keys, annotation, jscode, options) {
         dispatchSKEvent('api', ['mapkey', keys, annotation, opt]);
     }
 }
+function mapcmdkey(keys, unique_id, options) {
+    if (!options || _isDomainApplicable(options.domain)) {
+        dispatchSKEvent('api', ['mapcmdkey', keys, unique_id, options]);
+    }
+}
 function imapkey(keys, annotation, jscode, options) {
     if (!options || _isDomainApplicable(options.domain)) {
         userDefinedFunctions[`insert:${keys}`] = jscode;
@@ -167,6 +172,7 @@ const api = {
     vmap,
     vmapkey,
     map,
+    mapcmdkey,
     mapkey,
     unmap: (keystroke, domain) => {
         dispatchSKEvent('api', ['unmap', keystroke, domain]);

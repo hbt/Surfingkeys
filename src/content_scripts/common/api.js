@@ -489,6 +489,9 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         "normal:passThrough": normal.passThrough,
         "normal:scroll": normal.scroll,
         "visual:style": visual.style,
+        mapcmdkey: (keys, unique_id, options) => {
+            mapcmdkey(keys, unique_id, options);
+        },
         mapkey: (keys, annotation, options) => {
             if (options.codeHasParameter) {
                 mapkey(keys, annotation, (key) => {
