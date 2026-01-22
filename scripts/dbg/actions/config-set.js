@@ -4,6 +4,10 @@
  * Collects runtime checks before setting config file:
  * - advancedMode: Current advanced mode setting from chrome.storage.local
  * - userScriptsAvailable: Whether chrome.userScripts API is available (MV3 requirement)
+ * - snippets: Information about stored user scripts
+ *   - stored: Whether snippets key exists (0 or 1)
+ *   - length: Size of snippets string
+ *   - hash: SHA256 hash of snippets content (if stored)
  *
  * Usage: bin/dbg config-set
  *
@@ -108,17 +112,39 @@ async function evaluateCode(ws, expression) {
 }
 
 /**
- * Collect preflight checks: advancedMode and userScripts availability
+ * Collect preflight checks: advancedMode, userScripts availability, and snippets info
  */
 async function getPreflightChecks(ws) {
     log(`Collecting preflight checks...`);
 
     const code = `
-        new Promise((resolve) => {
-            chrome.storage.local.get('showAdvanced', (data) => {
+        new Promise(async (resolve) => {
+            chrome.storage.local.get(['showAdvanced', 'snippets'], async (data) => {
+                const snippets = data.snippets;
+                const snippetsInfo = {
+                    stored: snippets ? 1 : 0,
+                    length: snippets ? snippets.length : 0,
+                    hash: null
+                };
+
+                // Calculate SHA256 hash if snippets exist
+                if (snippets && snippets.length > 0) {
+                    try {
+                        const encoder = new TextEncoder();
+                        const buffer = encoder.encode(snippets);
+                        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+                        const hashArray = Array.from(new Uint8Array(hashBuffer));
+                        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                        snippetsInfo.hash = hashHex;
+                    } catch (e) {
+                        snippetsInfo.hash = 'error: ' + e.message;
+                    }
+                }
+
                 resolve({
                     advancedMode: data.showAdvanced,
-                    userScriptsAvailable: !!chrome.userScripts
+                    userScriptsAvailable: !!chrome.userScripts,
+                    snippets: snippetsInfo
                 });
             });
         })
