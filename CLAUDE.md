@@ -91,6 +91,10 @@ Automatically builds and reloads extension.
 ### Run single test in headless mode (fully automated)
 npm run test:cdp:headless tests/cdp/cdp-keyboard.test.ts
 
+- Pass `--reporter=default` (or set `CDP_HEADLESS_REPORTER=default`) if you want Jest's full verbose reporter instead of the streaming reporter.
+- `--reporter=both` runs streaming + default together for maximum logs.
+- Headless Chrome is launched with Developer Mode enabled plus `--enable-experimental-extension-apis --enable-features=UserScriptsAPI`, so userScripts-based configs work automatically.
+
 ### Run all tests in parallel headless mode (limit of 16 concurrent)
 npm run test:cdp:headless:all
 
@@ -112,7 +116,6 @@ npm run test:cdp:live tests/cdp/cdp-keyboard.test.ts
 - docs/c4 - C2 and C3 architecture
 - docs/chrome-api - Chrome extension and DevTools protocol API documentation
 - docs/cdp/proxy.md - CDP proxy examples and request formats
-
 
 
 

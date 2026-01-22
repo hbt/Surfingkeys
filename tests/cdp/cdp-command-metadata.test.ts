@@ -27,22 +27,20 @@ import {
     enableInputDomain
 } from './utils/browser-actions';
 import {
-    injectSettings
-} from './utils/config-injector';
-import {
-    startConfigServer,
-    stopConfigServer
-} from './utils/config-server';
+    runHeadlessConfigSet,
+    clearHeadlessConfig,
+    HeadlessConfigSetResult
+} from './utils/config-set-headless';
 import { CDP_PORT } from './cdp-config';
 
 describe('Command Metadata - Migration and API Testing', () => {
     let bgWs: WebSocket;
     let pageWs: WebSocket;
     let tabId: number;
-    let configServerUrl: string;
+    let configResult!: HeadlessConfigSetResult;
 
     const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
-    const CONFIG_SERVER_PORT = 9874;
+    const CONFIG_FIXTURE_PATH = 'tests/cdp/fixtures/cdp-command-metadata-config.js';
 
     beforeAll(async () => {
         // Check CDP is available
@@ -51,27 +49,22 @@ describe('Command Metadata - Migration and API Testing', () => {
             throw new Error(`Chrome DevTools Protocol not available on port ${CDP_PORT}`);
         }
 
-        // Start config server serving test configuration
-        configServerUrl = await startConfigServer(CONFIG_SERVER_PORT, 'cdp-command-metadata-config.js');
-        console.log(`✓ Config server started: ${configServerUrl}`);
-
         // Connect to background
         const bgInfo = await findExtensionBackground();
         bgWs = await connectToCDP(bgInfo.wsUrl);
 
-        // Inject config file path into extension storage
-        const injectionResult = await injectSettings(bgWs, {
-            smoothScroll: false,
-            scrollStepSize: 25
-        }, configServerUrl);
+        // Set config using headless config-set (validated approach)
+        configResult = await runHeadlessConfigSet({
+            bgWs,
+            configPath: CONFIG_FIXTURE_PATH,
+            waitAfterSetMs: 1200,
+            ensureAdvancedMode: true
+        });
 
-        if (!injectionResult.success) {
-            throw new Error(`Failed to inject config: ${injectionResult.error}`);
+        if (!configResult.success) {
+            throw new Error(`Headless config-set failed: ${configResult.error || 'post-validation mismatch'}`);
         }
-        console.log(`✓ Config injected: ${configServerUrl}`);
-
-        // Wait for extension to load and apply config
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        console.log(`✓ Config loaded via headless config-set`);
 
         // Create fixture tab
         tabId = await createTab(bgWs, FIXTURE_URL, true);
@@ -97,13 +90,12 @@ describe('Command Metadata - Migration and API Testing', () => {
             await closeCDP(pageWs);
         }
 
+        // Clear config before closing background
+        await clearHeadlessConfig(bgWs).catch(() => undefined);
+
         if (bgWs) {
             await closeCDP(bgWs);
         }
-
-        // Stop config server
-        await stopConfigServer();
-        console.log(`✓ Config server stopped`);
     });
 
     // ==================== STEP 1: Default Built-in Help Menu ====================
@@ -117,18 +109,22 @@ describe('Command Metadata - Migration and API Testing', () => {
         });
 
         test('help menu DOM element should exist and be visible after "?"', async () => {
+            // Give DOM time to render if previous test didn't complete
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const result = await executeInTarget(pageWs, `
                 (function() {
                     const usageDiv = document.querySelector('#sk_usage');
                     return {
                         found: !!usageDiv,
                         id: usageDiv?.id,
-                        display: window.getComputedStyle(usageDiv).display,
+                        display: usageDiv ? window.getComputedStyle(usageDiv).display : 'element-not-found',
                         isVisible: usageDiv ? window.getComputedStyle(usageDiv).display !== 'none' : false
                     };
                 })()
             `);
 
+            console.log(`[DEBUG] DOM check result:`, JSON.stringify(result));
             expect(result.found).toBe(true);
             expect(result.id).toBe('sk_usage');
             expect(result.isVisible).toBe(true);
@@ -166,6 +162,9 @@ describe('Command Metadata - Migration and API Testing', () => {
         });
 
         test('help menu DOM element should exist and be visible after F1', async () => {
+            // Give DOM time to render if previous test didn't complete
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const result = await executeInTarget(pageWs, `
                 (function() {
                     const usageDiv = document.querySelector('#sk_usage');
@@ -225,6 +224,9 @@ describe('Command Metadata - Migration and API Testing', () => {
         });
 
         test('help menu DOM element should exist and be visible after F2', async () => {
+            // Give DOM time to render if previous test didn't complete
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const result = await executeInTarget(pageWs, `
                 (function() {
                     const usageDiv = document.querySelector('#sk_usage');
