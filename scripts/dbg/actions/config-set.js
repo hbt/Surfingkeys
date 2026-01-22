@@ -261,10 +261,86 @@ async function getPreflightChecksFromStorage(ws) {
 }
 
 /**
+ * Set snippets and localPath in storage via CDP
+ */
+async function setConfigInStorage(ws, snippetsContent, localPathUrl) {
+    log(`Setting config in storage...`);
+
+    const code = `
+        new Promise((resolve, reject) => {
+            const toSet = {
+                snippets: \`${snippetsContent.replace(/`/g, '\\`')}\`,
+                localPath: '${localPathUrl.replace(/'/g, "\\'")}'
+            };
+
+            chrome.storage.local.set(toSet, () => {
+                if (chrome.runtime.lastError) {
+                    reject(chrome.runtime.lastError);
+                } else {
+                    resolve({ success: true });
+                }
+            });
+        })
+    `;
+
+    try {
+        const result = await evaluateCode(ws, code);
+        return result;
+    } catch (err) {
+        throw new Error(`Failed to set config: ${err.message}`);
+    }
+}
+
+/**
+ * Post-verification: read back from storage and verify
+ */
+async function verifyConfigSet(ws, expectedContent, expectedPath) {
+    log(`Verifying config was set correctly...`);
+
+    const code = `
+        new Promise(async (resolve) => {
+            chrome.storage.local.get(['snippets', 'localPath'], async (data) => {
+                const snippets = data.snippets || '';
+                const localPath = data.localPath || '';
+
+                // Calculate hash of stored snippets
+                let hash = null;
+                try {
+                    const encoder = new TextEncoder();
+                    const buffer = encoder.encode(snippets);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                    hash = hashHex;
+                } catch (e) {
+                    hash = 'error';
+                }
+
+                resolve({
+                    snippetsMatches: snippets === \`${expectedContent.replace(/`/g, '\\`')}\`,
+                    snippetsLength: snippets.length,
+                    snippetsHash: hash,
+                    localPathMatches: localPath === '${expectedPath.replace(/'/g, "\\'")}',
+                    localPathValue: localPath,
+                    stored: !!snippets && !!localPath
+                });
+            });
+        })
+    `;
+
+    try {
+        const result = await evaluateCode(ws, code);
+        return result;
+    } catch (err) {
+        throw new Error(`Verification failed: ${err.message}`);
+    }
+}
+
+/**
  * Main action
  */
 async function run(args) {
-    log(`Preflight Checks Started`);
+    log(`Config Set Action Started`);
 
     try {
         // Find service worker
@@ -328,11 +404,110 @@ async function run(args) {
                         localPath: localPathInfo
                     };
 
-                    resolve({
-                        success: true,
-                        preflight: preflightChecks,
-                        log: LOG_FILE
-                    });
+                    // === VALIDATION GATES ===
+                    log(`\n=== Validation gates (must pass before implementation) ===`);
+                    const validationGates = {
+                        advancedModeOn: storageChecks.advancedMode === true,
+                        localPathValid: localPathInfo.fileExists === true && localPathInfo.syntaxValid === true,
+                        issues: []
+                    };
+
+                    if (!validationGates.advancedModeOn) {
+                        validationGates.issues.push('Advanced mode is OFF (showAdvanced: false)');
+                    }
+                    if (!validationGates.localPathValid) {
+                        if (localPathInfo.fileExists !== true) {
+                            validationGates.issues.push(`File not found: ${localPathInfo.value}`);
+                        }
+                        if (localPathInfo.syntaxValid !== true) {
+                            validationGates.issues.push(`Invalid JavaScript syntax: ${localPathInfo.error}`);
+                        }
+                    }
+
+                    if (!validationGates.advancedModeOn || !validationGates.localPathValid) {
+                        log(`✗ Validation FAILED:`);
+                        validationGates.issues.forEach(issue => log(`  - ${issue}`));
+
+                        resolve({
+                            success: false,
+                            error: 'Validation gates failed - config not set',
+                            preflight: preflightChecks,
+                            validation_gates: validationGates,
+                            log: LOG_FILE
+                        });
+                        return;
+                    }
+
+                    log(`✓ All validation gates passed`);
+                    log(`  ✓ Advanced mode: ON`);
+                    log(`  ✓ LocalPath: valid`);
+                    log(`  ✓ File syntax: valid`);
+
+                    // === SET CONFIG ===
+                    log(`\n=== Setting config in storage ===`);
+
+                    // Reopen WebSocket for setting
+                    const wsSet = new WebSocket(swWsUrl);
+
+                    await new Promise(async (resolveSet) => {
+                        wsSet.on('open', async () => {
+                            try {
+                                await sendCommand(wsSet, 'Runtime.enable');
+
+                                // Read file content
+                                const filePath = decodeURIComponent(new URL(localPathToValidate).pathname);
+                                const fileContent = fs.readFileSync(filePath, 'utf-8');
+                                log(`✓ Read file content: ${fileContent.length} bytes`);
+
+                                // Set config via CDP
+                                await setConfigInStorage(wsSet, fileContent, localPathToValidate);
+                                log(`✓ Config set in storage`);
+
+                                // Post-verification
+                                log(`\n=== Post-verification ===`);
+                                const verification = await verifyConfigSet(wsSet, fileContent, localPathToValidate);
+                                log(`✓ Verification complete:`);
+                                log(`  - Snippets matches: ${verification.snippetsMatches}`);
+                                log(`  - LocalPath matches: ${verification.localPathMatches}`);
+                                log(`  - Snippets hash: ${verification.snippetsHash}`);
+
+                                wsSet.close();
+
+                                resolveSet({
+                                    success: verification.snippetsMatches && verification.localPathMatches,
+                                    preflight: preflightChecks,
+                                    validation_gates: validationGates,
+                                    implementation: {
+                                        fileSize: fileContent.length,
+                                        snippetsSet: true,
+                                        localPathSet: true
+                                    },
+                                    verification: verification,
+                                    log: LOG_FILE
+                                });
+
+                            } catch (error) {
+                                log(`✗ Error during set: ${error.message}`);
+                                wsSet.close();
+                                resolveSet({
+                                    success: false,
+                                    error: error.message,
+                                    preflight: preflightChecks,
+                                    log: LOG_FILE
+                                });
+                            }
+                        });
+
+                        wsSet.on('error', (error) => {
+                            log(`✗ WebSocket error during set: ${error.message}`);
+                            resolveSet({
+                                success: false,
+                                error: `WebSocket error: ${error.message}`,
+                                log: LOG_FILE
+                            });
+                        });
+                    }).then(result => resolve(result));
+
 
                 } catch (error) {
                     log(`✗ Error: ${error.message}`);
