@@ -8,6 +8,19 @@
  *   - stored: Whether snippets key exists (0 or 1)
  *   - length: Size of snippets string
  *   - hash: SHA256 hash of snippets content (if stored)
+ * - localPath: Information about external config source
+ *   - stored: Whether localPath key exists (0 or 1)
+ *   - value: The path/URL (or default symlink if not stored)
+ *   - realPath: Resolved real path (if symlink)
+ *   - isSymlink: Whether the path is a symbolic link
+ *   - fileExists: Validates file existence
+ *   - syntaxValid: Validates JavaScript syntax
+ *   - default: Whether using default symlink (.surfingkeysrc.js)
+ *   - symlink: The symlink path used (if default)
+ *
+ * Default Behavior:
+ * - If no localPath stored: uses .surfingkeysrc.js symlink as default
+ * - Automatically resolves symlinks to real paths
  *
  * Usage: bin/dbg config-set
  *
@@ -17,11 +30,17 @@
 
 const WebSocket = require('ws');
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
 
 let messageId = 1;
 const CDP_PORT = process.env.CDP_PORT || 9222;
 const CDP_ENDPOINT = `http://localhost:${CDP_PORT}`;
+
+// Default config symlink location (repo root)
+const DEFAULT_CONFIG_SYMLINK = path.join(__dirname, '../../../.surfingkeysrc.js');
 
 // Create log file
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -112,14 +131,100 @@ async function evaluateCode(ws, expression) {
 }
 
 /**
- * Collect preflight checks: advancedMode, userScripts availability, and snippets info
+ * Validate JavaScript syntax using Node.js
  */
-async function getPreflightChecks(ws) {
-    log(`Collecting preflight checks...`);
+function validateJavaScriptSyntax(code) {
+    try {
+        new vm.Script(code);
+        return { valid: true, error: null };
+    } catch (err) {
+        return { valid: false, error: err.message };
+    }
+}
+
+/**
+ * Validate localPath file: check existence and syntax
+ */
+async function validateLocalPath(localPath) {
+    const info = {
+        stored: localPath ? 1 : 0,
+        value: localPath || null,
+        realPath: null,
+        isSymlink: false,
+        fileExists: null,
+        syntaxValid: null,
+        length: null,
+        error: null
+    };
+
+    if (!localPath) {
+        return info;
+    }
+
+    // Handle file:// URLs
+    if (localPath.startsWith('file://')) {
+        try {
+            // Convert file:// URL to path
+            const filePath = decodeURIComponent(new URL(localPath).pathname);
+            log(`Validating file: ${filePath}`);
+
+            // Check if file exists
+            if (!fs.existsSync(filePath)) {
+                info.fileExists = false;
+                info.error = 'File not found';
+                return info;
+            }
+
+            info.fileExists = true;
+
+            // Check if it's a symlink and resolve real path
+            try {
+                const stats = fs.lstatSync(filePath);
+                if (stats.isSymbolicLink()) {
+                    info.isSymlink = true;
+                    info.realPath = fs.realpathSync(filePath);
+                    log(`Symlink detected: ${filePath} -> ${info.realPath}`);
+                } else {
+                    info.realPath = filePath;
+                }
+            } catch (err) {
+                info.realPath = filePath;
+            }
+
+            // Read file
+            const content = fs.readFileSync(filePath, 'utf-8');
+            info.length = content.length;
+
+            // Validate syntax
+            const syntaxCheck = validateJavaScriptSyntax(content);
+            info.syntaxValid = syntaxCheck.valid;
+            if (!syntaxCheck.valid) {
+                info.error = syntaxCheck.error;
+            }
+
+            return info;
+        } catch (err) {
+            info.fileExists = false;
+            info.error = err.message;
+            return info;
+        }
+    }
+
+    // For HTTP/HTTPS URLs, skip validation (would require network fetch)
+    info.error = 'HTTP/HTTPS validation not performed (skipped for preflight)';
+
+    return info;
+}
+
+/**
+ * Collect preflight checks from storage: advancedMode, userScripts, snippets
+ */
+async function getPreflightChecksFromStorage(ws) {
+    log(`Collecting preflight checks from storage...`);
 
     const code = `
         new Promise(async (resolve) => {
-            chrome.storage.local.get(['showAdvanced', 'snippets'], async (data) => {
+            chrome.storage.local.get(['showAdvanced', 'snippets', 'localPath'], async (data) => {
                 const snippets = data.snippets;
                 const snippetsInfo = {
                     stored: snippets ? 1 : 0,
@@ -144,7 +249,8 @@ async function getPreflightChecks(ws) {
                 resolve({
                     advancedMode: data.showAdvanced,
                     userScriptsAvailable: !!chrome.userScripts,
-                    snippets: snippetsInfo
+                    snippets: snippetsInfo,
+                    localPath: data.localPath || null
                 });
             });
         })
@@ -185,11 +291,42 @@ async function run(args) {
                     await sendCommand(ws, 'Runtime.enable');
                     log('✓ Runtime domain enabled');
 
-                    // Collect preflight checks
-                    const preflightChecks = await getPreflightChecks(ws);
-                    log(`✓ Preflight checks collected: ${JSON.stringify(preflightChecks)}`);
+                    // Collect preflight checks from storage
+                    const storageChecks = await getPreflightChecksFromStorage(ws);
+                    log(`✓ Storage checks collected`);
 
                     ws.close();
+
+                    // Determine localPath: use stored value or default symlink
+                    let localPathToValidate = storageChecks.localPath;
+                    let usingDefault = false;
+                    let defaultSymlink = null;
+
+                    if (!localPathToValidate) {
+                        // Check if default symlink exists
+                        if (fs.existsSync(DEFAULT_CONFIG_SYMLINK)) {
+                            usingDefault = true;
+                            defaultSymlink = DEFAULT_CONFIG_SYMLINK;
+                            localPathToValidate = `file://${DEFAULT_CONFIG_SYMLINK}`;
+                            log(`Using default symlink: ${DEFAULT_CONFIG_SYMLINK}`);
+                        }
+                    }
+
+                    // Validate localPath on Node side
+                    log(`Validating localPath on Node side...`);
+                    const localPathInfo = await validateLocalPath(localPathToValidate);
+                    if (usingDefault) {
+                        localPathInfo.default = true;
+                        localPathInfo.symlink = defaultSymlink;
+                    }
+                    log(`✓ LocalPath validation complete`);
+
+                    const preflightChecks = {
+                        advancedMode: storageChecks.advancedMode,
+                        userScriptsAvailable: storageChecks.userScriptsAvailable,
+                        snippets: storageChecks.snippets,
+                        localPath: localPathInfo
+                    };
 
                     resolve({
                         success: true,
