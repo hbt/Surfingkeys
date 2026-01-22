@@ -204,6 +204,146 @@ function start(browser) {
     var self = {};
 
     const isMV3 = chrome.runtime.getManifest().manifest_version === 3;
+    const SETTINGS_SNIPPET_SCRIPT_ID = 'settingsSnippets';
+    const extensionRootUrl = chrome.runtime.getURL("/");
+    let userScriptsWorldConfigured = false;
+    let snippetScriptCodeCache = undefined;
+    let snippetSyncChain = Promise.resolve();
+    // Cache the most recent advanced/snippet settings so we can diff across async callers.
+    const snippetSettingsSnapshot = {
+        showAdvanced: false,
+        snippets: ''
+    };
+
+    function rememberSnippetSettings(partial) {
+        if (!partial) {
+            return;
+        }
+        if (Object.prototype.hasOwnProperty.call(partial, 'showAdvanced')) {
+            snippetSettingsSnapshot.showAdvanced = partial.showAdvanced;
+        }
+        if (Object.prototype.hasOwnProperty.call(partial, 'snippets')) {
+            snippetSettingsSnapshot.snippets = partial.snippets || '';
+        }
+    }
+
+    function ensureSettingsSnippetRegistration(partial) {
+        if (!isMV3) {
+            return Promise.resolve();
+        }
+        rememberSnippetSettings(partial);
+        if (!isUserScriptsAvailable()) {
+            snippetScriptCodeCache = null;
+            return Promise.resolve();
+        }
+        snippetSyncChain = snippetSyncChain.then(() => syncSettingsSnippets()).catch((error) => {
+            console.warn('[userScripts] Failed to sync settings snippets', error);
+        });
+        return snippetSyncChain;
+    }
+
+    function callUserScriptsApi(method, ...args) {
+        if (!chrome.userScripts || typeof chrome.userScripts[method] !== 'function') {
+            return Promise.reject(new Error('chrome.userScripts API unavailable'));
+        }
+        return new Promise((resolve, reject) => {
+            try {
+                chrome.userScripts[method](...args, (result) => {
+                    const lastError = chrome.runtime.lastError;
+                    if (lastError) {
+                        reject(new Error(lastError.message));
+                    } else {
+                        resolve(result);
+                    }
+                });
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    async function ensureUserScriptsWorldConfigured() {
+        if (userScriptsWorldConfigured) {
+            return;
+        }
+        await callUserScriptsApi('configureWorld', {
+            csp: "script-src 'self' 'unsafe-eval'",
+            messaging: true
+        });
+        userScriptsWorldConfigured = true;
+    }
+
+    function buildSettingsSnippetCode(snippets) {
+        return `import('./api.js').then((module) => {module.default("${extensionRootUrl}", (api, settings) => {${snippets}\n})});`;
+    }
+
+    async function readRegisteredSnippetCode() {
+        try {
+            const scripts = await callUserScriptsApi('getScripts', { ids: [SETTINGS_SNIPPET_SCRIPT_ID] });
+            if (scripts && scripts.length > 0 && scripts[0].js && scripts[0].js.length > 0) {
+                return scripts[0].js[0].code || null;
+            }
+        } catch (error) {
+            console.warn('[userScripts] Failed to inspect existing settings snippet', error);
+        }
+        return null;
+    }
+
+    async function unregisterSettingsSnippet() {
+        try {
+            await callUserScriptsApi('unregister', { ids: [SETTINGS_SNIPPET_SCRIPT_ID] });
+        } catch (error) {
+            // Ignore attempts to unregister non-existent scripts; log others.
+            if (!/not found|exists/i.test(error.message)) {
+                console.warn('[userScripts] Failed to unregister settings snippet', error);
+            }
+        }
+    }
+
+    async function registerSettingsSnippet(code) {
+        await callUserScriptsApi('register', [{
+            allFrames: true,
+            id: SETTINGS_SNIPPET_SCRIPT_ID,
+            matches: ['*://*/*', 'file:///*'],
+            js: [{ code }]
+        }]);
+    }
+
+    async function syncSettingsSnippets() {
+        if (!isUserScriptsAvailable()) {
+            snippetScriptCodeCache = null;
+            return;
+        }
+
+        if (typeof snippetScriptCodeCache === 'undefined') {
+            snippetScriptCodeCache = await readRegisteredSnippetCode();
+        }
+
+        const snippets = typeof snippetSettingsSnapshot.snippets === 'string' ? snippetSettingsSnapshot.snippets : '';
+        const hasSnippets = snippets.trim().length > 0;
+        const shouldRegister = snippetSettingsSnapshot.showAdvanced && hasSnippets;
+
+        if (!shouldRegister) {
+            if (snippetScriptCodeCache) {
+                await unregisterSettingsSnippet();
+            }
+            snippetScriptCodeCache = null;
+            return;
+        }
+
+        await ensureUserScriptsWorldConfigured();
+
+        const desiredCode = buildSettingsSnippetCode(snippets);
+        if (snippetScriptCodeCache === desiredCode) {
+            return;
+        }
+
+        if (snippetScriptCodeCache) {
+            await unregisterSettingsSnippet();
+        }
+        await registerSettingsSnippet(desiredCode);
+        snippetScriptCodeCache = desiredCode;
+    }
 
     var tabHistory = [],
         tabHistoryIndex = 0,
@@ -291,7 +431,13 @@ function start(browser) {
         }, tmpSet);
     }
 
-    loadSettings(null, browser._applyProxySettings);
+    loadSettings(null, function(initialSettings) {
+        browser._applyProxySettings(initialSettings);
+        ensureSettingsSnippetRegistration({
+            showAdvanced: Boolean(initialSettings && initialSettings.showAdvanced),
+            snippets: (initialSettings && typeof initialSettings.snippets === 'string') ? initialSettings.snippets : ''
+        });
+    });
 
     function removeTab(tabId) {
         delete tabActivated[tabId];
@@ -613,6 +759,10 @@ function start(browser) {
 
     function _updateAndPostSettings(diffSettings, afterSet) {
         _broadcastSettings(diffSettings);
+        if (isMV3 && diffSettings && (Object.prototype.hasOwnProperty.call(diffSettings, 'snippets')
+            || Object.prototype.hasOwnProperty.call(diffSettings, 'showAdvanced'))) {
+            ensureSettingsSnippetRegistration(diffSettings);
+        }
         _updateSettings(diffSettings, afterSet);
     }
 
@@ -792,6 +942,10 @@ function start(browser) {
                 settings: data
             });
             _broadcastSettings(data);
+            ensureSettingsSnippetRegistration({
+                showAdvanced: Boolean(data && data.showAdvanced),
+                snippets: (data && typeof data.snippets === 'string') ? data.snippets : ''
+            });
         });
     };
     self.cdpReloadExtension = function(message, sender, sendResponse) {
@@ -1375,42 +1529,10 @@ function start(browser) {
             data.showAdvanced = data.isUserScriptsAvailable && data.showAdvanced;
         }
 
-        if (data.isUserScriptsAvailable) {
-            const userScriptId = "settingsSnippets";
-            if (data.showAdvanced && data.snippets) {
-                const snippets = data.snippets;
-                chrome.userScripts.getScripts({ids:[userScriptId]}, (r) => {
-                    const code = `import('./api.js').then((module) => {module.default("${chrome.runtime.getURL("/")}", (api, settings) => {${snippets}\n})});`;
-                    const registerSettingSnippets = () => {
-                        chrome.userScripts.register([{
-                            allFrames: true,
-                            id: userScriptId,
-                            matches: ['*://*/*', 'file:///*'],
-                            js: [{code}]
-                        }]);
-                    };
-                    if (r.length > 0) {
-                        if (r[0].js[0].code !== code) {
-                            // Unregister first, then register with new code
-                            chrome.userScripts.unregister({ids:[userScriptId]}).then(() => {
-                                registerSettingSnippets();
-                            }).catch(() => {
-                                // If unregister fails (e.g., already unregistered), just register
-                                registerSettingSnippets();
-                            });
-                        }
-                    } else {
-                        registerSettingSnippets();
-                    }
-                });
-            } else {
-                chrome.userScripts.getScripts({ids:[userScriptId]}, (r) => {
-                    if (r.length > 0) {
-                        chrome.userScripts.unregister({ids:[userScriptId]});
-                    }
-                });
-            }
-        }
+        ensureSettingsSnippetRegistration({
+            showAdvanced: Boolean(data && data.showAdvanced),
+            snippets: (data && typeof data.snippets === 'string') ? data.snippets : ''
+        });
     }
     self.getSettings = function(message, sender, sendResponse) {
         var pf = loadSettings;
