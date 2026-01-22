@@ -1,28 +1,17 @@
 /**
- * Preflight Checks for Config Set
+ * Config Set Action - Refactored Workflow
  *
- * Collects runtime checks before setting config file:
- * - advancedMode: Current advanced mode setting from chrome.storage.local
- * - userScriptsAvailable: Whether chrome.userScripts API is available (MV3 requirement)
- * - snippets: Information about stored user scripts
- *   - stored: Whether snippets key exists (0 or 1)
- *   - length: Size of snippets string
- *   - hash: SHA256 hash of snippets content (if stored)
- * - localPath: Information about external config source
- *   - stored: Whether localPath key exists (0 or 1)
- *   - value: The path/URL (or default symlink if not stored)
- *   - realPath: Resolved real path (if symlink)
- *   - isSymlink: Whether the path is a symbolic link
- *   - fileExists: Validates file existence
- *   - syntaxValid: Validates JavaScript syntax
- *   - default: Whether using default symlink (.surfingkeysrc.js)
- *   - symlink: The symlink path used (if default)
+ * Implements 5-step workflow: DETERMINE → CONTEXT → VALIDATE → IMPLEMENTATION → POST-VALIDATION
  *
- * Default Behavior:
- * - If no localPath stored: uses .surfingkeysrc.js symlink as default
- * - Automatically resolves symlinks to real paths
+ * - DETERMINE: Figure out which config file path to use (argument or default symlink)
+ * - CONTEXT: Gather current runtime state from storage (no failures here)
+ * - VALIDATE: Validate the determined path (CAN FAIL - stops before implementation)
+ * - IMPLEMENTATION: Read file, calculate hash, set in storage
+ * - POST-VALIDATION: Verify implementation worked (CAN FAIL - landing check)
  *
- * Usage: bin/dbg config-set
+ * Usage:
+ *   bin/dbg config-set                          # Uses default symlink
+ *   bin/dbg config-set /path/to/config.js      # Uses provided filepath
  *
  * Output: JSON only to stdout
  * Logs: Written to /tmp/dbg-config-set-<timestamp>.log
@@ -34,6 +23,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const crypto = require('crypto');
 
 let messageId = 1;
 const CDP_PORT = process.env.CDP_PORT || 9222;
@@ -143,84 +133,24 @@ function validateJavaScriptSyntax(code) {
 }
 
 /**
- * Validate localPath file: check existence and syntax
+ * Calculate SHA256 hash of file content (Node.js side)
  */
-async function validateLocalPath(localPath) {
-    const info = {
-        stored: localPath ? 1 : 0,
-        value: localPath || null,
-        realPath: null,
-        isSymlink: false,
-        fileExists: null,
-        syntaxValid: null,
-        length: null,
-        error: null
-    };
-
-    if (!localPath) {
-        return info;
+function calculateFileHash(fileContent) {
+    try {
+        const buffer = Buffer.from(fileContent, 'utf-8');
+        const hashBuffer = crypto.createHash('sha256').update(buffer).digest();
+        const hashHex = hashBuffer.toString('hex');
+        return hashHex;
+    } catch (err) {
+        throw new Error(`Failed to calculate hash: ${err.message}`);
     }
-
-    // Handle file:// URLs
-    if (localPath.startsWith('file://')) {
-        try {
-            // Convert file:// URL to path
-            const filePath = decodeURIComponent(new URL(localPath).pathname);
-            log(`Validating file: ${filePath}`);
-
-            // Check if file exists
-            if (!fs.existsSync(filePath)) {
-                info.fileExists = false;
-                info.error = 'File not found';
-                return info;
-            }
-
-            info.fileExists = true;
-
-            // Check if it's a symlink and resolve real path
-            try {
-                const stats = fs.lstatSync(filePath);
-                if (stats.isSymbolicLink()) {
-                    info.isSymlink = true;
-                    info.realPath = fs.realpathSync(filePath);
-                    log(`Symlink detected: ${filePath} -> ${info.realPath}`);
-                } else {
-                    info.realPath = filePath;
-                }
-            } catch (err) {
-                info.realPath = filePath;
-            }
-
-            // Read file
-            const content = fs.readFileSync(filePath, 'utf-8');
-            info.length = content.length;
-
-            // Validate syntax
-            const syntaxCheck = validateJavaScriptSyntax(content);
-            info.syntaxValid = syntaxCheck.valid;
-            if (!syntaxCheck.valid) {
-                info.error = syntaxCheck.error;
-            }
-
-            return info;
-        } catch (err) {
-            info.fileExists = false;
-            info.error = err.message;
-            return info;
-        }
-    }
-
-    // For HTTP/HTTPS URLs, skip validation (would require network fetch)
-    info.error = 'HTTP/HTTPS validation not performed (skipped for preflight)';
-
-    return info;
 }
 
 /**
- * Collect preflight checks from storage: advancedMode, userScripts, snippets
+ * STEP 2: Gather context from storage (runtime state, no failures here)
  */
-async function getPreflightChecksFromStorage(ws) {
-    log(`Collecting preflight checks from storage...`);
+async function gatherContext(ws) {
+    log(`=== STEP 2: CONTEXT - Gathering runtime state ===`);
 
     const code = `
         new Promise(async (resolve) => {
@@ -247,24 +177,125 @@ async function getPreflightChecksFromStorage(ws) {
                 }
 
                 resolve({
-                    advancedMode: data.showAdvanced,
-                    userScriptsAvailable: !!chrome.userScripts,
-                    snippets: snippetsInfo,
-                    localPath: data.localPath || null
+                    storage: {
+                        advancedMode: data.showAdvanced,
+                        snippets: snippetsInfo,
+                        localPath: {
+                            stored: data.localPath ? 1 : 0,
+                            value: data.localPath || null
+                        }
+                    },
+                    api_available: {
+                        userScriptsAvailable: !!chrome.userScripts
+                    }
                 });
             });
         })
     `;
 
     const result = await evaluateCode(ws, code);
+    log(`✓ Context gathered: advancedMode=${result.storage.advancedMode}, userScriptsAvailable=${result.api_available.userScriptsAvailable}`);
     return result;
 }
 
 /**
- * Set snippets and localPath in storage via CDP
+ * STEP 3: Validate the determined filepath
+ */
+async function performValidation(filepath) {
+    log(`=== STEP 3: VALIDATE - Validating filepath ===`);
+
+    const validation = {
+        symlink_exists: {
+            required: true,
+            passed: false,
+            path: filepath,
+            error: null
+        },
+        symlink_points_to_valid_file: {
+            required: true,
+            passed: false,
+            real_path: null,
+            file_exists: false,
+            error: null
+        },
+        file_syntax_valid: {
+            required: true,
+            passed: false,
+            error: null
+        },
+        all_checks_passed: false
+    };
+
+    try {
+        // Handle file:// URLs
+        let filePath = filepath;
+        if (filepath.startsWith('file://')) {
+            filePath = decodeURIComponent(new URL(filepath).pathname);
+        }
+
+        // Check 1: symlink_exists
+        log(`Checking if file exists: ${filePath}`);
+        if (!fs.existsSync(filePath)) {
+            validation.symlink_exists.error = 'File not found';
+            log(`✗ File not found: ${filePath}`);
+            return validation;
+        }
+        validation.symlink_exists.passed = true;
+        log(`✓ File exists`);
+
+        // Check 2: symlink_points_to_valid_file
+        log(`Checking if file is readable and resolving real path...`);
+        try {
+            const stats = fs.lstatSync(filePath);
+            if (stats.isSymbolicLink()) {
+                validation.symlink_points_to_valid_file.real_path = fs.realpathSync(filePath);
+                log(`✓ Symlink resolved: ${filePath} -> ${validation.symlink_points_to_valid_file.real_path}`);
+            } else {
+                validation.symlink_points_to_valid_file.real_path = filePath;
+                log(`✓ Regular file (not symlink): ${filePath}`);
+            }
+            validation.symlink_points_to_valid_file.file_exists = true;
+            validation.symlink_points_to_valid_file.passed = true;
+        } catch (err) {
+            validation.symlink_points_to_valid_file.error = err.message;
+            log(`✗ Failed to resolve file: ${err.message}`);
+            return validation;
+        }
+
+        // Check 3: file_syntax_valid
+        log(`Validating JavaScript syntax...`);
+        try {
+            const fileContent = fs.readFileSync(filePath, 'utf-8');
+            const syntaxCheck = validateJavaScriptSyntax(fileContent);
+            if (!syntaxCheck.valid) {
+                validation.file_syntax_valid.error = syntaxCheck.error;
+                log(`✗ Invalid JavaScript syntax: ${syntaxCheck.error}`);
+                return validation;
+            }
+            validation.file_syntax_valid.passed = true;
+            log(`✓ JavaScript syntax is valid`);
+        } catch (err) {
+            validation.file_syntax_valid.error = err.message;
+            log(`✗ Failed to validate syntax: ${err.message}`);
+            return validation;
+        }
+
+        // All checks passed
+        validation.all_checks_passed = true;
+        log(`✓ All validation checks passed`);
+        return validation;
+
+    } catch (err) {
+        log(`✗ Validation error: ${err.message}`);
+        return validation;
+    }
+}
+
+/**
+ * STEP 4: Set config in storage via CDP
  */
 async function setConfigInStorage(ws, snippetsContent, localPathUrl) {
-    log(`Setting config in storage...`);
+    log(`=== STEP 4: IMPLEMENTATION - Setting config in storage ===`);
 
     const code = `
         new Promise((resolve, reject) => {
@@ -285,6 +316,7 @@ async function setConfigInStorage(ws, snippetsContent, localPathUrl) {
 
     try {
         const result = await evaluateCode(ws, code);
+        log(`✓ Config set in storage`);
         return result;
     } catch (err) {
         throw new Error(`Failed to set config: ${err.message}`);
@@ -292,229 +324,239 @@ async function setConfigInStorage(ws, snippetsContent, localPathUrl) {
 }
 
 /**
- * Post-verification: read back from storage and verify
+ * STEP 5: Post-validation - verify implementation worked
  */
-async function verifyConfigSet(ws, expectedContent, expectedPath) {
-    log(`Verifying config was set correctly...`);
+async function performPostValidation(ws, expectedContent, expectedPath, fileHash) {
+    log(`=== STEP 5: POST-VALIDATION - Verifying implementation ===`);
 
     const code = `
         new Promise(async (resolve) => {
-            chrome.storage.local.get(['snippets', 'localPath'], async (data) => {
+            chrome.storage.local.get(['showAdvanced', 'snippets', 'localPath'], async (data) => {
                 const snippets = data.snippets || '';
                 const localPath = data.localPath || '';
+                const showAdvanced = data.showAdvanced || false;
 
                 // Calculate hash of stored snippets
-                let hash = null;
+                let storedHash = null;
                 try {
                     const encoder = new TextEncoder();
                     const buffer = encoder.encode(snippets);
                     const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
                     const hashArray = Array.from(new Uint8Array(hashBuffer));
                     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                    hash = hashHex;
+                    storedHash = hashHex;
                 } catch (e) {
-                    hash = 'error';
+                    storedHash = 'error';
                 }
 
                 resolve({
-                    snippetsMatches: snippets === \`${expectedContent.replace(/`/g, '\\`')}\`,
+                    showAdvanced: showAdvanced,
                     snippetsLength: snippets.length,
-                    snippetsHash: hash,
-                    localPathMatches: localPath === '${expectedPath.replace(/'/g, "\\'")}',
-                    localPathValue: localPath,
-                    stored: !!snippets && !!localPath
+                    snippetsHash: storedHash,
+                    localPathValue: localPath
                 });
             });
         })
     `;
 
     try {
-        const result = await evaluateCode(ws, code);
-        return result;
+        const stored = await evaluateCode(ws, code);
+
+        const postValidation = {
+            snippets_hash_matches_file: {
+                passed: stored.snippetsHash === fileHash,
+                stored_hash: stored.snippetsHash,
+                file_hash: fileHash,
+                error: stored.snippetsHash !== fileHash ? 'Hash mismatch' : null
+            },
+            advanced_mode_enabled: {
+                passed: stored.showAdvanced === true,
+                value: stored.showAdvanced,
+                error: stored.showAdvanced !== true ? 'Advanced mode is not enabled' : null
+            },
+            localPath_set_correctly: {
+                passed: stored.localPathValue === expectedPath,
+                stored_value: stored.localPathValue,
+                expected_value: expectedPath,
+                error: stored.localPathValue !== expectedPath ? 'LocalPath mismatch' : null
+            },
+            all_checks_passed: false
+        };
+
+        postValidation.all_checks_passed =
+            postValidation.snippets_hash_matches_file.passed &&
+            postValidation.advanced_mode_enabled.passed &&
+            postValidation.localPath_set_correctly.passed;
+
+        if (postValidation.all_checks_passed) {
+            log(`✓ Post-validation passed`);
+            log(`  ✓ Snippets hash matches file`);
+            log(`  ✓ Advanced mode enabled`);
+            log(`  ✓ LocalPath set correctly`);
+        } else {
+            log(`✗ Post-validation failed`);
+            if (!postValidation.snippets_hash_matches_file.passed) {
+                log(`  ✗ Snippets hash mismatch: stored=${postValidation.snippets_hash_matches_file.stored_hash}, expected=${postValidation.snippets_hash_matches_file.file_hash}`);
+            }
+            if (!postValidation.advanced_mode_enabled.passed) {
+                log(`  ✗ Advanced mode not enabled: ${postValidation.advanced_mode_enabled.value}`);
+            }
+            if (!postValidation.localPath_set_correctly.passed) {
+                log(`  ✗ LocalPath mismatch: stored=${postValidation.localPath_set_correctly.stored_value}, expected=${postValidation.localPath_set_correctly.expected_value}`);
+            }
+        }
+
+        return postValidation;
+
     } catch (err) {
         throw new Error(`Verification failed: ${err.message}`);
     }
 }
 
 /**
- * Main action
+ * Main action - 5-step workflow
  */
 async function run(args) {
-    log(`Config Set Action Started`);
+    log(`\n=== Config Set Action Started ===`);
 
     try {
-        // Find service worker
-        log('Finding Surfingkeys service worker...');
+        // === STEP 1: DETERMINE ===
+        log(`=== STEP 1: DETERMINE - Resolving config filepath ===`);
+
+        let filepath = args && args[0] ? args[0] : null;
+        let source = 'default_symlink';
+
+        if (filepath) {
+            source = 'argument';
+            log(`Using provided filepath: ${filepath}`);
+        } else {
+            filepath = DEFAULT_CONFIG_SYMLINK;
+            log(`Using default symlink: ${filepath}`);
+        }
+
+        // Convert to file:// URL if it's a local path
+        let filepathUrl = filepath;
+        if (!filepath.startsWith('file://') && !filepath.startsWith('http')) {
+            filepathUrl = `file://${filepath}`;
+        }
+
+        const determine = {
+            source: source,
+            filepath: filepath,
+            repo_default_symlink: DEFAULT_CONFIG_SYMLINK
+        };
+
+        log(`✓ DETERMINE step complete: source=${source}, filepath=${filepath}`);
+
+        // Find and connect to service worker
+        log(`Finding Surfingkeys service worker...`);
         const swWsUrl = await findServiceWorker();
 
         if (!swWsUrl) {
-            log('✗ Service worker not found');
-            throw new Error('Surfingkeys extension not found. Is it loaded? Try: npm run esbuild:dev && ./bin/dbg reload');
+            log(`✗ Service worker not found`);
+            logStream.end();
+            console.log(JSON.stringify({
+                success: false,
+                error: 'Surfingkeys extension not found. Is it loaded? Try: npm run esbuild:dev && ./bin/dbg reload',
+                determine: determine,
+                log: LOG_FILE
+            }));
+            process.exit(1);
         }
 
         log(`✓ Service worker found`);
 
-        // Connect to service worker
-        log('Connecting to service worker via CDP...');
+        // Connect to service worker (keep connection open for all steps)
+        log(`Connecting to service worker via CDP...`);
         const ws = new WebSocket(swWsUrl);
 
+        // Wrap in promise to handle async operations
         const response = await new Promise(async (resolve) => {
             ws.on('open', async () => {
                 try {
-                    log('✓ Connected to service worker');
+                    log(`✓ Connected to service worker`);
 
                     // Enable Runtime domain
                     await sendCommand(ws, 'Runtime.enable');
-                    log('✓ Runtime domain enabled');
+                    log(`✓ Runtime domain enabled`);
 
-                    // Collect preflight checks from storage
-                    const storageChecks = await getPreflightChecksFromStorage(ws);
-                    log(`✓ Storage checks collected`);
+                    // === STEP 2: CONTEXT ===
+                    const context = await gatherContext(ws);
+                    log(`✓ CONTEXT step complete`);
 
-                    ws.close();
+                    // === STEP 3: VALIDATE ===
+                    const validate = await performValidation(filepathUrl);
 
-                    // Determine localPath: use stored value or default symlink
-                    let localPathToValidate = storageChecks.localPath;
-                    let usingDefault = false;
-                    let defaultSymlink = null;
+                    if (!validate.all_checks_passed) {
+                        log(`✗ Validation failed - stopping before implementation`);
+                        ws.close();
 
-                    if (!localPathToValidate) {
-                        // Check if default symlink exists
-                        if (fs.existsSync(DEFAULT_CONFIG_SYMLINK)) {
-                            usingDefault = true;
-                            defaultSymlink = DEFAULT_CONFIG_SYMLINK;
-                            localPathToValidate = `file://${DEFAULT_CONFIG_SYMLINK}`;
-                            log(`Using default symlink: ${DEFAULT_CONFIG_SYMLINK}`);
-                        }
-                    }
-
-                    // Validate localPath on Node side
-                    log(`Validating localPath on Node side...`);
-                    const localPathInfo = await validateLocalPath(localPathToValidate);
-                    if (usingDefault) {
-                        localPathInfo.default = true;
-                        localPathInfo.symlink = defaultSymlink;
-                    }
-                    log(`✓ LocalPath validation complete`);
-
-                    const preflightChecks = {
-                        advancedMode: storageChecks.advancedMode,
-                        userScriptsAvailable: storageChecks.userScriptsAvailable,
-                        snippets: storageChecks.snippets,
-                        localPath: localPathInfo
-                    };
-
-                    // === VALIDATION GATES ===
-                    log(`\n=== Validation gates (must pass before implementation) ===`);
-                    const validationGates = {
-                        advancedModeOn: storageChecks.advancedMode === true,
-                        localPathValid: localPathInfo.fileExists === true && localPathInfo.syntaxValid === true,
-                        issues: []
-                    };
-
-                    if (!validationGates.advancedModeOn) {
-                        validationGates.issues.push('Advanced mode is OFF (showAdvanced: false)');
-                    }
-                    if (!validationGates.localPathValid) {
-                        if (localPathInfo.fileExists !== true) {
-                            validationGates.issues.push(`File not found: ${localPathInfo.value}`);
-                        }
-                        if (localPathInfo.syntaxValid !== true) {
-                            validationGates.issues.push(`Invalid JavaScript syntax: ${localPathInfo.error}`);
-                        }
-                    }
-
-                    if (!validationGates.advancedModeOn || !validationGates.localPathValid) {
-                        log(`✗ Validation FAILED:`);
-                        validationGates.issues.forEach(issue => log(`  - ${issue}`));
-
+                        logStream.end();
                         resolve({
                             success: false,
-                            error: 'Validation gates failed - config not set',
-                            preflight: preflightChecks,
-                            validation_gates: validationGates,
+                            error: 'Validation failed',
+                            determine: determine,
+                            context: context,
+                            validate: validate,
                             log: LOG_FILE
                         });
                         return;
                     }
 
-                    log(`✓ All validation gates passed`);
-                    log(`  ✓ Advanced mode: ON`);
-                    log(`  ✓ LocalPath: valid`);
-                    log(`  ✓ File syntax: valid`);
+                    log(`✓ VALIDATE step complete - all checks passed`);
 
-                    // === SET CONFIG ===
-                    log(`\n=== Setting config in storage ===`);
+                    // === STEP 4: IMPLEMENTATION ===
+                    log(`=== STEP 4: IMPLEMENTATION - Reading and setting config ===`);
 
-                    // Reopen WebSocket for setting
-                    const wsSet = new WebSocket(swWsUrl);
+                    // Read file content
+                    let filePath = filepath;
+                    if (filepath.startsWith('file://')) {
+                        filePath = decodeURIComponent(new URL(filepath).pathname);
+                    }
 
-                    await new Promise(async (resolveSet) => {
-                        wsSet.on('open', async () => {
-                            try {
-                                await sendCommand(wsSet, 'Runtime.enable');
+                    const fileContent = fs.readFileSync(filePath, 'utf-8');
+                    const fileHash = calculateFileHash(fileContent);
+                    log(`✓ Read file: ${fileContent.length} bytes, hash=${fileHash}`);
 
-                                // Read file content
-                                const filePath = decodeURIComponent(new URL(localPathToValidate).pathname);
-                                const fileContent = fs.readFileSync(filePath, 'utf-8');
-                                log(`✓ Read file content: ${fileContent.length} bytes`);
+                    // Set config in storage
+                    await setConfigInStorage(ws, fileContent, filepathUrl);
 
-                                // Set config via CDP
-                                await setConfigInStorage(wsSet, fileContent, localPathToValidate);
-                                log(`✓ Config set in storage`);
+                    const implementation = {
+                        file_content_size: fileContent.length,
+                        file_hash: fileHash,
+                        snippets_set: true,
+                        localPath_set: true
+                    };
 
-                                // Post-verification
-                                log(`\n=== Post-verification ===`);
-                                const verification = await verifyConfigSet(wsSet, fileContent, localPathToValidate);
-                                log(`✓ Verification complete:`);
-                                log(`  - Snippets matches: ${verification.snippetsMatches}`);
-                                log(`  - LocalPath matches: ${verification.localPathMatches}`);
-                                log(`  - Snippets hash: ${verification.snippetsHash}`);
+                    log(`✓ IMPLEMENTATION step complete`);
 
-                                wsSet.close();
+                    // === STEP 5: POST-VALIDATION ===
+                    const postValidation = await performPostValidation(ws, fileContent, filepathUrl, fileHash);
 
-                                resolveSet({
-                                    success: verification.snippetsMatches && verification.localPathMatches,
-                                    preflight: preflightChecks,
-                                    validation_gates: validationGates,
-                                    implementation: {
-                                        fileSize: fileContent.length,
-                                        snippetsSet: true,
-                                        localPathSet: true
-                                    },
-                                    verification: verification,
-                                    log: LOG_FILE
-                                });
+                    log(`✓ POST-VALIDATION step complete`);
 
-                            } catch (error) {
-                                log(`✗ Error during set: ${error.message}`);
-                                wsSet.close();
-                                resolveSet({
-                                    success: false,
-                                    error: error.message,
-                                    preflight: preflightChecks,
-                                    log: LOG_FILE
-                                });
-                            }
-                        });
+                    ws.close();
 
-                        wsSet.on('error', (error) => {
-                            log(`✗ WebSocket error during set: ${error.message}`);
-                            resolveSet({
-                                success: false,
-                                error: `WebSocket error: ${error.message}`,
-                                log: LOG_FILE
-                            });
-                        });
-                    }).then(result => resolve(result));
-
+                    logStream.end();
+                    resolve({
+                        success: postValidation.all_checks_passed,
+                        determine: determine,
+                        context: context,
+                        validate: validate,
+                        implementation: implementation,
+                        post_validation: postValidation,
+                        log: LOG_FILE
+                    });
 
                 } catch (error) {
-                    log(`✗ Error: ${error.message}`);
+                    log(`✗ Error during workflow: ${error.message}`);
+                    log(error.stack);
                     ws.close();
+                    logStream.end();
                     resolve({
                         success: false,
                         error: error.message,
+                        determine: determine,
                         log: LOG_FILE
                     });
                 }
@@ -522,15 +564,16 @@ async function run(args) {
 
             ws.on('error', (error) => {
                 log(`✗ WebSocket error: ${error.message}`);
+                logStream.end();
                 resolve({
                     success: false,
                     error: `WebSocket error: ${error.message}`,
+                    determine: determine,
                     log: LOG_FILE
                 });
             });
         });
 
-        logStream.end();
         console.log(JSON.stringify(response));
         process.exit(response.success ? 0 : 1);
 
