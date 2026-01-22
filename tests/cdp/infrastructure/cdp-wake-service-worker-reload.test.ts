@@ -1,5 +1,7 @@
 /**
- * Test: Wake Service Worker + Set Storage + Reload Tab
+ * CDP Wake Service Worker + Reload Chrome Extension Test
+ *
+ * Tests the complete workflow for waking service worker and reloading extension.
  *
  * Sequence:
  * 1. Set showAdvanced=true in storage
@@ -8,6 +10,9 @@
  * 4. Create and reload tab
  * 5. Check if service worker is awake, wake again if needed
  * 6. Press 'g' to test if config mapping works
+ *
+ * Usage:
+ *   Headless mode:   npm run test:cdp:headless tests/cdp/infrastructure/cdp-wake-service-worker-reload.test.ts
  */
 
 import WebSocket from 'ws';
@@ -21,13 +26,13 @@ import {
     closeTab,
     closeCDP,
     executeInTarget
-} from './utils/cdp-client';
+} from '../utils/cdp-client';
 import {
     sendKey,
     getScrollPosition,
     enableInputDomain
-} from './utils/browser-actions';
-import { CDP_PORT } from './cdp-config';
+} from '../utils/browser-actions';
+import { CDP_PORT } from '../cdp-config';
 
 const CDP_ENDPOINT = `http://localhost:${CDP_PORT}`;
 

@@ -1,5 +1,5 @@
 /**
- * CDP Reload Tabs Test - Ensures chrome://extensions tabs exist
+ * CDP DBG Reload Test - Ensures chrome://extensions tabs exist
  *
  * Tests the core functionality of dbg reload command: ensuring required
  * chrome://extensions tabs exist before attempting reload.
@@ -10,7 +10,7 @@
  * 3. Created tabs are accessible
  *
  * Usage:
- *   Headless mode:   npm run test:cdp:headless tests/cdp/cdp-reload-tabs.test.ts
+ *   Headless mode:   npm run test:cdp:headless tests/cdp/infrastructure/cdp-dbg-reload.test.ts
  */
 
 import WebSocket from 'ws';
@@ -20,8 +20,8 @@ import {
     connectToCDP,
     closeCDP,
     executeInTarget
-} from './utils/cdp-client';
-import { CDP_PORT } from './cdp-config';
+} from '../utils/cdp-client';
+import { CDP_PORT } from '../cdp-config';
 import http from 'http';
 
 async function fetchJson(port: number, path: string): Promise<any> {
