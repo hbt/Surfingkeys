@@ -4,8 +4,8 @@
  * Verifies that command usage is tracked and stored in chrome.storage.local
  *
  * Usage:
- *   Live browser:    npm run test:cdp tests/cdp/cdp-usage-tracking.test.ts
- *   Headless mode:   npm run test:cdp:headless tests/cdp/cdp-usage-tracking.test.ts
+ *   Live browser:    npm run test:cdp tests/cdp/pages/cdp-usage-tracking.test.ts
+ *   Headless mode:   npm run test:cdp:headless tests/cdp/pages/cdp-usage-tracking.test.ts
  */
 
 import WebSocket from 'ws';
@@ -18,13 +18,13 @@ import {
     closeTab,
     closeCDP,
     executeInTarget
-} from './utils/cdp-client';
+} from '../utils/cdp-client';
 import {
     sendKey,
     getScrollPosition,
     enableInputDomain
-} from './utils/browser-actions';
-import { CDP_PORT } from './cdp-config';
+} from '../utils/browser-actions';
+import { CDP_PORT } from '../cdp-config';
 
 describe('Usage Tracking', () => {
     let bgWs: WebSocket;

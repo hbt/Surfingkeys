@@ -1,10 +1,10 @@
 /**
- * CDP Fuzzy Filter Test - Help Menu Search Functionality
+ * CDP Frontend Show Usage Test - Help Menu Search Functionality
  *
- * Tests the fuzzyfinder/fuzzy filter in the help menu using Jest framework.
+ * Tests the frontend help menu UI with fuzzyfinder/fuzzy filter.
  *
  * Usage:
- *   Headless mode:   npm run test:cdp:headless tests/cdp/cdp-fuzzyfilter.test.ts
+ *   Headless mode:   npm run test:cdp:headless tests/cdp/commands/cdp-front-show-usage.test.ts
  */
 
 import WebSocket from 'ws';
@@ -18,14 +18,14 @@ import {
     closeTab,
     closeCDP,
     executeInTarget
-} from './utils/cdp-client';
+} from '../utils/cdp-client';
 import {
     sendKey,
     enableInputDomain
-} from './utils/browser-actions';
-import { CDP_PORT } from './cdp-config';
+} from '../utils/browser-actions';
+import { CDP_PORT } from '../cdp-config';
 
-describe('Fuzzy Filter in Help Menu', () => {
+describe('Frontend - Show Usage (Help Menu)', () => {
     let bgWs: WebSocket;
     let pageWs: WebSocket;
     let frontendWs: WebSocket | null = null;
