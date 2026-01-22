@@ -130,10 +130,6 @@ function installErrorHandlers(context) {
             return originalOnRejection.apply(this, arguments);
         }
     };
-
-    console.log('[ERROR COLLECTOR] ✓ Installed global error handlers in', context);
-    console.log('[ERROR COLLECTOR]   - onerror');
-    console.log('[ERROR COLLECTOR]   - onunhandledrejection');
 }
 
 /**
