@@ -17,6 +17,50 @@
 
 const { execSync } = require('child_process');
 const path = require('path');
+const http = require('http');
+const fs = require('fs');
+
+// Config server management
+let configServer = null;
+const CONFIG_SERVER_PORT = 9874;
+const FIXTURES_DIR = path.join(__dirname, '../../data/fixtures');
+
+async function startConfigServer(filename) {
+    return new Promise((resolve, reject) => {
+        const filePath = `/${filename}`;
+        const fullPath = path.join(FIXTURES_DIR, filename);
+
+        // Verify file exists
+        if (!fs.existsSync(fullPath)) {
+            reject(new Error(`Config fixture not found: ${fullPath}`));
+            return;
+        }
+
+        configServer = http.createServer((req, res) => {
+            const urlPath = (req.url || '').split('?')[0];
+
+            if (urlPath === filePath) {
+                try {
+                    const content = fs.readFileSync(fullPath, 'utf-8');
+                    res.writeHead(200, { 'Content-Type': 'application/javascript' });
+                    res.end(content);
+                } catch (error) {
+                    res.writeHead(500, { 'Content-Type': 'text/plain' });
+                    res.end('500 Internal Server Error');
+                }
+            } else {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('404 Not Found');
+            }
+        });
+
+        configServer.listen(CONFIG_SERVER_PORT, '127.0.0.1', () => {
+            resolve(`http://127.0.0.1:${CONFIG_SERVER_PORT}${filePath}`);
+        });
+
+        configServer.on('error', reject);
+    });
+}
 
 // ANSI color codes
 const colors = {
@@ -71,6 +115,15 @@ async function main() {
     log('Sequential CDP Test Runner with Retry Logic', colors.cyan);
     log('='.repeat(70), colors.cyan);
     log(`Found ${testFiles.length} test file(s)\n`, colors.cyan);
+
+    // Start config server
+    try {
+        const configUrl = await startConfigServer('cdp-scrollstepsize-config.js');
+        log(`✓ Config server started: ${configUrl}`, colors.green);
+    } catch (error) {
+        log(`❌ Failed to start config server: ${error.message}`, colors.red);
+        process.exit(1);
+    }
 
     const results = {
         pass: [],

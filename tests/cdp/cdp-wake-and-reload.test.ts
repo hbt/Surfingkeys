@@ -27,10 +27,6 @@ import {
     getScrollPosition,
     enableInputDomain
 } from './utils/browser-actions';
-import {
-    startConfigServer,
-    stopConfigServer
-} from './utils/config-server';
 import { CDP_PORT } from './cdp-config';
 
 const CDP_ENDPOINT = `http://localhost:${CDP_PORT}`;
@@ -145,11 +141,10 @@ describe('Wake Service Worker + Config', () => {
     let bgWs: WebSocket;
     let pageWs: WebSocket;
     let tabId: number;
-    let configServerUrl: string;
     let extensionId: string;
 
     const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
-    const CONFIG_SERVER_PORT = 9874;
+    const CONFIG_SERVER_URL = 'http://127.0.0.1:9874/cdp-scrollstepsize-config.js';
 
     beforeAll(async () => {
         const cdpAvailable = await checkCDPAvailable();
@@ -157,9 +152,8 @@ describe('Wake Service Worker + Config', () => {
             throw new Error(`CDP not available on port ${CDP_PORT}`);
         }
 
-        // Start config server
-        configServerUrl = await startConfigServer(CONFIG_SERVER_PORT, 'cdp-scrollstepsize-config.js');
-        console.log(`✓ Config server: ${configServerUrl}`);
+        // Config server is started by test runner (run-all-sequential.js)
+        console.log(`✓ Config server: ${CONFIG_SERVER_URL}`);
 
         // Connect to background
         const bgInfo = await findExtensionBackground();
@@ -195,8 +189,8 @@ describe('Wake Service Worker + Config', () => {
         await sendMsg(`chrome.storage.local.set({ showAdvanced: true })`);
         console.log(`✓ showAdvanced set to true`);
 
-        await sendMsg(`chrome.storage.local.set({ localPath: '${configServerUrl}' })`);
-        console.log(`✓ localPath set: ${configServerUrl}`);
+        await sendMsg(`chrome.storage.local.set({ localPath: '${CONFIG_SERVER_URL}' })`);
+        console.log(`✓ localPath set: ${CONFIG_SERVER_URL}`);
 
         // Step 2: Wake service worker
         console.log(`\n=== Step 2: Wake service worker ===`);
@@ -242,7 +236,7 @@ describe('Wake Service Worker + Config', () => {
                     expression: `
                         chrome.runtime.sendMessage({
                             action: '${action}',
-                            url: '${configServerUrl}',
+                            url: '${CONFIG_SERVER_URL}',
                             ...${JSON.stringify(data)}
                         }, (response) => {
                             console.log('Got response');
@@ -258,7 +252,7 @@ describe('Wake Service Worker + Config', () => {
             new Promise((resolve) => {
                 chrome.runtime.sendMessage({
                     action: 'loadSettingsFromUrl',
-                    url: '${configServerUrl}'
+                    url: '${CONFIG_SERVER_URL}'
                 }, (response) => {
                     resolve(response);
                 });
@@ -295,7 +289,6 @@ describe('Wake Service Worker + Config', () => {
         if (bgWs) {
             await closeCDP(bgWs);
         }
-        await stopConfigServer();
     });
 
     test('pressing "g" should scroll down (after wake + reload)', async () => {
