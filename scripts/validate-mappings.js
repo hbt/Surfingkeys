@@ -9,6 +9,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 // Extract all default mappings from docs/cmds.md
 function extractDefaultMappings(cmdsPath) {
@@ -120,6 +121,20 @@ function findBlockingCommands(targetKey, defaultMappings) {
     return blocking;
 }
 
+// Count migrated commands (those with unique_id in metadata)
+function countMigratedCommands() {
+    try {
+        const srcDir = path.join(__dirname, '..', 'src');
+        // Use grep to find unique_id definitions in JS/TS files
+        const grepCmd = `grep -r "unique_id" ${srcDir} --include="*.js" --include="*.ts" 2>/dev/null | grep -c "cmd_"`;
+        const migratedCount = parseInt(execSync(grepCmd, { encoding: 'utf-8' }).trim()) || 0;
+
+        return migratedCount;
+    } catch (e) {
+        return 0;
+    }
+}
+
 // Main validation
 function validate(configPath, cmdsPath) {
     console.log('SurfingKeys Mapping Validator');
@@ -130,7 +145,13 @@ function validate(configPath, cmdsPath) {
     const userMappings = extractUserMappings(configPath);
 
     console.log(`Default mappings: ${defaultMappings.size}`);
-    console.log(`User mappings: ${userMappings.size}\n`);
+    console.log(`User mappings: ${userMappings.size}`);
+
+    // Show migration status
+    const migratedCount = countMigratedCommands();
+    const totalMappings = defaultMappings.size;
+    const migrationPercent = totalMappings > 0 ? ((migratedCount / totalMappings) * 100).toFixed(1) : 0;
+    console.log(`Migrated commands: ${migratedCount}/${totalMappings} (${migrationPercent}%)\n`);
 
     if (userMappings.size === 0) {
         console.log('No user mappings found. Your config is clean!\n');

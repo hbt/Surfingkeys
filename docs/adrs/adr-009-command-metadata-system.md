@@ -1,4 +1,4 @@
-# ADR 0006: Command Metadata System for Persistent Command Identification
+# ADR 009: Command Metadata System for Persistent Command Identification
 
 **Date**: 2026-01-22
 **Status**: Accepted
@@ -96,13 +96,17 @@ All continue to work with both legacy strings and new objects.
 
 ### Phase 4: Gradual Migration (Current)
 
-Started with scroll commands (14 commands):
+**Migration Status**: 15/160 commands (9.4%)
+
+Migrated commands include scroll commands:
 - `cmd_scroll_down`, `cmd_scroll_up`, `cmd_scroll_left`, `cmd_scroll_right`
 - `cmd_scroll_top`, `cmd_scroll_bottom`
 - `cmd_scroll_full_page_down`, `cmd_scroll_half_page_down`
 - `cmd_scroll_full_page_up`, `cmd_scroll_half_page_up`
 - `cmd_scroll_leftmost`, `cmd_scroll_rightmost`, `cmd_scroll_percentage`
 - `cmd_scroll_reset_target`, `cmd_scroll_change_target`
+
+Run `npm run validate:mappings` to see current migration progress.
 
 Other commands can be migrated incrementally.
 
@@ -174,7 +178,10 @@ const remapped = Object.values(stats.commands)
 
 ## Migration Path
 
-**Status**: Scroll commands only (Phase 4)
+**Current Status**: 15/160 commands migrated (9.4%)
+
+**Completed** (Phase 4):
+- Scroll commands: 15 commands ✓
 
 **Remaining commands** (to be migrated):
 - Navigation commands (Tab operations, links, etc.)
@@ -184,6 +191,8 @@ const remapped = Object.values(stats.commands)
 - Omnibar commands
 
 **Timeline**: Migrate as features are updated, not all at once.
+
+**Progress Tracking**: Run `npm run validate:mappings` to see real-time migration count.
 
 ---
 
