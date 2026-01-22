@@ -40,7 +40,7 @@ describe('Command Metadata - Migration and API Testing', () => {
     let configResult!: HeadlessConfigSetResult;
 
     const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
-    const CONFIG_FIXTURE_PATH = 'tests/cdp/fixtures/cdp-command-metadata-config.js';
+    const CONFIG_FIXTURE_PATH = 'data/fixtures/cdp-command-metadata-config.js';
 
     beforeAll(async () => {
         // Check CDP is available
