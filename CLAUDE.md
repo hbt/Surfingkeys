@@ -3,6 +3,8 @@
 
 ## Development Commands
 
+#### // TODO(hbt) NEXT [dev] add healthcheck + autofix (clean clone, deps, bun, config, servers, tests, debug, dev) and better examples + refs for sk-cdp 
+
 **Quick CDP inspection (most common):**
 ```bash
 ./bin/sk-cdp eval --target bg "chrome.runtime.id"        # Service worker
@@ -63,6 +65,7 @@ See [docs/cdp/sk-cdp.md](docs/cdp/sk-cdp.md) for full reference.
 **Use this for:** Inspections, side-effect verification, full debugging observability
 
 ### 2. CDP Debug Scripts (Reusable patterns)
+#### // TODO(hbt) NEXT [docs] fix examples. screenshot methods through chrome dont account for UI (e.g ;  + screenshot) . gnome screenshots are better?. write test
 ```bash
 npm run debug:cdp:live debug/cdp-screenshot.ts
 npm run debug:cdp:headless debug/cdp-screenshot.ts
@@ -88,6 +91,8 @@ Automatically builds and reloads extension.
 
 ## Automated Testing using Jest
 
+#### // TODO(hbt) NEXT [tests] consolidate both reporters? fix the headless:seq + :all (aggregate results. pass/fail for whole suite)
+
 ### Run single test in headless mode (fully automated)
 npm run test:cdp:headless tests/cdp/cdp-keyboard.test.ts
 
@@ -104,6 +109,7 @@ npm run test:cdp:live tests/cdp/cdp-keyboard.test.ts
 
 
 ## Documentation
+#### // TODO(hbt) NEXT [docs] clean up after review + migration
 
 - **docs/dev.md** - Development workflow: 3 debugging approaches (proxy, debug scripts, bin/dbg reload)
 - docs/glossary.md - Terms and Acronyms

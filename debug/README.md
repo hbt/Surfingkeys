@@ -1,5 +1,7 @@
 # CDP Debugging Scripts
 
+# // TODO(hbt) NEXT [debug] sort debug scripts . flag gold ones. the rest is experimental/tmp stuff
+
 This directory contains Chrome DevTools Protocol (CDP) debugging scripts for **live experimentation and debugging** during Surfingkeys development.
 
 **Purpose:** Manual exploration, live code injection, and behavioral verification without rebuild cycles.
