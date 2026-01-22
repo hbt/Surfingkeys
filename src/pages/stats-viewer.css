@@ -1,8 +1,8 @@
 body {
     margin: 0;
     padding: 0;
-    background: #0a0a0a;
-    color: #0f0;
+    background: var(--dark-bg);
+    color: var(--dark-fg);
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
     font-size: 13px;
 }
@@ -19,18 +19,18 @@ body {
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #0f0;
+    border-bottom: 2px solid var(--dark-green);
 }
 
 #stats-title {
     font-size: 24px;
     font-weight: bold;
-    color: #0f0;
+    color: var(--dark-green);
     margin: 0;
 }
 
 #stats-summary {
-    color: #888;
+    color: var(--dark-comment);
 }
 
 #stats-actions {
@@ -40,9 +40,9 @@ body {
 }
 
 .stats-btn {
-    background: #222;
-    border: 1px solid #0f0;
-    color: #0f0;
+    background: var(--dark-surface);
+    border: 1px solid var(--dark-green);
+    color: var(--dark-green);
     padding: 8px 16px;
     cursor: pointer;
     border-radius: 4px;
@@ -51,18 +51,18 @@ body {
 }
 
 .stats-btn:hover {
-    background: #0f0;
-    color: #000;
+    background: var(--dark-green);
+    color: var(--dark-bg);
 }
 
 .stats-btn-danger {
-    border-color: #f00;
-    color: #f00;
+    border-color: var(--dark-red);
+    color: var(--dark-red);
 }
 
 .stats-btn-danger:hover {
-    background: #f00;
-    color: #fff;
+    background: var(--dark-red);
+    color: white;
 }
 
 /* Tabs */
@@ -70,14 +70,14 @@ body {
     display: flex;
     gap: 5px;
     margin-bottom: 20px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--dark-surface-light);
     padding-bottom: 10px;
 }
 
 .stats-tab {
     background: transparent;
-    border: 1px solid #333;
-    color: #888;
+    border: 1px solid var(--dark-surface-light);
+    color: var(--dark-comment);
     padding: 10px 20px;
     cursor: pointer;
     border-radius: 4px 4px 0 0;
@@ -87,14 +87,14 @@ body {
 }
 
 .stats-tab:hover {
-    color: #0f0;
-    border-color: #0f0;
+    color: var(--dark-green);
+    border-color: var(--dark-green);
 }
 
 .stats-tab.active {
-    background: #0f0;
-    color: #000;
-    border-color: #0f0;
+    background: var(--dark-green);
+    color: var(--dark-bg);
+    border-color: var(--dark-green);
     font-weight: bold;
 }
 
@@ -109,8 +109,8 @@ body {
 
 /* Command list items */
 .command-item {
-    background: #111;
-    border: 1px solid #333;
+    background: var(--dark-surface);
+    border: 1px solid var(--dark-surface-light);
     border-radius: 4px;
     padding: 15px;
     margin-bottom: 10px;
@@ -121,14 +121,14 @@ body {
 }
 
 .command-item:hover {
-    border-color: #0f0;
-    background: #1a1a1a;
+    border-color: var(--dark-green);
+    background: var(--dark-surface-light);
 }
 
 .command-key {
-    background: #222;
-    border: 1px solid #0f0;
-    color: #0f0;
+    background: var(--dark-surface);
+    border: 1px solid var(--dark-green);
+    color: var(--dark-green);
     padding: 4px 10px;
     border-radius: 3px;
     font-weight: bold;
@@ -144,19 +144,19 @@ body {
 }
 
 .command-annotation {
-    color: #fff;
+    color: var(--dark-fg);
     font-weight: bold;
     margin-bottom: 3px;
 }
 
 .command-meta {
-    color: #666;
+    color: var(--dark-comment);
     font-size: 11px;
 }
 
 .command-count {
-    background: #0f0;
-    color: #000;
+    background: var(--dark-green);
+    color: var(--dark-bg);
     padding: 4px 12px;
     border-radius: 12px;
     font-weight: bold;
@@ -164,15 +164,15 @@ body {
 }
 
 .command-mode {
-    color: #08f;
+    color: var(--dark-cyan);
     font-size: 11px;
     margin-left: 10px;
 }
 
 /* Recent item specifics */
 .recent-item {
-    background: #111;
-    border: 1px solid #333;
+    background: var(--dark-surface);
+    border: 1px solid var(--dark-surface-light);
     border-radius: 4px;
     padding: 12px 15px;
     margin-bottom: 8px;
@@ -183,18 +183,18 @@ body {
 }
 
 .recent-item:hover {
-    border-color: #0f0;
-    background: #1a1a1a;
+    border-color: var(--dark-green);
+    background: var(--dark-surface-light);
 }
 
 .recent-time {
-    color: #666;
+    color: var(--dark-comment);
     font-size: 11px;
     min-width: 150px;
 }
 
 .recent-url {
-    color: #555;
+    color: var(--dark-comment);
     font-size: 10px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -210,17 +210,17 @@ body {
 }
 
 .overview-card {
-    background: #111;
-    border: 1px solid #333;
+    background: var(--dark-surface);
+    border: 1px solid var(--dark-surface-light);
     border-radius: 8px;
     padding: 20px;
 }
 
 .overview-card h3 {
-    color: #0f0;
+    color: var(--dark-green);
     margin: 0 0 15px 0;
     font-size: 14px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--dark-surface-light);
     padding-bottom: 10px;
 }
 
@@ -228,7 +228,7 @@ body {
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid var(--dark-surface-light);
 }
 
 .stat-row:last-child {
@@ -236,16 +236,16 @@ body {
 }
 
 .stat-label {
-    color: #888;
+    color: var(--dark-comment);
 }
 
 .stat-value {
-    color: #fff;
+    color: var(--dark-fg);
     font-weight: bold;
 }
 
 .stat-value.highlight {
-    color: #0f0;
+    color: var(--dark-green);
     font-size: 18px;
 }
 
@@ -253,7 +253,7 @@ body {
 .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #666;
+    color: var(--dark-comment);
     font-size: 16px;
 }
 
@@ -265,7 +265,7 @@ body {
 /* Bar chart for frequency */
 .frequency-bar {
     height: 4px;
-    background: #222;
+    background: var(--dark-surface);
     border-radius: 2px;
     margin-top: 5px;
     overflow: hidden;
@@ -273,7 +273,7 @@ body {
 
 .frequency-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #0f0, #0a0);
+    background: linear-gradient(90deg, var(--dark-green), var(--dark-yellow));
     border-radius: 2px;
     transition: width 0.3s;
 }

@@ -4,8 +4,14 @@
     <meta charset="utf-8">
     <title>Surfingkeys - Usage Statistics</title>
     <link rel="stylesheet" href="stats-viewer.css">
+    <link rel="stylesheet" href="pages-nav.css">
 </head>
 <body>
+    <nav class="pages-nav">
+        <a href="#" data-page="options">Settings</a>
+        <a href="#" data-page="errors">Error Viewer</a>
+        <a href="#" data-page="stats">Usage Tracker</a>
+    </nav>
     <div id="stats-container">
         <header id="stats-header">
             <h1 id="stats-title">Usage Statistics</h1>
@@ -42,6 +48,7 @@
         </div>
     </div>
 
+    <script src="pages-nav.js"></script>
     <script src="../content.js"></script>
     <script src="stats-viewer.js"></script>
 </body>

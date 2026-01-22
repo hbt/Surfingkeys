@@ -5,10 +5,16 @@
         <title>Surfingkeys Settings</title>
         <link rel="stylesheet" href="../content.css">
         <link rel="stylesheet" href="options.css">
+        <link rel="stylesheet" href="pages-nav.css">
         <script src="ace.js" type="text/javascript" charset="utf-8"></script>
         <meta name="viewport" content="width=device-width, initial-scale=1">
     </head>
     <body>
+        <nav class="pages-nav">
+            <a href="#" data-page="options">Settings</a>
+            <a href="#" data-page="errors">Error Viewer</a>
+            <a href="#" data-page="stats">Usage Tracker</a>
+        </nav>
         <script type="text/plain" id="sample">// an example to create a new mapping `ctrl-y`
 api.mapkey('<Ctrl-y>', 'Show me the money', function() {
     api.Front.showPopup('a well-known phrase uttered by characters in the 1996 film Jerry Maguire (Escape to close).');
@@ -139,6 +145,7 @@ settings.theme = `
             <button id="addProxyPair">Add proxy pair</button>
         </div>
         <h3 id="resetSettings">Reset</h3>
+        <script src="pages-nav.js"></script>
         <script src="../content.js"></script>
     </body>
 </html>

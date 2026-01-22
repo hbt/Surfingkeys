@@ -4,8 +4,14 @@
     <meta charset="utf-8">
     <title>Surfingkeys - Error Viewer</title>
     <link rel="stylesheet" href="error-viewer.css">
+    <link rel="stylesheet" href="pages-nav.css">
 </head>
 <body>
+    <nav class="pages-nav">
+        <a href="#" data-page="options">Settings</a>
+        <a href="#" data-page="errors">Error Viewer</a>
+        <a href="#" data-page="stats">Usage Tracker</a>
+    </nav>
     <div id="error-viewer-container">
         <header id="error-viewer-header">
             <h1 id="error-viewer-title">🔍 Surfingkeys Error Viewer</h1>
@@ -37,6 +43,7 @@
         <div id="error-list"></div>
     </div>
 
+    <script src="pages-nav.js"></script>
     <script src="error-viewer.js"></script>
 </body>
 </html>

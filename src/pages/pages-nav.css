@@ -1,3 +1,18 @@
+/* Monokai theme variables (shared across all pages) */
+:root {
+    --dark-bg: #272822;
+    --dark-fg: #F8F8F2;
+    --dark-comment: #75715E;
+    --dark-red: #F92672;
+    --dark-orange: #FD971F;
+    --dark-yellow: #E6DB74;
+    --dark-green: #A6E22E;
+    --dark-cyan: #66D9EF;
+    --dark-purple: #AE81FF;
+    --dark-surface: #3E3D32;
+    --dark-surface-light: #49483E;
+}
+
 /* Shared Navigation Styles */
 .pages-nav {
     display: flex;
