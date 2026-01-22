@@ -11,8 +11,8 @@ import {
     connectToCDP,
     closeCDP,
     executeInTarget
-} from './utils/cdp-client';
-import { CDP_PORT } from './cdp-config';
+} from '../utils/cdp-client';
+import { CDP_PORT } from '../cdp-config';
 
 describe('Storage Read/Write Test', () => {
     let bgWs: WebSocket;

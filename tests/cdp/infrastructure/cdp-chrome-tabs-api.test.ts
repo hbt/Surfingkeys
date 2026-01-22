@@ -1,12 +1,12 @@
 /**
- * CDP Chrome API Test - Tabs Verification
+ * CDP Chrome Tabs API Test - Tabs Verification
  *
  * Tests Chrome tabs API through CDP using Jest framework.
  * Verifies tab querying, filtering, creation, activation, and cleanup.
  *
  * Usage:
- *   Live browser:    npm run test:cdp tests/cdp/cdp-chrome-api.test.ts
- *   Headless mode:   npm run test:cdp:headless tests/cdp/cdp-chrome-api.test.ts
+ *   Live browser:    npm run test:cdp tests/cdp/infrastructure/cdp-chrome-tabs-api.test.ts
+ *   Headless mode:   npm run test:cdp:headless tests/cdp/infrastructure/cdp-chrome-tabs-api.test.ts
  */
 
 import WebSocket from 'ws';
@@ -17,8 +17,8 @@ import {
     executeInTarget,
     closeTab,
     closeCDP
-} from './utils/cdp-client';
-import { CDP_PORT } from './cdp-config';
+} from '../utils/cdp-client';
+import { CDP_PORT } from '../cdp-config';
 
 interface TabInfo {
     id: number;
