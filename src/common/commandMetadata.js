@@ -9,12 +9,15 @@
 
 /**
  * Extract display string from annotation (legacy or structured)
- * @param {string|object} annotation - Annotation value (string or metadata object)
+ * @param {string|object|array} annotation - Annotation value (string, metadata object, or array from parseAnnotation)
  * @returns {string} Display string for UI
  */
 function getAnnotationString(annotation) {
     if (typeof annotation === 'string') {
         return annotation;
+    }
+    if (Array.isArray(annotation) && annotation.length > 0) {
+        return annotation[0];
     }
     if (annotation?.short) {
         return annotation.short;
@@ -24,16 +27,19 @@ function getAnnotationString(annotation) {
 
 /**
  * Extract metadata object from annotation
- * @param {string|object} annotation - Annotation value
+ * @param {string|object|array} annotation - Annotation value
  * @returns {object} Metadata object with safe defaults
  */
 function getAnnotationMetadata(annotation) {
-    if (typeof annotation === 'object' && annotation !== null) {
+    if (typeof annotation === 'object' && annotation !== null && !Array.isArray(annotation)) {
         return annotation;
     }
-    // Legacy string: convert to minimal metadata
+    // Legacy string or array: convert to minimal metadata
+    const displayString = Array.isArray(annotation) && annotation.length > 0
+        ? annotation[0]
+        : (annotation || "Unknown command");
     return {
-        short: annotation || "Unknown command",
+        short: displayString,
         unique_id: null,
         category: null,
         description: null,

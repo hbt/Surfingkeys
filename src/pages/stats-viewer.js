@@ -49,11 +49,15 @@ function renderFrequent() {
 
     const maxCount = commands[0]?.count || 1;
 
-    container.innerHTML = commands.map(cmd => `
+    container.innerHTML = commands.map(cmd => {
+        const annotation = cmd.command_id && cmd.display_name
+            ? `${cmd.command_id} ${cmd.display_name}`
+            : (cmd.display_name || cmd.annotation || 'Unknown command');
+        return `
         <div class="command-item">
             <span class="command-key">${escapeHtml(cmd.key)}</span>
             <div class="command-info">
-                <div class="command-annotation">${escapeHtml(cmd.annotation || 'Unknown command')}</div>
+                <div class="command-annotation">${escapeHtml(annotation)}</div>
                 <div class="command-meta">
                     Last used: ${formatDate(cmd.lastUsed)}
                     <span class="command-mode">${cmd.mode || 'Normal'}</span>
@@ -64,7 +68,7 @@ function renderFrequent() {
             </div>
             <span class="command-count">${cmd.count}</span>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 // Render recently used commands
@@ -82,16 +86,20 @@ function renderRecent() {
         return;
     }
 
-    container.innerHTML = recent.map(item => `
+    container.innerHTML = recent.map(item => {
+        const annotation = item.command_id && item.display_name
+            ? `${item.command_id} ${item.display_name}`
+            : (item.display_name || item.annotation || 'Unknown command');
+        return `
         <div class="recent-item">
             <span class="command-key">${escapeHtml(item.key)}</span>
             <div class="command-info">
-                <div class="command-annotation">${escapeHtml(item.annotation || 'Unknown command')}</div>
+                <div class="command-annotation">${escapeHtml(annotation)}</div>
                 <span class="recent-url" title="${escapeHtml(item.url || '')}">${escapeHtml(truncateUrl(item.url || ''))}</span>
             </div>
             <span class="recent-time">${formatDate(item.timestamp)}</span>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 // Render overview statistics
