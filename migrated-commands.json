@@ -1,0 +1,388 @@
+{
+  "migrated": [
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 820,
+      "key": "cS",
+      "shortName": "Reset scroll target",
+      "uniqueId": "cmd_scroll_reset_target"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 850,
+      "key": "e",
+      "shortName": "Scroll half page up",
+      "uniqueId": "cmd_scroll_half_page_up"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 862,
+      "key": "U",
+      "shortName": "Scroll full page up",
+      "uniqueId": "cmd_scroll_full_page_up"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 874,
+      "key": "d",
+      "shortName": "Scroll half page down",
+      "uniqueId": "cmd_scroll_half_page_down"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 886,
+      "key": "P",
+      "shortName": "Scroll full page down",
+      "uniqueId": "cmd_scroll_full_page_down"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 898,
+      "key": "gg",
+      "shortName": "Scroll to the top of the page",
+      "uniqueId": "cmd_scroll_top"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 910,
+      "key": "G",
+      "shortName": "Scroll to the bottom of the page",
+      "uniqueId": "cmd_scroll_bottom"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 922,
+      "key": "j",
+      "shortName": "Scroll down",
+      "uniqueId": "cmd_scroll_down"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 934,
+      "key": "k",
+      "shortName": "Scroll up",
+      "uniqueId": "cmd_scroll_up"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 946,
+      "key": "h",
+      "shortName": "Scroll left",
+      "uniqueId": "cmd_scroll_left"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 958,
+      "key": "l",
+      "shortName": "Scroll right",
+      "uniqueId": "cmd_scroll_right"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 970,
+      "key": "0",
+      "shortName": "Scroll all the way to the left",
+      "uniqueId": "cmd_scroll_leftmost"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 982,
+      "key": "$",
+      "shortName": "Scroll all the way to the right",
+      "uniqueId": "cmd_scroll_rightmost"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 994,
+      "key": "%",
+      "shortName": "Scroll to percentage of current page",
+      "uniqueId": "cmd_scroll_percentage"
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 1006,
+      "key": "cs",
+      "shortName": "Change scroll target",
+      "uniqueId": "cmd_scroll_change_target"
+    }
+  ],
+  "notMigrated": [
+    {
+      "file": "content_scripts/common/hints.js",
+      "lineNum": 85,
+      "key": "ct",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/hints.js",
+      "lineNum": 93,
+      "key": "ch",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/hints.js",
+      "lineNum": 101,
+      "key": "d",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/hints.js",
+      "lineNum": 110,
+      "key": "l",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/insert.js",
+      "lineNum": 193,
+      "key": ":",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 63,
+      "key": "p",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 331,
+      "key": "p",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 800,
+      "key": "yG",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 807,
+      "key": "yS",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 1021,
+      "key": "/",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 1030,
+      "key": "E",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/normal.js",
+      "lineNum": 1038,
+      "key": "R",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 123,
+      "key": "l",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 128,
+      "key": "h",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 133,
+      "key": "j",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 138,
+      "key": "k",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 143,
+      "key": "w",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 148,
+      "key": "e",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 153,
+      "key": "b",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 158,
+      "key": ")",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 163,
+      "key": "(",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 168,
+      "key": "}",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 173,
+      "key": "{",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 178,
+      "key": "0",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 183,
+      "key": "$",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 188,
+      "key": "G",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 206,
+      "key": "gg",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 229,
+      "key": "o",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 284,
+      "key": "*",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 310,
+      "key": "zt",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 320,
+      "key": "zz",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 330,
+      "key": "zb",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 340,
+      "key": "f",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 349,
+      "key": "F",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 358,
+      "key": ";",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 367,
+      "key": ",",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 377,
+      "key": "p",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 400,
+      "key": "V",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    },
+    {
+      "file": "content_scripts/common/visual.js",
+      "lineNum": 602,
+      "key": "y",
+      "shortName": "(unnamed)",
+      "uniqueId": null
+    }
+  ],
+  "summary": {
+    "totalMigrated": 15,
+    "totalNotMigrated": 39
+  }
+}

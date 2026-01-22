@@ -9,9 +9,13 @@ const logFile = path.join(os.tmpdir(), 'lint-output.log');
 const timestamp = new Date().toISOString();
 
 try {
-  // Run both linters in parallel and capture output
-  const cmd = 'npm-run-all --parallel lint:js lint:css 2>&1';
-  const output = execSync(cmd, { encoding: 'utf8', stdio: 'pipe' });
+  // Run linters with --fix to auto-correct fixable issues
+  const eslintCmd = 'eslint --config config/eslint.config.js src tests debug scripts --ext .js,.ts --fix 2>&1';
+  const stylelintCmd = 'stylelint --config config/stylelint.config.js \'src/**/*.css\' --fix 2>&1';
+
+  const jsOutput = execSync(eslintCmd, { encoding: 'utf8', stdio: 'pipe' });
+  const cssOutput = execSync(stylelintCmd, { encoding: 'utf8', stdio: 'pipe' });
+  const output = jsOutput + cssOutput;
 
   // Write full output to log file
   fs.appendFileSync(logFile, `\n=== Lint run ${timestamp} ===\n${output}\n`);

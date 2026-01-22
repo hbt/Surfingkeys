@@ -68,7 +68,7 @@ function renderFrequent() {
             </div>
             <span class="command-count">${cmd.count}</span>
         </div>
-    `}).join('');
+    `;}).join('');
 }
 
 // Render recently used commands
@@ -99,7 +99,7 @@ function renderRecent() {
             </div>
             <span class="recent-time">${formatDate(item.timestamp)}</span>
         </div>
-    `}).join('');
+    `;}).join('');
 }
 
 // Render overview statistics
