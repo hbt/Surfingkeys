@@ -16,7 +16,6 @@
  */
 
 const { execSync } = require('child_process');
-const { readdirSync } = require('fs');
 const path = require('path');
 
 // ANSI color codes
@@ -47,9 +46,21 @@ function runTest(testFile) {
 
 async function main() {
     const testsDir = path.join(__dirname);
-    const testFiles = readdirSync(testsDir)
-        .filter(file => file.endsWith('.test.ts'))
-        .map(file => path.join(testsDir, file));
+
+    // Use find command to discover all .test.ts files recursively (including subdirectories)
+    const findCommand = `find ${testsDir} -name '*.test.ts' -type f`;
+    let testFiles = [];
+    try {
+        const output = execSync(findCommand, { encoding: 'utf8' });
+        testFiles = output
+            .trim()
+            .split('\n')
+            .filter(f => f.length > 0)
+            .sort();
+    } catch (error) {
+        log(`❌ Error discovering test files: ${error.message}`, colors.red);
+        process.exit(1);
+    }
 
     if (testFiles.length === 0) {
         log('❌ No test files found in tests/cdp/', colors.red);
