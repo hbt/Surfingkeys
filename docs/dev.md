@@ -248,6 +248,20 @@ To send keystrokes to a target page, use `Input.dispatchKeyEvent` with three eve
 
 This sends the `f` key to the options page. Replace `"f"` with any other key (e.g., `;` for semicolon).
 
+**Uppercase keys with shift modifier:**
+
+To send uppercase `E` (which requires shift):
+
+```bash
+./bin/sk-cdp send --target options.html "Input.dispatchKeyEvent" '{"type": "keyDown", "key": "E", "modifiers": 8}' && sleep 0.05 && ./bin/sk-cdp send --target options.html "Input.dispatchKeyEvent" '{"type": "char", "text": "E", "modifiers": 8}' && sleep 0.05 && ./bin/sk-cdp send --target options.html "Input.dispatchKeyEvent" '{"type": "keyUp", "key": "E", "modifiers": 8}'
+```
+
+**Modifiers reference:**
+- `1` = Alt
+- `2` = Ctrl
+- `4` = Meta/Cmd
+- `8` = Shift
+
 **Key advantages of sk-cdp + proxy logging:**
 - ✅ Metadata shows you when code does nothing (failures detected)
 - ✅ Console logs persist for investigation
