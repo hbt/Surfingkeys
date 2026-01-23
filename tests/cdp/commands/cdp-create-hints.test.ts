@@ -174,5 +174,7 @@ describe('DOM Manipulation - Hints', () => {
             expect(hostInfo.hasShadowRoot).toBe(true);
             expect(hostInfo.shadowRootChildren).toBeGreaterThan(0);
         });
+
+        it.todo('should create consistent hints snapshot test');
     });
 });
