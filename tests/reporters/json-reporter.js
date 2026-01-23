@@ -39,6 +39,15 @@ class JSONReporter {
         // Extract test file relative path
         const testPath = path.relative(this.globalConfig.rootDir, test.path);
 
+        // Debug: Log console buffer status
+        if (this.suites.length === 0) {
+            console.error(`\n[DEBUG] Console buffer check:`);
+            console.error(`  testResult.console exists: ${!!testResult.console}`);
+            console.error(`  testResult.console type: ${typeof testResult.console}`);
+            console.error(`  testResult.console value: ${JSON.stringify(testResult.console)}`);
+            console.error(`  Raw testResult keys: ${Object.keys(testResult).join(', ')}`);
+        }
+
         // Build test suite record
         const suite = {
             file: testPath,
@@ -103,6 +112,7 @@ class JSONReporter {
         return consoleBuffer.map(entry => ({
             type: entry.type || 'log',
             message: entry.message,
+            origin: entry.origin || undefined,  // Stack trace showing where the log came from
             timestamp: entry.timestamp || Date.now()
         }));
     }
@@ -277,6 +287,95 @@ class JSONReporter {
     }
 
     /**
+     * Generate field validation diagnostics
+     */
+    generateDiagnostics(report) {
+        const diag = {
+            timestamp: new Date().toISOString(),
+            fieldValidation: {
+                summaryLevel: {
+                    slow: { value: report.summary.slow, type: typeof report.summary.slow },
+                    assertions_passing: { value: report.summary.assertions.passing, type: typeof report.summary.assertions.passing }
+                },
+                issuesLevel: {
+                    resourceLeaks: { value: report.issues.resourceLeaks, type: typeof report.issues.resourceLeaks },
+                    wasInterrupted: { value: report.issues.wasInterrupted, type: typeof report.issues.wasInterrupted },
+                    openHandlesTotal: { value: report.issues.openHandlesTotal, type: typeof report.issues.openHandlesTotal }
+                },
+                suiteLevel: [],
+                testLevel: []
+            }
+        };
+
+        // Analyze suite-level fields
+        report.suites.forEach((suite, suiteIdx) => {
+            const suiteAnalysis = {
+                index: suiteIdx,
+                file: suite.file,
+                fields: {
+                    displayName: { value: suite.displayName, present: suite.displayName !== undefined, type: typeof suite.displayName },
+                    leaks: { value: suite.leaks, type: typeof suite.leaks, isAccurate: typeof suite.leaks === 'boolean' },
+                    memoryUsage: { value: suite.memoryUsage, present: suite.memoryUsage !== undefined, type: typeof suite.memoryUsage },
+                    openHandles: { value: suite.openHandles, type: typeof suite.openHandles, isAccurate: typeof suite.openHandles === 'number' },
+                    perfStats: {
+                        present: suite.perfStats !== undefined,
+                        value: suite.perfStats ? {
+                            start: { value: suite.perfStats.start, type: typeof suite.perfStats.start },
+                            end: { value: suite.perfStats.end, type: typeof suite.perfStats.end },
+                            runtime: { value: suite.perfStats.runtime, type: typeof suite.perfStats.runtime, calculated: true },
+                            slow: { value: suite.perfStats.slow, type: typeof suite.perfStats.slow, isAccurate: typeof suite.perfStats.slow === 'boolean' }
+                        } : null
+                    },
+                    numTodo: { value: suite.numTodo, type: typeof suite.numTodo },
+                    snapshot: {
+                        present: suite.snapshot !== undefined,
+                        value: suite.snapshot ? {
+                            added: suite.snapshot.added,
+                            matched: suite.snapshot.matched,
+                            updated: suite.snapshot.updated,
+                            unmatched: suite.snapshot.unmatched,
+                            unchecked: suite.snapshot.unchecked,
+                            fileDeleted: suite.snapshot.fileDeleted
+                        } : null
+                    },
+                    console: {
+                        captured: suite.console !== undefined && suite.console !== null,
+                        count: suite.console ? suite.console.length : 0,
+                        details: suite.console ? suite.console.slice(0, 10).map((entry, idx) => ({
+                            index: idx,
+                            type: entry.type,
+                            message: entry.message.substring(0, 100) + (entry.message.length > 100 ? '...' : ''),
+                            originFile: entry.origin ? entry.origin.split('\n')[0] : 'unknown'
+                        })) : []
+                    }
+                },
+                tests: []
+            };
+
+            // Analyze test-level fields
+            suite.tests.forEach((test, testIdx) => {
+                const testAnalysis = {
+                    index: testIdx,
+                    title: test.title,
+                    status: test.status,
+                    fields: {
+                        ancestorTitles: { value: test.ancestorTitles, count: test.ancestorTitles.length, type: typeof test.ancestorTitles },
+                        location: { present: test.location !== undefined, value: test.location, type: typeof test.location },
+                        assertions_passing: { value: test.assertions.passing, type: typeof test.assertions.passing, isAccurate: typeof test.assertions.passing === 'number' },
+                        invocations: { value: test.invocations, type: typeof test.invocations, isDefault: test.invocations === 1 },
+                        failureDetails: { present: test.failureDetails !== undefined, count: test.failureDetails ? test.failureDetails.length : 0 }
+                    }
+                };
+                suiteAnalysis.tests.push(testAnalysis);
+            });
+
+            diag.fieldValidation.suiteLevel.push(suiteAnalysis);
+        });
+
+        return diag;
+    }
+
+    /**
      * Output the report to stdout and optionally to a file
      */
     outputReport(report) {
@@ -285,6 +384,11 @@ class JSONReporter {
         // Output to stdout
         console.log('\n=== TEST REPORT (JSON) ===\n');
         console.log(reportJson);
+
+        // Generate and output diagnostics
+        const diagnostics = this.generateDiagnostics(report);
+        console.log('\n=== FIELD VALIDATION DIAGNOSTICS ===\n');
+        console.log(JSON.stringify(diagnostics, null, 2));
 
         // Also save to file
         const reportDir = '/tmp/cdp-test-reports';
@@ -296,7 +400,36 @@ class JSONReporter {
         const reportFile = path.join(reportDir, `test-report-${timestamp}.json`);
         fs.writeFileSync(reportFile, reportJson);
 
-        console.log(`\n✓ Report saved to: ${reportFile}\n`);
+        const diagFile = path.join(reportDir, `test-diagnostics-${timestamp}.json`);
+        fs.writeFileSync(diagFile, JSON.stringify(diagnostics, null, 2));
+
+        console.log(`\n✓ Report saved to: ${reportFile}`);
+        console.log(`✓ Diagnostics saved to: ${diagFile}\n`);
+
+        // Invoke table reporter to generate human-readable output
+        this.invokeTableReporter(reportFile, reportDir);
+    }
+
+    /**
+     * Invoke table reporter to generate Markdown tables from JSON report
+     */
+    invokeTableReporter(jsonReportPath, reportDir) {
+        try {
+            const tableReporter = require('./table-reporter.js');
+            const jsonReport = JSON.parse(fs.readFileSync(jsonReportPath, 'utf8'));
+            const markdown = tableReporter.generateMarkdownReport(jsonReport);
+
+            const timestamp = new Date(jsonReport.timestamp).toISOString().replace(/[:.]/g, '-');
+            const reportFile = path.join(reportDir, `test-report-table-${timestamp}.md`);
+            fs.writeFileSync(reportFile, markdown, 'utf8');
+
+            // Output to console
+            console.log('\n=== TEST REPORT (TABLE FORMAT) ===\n');
+            console.log(markdown);
+            console.log(`\n✓ Table report saved to: ${reportFile}\n`);
+        } catch (err) {
+            console.error(`\n⚠️  Warning: Could not generate table report: ${err.message}\n`);
+        }
     }
 }
 
