@@ -55,6 +55,50 @@ function cleanTableOutput(output) {
 }
 
 /**
+ * Format markdown table with proper column alignment
+ * Matches the formatting from scripts/generate-command-docs.js
+ */
+function formatMarkdownTable(rows) {
+    if (rows.length === 0) return '';
+
+    // Calculate max width for each column
+    const numCols = Math.max(...rows.map(r => r.length));
+    const colWidths = new Array(numCols).fill(0);
+
+    rows.forEach(row => {
+        row.forEach((cell, i) => {
+            colWidths[i] = Math.max(colWidths[i], cell.length);
+        });
+    });
+
+    // Format each row
+    const formattedLines = rows.map((row) => {
+        const formattedCells = [];
+
+        for (let i = 0; i < numCols; i++) {
+            const cell = row[i] || '';
+            const cellWidth = cell.length;
+            const padding = colWidths[i] - cellWidth;
+
+            let formattedCell;
+            // Check if this is a separator row (contains only dashes)
+            if (cell.match(/^-+$/)) {
+                formattedCell = '-'.repeat(colWidths[i]);
+            } else {
+                // Left-align text with padding
+                formattedCell = cell + ' '.repeat(padding);
+            }
+
+            formattedCells.push(formattedCell);
+        }
+
+        return '| ' + formattedCells.join(' | ') + ' |';
+    });
+
+    return formattedLines.join('\n');
+}
+
+/**
  * Restructure markdown output:
  * - Move Coverage after Test Cases
  * - Remove Suite column from Test Suites (redundant with header)
@@ -137,16 +181,19 @@ function restructureMarkdown(markdown) {
         } else if (inTestSuitesSection && line.trim()) {
             testSuitesLines.push(line);
         } else if (inTestCasesSection && line.trim()) {
-            testCasesLines.push(line);
+            // Skip status summary lines like "✅ Tests passed" or "❌ Tests failed"
+            if (!line.trim().match(/^(✅|❌)\s+(Tests|tests)\s+(passed|failed)/)) {
+                testCasesLines.push(line);
+            }
         }
     }
 
-    // Build restructured output
-    result.push('# Test Report');
+    // Build restructured output (Test Cases → Summary → Coverage)
+
+    // Test Cases section first
+    result.push('## Test Cases');
     result.push('');
-    if (timestamp) {
-        result.push(timestamp);
-    }
+    result.push(...testCasesLines);
     result.push('');
 
     // Convert Summary metrics to table
@@ -185,18 +232,16 @@ function restructureMarkdown(markdown) {
         if (line.includes('**Status**') && line.includes('❌ FAILED')) summaryTable.status = '❌ FAILED';
     }
 
-    result.push('| Status | Tests | Passed | Failed | Skipped | Slow | Assertions | Duration |');
-    result.push('| ------ | ----- | ------ | ------ | ------- | ---- | ---------- | -------- |');
-    result.push(`| ${summaryTable.status} | ${summaryTable.tests} | ${summaryTable.passed} | ${summaryTable.failed} | ${summaryTable.skipped} | ${summaryTable.slow} | ${summaryTable.assertions} | ${summaryTable.duration} |`);
+    // Format summary table with proper column widths
+    const summaryTableRows = [
+        ['Status', 'Tests', 'Passed', 'Failed', 'Skipped', 'Slow', 'Assertions', 'Duration'],
+        ['-', '-', '-', '-', '-', '-', '-', '-'],
+        [summaryTable.status, summaryTable.tests, summaryTable.passed, summaryTable.failed, summaryTable.skipped, summaryTable.slow, summaryTable.assertions, summaryTable.duration]
+    ];
+    result.push(formatMarkdownTable(summaryTableRows));
     result.push('');
 
-    // Test Cases section (without Suite column)
-    result.push('## Test Cases');
-    result.push('');
-    result.push(...testCasesLines);
-    result.push('');
-
-    // Coverage section (moved after Test Cases)
+    // Coverage section (moved after Summary)
     if (coverageLines.length > 0) {
         result.push('## Coverage');
         result.push('');
