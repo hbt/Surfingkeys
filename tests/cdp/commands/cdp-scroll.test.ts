@@ -12,6 +12,8 @@
  *   Headless mode:   npm run test:cdp:headless tests/cdp/commands/cdp-scroll.test.ts
  */
 
+// TODO(hbt) NEXT [fix] triggers. test involves networking. fixtures? hints is clear though
+
 import WebSocket from 'ws';
 import {
     checkCDPAvailable,
