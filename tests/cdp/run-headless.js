@@ -151,6 +151,9 @@ function normalizeReporter(value) {
     if (normalized === 'both' || normalized === 'all') {
         return 'both';
     }
+    if (normalized === 'json') {
+        return 'json';
+    }
     if (normalized === 'none' || normalized === 'quiet') {
         return 'none';
     }
@@ -158,6 +161,8 @@ function normalizeReporter(value) {
 }
 
 function buildReporterArgs(mode, streamingReporterPath) {
+    const jsonReporterPath = path.join(__dirname, '../reporters/json-reporter.js');
+
     switch (mode) {
     case 'default':
         return {
@@ -168,6 +173,11 @@ function buildReporterArgs(mode, streamingReporterPath) {
         return {
             label: 'streaming+default',
             args: ['--reporters', streamingReporterPath, '--reporters', 'default']
+        };
+    case 'json':
+        return {
+            label: 'json',
+            args: ['--reporters', jsonReporterPath]
         };
     case 'none':
         return {
@@ -188,8 +198,8 @@ async function main() {
     const testFile = cli.positional[0];
 
     if (!testFile) {
-        console.error('❌ Usage: node run-headless.js [--reporter=<streaming|default|both>] <test-file>');
-        console.error('   Example: node run-headless.js --reporter=default tests/cdp/cdp-keyboard.ts');
+        console.error('❌ Usage: node run-headless.js [--reporter=<streaming|default|both|json>] <test-file>');
+        console.error('   Example: node run-headless.js --reporter=json tests/cdp/commands/cdp-create-hints.test.ts');
         process.exit(1);
     }
 

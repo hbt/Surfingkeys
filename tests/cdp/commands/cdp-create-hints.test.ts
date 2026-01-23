@@ -4,12 +4,16 @@
  * Tests hint creation when pressing the 'f' key.
  * Verifies DOM manipulation and shadowRoot hint rendering.
  *
+ * This test also collects V8 code coverage data using the Chrome DevTools Protocol.
+ *
  * Usage:
  *   Live browser:    npm run test:cdp tests/cdp/commands/cdp-create-hints.test.ts
  *   Headless mode:   npm run test:cdp:headless tests/cdp/commands/cdp-create-hints.test.ts
  */
 
 import WebSocket from 'ws';
+import * as fs from 'fs';
+import * as path from 'path';
 import {
     checkCDPAvailable,
     findExtensionBackground,
@@ -28,15 +32,54 @@ import {
 } from '../utils/browser-actions';
 import { CDP_PORT } from '../cdp-config';
 
+// Helper to send CDP commands
+let messageId = 0;
+function sendCDPCommand(ws: WebSocket, method: string, params: any = {}): Promise<any> {
+    return new Promise((resolve, reject) => {
+        const id = ++messageId;
+        const timeout = setTimeout(() => {
+            reject(new Error(`Timeout waiting for CDP response for ${method}`));
+        }, 10000);
+
+        const handler = (data: any) => {
+            try {
+                const msg = JSON.parse(data.toString());
+                if (msg.id === id) {
+                    clearTimeout(timeout);
+                    ws.removeListener('message', handler);
+                    if (msg.error) {
+                        reject(new Error(`CDP error for ${method}: ${msg.error.message}`));
+                    } else {
+                        resolve(msg.result);
+                    }
+                }
+            } catch (err) {
+                // Ignore parsing errors for messages we're not waiting for
+            }
+        };
+
+        ws.on('message', handler);
+        ws.send(JSON.stringify({ id, method, params }));
+    });
+}
+
 describe('DOM Manipulation - Hints', () => {
+    jest.setTimeout(60000); // Increase timeout for coverage collection
+
     let bgWs: WebSocket;
     let pageWs: WebSocket;
     let extensionId: string;
     let tabId: number;
 
     const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
+    const COVERAGE_DIR = '/tmp/cdp-coverage';
 
     beforeAll(async () => {
+        // Create coverage directory
+        if (!fs.existsSync(COVERAGE_DIR)) {
+            fs.mkdirSync(COVERAGE_DIR, { recursive: true });
+        }
+
         // Check CDP is available
         const cdpAvailable = await checkCDPAvailable();
         if (!cdpAvailable) {
@@ -60,9 +103,33 @@ describe('DOM Manipulation - Hints', () => {
 
         // Wait for page to load
         await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Start V8 coverage collection
+        try {
+            await sendCDPCommand(pageWs, 'Profiler.enable');
+            await sendCDPCommand(pageWs, 'Profiler.startPreciseCoverage', { callCount: true, detailed: true });
+            console.log('✓ V8 coverage collection started for page context');
+        } catch (err) {
+            console.error('Warning: Could not start coverage:', err);
+        }
     });
 
     afterAll(async () => {
+        // Collect coverage before cleanup
+        try {
+            console.log('✓ Collecting V8 coverage...');
+            const coverage = await sendCDPCommand(pageWs, 'Profiler.takePreciseCoverage');
+            await sendCDPCommand(pageWs, 'Profiler.stopPreciseCoverage');
+
+            // Write coverage file
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const coveragePath = path.join(COVERAGE_DIR, `page-hints-coverage-${timestamp}.json`);
+            fs.writeFileSync(coveragePath, JSON.stringify(coverage, null, 2));
+            console.log(`✓ Coverage saved: ${coveragePath}`);
+        } catch (err) {
+            console.error('Warning: Could not collect coverage:', err);
+        }
+
         // Cleanup
         if (tabId && bgWs) {
             await closeTab(bgWs, tabId);
