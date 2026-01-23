@@ -22,17 +22,17 @@ import {
     closeTab,
     closeCDP,
     executeInTarget
-} from './utils/cdp-client';
+} from '../utils/cdp-client';
 import {
     sendKey,
     enableInputDomain
-} from './utils/browser-actions';
+} from '../utils/browser-actions';
 import {
     runHeadlessConfigSet,
     clearHeadlessConfig,
     HeadlessConfigSetResult
-} from './utils/config-set-headless';
-import { CDP_PORT } from './cdp-config';
+} from '../utils/config-set-headless';
+import { CDP_PORT } from '../cdp-config';
 
 describe('Command Metadata - Migration and API Testing', () => {
     let bgWs: WebSocket;
