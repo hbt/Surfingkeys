@@ -24,7 +24,7 @@ import {
     getScrollPosition,
     enableInputDomain
 } from '../utils/browser-actions';
-import { setupPerTestCoverageHooks } from '../utils/cdp-coverage';
+import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('Usage Tracking', () => {
@@ -32,6 +32,8 @@ describe('Usage Tracking', () => {
     let pageWs: WebSocket;
     let extensionId: string;
     let tabId: number;
+    let beforeCovData: any = null;
+    let currentTestName: string = '';
 
     const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
 
@@ -75,11 +77,24 @@ describe('Usage Tracking', () => {
 
         // Wait for tracking system to be ready
         await new Promise(r => setTimeout(r, 800));
+
+        // Start V8 coverage collection for page
+        await startCoverage(pageWs, 'content-page');
     });
 
-    const coverageHooks = setupPerTestCoverageHooks(pageWs);
-    beforeEach(coverageHooks.beforeEach);
-    afterEach(coverageHooks.afterEach);
+    beforeEach(async () => {
+        // Capture test name
+        const state = expect.getState();
+        currentTestName = state.currentTestName || 'unknown-test';
+
+        // Capture coverage snapshot before test
+        beforeCovData = await captureBeforeCoverage(pageWs);
+    });
+
+    afterEach(async () => {
+        // Capture coverage snapshot after test and calculate delta
+        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+    });
 
     afterAll(async () => {
         if (tabId) await closeTab(bgWs, tabId);
