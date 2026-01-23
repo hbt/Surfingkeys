@@ -1,0 +1,41 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DOM Manipulation - Hints Hint Creation should create consistent hints snapshot test 1`] = `
+Object {
+  "count": 31,
+  "found": true,
+  "hints": Array [
+    "AA",
+    "AB",
+    "AC",
+    "AD",
+    "AE",
+    "AF",
+    "AG",
+    "AQ",
+    "AR",
+    "AS",
+    "AT",
+    "AV",
+    "AW",
+    "AX",
+    "AZ",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "Q",
+    "R",
+    "SA",
+    "SD",
+    "SS",
+    "T",
+    "V",
+    "W",
+    "X",
+    "Z",
+  ],
+}
+`;

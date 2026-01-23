@@ -175,6 +175,50 @@ describe('DOM Manipulation - Hints', () => {
             expect(hostInfo.shadowRootChildren).toBeGreaterThan(0);
         });
 
-        it.todo('should create consistent hints snapshot test');
+        test('should create consistent hints snapshot test', async () => {
+            // Close previous hints
+            await sendKey(pageWs, 'Escape');
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Click page and trigger hints
+            await clickAt(pageWs, 100, 100);
+            await sendKey(pageWs, 'f');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Capture all hint values
+            const hintSnapshot = await executeInTarget(pageWs, `
+                (function() {
+                    const hintsHost = document.querySelector('.surfingkeys_hints_host');
+                    if (!hintsHost || !hintsHost.shadowRoot) {
+                        return { found: false, hints: [] };
+                    }
+
+                    const shadowRoot = hintsHost.shadowRoot;
+                    const hintElements = Array.from(shadowRoot.querySelectorAll('div'));
+
+                    // Filter to only hint divs (1-3 uppercase letters)
+                    const hintDivs = hintElements.filter(d => {
+                        const text = (d.textContent || '').trim();
+                        return text.length >= 1 && text.length <= 3 && /^[A-Z]+$/.test(text);
+                    });
+
+                    // Capture sorted list of hints for consistent snapshots
+                    const hints = hintDivs.map(h => h.textContent?.trim()).sort();
+
+                    return {
+                        found: true,
+                        count: hints.length,
+                        hints: hints
+                    };
+                })()
+            `);
+
+            // Verify hints were created
+            expect(hintSnapshot.found).toBe(true);
+            expect(hintSnapshot.count).toBeGreaterThan(20);
+
+            // Snapshot test - ensures hints remain deterministic and consistent
+            expect(hintSnapshot).toMatchSnapshot();
+        });
     });
 });
