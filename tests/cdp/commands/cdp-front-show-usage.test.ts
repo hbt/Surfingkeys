@@ -35,6 +35,7 @@ describe('Frontend - Show Usage (Help Menu)', () => {
     let bgWs: WebSocket;
     let pageWs: WebSocket;
     let frontendWs: WebSocket | null = null;
+    let frontendCoverageStarted = false; // Track if coverage was started
     let extensionId: string;
     let tabId: number;
 
@@ -72,6 +73,7 @@ describe('Frontend - Show Usage (Help Menu)', () => {
             frontendWs = await connectToCDP(frontendWsUrl);
             // Start coverage collection for frontend
             await startCoverage(frontendWs, 'frontend');
+            frontendCoverageStarted = true; // Mark that coverage was successfully started
         } catch (e) {
             // Frontend might not be discoverable yet, will try in tests
             console.log('Frontend iframe not immediately available, will attempt to find it in tests');
@@ -79,8 +81,8 @@ describe('Frontend - Show Usage (Help Menu)', () => {
     });
 
     afterAll(async () => {
-        // Collect coverage before cleanup
-        if (frontendWs) {
+        // Collect coverage before cleanup (only if it was started)
+        if (frontendWs && frontendCoverageStarted) {
             await collectCoverageWithAnalysis(frontendWs, TEST_NAME);
         }
 

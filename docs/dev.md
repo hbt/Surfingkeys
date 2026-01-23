@@ -286,3 +286,151 @@ To send uppercase `E` (which requires shift):
 - ✅ No timeout waiting - events logged immediately
 - ✅ Works for all targets concurrently
 - ✅ DOM mutations visible in before/after comparison
+
+## CDP Test Coverage Analysis
+
+CDP tests automatically collect V8 code coverage during execution, providing branch-level insights into which code paths are tested.
+
+### Coverage Collection Workflow
+
+Tests using `startCoverage()` and `collectCoverageWithAnalysis()` from `tests/cdp/utils/cdp-coverage.ts`:
+
+```typescript
+// In beforeAll:
+await startCoverage(pageWs, 'content-page');
+
+// In afterAll:
+await collectCoverageWithAnalysis(pageWs, TEST_NAME);
+```
+
+This generates coverage data with automatic analysis at: `/tmp/cdp-coverage/page-{testName}-coverage-{timestamp}.json`
+
+### Coverage Data Structure
+
+File contains three top-level keys:
+
+```json
+{
+  "result": [...],           // Original V8 coverage data (raw branch data)
+  "timestamp": 18419.995,    // V8 timestamp when coverage was collected
+  "analysis": {              // Generated analysis (new!)
+    "functionSummary": { ... },
+    "hotPathAnalysis": { ... }
+  }
+}
+```
+
+### Function-Level Summary
+
+Each function gets aggregated metrics:
+
+```bash
+jq '.analysis.functionSummary["isElementClickable"]' page-hints-coverage-*.json
+```
+
+Returns:
+```json
+{
+  "scriptUrl": "chrome-extension://aajlcoiaogpknhgninhopncaldipjdnp/content.js",
+  "totalExecutions": 255,        // Sum of all branch executions
+  "totalBranches": 5,            // Number of code branches/paths
+  "uncoveredBranches": 1,        // Branches with count: 0 (untested)
+  "coveragePercent": 80,         // Percentage of branches covered
+  "isBlockCoverage": true        // Has branch-level detail
+}
+```
+
+### Hot Path Analysis
+
+Three analyses identify patterns in coverage:
+
+```bash
+# Get hottest functions (most frequently executed)
+jq '.analysis.hotPathAnalysis.hottest' page-hints-coverage-*.json
+
+# Get coldest functions (never executed)
+jq '.analysis.hotPathAnalysis.coldest' page-hints-coverage-*.json
+
+# Get most uncovered functions (most branches untested)
+jq '.analysis.hotPathAnalysis.mostUncovered' page-hints-coverage-*.json
+```
+
+**Hottest function example:**
+```json
+{
+  "functionName": "getVisibleElements",
+  "scriptUrl": "chrome-extension://aajlcoiaogpknhgninhopncaldipjdnp/content.js",
+  "executionCount": 3838,    // Called 3838 times during test!
+  "branches": 10
+}
+```
+
+**Most uncovered example:**
+```json
+{
+  "functionName": "_sanitizeElements2",
+  "uncoveredBranches": 15,
+  "totalBranches": 16,
+  "coveragePercent": 6       // Only 6% of branches tested
+}
+```
+
+### Querying Coverage Data
+
+Common jq queries to analyze coverage:
+
+```bash
+# Get all function names in coverage:
+jq '.analysis.functionSummary | keys' page-hints-coverage-*.json
+
+# Get specific function coverage:
+jq '.analysis.functionSummary["functionName"]' page-hints-coverage-*.json
+
+# Find functions with less than 50% coverage:
+jq '.analysis.functionSummary | to_entries[] | select(.value.coveragePercent < 50)' page-hints-coverage-*.json
+
+# Find functions with 0% coverage:
+jq '.analysis.functionSummary | to_entries[] | select(.value.coveragePercent == 0)' page-hints-coverage-*.json
+
+# Find functions with 100% coverage:
+jq '.analysis.functionSummary | to_entries[] | select(.value.coveragePercent == 100)' page-hints-coverage-*.json
+
+# Get only function names and coverage percent:
+jq '.analysis.functionSummary | to_entries[] | {name: .key, coverage: .value.coveragePercent}' page-hints-coverage-*.json
+
+# Compare a function's coverage across multiple test runs:
+jq '.analysis.functionSummary["isElementClickable"].coveragePercent' page-hints-coverage-*.json
+jq '.analysis.functionSummary["isElementClickable"].coveragePercent' page-show-usage-coverage-*.json
+
+# Get top 5 hottest functions:
+jq '.analysis.hotPathAnalysis.hottest[0:5]' page-hints-coverage-*.json
+
+# Find uncovered functions that are also in hot path:
+jq '.analysis.hotPathAnalysis.hottest[] | select(.executionCount > 100)' page-hints-coverage-*.json
+```
+
+### Understanding Coverage Metrics
+
+**totalExecutions:** Sum of execution counts across all branches in the function. Higher = frequently used during test.
+
+**totalBranches:** Number of distinct code paths (if/else blocks, OR conditions, etc.). More branches = more complex logic.
+
+**uncoveredBranches:** Count of branches where execution count was 0. Indicates which paths weren't tested.
+
+**coveragePercent:** `(totalBranches - uncoveredBranches) / totalBranches * 100`. Percentage of logic branches exercised.
+
+**Example interpretation:**
+- `isElementClickable`: 255 executions, 5 branches, 80% coverage → Well-tested hint-finding logic, missing 1 branch
+- `_sanitizeElements2`: 2 executions, 16 branches, 6% coverage → HTML sanitization not exercised by this test
+- `clone`: 102 executions, 1 branch, 100% coverage → Fully tested, no branches
+
+### Coverage Workflow
+
+1. **Run test:** Coverage is collected during test execution
+2. **Analysis generated:** `collectCoverageWithAnalysis()` automatically aggregates data
+3. **Find insights:** Query with jq to identify:
+   - Hot paths (performance-critical code)
+   - Cold spots (untested code)
+   - Coverage gaps (functions needing more tests)
+4. **Plan tests:** Use insights to guide new test cases
+5. **Compare over time:** Run same tests, compare coverage to track improvement
