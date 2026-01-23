@@ -48,7 +48,7 @@ class JSONReporter {
         // Build test suite record
         const suite = {
             file: testPath,
-            status: testResult.success ? 'passed' : 'failed',
+            status: testResult.numFailingTests === 0 ? 'passed' : 'failed',
             duration: suiteDuration,
             displayName: testResult.displayName || undefined,
             leaks: testResult.leaks || false,
@@ -203,7 +203,7 @@ class JSONReporter {
                 wasInterrupted: results.wasInterrupted || false,
                 openHandlesTotal: this.suites.reduce((sum, s) => sum + s.openHandles, 0)
             },
-            success: results.success,
+            success: results.numFailedTests === 0,
             timestamp: Math.floor(Date.now() / 1000)
         };
 
