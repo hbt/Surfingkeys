@@ -29,7 +29,12 @@ import {
     countElements,
     enableInputDomain
 } from '../utils/browser-actions';
-import { startCoverage, collectCoverageWithAnalysis } from '../utils/cdp-coverage';
+import {
+    startCoverage,
+    collectCoverageWithAnalysis,
+    captureBeforeCoverage,
+    captureAfterCoverage
+} from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('DOM Manipulation - Hints', () => {
@@ -39,6 +44,8 @@ describe('DOM Manipulation - Hints', () => {
     let pageWs: WebSocket;
     let extensionId: string;
     let tabId: number;
+    let beforeCovData: any = null;
+    let currentTestName: string = '';
 
     const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
     const TEST_NAME = 'hints';
@@ -70,6 +77,20 @@ describe('DOM Manipulation - Hints', () => {
 
         // Start V8 coverage collection
         await startCoverage(pageWs, 'content-page');
+    });
+
+    beforeEach(async () => {
+        // Capture test name
+        const state = expect.getState();
+        currentTestName = state.currentTestName || 'unknown-test';
+
+        // Capture coverage snapshot before test
+        beforeCovData = await captureBeforeCoverage(pageWs);
+    });
+
+    afterEach(async () => {
+        // Capture coverage snapshot after test and calculate delta
+        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
     });
 
     afterAll(async () => {

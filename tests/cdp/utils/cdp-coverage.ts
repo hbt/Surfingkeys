@@ -265,3 +265,133 @@ export async function collectCoverageWithAnalysis(
         return null;
     }
 }
+
+/**
+ * Extract coverage summary from V8 coverage data
+ * Calculates function, statement, and byte coverage percentages
+ * @param coverage Raw V8 coverage data
+ * @returns Summary object with coverage percentages
+ */
+export function extractCoverageSummary(coverage: any): { functions: number; statements: number; bytes: number } {
+    let totalFunctions = 0;
+    let coveredFunctions = 0;
+    let totalStatements = 0;
+    let coveredStatements = 0;
+    let totalBytes = 0;
+    let coveredBytes = 0;
+
+    coverage.result.forEach((script: any) => {
+        script.functions.forEach((func: any) => {
+            totalFunctions++;
+
+            func.ranges.forEach((range: any) => {
+                totalStatements++;
+                const rangeBytes = range.endOffset - range.startOffset;
+                totalBytes += rangeBytes;
+
+                if (range.count > 0) {
+                    coveredStatements++;
+                    coveredBytes += rangeBytes;
+                }
+            });
+
+            // Function is considered covered if at least one range has count > 0
+            const isCovered = func.ranges.some((r: any) => r.count > 0);
+            if (isCovered) {
+                coveredFunctions++;
+            }
+        });
+    });
+
+    return {
+        functions: totalFunctions === 0 ? 0 : Math.round((coveredFunctions / totalFunctions) * 100),
+        statements: totalStatements === 0 ? 0 : Math.round((coveredStatements / totalStatements) * 100),
+        bytes: totalBytes === 0 ? 0 : Math.round((coveredBytes / totalBytes) * 100)
+    };
+}
+
+/**
+ * Calculate delta between two coverage snapshots
+ * @param beforeCoverage Coverage snapshot before test
+ * @param afterCoverage Coverage snapshot after test
+ * @returns Delta object with difference in coverage percentages
+ */
+export function calculateCoverageDelta(beforeCoverage: any, afterCoverage: any): { functions: number; statements: number; bytes: number } {
+    const beforeSummary = extractCoverageSummary(beforeCoverage);
+    const afterSummary = extractCoverageSummary(afterCoverage);
+
+    return {
+        functions: afterSummary.functions - beforeSummary.functions,
+        statements: afterSummary.statements - beforeSummary.statements,
+        bytes: afterSummary.bytes - beforeSummary.bytes
+    };
+}
+
+/**
+ * Capture coverage snapshot before test execution
+ * @param ws WebSocket connection to the target
+ * @returns Coverage snapshot data
+ */
+export async function captureBeforeCoverage(ws: WebSocket): Promise<any> {
+    try {
+        const coverage = await sendCDPCommand(ws, 'Profiler.takePreciseCoverage');
+        return coverage;
+    } catch (err) {
+        console.error('Warning: Could not capture before coverage:', err);
+        return null;
+    }
+}
+
+/**
+ * Capture coverage snapshot after test execution and save delta
+ * @param ws WebSocket connection to the target
+ * @param testName Name of the test (used in filename)
+ * @param beforeCoverage Coverage snapshot captured before the test
+ * @returns Path to the saved per-test coverage file, or null if collection failed
+ */
+export async function captureAfterCoverage(
+    ws: WebSocket,
+    testName: string,
+    beforeCoverage: any
+): Promise<string | null> {
+    if (!beforeCoverage) {
+        console.warn('Warning: No before coverage available for delta calculation');
+        return null;
+    }
+
+    try {
+        const afterCoverage = await sendCDPCommand(ws, 'Profiler.takePreciseCoverage');
+
+        // Calculate delta
+        const delta = calculateCoverageDelta(beforeCoverage, afterCoverage);
+
+        // Generate analyses for after coverage
+        const functionSummary = generateFunctionSummary(afterCoverage);
+        const hotPathAnalysis = generateHotPathAnalysis(afterCoverage);
+
+        // Create per-test coverage object with delta and analysis
+        const perTestCoverage = {
+            testName,
+            delta,
+            timestamp: new Date().toISOString(),
+            coverage: afterCoverage,
+            analysis: {
+                functionSummary,
+                hotPathAnalysis
+            }
+        };
+
+        // Write per-test coverage file
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const sanitizedTestName = testName.replace(/[^a-zA-Z0-9-_]/g, '_');
+        const coverageFileName = `page-${sanitizedTestName}-per-test-coverage-${timestamp}.json`;
+        const coveragePath = path.join(COVERAGE_DIR, coverageFileName);
+        fs.writeFileSync(coveragePath, JSON.stringify(perTestCoverage, null, 2));
+        console.log(`✓ Per-test coverage saved: ${coverageFileName}`);
+
+        return coveragePath;
+    } catch (err) {
+        console.error('Warning: Could not capture after coverage:', err);
+        return null;
+    }
+}

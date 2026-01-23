@@ -151,10 +151,30 @@ class JSONReporter {
         const coverageDir = '/tmp/cdp-coverage';
         const coverageFile = this.findLatestCoverageFile(coverageDir);
 
-        // Calculate coverage summary if file exists
+        // Calculate coverage summary if file exists (suite-level aggregation)
         let coverageSummary = null;
         if (coverageFile) {
             coverageSummary = this.extractCoverageSummary(coverageFile);
+        }
+
+        // Build dual-profile coverage data
+        let coverageData = null;
+        if (coverageFile) {
+            // Suite-level (aggregated) coverage
+            const suiteProfile = {
+                enabled: true,
+                type: 'v8',
+                file: coverageFile,
+                summary: coverageSummary
+            };
+
+            // Per-test coverage data
+            const perTestProfile = this.buildPerTestCoverage(coverageDir);
+
+            coverageData = {
+                suite: suiteProfile,
+                perTest: perTestProfile
+            };
         }
 
         // Count slow tests and total assertions
@@ -167,6 +187,11 @@ class JSONReporter {
 
         // Check for resource issues
         const hasResourceLeaks = this.suites.some(s => s.leaks || s.openHandles > 0);
+
+        // Inject per-test coverage into test objects
+        if (coverageData && coverageData.perTest) {
+            this.injectPerTestCoverage(coverageData.perTest);
+        }
 
         // Build report
         const report = {
@@ -192,12 +217,7 @@ class JSONReporter {
                 }
             },
             suites: this.suites,
-            coverage: coverageFile ? {
-                enabled: true,
-                type: 'v8',
-                file: coverageFile,
-                summary: coverageSummary
-            } : null,
+            coverage: coverageData,
             issues: {
                 resourceLeaks: hasResourceLeaks,
                 wasInterrupted: results.wasInterrupted || false,
@@ -209,6 +229,132 @@ class JSONReporter {
 
         // Output report
         this.outputReport(report);
+    }
+
+    /**
+     * Build per-test coverage data by matching test names to coverage files
+     * Analyzes individual V8 coverage files and extracts per-test metrics
+     */
+    buildPerTestCoverage(coverageDir) {
+        if (!fs.existsSync(coverageDir)) {
+            return {};
+        }
+
+        const perTestData = {};
+        const testNames = this.extractTestNamesFromSuites();
+
+        try {
+            const files = fs.readdirSync(coverageDir)
+                .filter(f => f.startsWith('page-') && f.includes('-coverage-') && f.endsWith('.json'))
+                .map(f => ({
+                    name: f,
+                    path: path.join(coverageDir, f),
+                    time: fs.statSync(path.join(coverageDir, f)).mtime.getTime()
+                }))
+                .sort((a, b) => b.time - a.time);
+
+            // Match each test with its most recent coverage file
+            testNames.forEach(testName => {
+                const matchingFile = files.find(f =>
+                    f.name.includes(`-${testName}-coverage-`)
+                );
+
+                if (matchingFile) {
+                    try {
+                        const coverageSummary = this.extractCoverageSummary(matchingFile.path);
+                        const analysis = this.extractCoverageAnalysis(matchingFile.path);
+
+                        perTestData[testName] = {
+                            file: matchingFile.path,
+                            summary: coverageSummary,
+                            analysis: analysis
+                        };
+                    } catch (err) {
+                        // Skip if analysis fails for this test
+                    }
+                }
+            });
+
+            // Calculate cumulative deltas
+            this.calculateCumulativeDelta(perTestData);
+
+            return perTestData;
+        } catch (err) {
+            return {};
+        }
+    }
+
+    /**
+     * Extract all test names from test suites
+     */
+    extractTestNamesFromSuites() {
+        const testNames = [];
+        this.suites.forEach(suite => {
+            suite.tests.forEach(test => {
+                testNames.push(test.title);
+            });
+        });
+        return testNames;
+    }
+
+    /**
+     * Extract analysis data from coverage file (functionSummary, hotPaths)
+     */
+    extractCoverageAnalysis(filePath) {
+        try {
+            const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+            if (!data.analysis) {
+                return null;
+            }
+
+            return {
+                functionSummary: data.analysis.functionSummary || null,
+                hotPathAnalysis: data.analysis.hotPathAnalysis || null
+            };
+        } catch (err) {
+            return null;
+        }
+    }
+
+    /**
+     * Calculate cumulative coverage delta for each test
+     * Determines what % of new coverage each test added
+     */
+    calculateCumulativeDelta(perTestData) {
+        const testEntries = Object.entries(perTestData);
+        let previousCoverage = { functions: 0, statements: 0, bytes: 0 };
+
+        testEntries.forEach(([testName, data]) => {
+            if (data.summary) {
+                const currentCoverage = data.summary;
+
+                // Calculate delta from previous test
+                const delta = {
+                    functions: currentCoverage.functions - previousCoverage.functions,
+                    statements: currentCoverage.statements - previousCoverage.statements,
+                    bytes: currentCoverage.bytes - previousCoverage.bytes
+                };
+
+                data.cumulativeDelta = delta;
+
+                // Update previous coverage for next iteration
+                previousCoverage = currentCoverage;
+            }
+        });
+    }
+
+    /**
+     * Inject per-test coverage data into test objects within suites
+     */
+    injectPerTestCoverage(perTestData) {
+        this.suites.forEach(suite => {
+            suite.tests.forEach(test => {
+                if (perTestData[test.title]) {
+                    test.coverage = perTestData[test.title];
+                }
+            });
+        });
     }
 
     /**
@@ -395,6 +541,11 @@ class JSONReporter {
         fs.writeFileSync(diagFile, JSON.stringify(diagnostics, null, 2));
 
         // Output brief, jq-compatible summary to console
+        // Extract suite-level coverage for backwards compatibility
+        const suiteCoverage = report.coverage && report.coverage.suite
+            ? report.coverage.suite.summary
+            : null;
+
         const summary = {
             type: 'test-summary',
             success: report.success,
@@ -405,7 +556,7 @@ class JSONReporter {
             slow: report.summary.slow,
             assertions: report.summary.assertions.passing,
             duration: report.duration.total,
-            coverage: report.coverage ? report.coverage.summary : null,
+            coverage: suiteCoverage,
             reportFile: reportFile,
             diagnosticsFile: diagFile
         };
