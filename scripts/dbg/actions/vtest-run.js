@@ -57,6 +57,37 @@ function cleanTableOutput(output) {
 
 
 /**
+ * Reformat every markdown table block to ensure aligned columns. Detects
+ * contiguous `|`-prefixed lines and reuses scripts/dbg/lib/markdown-utils.js.
+ */
+function reformatMarkdownTables(markdown) {
+    const lines = markdown.split('\n');
+    const result = [];
+    let tableBuffer = [];
+
+    const flushTable = () => {
+        if (tableBuffer.length === 0) return;
+        const formatted = formatMarkdownTable(tableBuffer);
+        if (formatted) {
+            result.push(...formatted.split('\n'));
+        }
+        tableBuffer = [];
+    };
+
+    for (const line of lines) {
+        if (line.trim().startsWith('|')) {
+            tableBuffer.push(line);
+        } else {
+            flushTable();
+            result.push(line);
+        }
+    }
+
+    flushTable();
+    return result.join('\n');
+}
+
+/**
  * Restructure markdown output:
  * - Move Coverage after Test Cases
  * - Remove Suite column from Test Suites (redundant with header)
@@ -326,11 +357,12 @@ function formatOutput(result, testFile) {
 
     // Restructure markdown for better readability
     const restructuredMarkdown = restructureMarkdown(cleanedTable);
-    output += restructuredMarkdown;
+    const normalizedMarkdown = reformatMarkdownTables(restructuredMarkdown);
+    output += normalizedMarkdown;
 
     // Add reference to full JSON report file
     if (result.reportFile) {
-        output += `**Report**: ${result.reportFile}\n`;
+        output += `\n**Report**: ${result.reportFile}\n`;
     }
 
     output += `\n`;
