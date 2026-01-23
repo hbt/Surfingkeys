@@ -26,7 +26,7 @@ import {
     sendKey,
     enableInputDomain
 } from '../utils/browser-actions';
-import { startCoverage, collectCoverageWithAnalysis, setupPerTestCoverageHooks } from '../utils/cdp-coverage';
+import { startCoverage, collectCoverageWithAnalysis, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('Frontend - Show Usage (Help Menu)', () => {
@@ -38,6 +38,8 @@ describe('Frontend - Show Usage (Help Menu)', () => {
     let frontendCoverageStarted = false; // Track if coverage was started
     let extensionId: string;
     let tabId: number;
+    let beforeCovData: any = null;
+    let currentTestName: string = '';
 
     const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
     const TEST_NAME = 'show-usage';
@@ -67,6 +69,9 @@ describe('Frontend - Show Usage (Help Menu)', () => {
         // Wait for page to load
         await new Promise(resolve => setTimeout(resolve, 2000));
 
+        // Start V8 coverage collection for page
+        await startCoverage(pageWs, 'content-page');
+
         // Try to find and connect to frontend iframe
         try {
             const frontendWsUrl = await findContentPage('frontend.html');
@@ -80,9 +85,19 @@ describe('Frontend - Show Usage (Help Menu)', () => {
         }
     });
 
-    const coverageHooks = setupPerTestCoverageHooks(pageWs);
-    beforeEach(coverageHooks.beforeEach);
-    afterEach(coverageHooks.afterEach);
+    beforeEach(async () => {
+        // Capture test name
+        const state = expect.getState();
+        currentTestName = state.currentTestName || 'unknown-test';
+
+        // Capture coverage snapshot before test
+        beforeCovData = await captureBeforeCoverage(pageWs);
+    });
+
+    afterEach(async () => {
+        // Capture coverage snapshot after test and calculate delta
+        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+    });
 
     afterAll(async () => {
         // Collect coverage before cleanup (only if it was started)

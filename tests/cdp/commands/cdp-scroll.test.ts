@@ -38,7 +38,7 @@ import {
     clearHeadlessConfig,
     HeadlessConfigSetResult
 } from '../utils/config-set-headless';
-import { setupPerTestCoverageHooks } from '../utils/cdp-coverage';
+import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('Scroll Commands', () => {
@@ -49,6 +49,8 @@ describe('Scroll Commands', () => {
         let pageWs: WebSocket;
         let extensionId: string;
         let tabId: number;
+        let beforeCovData: any = null;
+        let currentTestName: string = '';
 
         beforeAll(async () => {
             // Check CDP is available
@@ -74,11 +76,24 @@ describe('Scroll Commands', () => {
 
             // Wait for page to load and Surfingkeys to inject
             await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Start V8 coverage collection for page
+            await startCoverage(pageWs, 'content-page');
         });
 
-        const coverageHooks = setupPerTestCoverageHooks(pageWs);
-        beforeEach(coverageHooks.beforeEach);
-        afterEach(coverageHooks.afterEach);
+        beforeEach(async () => {
+            // Capture test name
+            const state = expect.getState();
+            currentTestName = state.currentTestName || 'unknown-test';
+
+            // Capture coverage snapshot before test
+            beforeCovData = await captureBeforeCoverage(pageWs);
+        });
+
+        afterEach(async () => {
+            // Capture coverage snapshot after test and calculate delta
+            await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        });
 
         afterAll(async () => {
             // Cleanup
@@ -219,6 +234,8 @@ describe('Scroll Commands', () => {
         let pageWs: WebSocket;
         let tabId: number | null = null;
         let configResult!: HeadlessConfigSetResult;
+        let beforeCovData: any = null;
+        let currentTestName: string = '';
         const CONFIG_FIXTURE_PATH = 'data/fixtures/cdp-scrollstepsize-20-config.js';
 
         beforeAll(async () => {
@@ -248,11 +265,24 @@ describe('Scroll Commands', () => {
             enableInputDomain(pageWs);
 
             await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Start V8 coverage collection for page
+            await startCoverage(pageWs, 'content-page');
         });
 
-        const coverageHooks = setupPerTestCoverageHooks(pageWs);
-        beforeEach(coverageHooks.beforeEach);
-        afterEach(coverageHooks.afterEach);
+        beforeEach(async () => {
+            // Capture test name
+            const state = expect.getState();
+            currentTestName = state.currentTestName || 'unknown-test';
+
+            // Capture coverage snapshot before test
+            beforeCovData = await captureBeforeCoverage(pageWs);
+        });
+
+        afterEach(async () => {
+            // Capture coverage snapshot after test and calculate delta
+            await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        });
 
         afterAll(async () => {
             if (tabId !== null) {
