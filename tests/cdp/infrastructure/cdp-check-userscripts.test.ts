@@ -12,11 +12,13 @@ import {
     closeCDP,
     executeInTarget
 } from '../utils/cdp-client';
-import { setupPerTestCoverageHooks } from '../utils/cdp-coverage';
+import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('chrome.userScripts API Check', () => {
     let bgWs: WebSocket;
+    let beforeCovData: any = null;
+    let currentTestName: string = '';
 
     beforeAll(async () => {
         const cdpAvailable = await checkCDPAvailable();
@@ -26,11 +28,24 @@ describe('chrome.userScripts API Check', () => {
 
         const bgInfo = await findExtensionBackground();
         bgWs = await connectToCDP(bgInfo.wsUrl);
+
+        // Start V8 coverage collection
+        await startCoverage(bgWs, 'background');
     });
 
-    const coverageHooks = setupPerTestCoverageHooks(bgWs);
-    beforeEach(coverageHooks.beforeEach);
-    afterEach(coverageHooks.afterEach);
+    beforeEach(async () => {
+        // Capture test name
+        const state = expect.getState();
+        currentTestName = state.currentTestName || 'unknown-test';
+
+        // Capture coverage snapshot before test
+        beforeCovData = await captureBeforeCoverage(bgWs);
+    });
+
+    afterEach(async () => {
+        // Capture coverage snapshot after test and calculate delta
+        await captureAfterCoverage(bgWs, currentTestName, beforeCovData);
+    });
 
     afterAll(async () => {
         if (bgWs) {

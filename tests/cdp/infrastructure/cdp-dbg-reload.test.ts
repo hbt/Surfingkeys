@@ -21,7 +21,7 @@ import {
     closeCDP,
     executeInTarget
 } from '../utils/cdp-client';
-import { setupPerTestCoverageHooks } from '../utils/cdp-coverage';
+import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 import http from 'http';
 
@@ -44,6 +44,8 @@ async function fetchJson(port: number, path: string): Promise<any> {
 describe('Reload Command - Tab Management', () => {
     let bgWs: WebSocket;
     let extensionId: string;
+    let beforeCovData: any = null;
+    let currentTestName: string = '';
 
     beforeAll(async () => {
         const cdpAvailable = await checkCDPAvailable();
@@ -56,11 +58,24 @@ describe('Reload Command - Tab Management', () => {
         bgWs = await connectToCDP(bgInfo.wsUrl);
 
         await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Start V8 coverage collection
+        await startCoverage(bgWs, 'background');
     });
 
-    const coverageHooks = setupPerTestCoverageHooks(bgWs);
-    beforeEach(coverageHooks.beforeEach);
-    afterEach(coverageHooks.afterEach);
+    beforeEach(async () => {
+        // Capture test name
+        const state = expect.getState();
+        currentTestName = state.currentTestName || 'unknown-test';
+
+        // Capture coverage snapshot before test
+        beforeCovData = await captureBeforeCoverage(bgWs);
+    });
+
+    afterEach(async () => {
+        // Capture coverage snapshot after test and calculate delta
+        await captureAfterCoverage(bgWs, currentTestName, beforeCovData);
+    });
 
     afterAll(async () => {
         if (bgWs) {

@@ -32,7 +32,7 @@ import {
     clearHeadlessConfig,
     HeadlessConfigSetResult
 } from '../utils/config-set-headless';
-import { setupPerTestCoverageHooks } from '../utils/cdp-coverage';
+import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('Command Metadata - Migration and API Testing', () => {
@@ -41,6 +41,8 @@ describe('Command Metadata - Migration and API Testing', () => {
     let frontendWs: WebSocket | null = null;
     let tabId: number;
     let configResult!: HeadlessConfigSetResult;
+    let beforeCovData: any = null;
+    let currentTestName: string = '';
 
     const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
     const CONFIG_FIXTURE_PATH = 'data/fixtures/cdp-command-metadata-config.js';
@@ -139,11 +141,24 @@ describe('Command Metadata - Migration and API Testing', () => {
 
         // Wait for page to load and Surfingkeys to inject
         await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Start V8 coverage collection for page
+        await startCoverage(pageWs, 'content-page');
     });
 
-    const coverageHooks = setupPerTestCoverageHooks(pageWs);
-    beforeEach(coverageHooks.beforeEach);
-    afterEach(coverageHooks.afterEach);
+    beforeEach(async () => {
+        // Capture test name
+        const state = expect.getState();
+        currentTestName = state.currentTestName || 'unknown-test';
+
+        // Capture coverage snapshot before test
+        beforeCovData = await captureBeforeCoverage(pageWs);
+    });
+
+    afterEach(async () => {
+        // Capture coverage snapshot after test and calculate delta
+        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+    });
 
     afterAll(async () => {
         // Cleanup
