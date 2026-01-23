@@ -20,14 +20,14 @@ module.exports = {
 
     // TypeScript support
     preset: 'ts-jest',
-    globals: {
-        'ts-jest': {
+    transform: {
+        '^.+\\.tsx?$': ['ts-jest', {
             tsconfig: {
                 esModuleInterop: true,
                 allowSyntheticDefaultImports: true,
                 types: ['jest', 'node']
             }
-        }
+        }]
     },
 
     // Longer timeouts for browser operations

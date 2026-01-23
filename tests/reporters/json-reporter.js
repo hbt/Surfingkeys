@@ -44,22 +44,94 @@ class JSONReporter {
             file: testPath,
             status: testResult.success ? 'passed' : 'failed',
             duration: suiteDuration,
-            numTests: testResult.numPassingTests + testResult.numFailingTests,
+            displayName: testResult.displayName || undefined,
+            leaks: testResult.leaks || false,
+            memoryUsage: testResult.memoryUsage || undefined,
+            openHandles: testResult.openHandles ? testResult.openHandles.length : 0,
+            perfStats: testResult.perfStats ? {
+                start: testResult.perfStats.start,
+                end: testResult.perfStats.end,
+                runtime: testResult.perfStats.end - testResult.perfStats.start,
+                slow: testResult.perfStats.slow || false
+            } : undefined,
+            numTests: testResult.numPassingTests + testResult.numFailingTests + testResult.numPendingTests,
             numPassed: testResult.numPassingTests,
             numFailed: testResult.numFailingTests,
             numSkipped: testResult.numPendingTests,
+            numTodo: testResult.numTodoTests || 0,
+            snapshot: testResult.snapshot ? {
+                added: testResult.snapshot.added,
+                matched: testResult.snapshot.matched,
+                updated: testResult.snapshot.updated,
+                unmatched: testResult.snapshot.unmatched,
+                unchecked: testResult.snapshot.unchecked,
+                fileDeleted: testResult.snapshot.fileDeleted
+            } : undefined,
+            console: this.extractConsoleOutput(testResult.console),
             tests: testResult.testResults.map(t => ({
                 id: t.fullName,
                 status: t.status,
                 duration: t.duration || 0,
                 title: t.title,
+                ancestorTitles: t.ancestorTitles || [],
+                location: t.location ? {
+                    line: t.location.line,
+                    column: t.location.column
+                } : undefined,
+                assertions: {
+                    passing: t.numPassingAsserts || 0
+                },
+                invocations: t.invocations || 1,
                 error: t.failureMessages && t.failureMessages.length > 0
                     ? t.failureMessages[0]
-                    : null
+                    : null,
+                failureDetails: this.extractFailureDetails(t)
             }))
         };
 
         this.suites.push(suite);
+    }
+
+    /**
+     * Extract console output from test result
+     */
+    extractConsoleOutput(consoleBuffer) {
+        if (!consoleBuffer || !Array.isArray(consoleBuffer)) {
+            return undefined;
+        }
+
+        return consoleBuffer.map(entry => ({
+            type: entry.type || 'log',
+            message: entry.message,
+            timestamp: entry.timestamp || Date.now()
+        }));
+    }
+
+    /**
+     * Extract detailed failure information from assertion result
+     */
+    extractFailureDetails(testResult) {
+        if (!testResult.failureDetails || testResult.failureDetails.length === 0) {
+            return undefined;
+        }
+
+        return testResult.failureDetails.slice(0, 5).map(detail => {
+            const parsed = {
+                message: typeof detail === 'string' ? detail : detail.message || detail.toString()
+            };
+
+            if (typeof detail === 'object' && detail !== null) {
+                if (detail.matcherResult) {
+                    const mr = detail.matcherResult;
+                    parsed.matcher = mr.matcher;
+                    parsed.expected = mr.expected;
+                    parsed.actual = mr.actual;
+                    parsed.pass = mr.pass;
+                }
+            }
+
+            return parsed;
+        });
     }
 
     /**
@@ -78,6 +150,17 @@ class JSONReporter {
             coverageSummary = this.extractCoverageSummary(coverageFile);
         }
 
+        // Count slow tests and total assertions
+        const slowTestCount = this.suites.filter(s => s.perfStats && s.perfStats.slow).length;
+        const totalAssertions = this.suites.reduce((sum, suite) => {
+            return sum + suite.tests.reduce((testSum, test) => {
+                return testSum + (test.assertions?.passing || 0);
+            }, 0);
+        }, 0);
+
+        // Check for resource issues
+        const hasResourceLeaks = this.suites.some(s => s.leaks || s.openHandles > 0);
+
         // Build report
         const report = {
             type: 'test-report',
@@ -95,7 +178,11 @@ class JSONReporter {
                 failed: results.numFailedTests,
                 skipped: results.numPendingTests,
                 total: results.numTotalTests,
-                suites: results.numPassedTestSuites + results.numFailedTestSuites
+                suites: results.numPassedTestSuites + results.numFailedTestSuites,
+                slow: slowTestCount,
+                assertions: {
+                    passing: totalAssertions
+                }
             },
             suites: this.suites,
             coverage: coverageFile ? {
@@ -104,6 +191,11 @@ class JSONReporter {
                 file: coverageFile,
                 summary: coverageSummary
             } : null,
+            issues: {
+                resourceLeaks: hasResourceLeaks,
+                wasInterrupted: results.wasInterrupted || false,
+                openHandlesTotal: this.suites.reduce((sum, s) => sum + s.openHandles, 0)
+            },
             success: results.success,
             timestamp: Math.floor(Date.now() / 1000)
         };

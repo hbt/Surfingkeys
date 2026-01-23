@@ -114,7 +114,7 @@ async function startFixturesServer() {
 
 function parseCli(argv) {
     const parsed = {
-        reporter: process.env.CDP_HEADLESS_REPORTER || 'streaming',
+        reporter: process.env.CDP_HEADLESS_REPORTER || 'json',
         positional: []
     };
 
@@ -198,8 +198,10 @@ async function main() {
     const testFile = cli.positional[0];
 
     if (!testFile) {
-        console.error('❌ Usage: node run-headless.js [--reporter=<streaming|default|both|json>] <test-file>');
-        console.error('   Example: node run-headless.js --reporter=json tests/cdp/commands/cdp-create-hints.test.ts');
+        console.error('❌ Usage: node run-headless.js [--reporter=<json|streaming|default|both>] <test-file>');
+        console.error('   Default reporter: json');
+        console.error('   Example: node run-headless.js tests/cdp/commands/cdp-create-hints.test.ts');
+        console.error('   Example: node run-headless.js --reporter=streaming tests/cdp/commands/cdp-create-hints.test.ts');
         process.exit(1);
     }
 
