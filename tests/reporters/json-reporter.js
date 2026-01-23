@@ -234,6 +234,7 @@ class JSONReporter {
     /**
      * Build per-test coverage data by reading testName from coverage files
      * Analyzes individual V8 coverage files and extracts per-test metrics
+     * Computes new functions/statements by comparing consecutive tests
      */
     buildPerTestCoverage(coverageDir) {
         if (!fs.existsSync(coverageDir)) {
@@ -243,39 +244,89 @@ class JSONReporter {
         const perTestData = {};
 
         try {
+            // Get test execution order from suites
+            const testExecutionOrder = [];
+            this.suites.forEach(suite => {
+                suite.tests.forEach(test => {
+                    testExecutionOrder.push(test.id);
+                });
+            });
+
+            // Build map of test names to per-test files
             const files = fs.readdirSync(coverageDir)
                 .filter(f => f.startsWith('page-') && f.includes('-per-test-coverage-') && f.endsWith('.json'))
                 .map(f => ({
                     name: f,
                     path: path.join(coverageDir, f),
                     time: fs.statSync(path.join(coverageDir, f)).mtime.getTime()
-                }))
-                .sort((a, b) => b.time - a.time);
+                }));
 
-            // Process each per-test coverage file
-            files.forEach(file => {
-                try {
-                    const data = JSON.parse(fs.readFileSync(file.path, 'utf-8'));
+            // Process files in test execution order
+            // Track cumulative functions and statements across ALL tests
+            const cumulativeFunctions = new Set();
+            const cumulativeStatements = new Set();
 
-                    // Use testName from inside the file (more reliable than filename matching)
-                    if (data.testName) {
-                        // Get test assertions count from suite data
-                        const assertionsCount = this.getTestAssertionCount(data.testName);
-
-                        // Build enhanced summary with raw numbers
-                        const enhancedSummary = this.buildEnhancedSummary(file.path, data, assertionsCount);
-                        const analysis = this.extractCoverageAnalysis(file.path);
-                        const delta = data.delta || null;
-
-                        perTestData[data.testName] = {
-                            file: file.path,
-                            summary: enhancedSummary,
-                            analysis: analysis,
-                            delta: delta
-                        };
+            testExecutionOrder.forEach(testId => {
+                // Find file for this test
+                const matchingFile = files.find(file => {
+                    try {
+                        const data = JSON.parse(fs.readFileSync(file.path, 'utf-8'));
+                        return data.testName === testId;
+                    } catch (err) {
+                        return false;
                     }
-                } catch (err) {
-                    // Skip if file parsing fails
+                });
+
+                if (matchingFile) {
+                    try {
+                        const data = JSON.parse(fs.readFileSync(matchingFile.path, 'utf-8'));
+
+                        if (data.testName) {
+                            // Get test assertions count from suite data
+                            const assertionsCount = this.getTestAssertionCount(data.testName);
+
+                            // Build enhanced summary with cumulative delta
+                            const enhancedSummary = this.buildEnhancedSummary(
+                                matchingFile.path,
+                                data,
+                                assertionsCount,
+                                cumulativeFunctions,
+                                cumulativeStatements
+                            );
+                            const analysis = this.extractCoverageAnalysis(matchingFile.path);
+                            const delta = data.delta || null;
+
+                            perTestData[data.testName] = {
+                                file: matchingFile.path,
+                                summary: enhancedSummary,
+                                analysis: analysis,
+                                delta: delta
+                            };
+
+                            // Update cumulative sets with this test's functions and statements
+                            const v8Result = data.coverage?.result || [];
+                            const funcSummary = analysis?.functionSummary || {};
+
+                            // Add all functions from this test to cumulative
+                            Object.keys(funcSummary).forEach(funcName => {
+                                cumulativeFunctions.add(funcName);
+                            });
+
+                            // Add all statements from this test to cumulative
+                            v8Result.forEach(script => {
+                                script.functions.forEach(fn => {
+                                    fn.ranges.forEach(range => {
+                                        if (range.count > 0) {
+                                            const statementId = `${script.url}:${range.startOffset}-${range.endOffset}`;
+                                            cumulativeStatements.add(statementId);
+                                        }
+                                    });
+                                });
+                            });
+                        }
+                    } catch (err) {
+                        // Skip if file parsing fails
+                    }
                 }
             });
 
@@ -303,9 +354,9 @@ class JSONReporter {
     }
 
     /**
-     * Build enhanced summary with raw numbers and aggregated stats
+     * Build enhanced summary with raw numbers, aggregated stats, and incremental deltas
      */
-    buildEnhancedSummary(filePath, coverageData, assertionsCount) {
+    buildEnhancedSummary(filePath, coverageData, assertionsCount, previousCoverageData, previousAnalysis) {
         try {
             // Extract raw V8 data
             const v8Result = coverageData.coverage?.result || [];
@@ -318,6 +369,9 @@ class JSONReporter {
             let totalBytes = 0;
             let coveredBytes = 0;
             let totalExecutions = 0;
+
+            // Track which statements (ranges) are covered in this test
+            const currentStatements = new Set();
 
             v8Result.forEach(script => {
                 script.functions.forEach(fn => {
@@ -336,10 +390,50 @@ class JSONReporter {
                             coveredStatements++;
                             coveredBytes += rangeBytes;
                             totalExecutions += range.count;
+                            // Track this statement as covered
+                            const statementId = `${script.url}:${range.startOffset}-${range.endOffset}`;
+                            currentStatements.add(statementId);
                         }
                     });
                 });
             });
+
+            // Calculate new functions by comparing functionSummary
+            let newFunctionsCount = 0;
+            const currentFuncSummary = coverageData.analysis?.functionSummary || {};
+            const previousFuncSummary = previousAnalysis?.functionSummary || {};
+
+            Object.keys(currentFuncSummary).forEach(funcName => {
+                if (!previousFuncSummary[funcName]) {
+                    newFunctionsCount++;
+                }
+            });
+
+            // Calculate new statements by comparing V8 coverage
+            let newStatementsCount = 0;
+            if (previousCoverageData && previousCoverageData.length > 0) {
+                const previousStatements = new Set();
+                previousCoverageData.forEach(script => {
+                    script.functions.forEach(fn => {
+                        fn.ranges.forEach(range => {
+                            if (range.count > 0) {
+                                const statementId = `${script.url}:${range.startOffset}-${range.endOffset}`;
+                                previousStatements.add(statementId);
+                            }
+                        });
+                    });
+                });
+
+                // New statements are those in current but not in previous
+                currentStatements.forEach(stmt => {
+                    if (!previousStatements.has(stmt)) {
+                        newStatementsCount++;
+                    }
+                });
+            } else {
+                // First test - all statements are new
+                newStatementsCount = coveredStatements;
+            }
 
             // Aggregate stats from functionSummary
             const funcSummary = coverageData.analysis?.functionSummary || {};
@@ -385,12 +479,14 @@ class JSONReporter {
                     functions: {
                         covered: coveredFunctions,
                         total: totalFunctions,
-                        percentage: totalFunctions > 0 ? parseFloat(((coveredFunctions / totalFunctions) * 100).toFixed(1)) : 0
+                        percentage: totalFunctions > 0 ? parseFloat(((coveredFunctions / totalFunctions) * 100).toFixed(1)) : 0,
+                        new: newFunctionsCount
                     },
                     statements: {
                         covered: coveredStatements,
                         total: totalStatements,
-                        percentage: totalStatements > 0 ? parseFloat(((coveredStatements / totalStatements) * 100).toFixed(1)) : 0
+                        percentage: totalStatements > 0 ? parseFloat(((coveredStatements / totalStatements) * 100).toFixed(1)) : 0,
+                        new: newStatementsCount
                     },
                     bytes: {
                         covered: coveredBytes,
