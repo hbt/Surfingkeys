@@ -50,7 +50,8 @@ const ACTIONS = {
     'proxy-stop': 'Stop the running CDP proxy server',
     'proxy-status': 'Check if CDP proxy is running',
     'test-server-start': 'Start fixtures server for CDP tests (port 9873)',
-    'test-server-stop': 'Stop the running fixtures server'
+    'test-server-stop': 'Stop the running fixtures server',
+    'test-run': 'Run Jest tests with JSON output (no npm noise)'
 };
 
 /**
