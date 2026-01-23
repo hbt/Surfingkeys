@@ -182,6 +182,7 @@ async function main() {
         '--disable-gpu',
         '--no-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-background-networking',
         `--disable-extensions-except=${extDir}`,
         `--load-extension=${extDir}`,
         '--simulate-outdated-no-au=Tue, 31 Dec 2099 23:59:59 GMT',

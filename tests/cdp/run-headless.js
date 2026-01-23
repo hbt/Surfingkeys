@@ -264,6 +264,7 @@ async function main() {
     log(`  Extension: ${extDir}`);
 
     // Launch Chrome in headless mode
+    // // TODO(hbt) NEXT [debug] fix both tests and debug to use same flags -- get rid of dup config?
     const chromeArgs = [
         '--headless=new',
         `--user-data-dir=${userDataDir}`,
@@ -271,6 +272,7 @@ async function main() {
         '--disable-gpu',
         '--no-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-background-networking',
         `--disable-extensions-except=${extDir}`,
         `--load-extension=${extDir}`,
         '--enable-experimental-extension-apis',
