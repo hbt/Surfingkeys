@@ -19,7 +19,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { exec, execSync } = require('child_process');
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
 const TESTS_DIR = path.join(PROJECT_ROOT, 'tests/cdp');
@@ -76,6 +76,7 @@ function discoverTestFiles() {
 /**
  * Run a single test via bin/dbg test-run and return parsed JSON
  * Returns Promise that resolves with test result
+ * Uses async exec() instead of sync execSync() for true parallelization
  */
 function runTestViaDbg(testFile) {
     // Convert absolute path to relative path from PROJECT_ROOT
@@ -85,63 +86,79 @@ function runTestViaDbg(testFile) {
     }
 
     return new Promise((resolve) => {
-        try {
-            const cmd = `./bin/dbg test-run ${relativePath}`;
-            const output = execSync(cmd, {
-                cwd: PROJECT_ROOT,
-                encoding: 'utf8',
-                stdio: ['ignore', 'pipe', 'pipe']
-            });
+        const cmd = `./bin/dbg test-run ${relativePath}`;
 
-            // Parse JSON from output
-            const json = JSON.parse(output.trim());
-            resolve({
-                success: true,
-                testFile: relativePath,
-                result: json
-            });
-        } catch (error) {
-            resolve({
-                success: false,
-                testFile: relativePath,
-                error: error.message
-            });
-        }
+        exec(cmd, {
+            cwd: PROJECT_ROOT,
+            encoding: 'utf8',
+            maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large output
+        }, (error, stdout, stderr) => {
+            try {
+                // Try stdout first, then stderr
+                const output = stdout || stderr;
+                if (!output) {
+                    throw new Error('No output from test command');
+                }
+
+                // Parse JSON from output
+                const json = JSON.parse(output.trim());
+                resolve({
+                    success: true,
+                    testFile: relativePath,
+                    result: json
+                });
+            } catch (parseError) {
+                resolve({
+                    success: false,
+                    testFile: relativePath,
+                    error: parseError.message
+                });
+            }
+        });
     });
 }
 
 /**
  * Run tests in parallel with concurrency limit
  * Returns array of test results in sorted order (by test file name)
+ *
+ * Implementation: Uses a work queue pattern where we maintain a pool of
+ * running tasks. When one completes, we launch the next from the queue.
+ * This ensures we always have up to N tasks running in parallel.
  */
 async function runTestsInParallel(testFiles, concurrencyLimit) {
     const results = [];
-    const inProgress = [];
+    const queue = [...testFiles];
+    const running = [];
 
-    for (let i = 0; i < testFiles.length; i++) {
-        const testFile = testFiles[i];
+    /**
+     * Launch next test from queue, maintain concurrency limit
+     */
+    async function launchNext() {
+        if (queue.length === 0) return;
 
-        // Launch test (fire and forget, but track the promise)
+        const testFile = queue.shift();
         const promise = runTestViaDbg(testFile).then(result => {
-            // Remove from in-progress when done
-            const index = inProgress.indexOf(promise);
-            if (index > -1) {
-                inProgress.splice(index, 1);
-            }
             results.push(result);
-            return result;
+            // Remove from running pool
+            const idx = running.indexOf(promise);
+            if (idx > -1) {
+                running.splice(idx, 1);
+            }
+            // Launch next test from queue
+            return launchNext();
         });
 
-        inProgress.push(promise);
+        running.push(promise);
+    }
 
-        // If at concurrency limit, wait for one to complete before starting next
-        if (inProgress.length >= concurrencyLimit) {
-            await Promise.race(inProgress);
-        }
+    // Launch initial batch of tests (up to concurrencyLimit)
+    for (let i = 0; i < Math.min(concurrencyLimit, testFiles.length); i++) {
+        await launchNext();
     }
 
     // Wait for all remaining tests to complete
-    await Promise.all(inProgress);
+    await Promise.all(running);
 
     // Sort results by test file name for deterministic output
     results.sort((a, b) => a.testFile.localeCompare(b.testFile));
