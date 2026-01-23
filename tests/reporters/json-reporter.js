@@ -232,7 +232,7 @@ class JSONReporter {
     }
 
     /**
-     * Build per-test coverage data by matching test names to coverage files
+     * Build per-test coverage data by reading testName from coverage files
      * Analyzes individual V8 coverage files and extracts per-test metrics
      */
     buildPerTestCoverage(coverageDir) {
@@ -241,11 +241,10 @@ class JSONReporter {
         }
 
         const perTestData = {};
-        const testNames = this.extractTestNamesFromSuites();
 
         try {
             const files = fs.readdirSync(coverageDir)
-                .filter(f => f.startsWith('page-') && f.includes('-coverage-') && f.endsWith('.json'))
+                .filter(f => f.startsWith('page-') && f.includes('-per-test-coverage-') && f.endsWith('.json'))
                 .map(f => ({
                     name: f,
                     path: path.join(coverageDir, f),
@@ -253,25 +252,30 @@ class JSONReporter {
                 }))
                 .sort((a, b) => b.time - a.time);
 
-            // Match each test with its most recent coverage file
-            testNames.forEach(testName => {
-                const matchingFile = files.find(f =>
-                    f.name.includes(`-${testName}-coverage-`)
-                );
+            // Process each per-test coverage file
+            files.forEach(file => {
+                try {
+                    const data = JSON.parse(fs.readFileSync(file.path, 'utf-8'));
 
-                if (matchingFile) {
-                    try {
-                        const coverageSummary = this.extractCoverageSummary(matchingFile.path);
-                        const analysis = this.extractCoverageAnalysis(matchingFile.path);
+                    // Use testName from inside the file (more reliable than filename matching)
+                    if (data.testName) {
+                        // Get test assertions count from suite data
+                        const assertionsCount = this.getTestAssertionCount(data.testName);
 
-                        perTestData[testName] = {
-                            file: matchingFile.path,
-                            summary: coverageSummary,
-                            analysis: analysis
+                        // Build enhanced summary with raw numbers
+                        const enhancedSummary = this.buildEnhancedSummary(file.path, data, assertionsCount);
+                        const analysis = this.extractCoverageAnalysis(file.path);
+                        const delta = data.delta || null;
+
+                        perTestData[data.testName] = {
+                            file: file.path,
+                            summary: enhancedSummary,
+                            analysis: analysis,
+                            delta: delta
                         };
-                    } catch (err) {
-                        // Skip if analysis fails for this test
                     }
+                } catch (err) {
+                    // Skip if file parsing fails
                 }
             });
 
@@ -281,6 +285,127 @@ class JSONReporter {
             return perTestData;
         } catch (err) {
             return {};
+        }
+    }
+
+    /**
+     * Get assertion count for a specific test from suite data
+     */
+    getTestAssertionCount(testName) {
+        for (const suite of this.suites) {
+            for (const test of suite.tests) {
+                if (test.id === testName || test.title === testName.split(' ').pop()) {
+                    return test.assertions?.passing || 0;
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Build enhanced summary with raw numbers and aggregated stats
+     */
+    buildEnhancedSummary(filePath, coverageData, assertionsCount) {
+        try {
+            // Extract raw V8 data
+            const v8Result = coverageData.coverage?.result || [];
+
+            // Count raw numbers
+            let totalFunctions = 0;
+            let coveredFunctions = 0;
+            let totalStatements = 0;
+            let coveredStatements = 0;
+            let totalBytes = 0;
+            let coveredBytes = 0;
+            let totalExecutions = 0;
+
+            v8Result.forEach(script => {
+                script.functions.forEach(fn => {
+                    totalFunctions++;
+                    const isCovered = fn.ranges.some(r => r.count > 0);
+                    if (isCovered) {
+                        coveredFunctions++;
+                    }
+
+                    fn.ranges.forEach(range => {
+                        totalStatements++;
+                        const rangeBytes = range.endOffset - range.startOffset;
+                        totalBytes += rangeBytes;
+
+                        if (range.count > 0) {
+                            coveredStatements++;
+                            coveredBytes += rangeBytes;
+                            totalExecutions += range.count;
+                        }
+                    });
+                });
+            });
+
+            // Aggregate stats from functionSummary
+            const funcSummary = coverageData.analysis?.functionSummary || {};
+            const functionStats = {
+                totalFunctions: Object.keys(funcSummary).length,
+                totalExecutions: 0,
+                executionCounts: { min: Infinity, max: 0, avg: 0, median: 0 },
+                uncoveredFunctions: 0,
+                partiallyCoveredFunctions: 0
+            };
+
+            const executionCounts = [];
+            Object.values(funcSummary).forEach(func => {
+                functionStats.totalExecutions += func.totalExecutions || 0;
+                executionCounts.push(func.totalExecutions);
+
+                if (func.uncoveredBranches > 0) {
+                    if (func.uncoveredBranches === func.totalBranches) {
+                        functionStats.uncoveredFunctions++;
+                    } else {
+                        functionStats.partiallyCoveredFunctions++;
+                    }
+                }
+            });
+
+            if (executionCounts.length > 0) {
+                functionStats.executionCounts.min = Math.min(...executionCounts);
+                functionStats.executionCounts.max = Math.max(...executionCounts);
+                functionStats.executionCounts.avg = Math.round(
+                    functionStats.totalExecutions / executionCounts.length
+                );
+                // Calculate median
+                const sorted = executionCounts.sort((a, b) => a - b);
+                const mid = Math.floor(sorted.length / 2);
+                functionStats.executionCounts.median = sorted.length % 2 !== 0
+                    ? sorted[mid]
+                    : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+            }
+
+            return {
+                assertions: assertionsCount,
+                coverage: {
+                    functions: {
+                        covered: coveredFunctions,
+                        total: totalFunctions,
+                        percentage: totalFunctions > 0 ? parseFloat(((coveredFunctions / totalFunctions) * 100).toFixed(1)) : 0
+                    },
+                    statements: {
+                        covered: coveredStatements,
+                        total: totalStatements,
+                        percentage: totalStatements > 0 ? parseFloat(((coveredStatements / totalStatements) * 100).toFixed(1)) : 0
+                    },
+                    bytes: {
+                        covered: coveredBytes,
+                        total: totalBytes,
+                        percentage: totalBytes > 0 ? parseFloat(((coveredBytes / totalBytes) * 100).toFixed(1)) : 0
+                    }
+                },
+                executionStats: {
+                    totalExecutions: totalExecutions,
+                    totalExecutionsAcrossFunctions: functionStats.totalExecutions,
+                    functionStats: functionStats
+                }
+            };
+        } catch (err) {
+            return null;
         }
     }
 
