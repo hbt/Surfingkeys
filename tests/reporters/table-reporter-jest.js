@@ -18,43 +18,7 @@
 
 const fs = require('fs');
 const path = require('path');
-
-// Table formatting borrowed from generate-command-docs.js
-function formatMarkdownTable(rows) {
-    if (rows.length === 0) return '';
-
-    const numCols = Math.max(...rows.map(r => r.length));
-    const colWidths = new Array(numCols).fill(0);
-
-    rows.forEach(row => {
-        row.forEach((cell, i) => {
-            colWidths[i] = Math.max(colWidths[i], cell.length);
-        });
-    });
-
-    const formattedLines = rows.map((row) => {
-        const formattedCells = [];
-
-        for (let i = 0; i < numCols; i++) {
-            const cell = row[i] || '';
-            const cellWidth = cell.length;
-            const padding = colWidths[i] - cellWidth;
-
-            let formattedCell;
-            if (cell.match(/^-+$/)) {
-                formattedCell = '-'.repeat(colWidths[i]);
-            } else {
-                formattedCell = cell + ' '.repeat(padding);
-            }
-
-            formattedCells.push(formattedCell);
-        }
-
-        return '| ' + formattedCells.join(' | ') + ' |';
-    });
-
-    return formattedLines.join('\n') + '\n';
-}
+const { formatMarkdownTable } = require('../../scripts/dbg/lib/markdown-utils');
 
 function escapeCell(value) {
     if (value === null || value === undefined) return '';
