@@ -171,9 +171,21 @@ class JSONReporter {
             // Per-test coverage data
             const perTestProfile = this.buildPerTestCoverage(coverageDir);
 
+            // Tag legend explaining what each tag means
+            const tagLegend = {
+                PRODUCTIVE: 'Test contributes >= 50 new functions AND >= 10 assertions - high value coverage',
+                REDUNDANT: 'Test exercises < 10% new functions relative to execution - mostly re-testing existing code',
+                RED_FLAG: 'Test has 0 new functions but > 0 assertions - assertions spent on existing code',
+                VERIFICATION_ONLY: 'Test has 0 new functions - pure verification with no new paths',
+                LOW_VALUE: 'Test has >= 3 assertions but < 5 new functions - over-asserting for coverage gain',
+                SETUP: 'Lightweight test with <= 2 functions executed and <= 2 assertions - initialization only',
+                NEEDS_REVIEW: 'Test does not fit standard categories - manual review recommended'
+            };
+
             coverageData = {
                 suite: suiteProfile,
-                perTest: perTestProfile
+                perTest: perTestProfile,
+                tagLegend: tagLegend
             };
         }
 
@@ -462,8 +474,17 @@ class JSONReporter {
                     : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
             }
 
+            // Compute quality tags based on coverage metrics
+            const tags = this.computeTestQualityTags(
+                newFunctionsCount,
+                coveredFunctions,
+                newStatementsCount,
+                assertionsCount
+            );
+
             return {
                 assertions: assertionsCount,
+                tags: tags,
                 coverage: {
                     functions: {
                         covered: coveredFunctions,
@@ -492,6 +513,52 @@ class JSONReporter {
         } catch (err) {
             return null;
         }
+    }
+
+    /**
+     * Compute quality tags for a test based on coverage and assertion metrics
+     */
+    computeTestQualityTags(newFunctions, executedFunctions, newStatements, assertions) {
+        const tags = [];
+
+        // SETUP: Lightweight test, likely just initialization
+        if (executedFunctions <= 2 && assertions <= 2) {
+            tags.push('SETUP');
+            return tags;  // Early return, SETUP tests are by design
+        }
+
+        // RED_FLAG: Zero new coverage but spending assertions/time
+        if (newFunctions === 0 && executedFunctions > 2 && assertions > 0) {
+            tags.push('RED_FLAG');
+        }
+
+        // VERIFICATION_ONLY: Pure verification, no new paths
+        if (newFunctions === 0 && executedFunctions > 0 && assertions > 0) {
+            tags.push('VERIFICATION_ONLY');
+        }
+
+        // REDUNDANT: Less than 10% new coverage
+        const redundancyRatio = executedFunctions > 0 ? newFunctions / executedFunctions : 0;
+        if (redundancyRatio < 0.1 && newFunctions > 0) {
+            tags.push('REDUNDANT');
+        }
+
+        // LOW_VALUE: Too many assertions relative to new coverage
+        if (assertions >= 3 && newFunctions < 5 && !tags.includes('SETUP')) {
+            tags.push('LOW_VALUE');
+        }
+
+        // PRODUCTIVE: Significant new coverage with good assertions
+        if (newFunctions >= 50 && assertions >= 10) {
+            tags.push('PRODUCTIVE');
+        }
+
+        // If no tags assigned, mark as NEEDS_REVIEW
+        if (tags.length === 0) {
+            tags.push('NEEDS_REVIEW');
+        }
+
+        return tags;
     }
 
     /**

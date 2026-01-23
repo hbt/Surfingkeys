@@ -32,6 +32,7 @@ import {
     clearHeadlessConfig,
     HeadlessConfigSetResult
 } from '../utils/config-set-headless';
+import { setupPerTestCoverageHooks } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('Command Metadata - Migration and API Testing', () => {
@@ -139,6 +140,10 @@ describe('Command Metadata - Migration and API Testing', () => {
         // Wait for page to load and Surfingkeys to inject
         await new Promise(resolve => setTimeout(resolve, 2000));
     });
+
+    const coverageHooks = setupPerTestCoverageHooks(pageWs);
+    beforeEach(coverageHooks.beforeEach);
+    afterEach(coverageHooks.afterEach);
 
     afterAll(async () => {
         // Cleanup

@@ -21,6 +21,7 @@ import {
     closeCDP,
     executeInTarget
 } from '../utils/cdp-client';
+import { setupPerTestCoverageHooks } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 import http from 'http';
 
@@ -56,6 +57,10 @@ describe('Reload Command - Tab Management', () => {
 
         await new Promise(resolve => setTimeout(resolve, 500));
     });
+
+    const coverageHooks = setupPerTestCoverageHooks(bgWs);
+    beforeEach(coverageHooks.beforeEach);
+    afterEach(coverageHooks.afterEach);
 
     afterAll(async () => {
         if (bgWs) {

@@ -395,3 +395,26 @@ export async function captureAfterCoverage(
         return null;
     }
 }
+
+/**
+ * Setup per-test coverage collection hooks
+ * Automatically captures coverage before and after each test
+ * @param pageWs WebSocket connection to the target page
+ * @param testNameOverride Optional override for test name (for use in describe blocks)
+ * @returns Object with beforeEach and afterEach hooks to add to test
+ */
+export function setupPerTestCoverageHooks(pageWs: WebSocket, testNameOverride?: string) {
+    let beforeCovData: any;
+    let currentTestName: string;
+
+    return {
+        beforeEach: async () => {
+            // Get current test name from Jest state
+            currentTestName = testNameOverride || expect.getState().currentTestName || 'unknown-test';
+            beforeCovData = await captureBeforeCoverage(pageWs);
+        },
+        afterEach: async () => {
+            await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        }
+    };
+}

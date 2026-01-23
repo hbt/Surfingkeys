@@ -24,6 +24,7 @@ import {
     getScrollPosition,
     enableInputDomain
 } from '../utils/browser-actions';
+import { setupPerTestCoverageHooks } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('Usage Tracking', () => {
@@ -75,6 +76,10 @@ describe('Usage Tracking', () => {
         // Wait for tracking system to be ready
         await new Promise(r => setTimeout(r, 800));
     });
+
+    const coverageHooks = setupPerTestCoverageHooks(pageWs);
+    beforeEach(coverageHooks.beforeEach);
+    afterEach(coverageHooks.afterEach);
 
     afterAll(async () => {
         if (tabId) await closeTab(bgWs, tabId);

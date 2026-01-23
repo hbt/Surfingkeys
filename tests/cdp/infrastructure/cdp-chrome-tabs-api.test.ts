@@ -18,6 +18,7 @@ import {
     closeTab,
     closeCDP
 } from '../utils/cdp-client';
+import { setupPerTestCoverageHooks } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 interface TabInfo {
@@ -48,6 +49,10 @@ describe('Chrome Tabs API', () => {
         // Wait for background to be ready
         await new Promise(resolve => setTimeout(resolve, 100));
     });
+
+    const coverageHooks = setupPerTestCoverageHooks(bgWs);
+    beforeEach(coverageHooks.beforeEach);
+    afterEach(coverageHooks.afterEach);
 
     afterAll(async () => {
         // Cleanup created tab if it exists

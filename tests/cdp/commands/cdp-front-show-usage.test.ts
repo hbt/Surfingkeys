@@ -26,7 +26,7 @@ import {
     sendKey,
     enableInputDomain
 } from '../utils/browser-actions';
-import { startCoverage, collectCoverageWithAnalysis } from '../utils/cdp-coverage';
+import { startCoverage, collectCoverageWithAnalysis, setupPerTestCoverageHooks } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('Frontend - Show Usage (Help Menu)', () => {
@@ -79,6 +79,10 @@ describe('Frontend - Show Usage (Help Menu)', () => {
             console.log('Frontend iframe not immediately available, will attempt to find it in tests');
         }
     });
+
+    const coverageHooks = setupPerTestCoverageHooks(pageWs);
+    beforeEach(coverageHooks.beforeEach);
+    afterEach(coverageHooks.afterEach);
 
     afterAll(async () => {
         // Collect coverage before cleanup (only if it was started)

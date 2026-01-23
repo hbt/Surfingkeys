@@ -12,6 +12,7 @@ import {
     closeCDP,
     executeInTarget
 } from '../utils/cdp-client';
+import { setupPerTestCoverageHooks } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('Storage Read/Write Test', () => {
@@ -26,6 +27,10 @@ describe('Storage Read/Write Test', () => {
         const bgInfo = await findExtensionBackground();
         bgWs = await connectToCDP(bgInfo.wsUrl);
     });
+
+    const coverageHooks = setupPerTestCoverageHooks(bgWs);
+    beforeEach(coverageHooks.beforeEach);
+    afterEach(coverageHooks.afterEach);
 
     afterAll(async () => {
         if (bgWs) {
