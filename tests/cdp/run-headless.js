@@ -209,6 +209,8 @@ async function main() {
     if (!testFile) {
         console.error('❌ Usage: node run-headless.js [--reporter=<json|table|streaming|default|both>] <test-file>');
         console.error('');
+        console.error('   Note: Use `bin/dbg test-run <test-file>` for the recommended testing approach');
+        console.error('');
         console.error('   Reporters:');
         console.error('   - json (default):   Concise JSON summary + full report to file');
         console.error('   - table:            Markdown tables from JSON report');
@@ -217,7 +219,7 @@ async function main() {
         console.error('   - both:             Streaming + default');
         console.error('');
         console.error('   Examples:');
-        console.error('   - npm run test:cdp:headless tests/cdp/commands/cdp-create-hints.test.ts');
+        console.error('   - bin/dbg test-run tests/cdp/commands/cdp-create-hints.test.ts');
         console.error('   - npm run test:cdp:headless -- --reporter=table tests/cdp/commands/cdp-create-hints.test.ts');
         console.error('   - npm run test:cdp:headless -- --reporter=streaming tests/cdp/commands/cdp-create-hints.test.ts');
         process.exit(1);

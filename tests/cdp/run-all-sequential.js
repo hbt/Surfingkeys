@@ -13,6 +13,8 @@
  * Usage:
  *   node tests/cdp/run-all-sequential.js
  *   npm run test:cdp:headless:seq
+ *
+ * Note: Uses `bin/dbg test-run` to run individual tests
  */
 
 const { execSync } = require('child_process');
