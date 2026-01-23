@@ -4,6 +4,8 @@ const fs = require('fs');
 const package = require('../package.json');
 const { copy } = require('esbuild-plugin-copy');
 
+// TODO(hbt) NEXT [config] get rid of bundling for development, keep transpiling, fix the manifest json, reduce sourcemap compute, code coverage tools. do this after tests
+
 function modifyManifest(browser, mode, manifestPath, outputPath) {
     const content = fs.readFileSync(manifestPath, 'utf8');
     let manifest = JSON.parse(content);
@@ -183,7 +185,7 @@ async function build() {
         target: 'es2020',
         format: 'iife',
         minify: mode === 'production',
-        sourcemap: false,
+        sourcemap: mode === 'development' ? 'external' : false,
         loader: {
             '.ts': 'ts',
             '.js': 'js',
@@ -201,7 +203,7 @@ async function build() {
         target: 'es2020',
         format: 'esm',
         minify: mode === 'production',
-        sourcemap: false,
+        sourcemap: mode === 'development' ? 'external' : false,
         loader: {
             '.ts': 'ts',
             '.js': 'js',
