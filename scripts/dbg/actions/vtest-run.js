@@ -55,19 +55,49 @@ function cleanTableOutput(output) {
 }
 
 /**
+ * Calculate display width of a string, accounting for wide characters and emoji
+ * Similar to vim's strdisplaywidth() function
+ * Most emoji display as 2 columns wide
+ */
+function getDisplayWidth(str) {
+    let width = 0;
+    for (const char of str) {
+        const code = char.charCodeAt(0);
+
+        // Check if it's a wide character or emoji
+        // Emoji ranges: 1F600-1F64F (emoticons), 1F300-1F5FF (misc symbols),
+        // 1F680-1F6FF (transport), 2600-26FF (misc symbols), 2700-27BF (dingbats)
+        if (
+            (code >= 0x1F300 && code <= 0x1F9FF) ||  // Emoji ranges
+            (code >= 0x2600 && code <= 0x27BF) ||    // Symbols, Dingbats
+            (code >= 0xFE00 && code <= 0xFE0F)       // Variation selectors
+        ) {
+            // Wide character / emoji = 2 columns
+            width += 2;
+        } else {
+            // Regular ASCII and most Unicode = 1 column
+            width += 1;
+        }
+    }
+    return width;
+}
+
+/**
  * Format markdown table with proper column alignment
+ * Accounts for emoji visual width vs character count
  * Matches the formatting from scripts/generate-command-docs.js
  */
 function formatMarkdownTable(rows) {
     if (rows.length === 0) return '';
 
-    // Calculate max width for each column
+    // Calculate max visual width for each column
     const numCols = Math.max(...rows.map(r => r.length));
     const colWidths = new Array(numCols).fill(0);
 
     rows.forEach(row => {
         row.forEach((cell, i) => {
-            colWidths[i] = Math.max(colWidths[i], cell.length);
+            const displayWidth = getDisplayWidth(cell);
+            colWidths[i] = Math.max(colWidths[i], displayWidth);
         });
     });
 
@@ -77,8 +107,8 @@ function formatMarkdownTable(rows) {
 
         for (let i = 0; i < numCols; i++) {
             const cell = row[i] || '';
-            const cellWidth = cell.length;
-            const padding = colWidths[i] - cellWidth;
+            const displayWidth = getDisplayWidth(cell);
+            const padding = colWidths[i] - displayWidth;
 
             let formattedCell;
             // Check if this is a separator row (contains only dashes)
