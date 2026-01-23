@@ -355,8 +355,9 @@ class JSONReporter {
 
     /**
      * Build enhanced summary with raw numbers, aggregated stats, and incremental deltas
+     * Uses cumulative sets to track all functions/statements seen across all tests
      */
-    buildEnhancedSummary(filePath, coverageData, assertionsCount, previousCoverageData, previousAnalysis) {
+    buildEnhancedSummary(filePath, coverageData, assertionsCount, cumulativeFunctions, cumulativeStatements) {
         try {
             // Extract raw V8 data
             const v8Result = coverageData.coverage?.result || [];
@@ -370,7 +371,8 @@ class JSONReporter {
             let coveredBytes = 0;
             let totalExecutions = 0;
 
-            // Track which statements (ranges) are covered in this test
+            // Track which functions and statements are covered in THIS test
+            const currentFunctions = new Set();
             const currentStatements = new Set();
 
             v8Result.forEach(script => {
@@ -390,7 +392,7 @@ class JSONReporter {
                             coveredStatements++;
                             coveredBytes += rangeBytes;
                             totalExecutions += range.count;
-                            // Track this statement as covered
+                            // Track this statement as covered in current test
                             const statementId = `${script.url}:${range.startOffset}-${range.endOffset}`;
                             currentStatements.add(statementId);
                         }
@@ -398,42 +400,27 @@ class JSONReporter {
                 });
             });
 
-            // Calculate new functions by comparing functionSummary
-            let newFunctionsCount = 0;
+            // Add functions from this test to current set
             const currentFuncSummary = coverageData.analysis?.functionSummary || {};
-            const previousFuncSummary = previousAnalysis?.functionSummary || {};
-
             Object.keys(currentFuncSummary).forEach(funcName => {
-                if (!previousFuncSummary[funcName]) {
+                currentFunctions.add(funcName);
+            });
+
+            // Calculate new functions: functions in current test but NOT in cumulative
+            let newFunctionsCount = 0;
+            currentFunctions.forEach(funcName => {
+                if (!cumulativeFunctions.has(funcName)) {
                     newFunctionsCount++;
                 }
             });
 
-            // Calculate new statements by comparing V8 coverage
+            // Calculate new statements: statements in current test but NOT in cumulative
             let newStatementsCount = 0;
-            if (previousCoverageData && previousCoverageData.length > 0) {
-                const previousStatements = new Set();
-                previousCoverageData.forEach(script => {
-                    script.functions.forEach(fn => {
-                        fn.ranges.forEach(range => {
-                            if (range.count > 0) {
-                                const statementId = `${script.url}:${range.startOffset}-${range.endOffset}`;
-                                previousStatements.add(statementId);
-                            }
-                        });
-                    });
-                });
-
-                // New statements are those in current but not in previous
-                currentStatements.forEach(stmt => {
-                    if (!previousStatements.has(stmt)) {
-                        newStatementsCount++;
-                    }
-                });
-            } else {
-                // First test - all statements are new
-                newStatementsCount = coveredStatements;
-            }
+            currentStatements.forEach(stmt => {
+                if (!cumulativeStatements.has(stmt)) {
+                    newStatementsCount++;
+                }
+            });
 
             // Aggregate stats from functionSummary
             const funcSummary = coverageData.analysis?.functionSummary || {};
