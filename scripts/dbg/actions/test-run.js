@@ -86,10 +86,9 @@ async function runTest(testFile) {
     return new Promise((resolve) => {
         log(`Running test: ${testFile}`);
 
-        const proc = spawn('npm', ['run', 'test:cdp:headless', '--', '--reporter=json', testFile], {
+        const proc = spawn('bun', ['tests/cdp/run-headless.js', '--reporter=json', testFile], {
             cwd: PROJECT_ROOT,
-            stdio: ['ignore', 'pipe', 'pipe'],
-            shell: true
+            stdio: ['ignore', 'pipe', 'pipe']
         });
 
         let stdout = '';
