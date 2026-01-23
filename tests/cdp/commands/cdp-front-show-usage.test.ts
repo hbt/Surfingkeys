@@ -3,8 +3,11 @@
  *
  * Tests the frontend help menu UI with fuzzyfinder/fuzzy filter.
  *
+ * Includes V8 code coverage collection to measure code paths executed.
+ *
  * Usage:
  *   Headless mode:   npm run test:cdp:headless tests/cdp/commands/cdp-front-show-usage.test.ts
+ *   With JSON reporter: npm run test:cdp:headless -- --reporter=json tests/cdp/commands/cdp-front-show-usage.test.ts
  */
 
 import WebSocket from 'ws';
@@ -23,9 +26,12 @@ import {
     sendKey,
     enableInputDomain
 } from '../utils/browser-actions';
+import { startCoverage, collectCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('Frontend - Show Usage (Help Menu)', () => {
+    jest.setTimeout(60000); // Increase timeout for coverage collection
+
     let bgWs: WebSocket;
     let pageWs: WebSocket;
     let frontendWs: WebSocket | null = null;
@@ -33,6 +39,7 @@ describe('Frontend - Show Usage (Help Menu)', () => {
     let tabId: number;
 
     const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
+    const TEST_NAME = 'show-usage';
 
     beforeAll(async () => {
         // Check CDP is available
@@ -63,6 +70,8 @@ describe('Frontend - Show Usage (Help Menu)', () => {
         try {
             const frontendWsUrl = await findContentPage('frontend.html');
             frontendWs = await connectToCDP(frontendWsUrl);
+            // Start coverage collection for frontend
+            await startCoverage(frontendWs, 'frontend');
         } catch (e) {
             // Frontend might not be discoverable yet, will try in tests
             console.log('Frontend iframe not immediately available, will attempt to find it in tests');
@@ -70,6 +79,11 @@ describe('Frontend - Show Usage (Help Menu)', () => {
     });
 
     afterAll(async () => {
+        // Collect coverage before cleanup
+        if (frontendWs) {
+            await collectCoverage(frontendWs, TEST_NAME);
+        }
+
         // Cleanup
         if (tabId && bgWs) {
             await closeTab(bgWs, tabId);
