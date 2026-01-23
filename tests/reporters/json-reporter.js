@@ -1,13 +1,19 @@
 /**
- * Custom Jest Reporter - JSON Output
+ * Custom Jest Reporter - JSON Output (Source of Truth)
  *
- * This reporter outputs test results in a structured JSON format,
- * including coverage references and test metadata.
+ * Outputs comprehensive test results in structured JSON format.
+ * Full report is saved to file; console output is a brief, jq-compatible summary.
  *
- * Compatible with Bun's Jest integration.
+ * The JSON output is the single source of truth for all test data.
+ * Other reporters (e.g., Table Reporter) consume this JSON output.
  *
  * Usage:
  *   jest --reporters=<path-to-this-file>
+ *
+ * Output:
+ *   - Full JSON report → /tmp/cdp-test-reports/test-report-*.json
+ *   - Diagnostics → /tmp/cdp-test-reports/test-diagnostics-*.json
+ *   - Console → Brief JSON summary (jq-compatible, pipeable)
  */
 
 const fs = require('fs');
@@ -38,15 +44,6 @@ class JSONReporter {
 
         // Extract test file relative path
         const testPath = path.relative(this.globalConfig.rootDir, test.path);
-
-        // Debug: Log console buffer status
-        if (this.suites.length === 0) {
-            console.error(`\n[DEBUG] Console buffer check:`);
-            console.error(`  testResult.console exists: ${!!testResult.console}`);
-            console.error(`  testResult.console type: ${typeof testResult.console}`);
-            console.error(`  testResult.console value: ${JSON.stringify(testResult.console)}`);
-            console.error(`  Raw testResult keys: ${Object.keys(testResult).join(', ')}`);
-        }
 
         // Build test suite record
         const suite = {
@@ -376,60 +373,49 @@ class JSONReporter {
     }
 
     /**
-     * Output the report to stdout and optionally to a file
+     * Output brief summary to console (jq-compatible, pipeable)
+     * Save full report and diagnostics to files
      */
     outputReport(report) {
-        const reportJson = JSON.stringify(report, null, 2);
-
-        // Output to stdout
-        console.log('\n=== TEST REPORT (JSON) ===\n');
-        console.log(reportJson);
-
-        // Generate and output diagnostics
-        const diagnostics = this.generateDiagnostics(report);
-        console.log('\n=== FIELD VALIDATION DIAGNOSTICS ===\n');
-        console.log(JSON.stringify(diagnostics, null, 2));
-
-        // Also save to file
         const reportDir = '/tmp/cdp-test-reports';
         if (!fs.existsSync(reportDir)) {
             fs.mkdirSync(reportDir, { recursive: true });
         }
 
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+        // Save full JSON report to file (single source of truth)
+        const reportJson = JSON.stringify(report, null, 2);
         const reportFile = path.join(reportDir, `test-report-${timestamp}.json`);
         fs.writeFileSync(reportFile, reportJson);
 
+        // Save diagnostics to file
+        const diagnostics = this.generateDiagnostics(report);
         const diagFile = path.join(reportDir, `test-diagnostics-${timestamp}.json`);
         fs.writeFileSync(diagFile, JSON.stringify(diagnostics, null, 2));
 
-        console.log(`\n✓ Report saved to: ${reportFile}`);
-        console.log(`✓ Diagnostics saved to: ${diagFile}\n`);
+        // Output brief, jq-compatible summary to console
+        const summary = {
+            type: 'test-summary',
+            success: report.success,
+            tests: report.summary.total,
+            passed: report.summary.passed,
+            failed: report.summary.failed,
+            skipped: report.summary.skipped,
+            slow: report.summary.slow,
+            assertions: report.summary.assertions.passing,
+            duration: report.duration.total,
+            coverage: report.coverage ? report.coverage.summary : null,
+            reportFile: reportFile,
+            diagnosticsFile: diagFile
+        };
 
-        // Invoke table reporter to generate human-readable output
-        this.invokeTableReporter(reportFile, reportDir);
-    }
+        // Output to console as compact JSON (jq-compatible)
+        console.log(JSON.stringify(summary));
 
-    /**
-     * Invoke table reporter to generate Markdown tables from JSON report
-     */
-    invokeTableReporter(jsonReportPath, reportDir) {
-        try {
-            const tableReporter = require('./table-reporter.js');
-            const jsonReport = JSON.parse(fs.readFileSync(jsonReportPath, 'utf8'));
-            const markdown = tableReporter.generateMarkdownReport(jsonReport);
-
-            const timestamp = new Date(jsonReport.timestamp).toISOString().replace(/[:.]/g, '-');
-            const reportFile = path.join(reportDir, `test-report-table-${timestamp}.md`);
-            fs.writeFileSync(reportFile, markdown, 'utf8');
-
-            // Output to console
-            console.log('\n=== TEST REPORT (TABLE FORMAT) ===\n');
-            console.log(markdown);
-            console.log(`\n✓ Table report saved to: ${reportFile}\n`);
-        } catch (err) {
-            console.error(`\n⚠️  Warning: Could not generate table report: ${err.message}\n`);
-        }
+        // Also output file paths to stderr for visibility
+        console.error(`\n✓ Full report: ${reportFile}`);
+        console.error(`✓ Diagnostics: ${diagFile}\n`);
     }
 }
 

@@ -30,6 +30,9 @@ module.exports = {
         }]
     },
 
+    // Capture test location (line/column) for better reporting and IDE integration
+    testLocationInResults: true,
+
     // Longer timeouts for browser operations
     testTimeout: 30000,
 
