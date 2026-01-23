@@ -173,7 +173,7 @@ git mv jest.config.cdp.js config/
 # Update test/debug runners
 # Add rootDir to jest configs
 npm run lint  # Verify
-npm run test:cdp:headless tests/cdp/cdp-error-viewer.test.ts  # Verify
+bin/dbg test-run tests/cdp/cdp-error-viewer.test.ts  # Verify
 ```
 
 ## Consequences
@@ -263,7 +263,7 @@ npm run lint
 ### Testing
 ```bash
 # CDP tests
-npm run test:cdp:headless tests/cdp/cdp-error-viewer.test.ts
+bin/dbg test-run tests/cdp/cdp-error-viewer.test.ts
 # Should use config/jest.config.cdp.js
 
 # Regular tests

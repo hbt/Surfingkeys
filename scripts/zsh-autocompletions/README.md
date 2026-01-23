@@ -28,7 +28,7 @@ Based on the mage completion approach:
 ```bash
 npm run esb<TAB>           # Shows: esbuild:dev, esbuild:prod
 npm run esbuild:d<TAB>     # Completes to: npm run esbuild:dev
-nr test:cdp:h<TAB>         # Completes to: nr test:cdp:headless
+bin/dbg t<TAB>             # Completes to: bin/dbg test-run
 ```
 
 ### Installation pattern

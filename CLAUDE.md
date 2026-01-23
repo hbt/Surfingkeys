@@ -94,11 +94,10 @@ Automatically builds and reloads extension.
 #### // TODO(hbt) NEXT [tests] consolidate both reporters? fix the headless:seq + :all (aggregate results. pass/fail for whole suite)
 
 ### Run single test in headless mode (fully automated)
-npm run test:cdp:headless tests/cdp/cdp-keyboard.test.ts
+bin/dbg test-run tests/cdp/cdp-keyboard.test.ts
 
-- Pass `--reporter=default` (or set `CDP_HEADLESS_REPORTER=default`) if you want Jest's full verbose reporter instead of the streaming reporter.
-- `--reporter=both` runs streaming + default together for maximum logs.
-- `--reporter=json` outputs structured JSON report with coverage data: `npm run test:cdp:headless -- --reporter=json tests/cdp/commands/cdp-create-hints.test.ts`
+- Outputs clean JSON to stdout (structured JSON report with coverage data)
+- All diagnostics and logs written to `/tmp/dbg-test-run-<timestamp>.log`
 - Headless Chrome is launched with Developer Mode enabled plus `--enable-experimental-extension-apis --enable-features=UserScriptsAPI`, so userScripts-based configs work automatically.
 
 ### Run all tests in parallel headless mode (limit of 16 concurrent)

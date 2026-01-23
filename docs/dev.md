@@ -176,19 +176,18 @@ The script demonstrates the reusable CDP pattern:
 
 See `debug/cdp-screenshot.ts` for the implementation pattern.
 
-### Headless Reporter Options
+### Headless Testing with bin/dbg test-run
 
-`tests/cdp/run-headless.js` supports alternative Jest reporters so you can see
-full stack traces while debugging:
+`bin/dbg test-run` provides the recommended way to run CDP tests with JSON output:
 
-- Default: streaming reporter (fast, minimal)
-- `--reporter=default`: use Jest's built-in verbose reporter
-- `--reporter=both`: run streaming and default reporters together
-- `--reporter=json`: structured JSON report with V8 code coverage data and test metadata (saved to `/tmp/cdp-test-reports/`)
-- Environment variable: `CDP_HEADLESS_REPORTER=default npm run test:cdp:headless -- tests/cdp/...`
+```bash
+bin/dbg test-run tests/cdp/commands/cdp-create-hints.test.ts
+```
 
-This makes it easier to capture console output and detailed failure context
-without editing the runner script. The JSON reporter is useful for CI/CD integration and automated test analysis.
+**Output:**
+- Clean JSON to stdout (structured JSON report with V8 code coverage data and test metadata)
+- All logs and diagnostics written to `/tmp/dbg-test-run-<timestamp>.log`
+- Useful for CI/CD integration and automated test analysis
 
 Headless runs also auto-enable Chrome's Developer Mode by seeding
 `extensions.ui.developer_mode=true` in the temporary profile so that
