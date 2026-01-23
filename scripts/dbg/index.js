@@ -53,7 +53,8 @@ const ACTIONS = {
     'test-server-stop': 'Stop the running fixtures server',
     'test-run': 'Run Jest tests with JSON output (no npm noise)',
     'vtest-run': 'Run Jest tests with visual table output (human-readable)',
-    'test-all': 'Run all CDP tests sequentially, aggregate results to JSON'
+    'test-all': 'Run all CDP tests sequentially, aggregate results to JSON',
+    'test-allp': 'Run all CDP tests in parallel (configurable limit), aggregate results to JSON'
 };
 
 /**
