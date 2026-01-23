@@ -52,6 +52,7 @@ const ACTIONS = {
     'test-server-start': 'Start fixtures server for CDP tests (port 9873)',
     'test-server-stop': 'Stop the running fixtures server',
     'test-run': 'Run Jest tests with JSON output (no npm noise)',
+    'vtest-run': 'Run Jest tests with visual table output (human-readable)',
     'test-all': 'Run all CDP tests sequentially, aggregate results to JSON'
 };
 
