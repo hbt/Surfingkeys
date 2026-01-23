@@ -155,8 +155,19 @@ describe('Frontend - Show Usage (Help Menu)', () => {
                 reject(new Error('Frontend WebSocket connection timeout'));
             }, 5000);
 
-            frontendWs!.addEventListener('open', () => {
+            frontendWs!.addEventListener('open', async () => {
                 clearTimeout(timeout);
+
+                // Start coverage collection on first successful frontend connection
+                if (!frontendCoverageStarted) {
+                    try {
+                        await startCoverage(frontendWs!, 'frontend');
+                        frontendCoverageStarted = true;
+                    } catch (err) {
+                        console.error('Warning: Could not start coverage on frontend:', err);
+                    }
+                }
+
                 resolve(frontendWs!);
             }, { once: true });
 
