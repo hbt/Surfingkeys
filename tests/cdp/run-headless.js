@@ -148,6 +148,9 @@ function normalizeReporter(value) {
     if (normalized === 'default' || normalized === 'verbose' || normalized === 'jest') {
         return 'default';
     }
+    if (normalized === 'table') {
+        return 'table';
+    }
     if (normalized === 'both' || normalized === 'all') {
         return 'both';
     }
@@ -162,12 +165,18 @@ function normalizeReporter(value) {
 
 function buildReporterArgs(mode, streamingReporterPath) {
     const jsonReporterPath = path.join(__dirname, '../reporters/json-reporter.js');
+    const tableReporterPath = path.join(__dirname, '../reporters/table-reporter-jest.js');
 
     switch (mode) {
     case 'default':
         return {
             label: 'jest-default',
             args: ['--reporters', 'default']
+        };
+    case 'table':
+        return {
+            label: 'json+table',
+            args: ['--reporters', jsonReporterPath, '--reporters', tableReporterPath]
         };
     case 'both':
         return {
@@ -198,10 +207,19 @@ async function main() {
     const testFile = cli.positional[0];
 
     if (!testFile) {
-        console.error('❌ Usage: node run-headless.js [--reporter=<json|streaming|default|both>] <test-file>');
-        console.error('   Default reporter: json');
-        console.error('   Example: node run-headless.js tests/cdp/commands/cdp-create-hints.test.ts');
-        console.error('   Example: node run-headless.js --reporter=streaming tests/cdp/commands/cdp-create-hints.test.ts');
+        console.error('❌ Usage: node run-headless.js [--reporter=<json|table|streaming|default|both>] <test-file>');
+        console.error('');
+        console.error('   Reporters:');
+        console.error('   - json (default):   Concise JSON summary + full report to file');
+        console.error('   - table:            Markdown tables from JSON report');
+        console.error('   - streaming:        Real-time progress output');
+        console.error('   - default:          Jest default reporter');
+        console.error('   - both:             Streaming + default');
+        console.error('');
+        console.error('   Examples:');
+        console.error('   - npm run test:cdp:headless tests/cdp/commands/cdp-create-hints.test.ts');
+        console.error('   - npm run test:cdp:headless -- --reporter=table tests/cdp/commands/cdp-create-hints.test.ts');
+        console.error('   - npm run test:cdp:headless -- --reporter=streaming tests/cdp/commands/cdp-create-hints.test.ts');
         process.exit(1);
     }
 
