@@ -12,6 +12,8 @@
  * Logs: Written to /tmp/dbg-test-run-<timestamp>.log
  */
 
+// TODO(hbt) NEXT [tests] add esbuild:dev before running tests
+
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
