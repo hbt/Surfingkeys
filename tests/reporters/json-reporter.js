@@ -307,9 +307,10 @@ class JSONReporter {
                             const v8Result = data.coverage?.result || [];
                             const funcSummary = analysis?.functionSummary || {};
 
-                            // Add all functions from this test to cumulative
-                            Object.keys(funcSummary).forEach(funcName => {
-                                cumulativeFunctions.add(funcName);
+                            // Add all functions from this test to cumulative (using scriptUrl:funcName to avoid collisions)
+                            Object.entries(funcSummary).forEach(([funcName, funcData]) => {
+                                const functionId = `${funcData.scriptUrl}:${funcName}`;
+                                cumulativeFunctions.add(functionId);
                             });
 
                             // Add all statements from this test to cumulative
@@ -400,16 +401,17 @@ class JSONReporter {
                 });
             });
 
-            // Add functions from this test to current set
+            // Add functions from this test to current set (using scriptUrl:funcName to avoid collisions)
             const currentFuncSummary = coverageData.analysis?.functionSummary || {};
-            Object.keys(currentFuncSummary).forEach(funcName => {
-                currentFunctions.add(funcName);
+            Object.entries(currentFuncSummary).forEach(([funcName, funcData]) => {
+                const functionId = `${funcData.scriptUrl}:${funcName}`;
+                currentFunctions.add(functionId);
             });
 
             // Calculate new functions: functions in current test but NOT in cumulative
             let newFunctionsCount = 0;
-            currentFunctions.forEach(funcName => {
-                if (!cumulativeFunctions.has(funcName)) {
+            currentFunctions.forEach(functionId => {
+                if (!cumulativeFunctions.has(functionId)) {
                     newFunctionsCount++;
                 }
             });
