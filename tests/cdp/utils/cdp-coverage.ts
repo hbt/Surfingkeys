@@ -128,3 +128,140 @@ export function findLatestCoverageFile(testName: string): string | null {
         return null;
     }
 }
+
+/**
+ * Analyze coverage data and generate function-level summary
+ * @param coverage Raw V8 coverage data
+ * @returns Function-level summary with execution counts and coverage percentage
+ */
+export function generateFunctionSummary(coverage: any): any {
+    const functionSummary: any = {};
+
+    coverage.result.forEach((script: any) => {
+        script.functions.forEach((func: any) => {
+            // Calculate total executions across all ranges
+            const totalCount = func.ranges.reduce((sum: number, r: any) => sum + r.count, 0);
+
+            // Count uncovered branches (count === 0)
+            const uncoveredRanges = func.ranges.filter((r: any) => r.count === 0).length;
+            const totalRanges = func.ranges.length;
+
+            // Calculate coverage percentage
+            const coveragePercent = totalRanges === 1
+                ? (totalCount > 0 ? 100 : 0)
+                : Math.round(((totalRanges - uncoveredRanges) / totalRanges) * 100);
+
+            functionSummary[func.functionName || '<anonymous>'] = {
+                scriptUrl: script.url,
+                totalExecutions: totalCount,
+                totalBranches: totalRanges,
+                uncoveredBranches: uncoveredRanges,
+                coveragePercent: coveragePercent,
+                isBlockCoverage: func.isBlockCoverage
+            };
+        });
+    });
+
+    return functionSummary;
+}
+
+/**
+ * Generate hot path and cold path analysis from coverage data
+ * @param coverage Raw V8 coverage data
+ * @returns Analysis object with hottest, coldest, and most uncovered functions
+ */
+export function generateHotPathAnalysis(coverage: any): any {
+    const hotPaths: any[] = [];
+    const coldPaths: any[] = [];
+    const uncoveredStats: any[] = [];
+
+    coverage.result.forEach((script: any) => {
+        script.functions.forEach((func: any) => {
+            const funcName = func.functionName || '<anonymous>';
+            const totalCount = func.ranges.reduce((sum: number, r: any) => sum + r.count, 0);
+            const uncoveredRanges = func.ranges.filter((r: any) => r.count === 0).length;
+            const totalRanges = func.ranges.length;
+
+            // Track hot paths (high execution count)
+            hotPaths.push({
+                functionName: funcName,
+                scriptUrl: script.url,
+                executionCount: totalCount,
+                branches: totalRanges
+            });
+
+            // Track cold paths (count === 0)
+            if (totalCount === 0) {
+                coldPaths.push({
+                    functionName: funcName,
+                    scriptUrl: script.url,
+                    branches: totalRanges,
+                    reason: 'never executed'
+                });
+            }
+
+            // Track functions with most uncovered branches
+            if (uncoveredRanges > 0) {
+                uncoveredStats.push({
+                    functionName: funcName,
+                    scriptUrl: script.url,
+                    uncoveredBranches: uncoveredRanges,
+                    totalBranches: totalRanges,
+                    coveragePercent: Math.round(((totalRanges - uncoveredRanges) / totalRanges) * 100)
+                });
+            }
+        });
+    });
+
+    // Sort and take top 10
+    hotPaths.sort((a: any, b: any) => b.executionCount - a.executionCount);
+    uncoveredStats.sort((a: any, b: any) => b.uncoveredBranches - a.uncoveredBranches);
+
+    return {
+        hottest: hotPaths.slice(0, 10),
+        coldest: coldPaths.slice(0, 10),
+        mostUncovered: uncoveredStats.slice(0, 10)
+    };
+}
+
+/**
+ * Collect V8 coverage and generate analysis reports
+ * @param targetWs WebSocket connection to the target
+ * @param testName Name of the test (used in filename)
+ * @returns Path to the coverage file with analysis, or null if collection failed
+ */
+export async function collectCoverageWithAnalysis(
+    targetWs: WebSocket,
+    testName: string = 'test'
+): Promise<string | null> {
+    try {
+        console.log('✓ Collecting V8 coverage with analysis...');
+        const coverage = await sendCDPCommand(targetWs, 'Profiler.takePreciseCoverage');
+        await sendCDPCommand(targetWs, 'Profiler.stopPreciseCoverage');
+
+        // Generate analyses
+        const functionSummary = generateFunctionSummary(coverage);
+        const hotPathAnalysis = generateHotPathAnalysis(coverage);
+
+        // Create enhanced coverage object
+        const enhancedCoverage = {
+            ...coverage,
+            analysis: {
+                functionSummary,
+                hotPathAnalysis
+            }
+        };
+
+        // Write coverage file with analysis
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const coverageFileName = `page-${testName}-coverage-${timestamp}.json`;
+        const coveragePath = path.join(COVERAGE_DIR, coverageFileName);
+        fs.writeFileSync(coveragePath, JSON.stringify(enhancedCoverage, null, 2));
+        console.log(`✓ Coverage with analysis saved: ${coverageFileName}`);
+
+        return coveragePath;
+    } catch (err) {
+        console.error('Warning: Could not collect coverage:', err);
+        return null;
+    }
+}

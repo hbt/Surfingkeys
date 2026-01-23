@@ -29,7 +29,7 @@ import {
     countElements,
     enableInputDomain
 } from '../utils/browser-actions';
-import { startCoverage, collectCoverage } from '../utils/cdp-coverage';
+import { startCoverage, collectCoverageWithAnalysis } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('DOM Manipulation - Hints', () => {
@@ -74,7 +74,7 @@ describe('DOM Manipulation - Hints', () => {
 
     afterAll(async () => {
         // Collect coverage before cleanup
-        await collectCoverage(pageWs, TEST_NAME);
+        await collectCoverageWithAnalysis(pageWs, TEST_NAME);
 
         // Cleanup
         if (tabId && bgWs) {

@@ -26,7 +26,7 @@ import {
     sendKey,
     enableInputDomain
 } from '../utils/browser-actions';
-import { startCoverage, collectCoverage } from '../utils/cdp-coverage';
+import { startCoverage, collectCoverageWithAnalysis } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('Frontend - Show Usage (Help Menu)', () => {
@@ -81,7 +81,7 @@ describe('Frontend - Show Usage (Help Menu)', () => {
     afterAll(async () => {
         // Collect coverage before cleanup
         if (frontendWs) {
-            await collectCoverage(frontendWs, TEST_NAME);
+            await collectCoverageWithAnalysis(frontendWs, TEST_NAME);
         }
 
         // Cleanup
