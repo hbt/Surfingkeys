@@ -11,8 +11,18 @@ import * as path from 'path';
 
 const COVERAGE_DIR = '/tmp/cdp-coverage';
 
-// Message ID counter for CDP commands
-let messageId = 0;
+// Message ID counter per WebSocket connection
+const wsMessageIds = new WeakMap<WebSocket, number>();
+
+/**
+ * Get next message ID for a WebSocket connection
+ */
+function getNextMessageId(ws: WebSocket): number {
+    const current = wsMessageIds.get(ws) || 0;
+    const next = current + 1;
+    wsMessageIds.set(ws, next);
+    return next;
+}
 
 /**
  * Send a CDP command and wait for response
@@ -23,17 +33,19 @@ let messageId = 0;
  */
 export function sendCDPCommand(ws: WebSocket, method: string, params: any = {}): Promise<any> {
     return new Promise((resolve, reject) => {
-        const id = ++messageId;
-        const timeout = setTimeout(() => {
-            reject(new Error(`Timeout waiting for CDP response for ${method}`));
-        }, 10000);
+        const id = getNextMessageId(ws);
+        let timeoutHandle: NodeJS.Timeout | null = null;
+        let handlerAttached = false;
 
         const handler = (data: any) => {
             try {
                 const msg = JSON.parse(data.toString());
                 if (msg.id === id) {
-                    clearTimeout(timeout);
-                    ws.removeListener('message', handler);
+                    if (timeoutHandle) clearTimeout(timeoutHandle);
+                    if (handlerAttached) {
+                        ws.removeListener('message', handler);
+                        handlerAttached = false;
+                    }
                     if (msg.error) {
                         reject(new Error(`CDP error for ${method}: ${msg.error.message}`));
                     } else {
@@ -45,8 +57,26 @@ export function sendCDPCommand(ws: WebSocket, method: string, params: any = {}):
             }
         };
 
-        ws.on('message', handler);
-        ws.send(JSON.stringify({ id, method, params }));
+        timeoutHandle = setTimeout(() => {
+            if (handlerAttached) {
+                ws.removeListener('message', handler);
+                handlerAttached = false;
+            }
+            reject(new Error(`Timeout waiting for CDP response for ${method}`));
+        }, 10000);
+
+        try {
+            ws.on('message', handler);
+            handlerAttached = true;
+            ws.send(JSON.stringify({ id, method, params }));
+        } catch (err) {
+            if (handlerAttached) {
+                ws.removeListener('message', handler);
+                handlerAttached = false;
+            }
+            if (timeoutHandle) clearTimeout(timeoutHandle);
+            reject(err);
+        }
     });
 }
 
