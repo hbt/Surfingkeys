@@ -32,6 +32,29 @@ function log(message) {
 }
 
 /**
+ * Extract clean markdown table from verbose output
+ * Removes npm noise, JSON output, and verbose headers
+ * Keeps everything from "# Test Report" onwards
+ */
+function cleanTableOutput(output) {
+    // Find the start of the markdown report (first occurrence of "# Test Report")
+    const reportStart = output.indexOf('# Test Report');
+
+    if (reportStart === -1) {
+        // No markdown report found, return original (shouldn't happen)
+        log('⚠ Warning: Could not find "# Test Report" header in output');
+        return output;
+    }
+
+    // Extract from "# Test Report" onwards
+    const cleanedOutput = output.substring(reportStart);
+
+    log(`✓ Cleaned output: Removed ${reportStart} bytes of verbose prefix`);
+
+    return cleanedOutput;
+}
+
+/**
  * Run the test and capture table output
  */
 async function runTest(testFile) {
@@ -125,7 +148,9 @@ function formatOutput(result, testFile) {
     output += `Test: ${testFile}\n`;
     output += `${'═'.repeat(80)}\n\n`;
 
-    output += result.table;
+    // Clean verbose output, keeping only markdown from "# Test Report" onwards
+    const cleanedTable = cleanTableOutput(result.table);
+    output += cleanedTable;
 
     output += `\n${'─'.repeat(80)}\n`;
     output += `📄 Files:\n`;
