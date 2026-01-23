@@ -275,7 +275,24 @@ function restructureMarkdown(markdown) {
     if (coverageLines.length > 0) {
         result.push('## Coverage');
         result.push('');
-        result.push(...coverageLines);
+
+        // Convert coverage metrics to table
+        const coverageTableRows = [
+            ['Metric', 'Coverage'],
+            ['-', '-']
+        ];
+
+        for (const line of coverageLines) {
+            // Parse line like "- **Functions**: 87.6%"
+            const match = line.match(/\*\*([^*]+)\*\*:\s*(.+)/);
+            if (match) {
+                const metric = match[1];
+                const value = match[2].trim();
+                coverageTableRows.push([metric, value]);
+            }
+        }
+
+        result.push(formatMarkdownTable(coverageTableRows));
         result.push('');
     }
 
@@ -382,6 +399,11 @@ function formatOutput(result, testFile) {
     // Restructure markdown for better readability
     const restructuredMarkdown = restructureMarkdown(cleanedTable);
     output += restructuredMarkdown;
+
+    // Add reference to full JSON report file
+    if (result.reportFile) {
+        output += `**Report**: ${result.reportFile}\n`;
+    }
 
     output += `\n`;
 
