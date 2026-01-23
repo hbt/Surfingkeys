@@ -145,7 +145,8 @@ function createConciseSummary(testResults, stats, aggregateReportFile, aggregate
                 slow: tr.result.slow,
                 duration: tr.result.duration,
                 reportFile: tr.result.reportFile,
-                diagnosticsFile: tr.result.diagnosticsFile
+                diagnosticsFile: tr.result.diagnosticsFile,
+                ...(tr.result.headlessLogFile ? { headlessLogFile: tr.result.headlessLogFile } : {})
             } : {
                 error: tr.error
             })

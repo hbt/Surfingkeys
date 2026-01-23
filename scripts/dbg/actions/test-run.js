@@ -31,6 +31,24 @@ function log(message) {
 }
 
 /**
+ * Extract headless log file path from output
+ * Looks for pattern: "Log: /tmp/cdp-headless-*.log"
+ * Returns path or null if not found
+ */
+function extractHeadlessLogPath(output) {
+    // Remove ANSI color codes
+    const clean = output.replace(/\u001b\[[0-9;]*m/g, '');
+
+    // Look for "Log: /tmp/cdp-headless-*.log" pattern
+    const match = clean.match(/Log:\s*(\S*cdp-headless[^\s]*\.log)/);
+    if (match && match[1]) {
+        return match[1];
+    }
+
+    return null;
+}
+
+/**
  * Extract JSON from mixed output (handles npm noise)
  * Returns extracted JSON or null if not found
  */
@@ -98,6 +116,12 @@ async function runTest(testFile) {
                 log(`Stderr preview: ${stderr.substring(0, 500)}`);
             }
 
+            // Extract headless log path (appears in stdout)
+            const headlessLogFile = extractHeadlessLogPath(stdout);
+            if (headlessLogFile) {
+                log(`✓ Found headless log: ${headlessLogFile}`);
+            }
+
             // Try to extract JSON from stdout first, then stderr
             let json = null;
             let source = 'stdout';
@@ -113,6 +137,12 @@ async function runTest(testFile) {
 
             if (json) {
                 log(`✓ Successfully extracted JSON from ${source}`);
+
+                // Add headless log path to JSON output if found
+                if (headlessLogFile) {
+                    json.headlessLogFile = headlessLogFile;
+                }
+
                 resolve({
                     success: true,
                     json: json,
