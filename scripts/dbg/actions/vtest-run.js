@@ -55,6 +55,159 @@ function cleanTableOutput(output) {
 }
 
 /**
+ * Restructure markdown output:
+ * - Move Coverage after Test Cases
+ * - Remove Suite column from Test Suites (redundant with header)
+ * - Rename "Test Suites" to "Summary"
+ * - Remove "Files" section
+ * - Keep Summary metrics but integrate into table
+ */
+function restructureMarkdown(markdown) {
+    // Split by sections
+    const lines = markdown.split('\n');
+    let result = [];
+    let inSummarySection = false;
+    let inCoverageSection = false;
+    let inTestSuitesSection = false;
+    let inTestCasesSection = false;
+
+    let summaryMetrics = [];
+    let coverageLines = [];
+    let testSuitesLines = [];
+    let testCasesLines = [];
+    let headerLine = '';
+    let timestamp = '';
+
+    // First pass: collect all sections
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Extract timestamp
+        if (line.includes('**Generated**:')) {
+            timestamp = line;
+            continue;
+        }
+
+        // Summary section
+        if (line === '## Summary') {
+            inSummarySection = true;
+            inCoverageSection = false;
+            inTestSuitesSection = false;
+            inTestCasesSection = false;
+            continue;
+        }
+
+        // Coverage section
+        if (line === '## Coverage') {
+            inCoverageSection = true;
+            inSummarySection = false;
+            inTestSuitesSection = false;
+            inTestCasesSection = false;
+            continue;
+        }
+
+        // Test Suites section
+        if (line === '## Test Suites') {
+            inTestSuitesSection = true;
+            inSummarySection = false;
+            inCoverageSection = false;
+            inTestCasesSection = false;
+            continue;
+        }
+
+        // Test Cases section
+        if (line === '## Test Cases') {
+            inTestCasesSection = true;
+            inSummarySection = false;
+            inCoverageSection = false;
+            inTestSuitesSection = false;
+            continue;
+        }
+
+        // Stop processing on Files section
+        if (line.includes('📄 Files:')) {
+            break;
+        }
+
+        // Collect lines for each section
+        if (inSummarySection && line.trim()) {
+            summaryMetrics.push(line);
+        } else if (inCoverageSection && line.trim()) {
+            coverageLines.push(line);
+        } else if (inTestSuitesSection && line.trim()) {
+            testSuitesLines.push(line);
+        } else if (inTestCasesSection && line.trim()) {
+            testCasesLines.push(line);
+        }
+    }
+
+    // Build restructured output
+    result.push('# Test Report');
+    result.push('');
+    if (timestamp) {
+        result.push(timestamp);
+    }
+    result.push('');
+
+    // Convert Summary metrics to table
+    result.push('## Summary');
+    result.push('');
+
+    // Parse summary metrics to extract values
+    let summaryTable = {
+        status: '✅',
+        tests: '-',
+        passed: '-',
+        failed: '-',
+        skipped: '-',
+        slow: '-',
+        assertions: '-',
+        duration: '-'
+    };
+
+    for (const line of summaryMetrics) {
+        if (line.includes('**Total Tests**')) summaryTable.tests = line.split(':')[1].trim();
+        if (line.includes('**Passed**')) {
+            // Extract number only, remove emoji
+            const value = line.split(':')[1].trim();
+            summaryTable.passed = value.replace(/\s*✅\s*/g, '');
+        }
+        if (line.includes('**Failed**')) {
+            // Extract number only, remove emoji
+            const value = line.split(':')[1].trim();
+            summaryTable.failed = value.replace(/\s*❌\s*/g, '');
+        }
+        if (line.includes('**Skipped**')) summaryTable.skipped = line.split(':')[1].trim();
+        if (line.includes('**Slow**')) summaryTable.slow = line.split(':')[1].trim();
+        if (line.includes('**Assertions**')) summaryTable.assertions = line.split(':')[1].trim();
+        if (line.includes('**Duration**')) summaryTable.duration = line.split(':')[1].trim();
+        if (line.includes('**Status**') && line.includes('✅ PASSED')) summaryTable.status = '✅ PASSED';
+        if (line.includes('**Status**') && line.includes('❌ FAILED')) summaryTable.status = '❌ FAILED';
+    }
+
+    result.push('| Status | Tests | Passed | Failed | Skipped | Slow | Assertions | Duration |');
+    result.push('| ------ | ----- | ------ | ------ | ------- | ---- | ---------- | -------- |');
+    result.push(`| ${summaryTable.status} | ${summaryTable.tests} | ${summaryTable.passed} | ${summaryTable.failed} | ${summaryTable.skipped} | ${summaryTable.slow} | ${summaryTable.assertions} | ${summaryTable.duration} |`);
+    result.push('');
+
+    // Test Cases section (without Suite column)
+    result.push('## Test Cases');
+    result.push('');
+    result.push(...testCasesLines);
+    result.push('');
+
+    // Coverage section (moved after Test Cases)
+    if (coverageLines.length > 0) {
+        result.push('## Coverage');
+        result.push('');
+        result.push(...coverageLines);
+        result.push('');
+    }
+
+    return result.join('\n');
+}
+
+/**
  * Run the test and capture table output
  */
 async function runTest(testFile) {
@@ -139,7 +292,7 @@ async function runTest(testFile) {
 }
 
 /**
- * Format output with file references
+ * Format output with restructured markdown
  */
 function formatOutput(result, testFile) {
     let output = '';
@@ -150,23 +303,24 @@ function formatOutput(result, testFile) {
 
     // Clean verbose output, keeping only markdown from "# Test Report" onwards
     const cleanedTable = cleanTableOutput(result.table);
-    output += cleanedTable;
 
-    output += `\n${'─'.repeat(80)}\n`;
-    output += `📄 Files:\n`;
-    output += `${'─'.repeat(80)}\n`;
-
-    if (result.headlessLogFile) {
-        output += `  Chrome Log:    ${result.headlessLogFile}\n`;
-    }
-    if (result.reportFile) {
-        output += `  Full Report:   ${result.reportFile}\n`;
-    }
-    if (result.diagnosticsFile) {
-        output += `  Diagnostics:   ${result.diagnosticsFile}\n`;
-    }
+    // Restructure markdown for better readability
+    const restructuredMarkdown = restructureMarkdown(cleanedTable);
+    output += restructuredMarkdown;
 
     output += `\n`;
+
+    // Log file references to file (for later reference, not shown in terminal)
+    log(`📄 Files:`);
+    if (result.headlessLogFile) {
+        log(`  Chrome Log:    ${result.headlessLogFile}`);
+    }
+    if (result.reportFile) {
+        log(`  Full Report:   ${result.reportFile}`);
+    }
+    if (result.diagnosticsFile) {
+        log(`  Diagnostics:   ${result.diagnosticsFile}`);
+    }
 
     return output;
 }
