@@ -219,35 +219,33 @@ Custom code resides primarily in:
 
 ## phase1.deliverables
 
-**Files to create on archive branch:**
+**Completed files in archive worktree:**
 
 ```
-docs/archive-analysis/
-├── custom-commands.md       # Complete command inventory
-├── custom-glossary.md        # Domain vocabulary
-├── custom-feature-tree.md   # Hierarchical features
-├── statistics.md            # Quantitative analysis
-└── architecture.md          # Code organization patterns
+~/workspace/surfingkeys-archive/docs/archive-analysis/
+├── custom-commands.md       # Complete command inventory (24.9 KB)
+├── custom-glossary.md       # Domain vocabulary (15.3 KB)
+├── custom-feature-tree.md   # Hierarchical features (19.5 KB)
+└── architecture.md          # Code organization patterns (20.5 KB)
 ```
 
-**Commit strategy:**
+**Access:**
 ```bash
-# On archive branch (in worktree)
-cd ~/workspace/surfingkeys-archive
+# View archive branch files
+cd ~/workspace/surfingkeys-archive/docs/archive-analysis/
 
-git add docs/archive-analysis/
-git commit -m "docs: Add comprehensive archive analysis for migration
-
-- Extract complete custom command inventory
-- Document domain glossary (magic navigation, etc.)
-- Build hierarchical feature tree
-- Generate statistics and metrics
-- Document architectural patterns
-
-Phase 1 of migration strategy - pure analysis, no planning."
-
-git push origin archive/hbt-master-manifest-v2-fork-2018-2025
+# Or view specific files:
+cat custom-commands.md       # Command inventory with keybindings
+cat custom-glossary.md       # Domain vocabulary (magic navigation, etc.)
+cat custom-feature-tree.md   # Hierarchical feature organization
+cat architecture.md          # Code patterns and integration points
 ```
+
+**Key Findings:**
+- [See custom-commands.md for complete command inventory]
+- [See custom-glossary.md for domain vocabulary and custom concepts]
+- [See custom-feature-tree.md for feature hierarchy]
+- [See architecture.md for code organization and messaging patterns]
 
 ## phase1.success_criteria
 
@@ -282,8 +280,20 @@ Phase 1 complete when:
 
 ## phase1.next_steps
 
-After Phase 1 completion:
-- Review findings
-- Assess scope and complexity
-- Plan Phase 2 based on analysis data
-- Create ADR-003 documenting rebuild-forward strategy
+Phase 1 is **complete**. Deliverables available in archive worktree:
+
+**To review Phase 1 findings:**
+```bash
+cd ~/workspace/surfingkeys-archive/docs/archive-analysis/
+
+# Start with custom-commands.md for complete inventory
+# Then custom-glossary.md for terminology
+# Then custom-feature-tree.md for organization
+# Then architecture.md for code patterns
+```
+
+**Next:**
+- Review findings from archive analysis docs
+- Assess scope and complexity of custom features
+- Proceed to Phase 2: Automated Testing Infrastructure
+- Phase 2 will enable reliable verification of any features ported from archive

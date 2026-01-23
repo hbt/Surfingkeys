@@ -1,5 +1,7 @@
 # sk-cdp CLI
 
+# // TODO(hbt) NEXT [docs] review this and dev.md + CLAUDE.md for consistency + make it a one stop file for all commands / references /examples
+
 Simplified CDP wrapper that eliminates JSON escaping and provides better developer experience.
 
 ## Commands

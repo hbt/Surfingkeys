@@ -1,5 +1,7 @@
 # Command message flow
 
+# // TODO(hbt) NEXT [docs] review this. 2019. cover shadowroot properly and window types. repeated confusion with agents and reference to headless tests examples and update diagrams etc.
+
 Frontend command is to call functions provided by SurfingKeys' frontend, such as `showUsage` / `openOmnibar` etc. Content command is to call functions implemented in content windows, such as `visualUpdate` / `visualClear` etc. The document is about how to refactory the command message flow between windows.
 
 ## window types
