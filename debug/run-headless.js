@@ -196,13 +196,18 @@ async function main() {
         '--disable-features=CertificateTransparencyComponentUpdater',
         `--disable-extensions-except=${extDir}`,
         `--load-extension=${extDir}`,
+        '--enable-experimental-extension-apis',
+        '--enable-features=UserScriptsAPI',
         '--simulate-outdated-no-au=Tue, 31 Dec 2099 23:59:59 GMT',
         '--password-store=basic',
         '--disable-infobars',
         'about:blank'
     ];
 
-    const chrome = spawn('google-chrome-beta', chromeArgs, {
+    // Use CHROME env var if set (by browser-actions/setup-chrome), otherwise fall back to google-chrome-beta
+    const chromeBinary = process.env.CHROME || 'google-chrome-beta';
+
+    const chrome = spawn(chromeBinary, chromeArgs, {
         stdio: 'ignore',
         detached: true
     });
