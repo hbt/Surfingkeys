@@ -34,7 +34,7 @@ import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../u
 import { CDP_PORT } from '../cdp-config';
 
 describe('cmd_scroll_down', () => {
-    const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
+    const FIXTURE_URL = 'http://127.0.0.1:9873/scroll-test.html';
 
     let bgWs: WebSocket;
     let pageWs: WebSocket;
