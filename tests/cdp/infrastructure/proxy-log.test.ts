@@ -564,6 +564,12 @@ describe('Proxy Log Verification', () => {
     describe('Config Execution Verification via Functional Behavior', () => {
         // Config fixture contains: api.mapcmdkey('w', 'cmd_scroll_down');
         // And: console.log('2102d3d5-3704-48b5-9c53-bf65c7c9c200');
+        //
+        // NOTE: Config code runs in MV3 isolated world (chrome.userScripts sandbox)
+        // - Config execution IS verified via functional behavior (custom keybinding works)
+        // - But console.log output is NOT captured by CDP (runs in isolated sandbox)
+        // - This is expected MV3 behavior - isolated world has isolated console
+        // - See config-execution-trace.test.ts for detailed execution flow analysis
         const CONFIG_FIXTURE_PATH = 'data/fixtures/headless-config-sample.js';
         const CONFIG_UUID = '2102d3d5-3704-48b5-9c53-bf65c7c9c200';
         let configTabId: number | null = null;
