@@ -209,6 +209,27 @@ function start(browser) {
     let userScriptsWorldConfigured = false;
     let snippetScriptCodeCache = undefined;
     let snippetSyncChain = Promise.resolve();
+
+    // Expose snippet sync chain for testing/debugging (eliminates arbitrary waitAfterSetMs delays in tests)
+    if (typeof globalThis !== 'undefined') {
+        Object.defineProperty(globalThis, '_snippetSyncChain', {
+            get: () => snippetSyncChain,
+            configurable: false,
+            enumerable: false
+        });
+
+        globalThis._isConfigReady = async function() {
+            try {
+                await snippetSyncChain;
+                return true;
+            } catch (error) {
+                console.error('[CONFIG] Snippet sync failed:', error);
+                globalThis._configLoadError = error;
+                return false;
+            }
+        };
+    }
+
     // Cache the most recent advanced/snippet settings so we can diff across async callers.
     const snippetSettingsSnapshot = {
         showAdvanced: false,
@@ -238,7 +259,18 @@ function start(browser) {
         }
         snippetSyncChain = snippetSyncChain.then(() => syncSettingsSnippets()).catch((error) => {
             console.warn('[userScripts] Failed to sync settings snippets', error);
+            throw error;  // Re-throw to propagate to globalThis._isConfigReady()
         });
+
+        // Log completion for debugging (helps verify timing in tests)
+        if (typeof globalThis !== 'undefined' && globalThis._snippetSyncChain) {
+            snippetSyncChain.then(() => {
+                console.log('[CONFIG] Snippet registration complete');
+            }).catch(() => {
+                // Error already logged above
+            });
+        }
+
         return snippetSyncChain;
     }
 
