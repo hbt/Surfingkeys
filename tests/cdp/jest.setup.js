@@ -7,16 +7,16 @@
 // Extend Jest timeout for all CDP tests
 jest.setTimeout(30000);
 
-// Suppress console logs during tests (unless verbose mode)
-if (!process.env.VERBOSE) {
-    const mockFn = () => {};
-    global.console = {
-        ...console,
-        log: mockFn,
-        debug: mockFn,
-        info: mockFn,
-        // Keep warnings and errors
-        warn: console.warn,
-        error: console.error
-    };
-}
+// Console mocking disabled for debugging
+// if (!process.env.VERBOSE) {
+//     const mockFn = () => {};
+//     global.console = {
+//         ...console,
+//         log: mockFn,
+//         debug: mockFn,
+//         info: mockFn,
+//         // Keep warnings and errors
+//         warn: console.warn,
+//         error: console.error
+//     };
+// }
