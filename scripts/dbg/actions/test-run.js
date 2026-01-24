@@ -67,6 +67,42 @@ function injectPerTestCoverage(report) {
 }
 
 /**
+ * Extract error information from full report file and inject into summary
+ * Reads the full report file and extracts error details from failed tests
+ */
+function injectErrorInformation(report) {
+    if (!report.reportFile) {
+        return report;
+    }
+
+    try {
+        const fullReport = JSON.parse(fs.readFileSync(report.reportFile, 'utf-8'));
+        const errors = [];
+
+        fullReport.suites?.forEach(suite => {
+            suite.tests?.forEach(test => {
+                if (test.status === 'failed' && test.error) {
+                    errors.push({
+                        test: test.id,
+                        message: test.failureDetails?.[0]?.message || test.error.split('\n')[0],
+                        stack: test.error
+                    });
+                }
+            });
+        });
+
+        if (errors.length > 0) {
+            report.errors = errors;
+        }
+
+        return report;
+    } catch (err) {
+        log(`Could not read report file for error extraction: ${err.message}`);
+        return report;
+    }
+}
+
+/**
  * Extract headless log file path from output
  * Looks for pattern: "Log: /tmp/cdp-headless-*.log"
  * Returns path or null if not found
@@ -175,6 +211,9 @@ async function runTest(testFile) {
 
                 // Inject per-test coverage data into test objects
                 json = injectPerTestCoverage(json);
+
+                // Inject error information from full report file
+                json = injectErrorInformation(json);
 
                 // Add headless log path to JSON output if found
                 if (headlessLogFile) {
