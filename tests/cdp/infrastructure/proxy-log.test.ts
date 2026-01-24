@@ -16,7 +16,10 @@ import * as readline from 'readline'; // Used in readProxyLog()
 import {
     checkCDPAvailable,
     findExtensionBackground,
+    findContentPage,
     connectToCDP,
+    createTab,
+    closeTab,
     closeCDP,
     executeInTarget
 } from '../utils/cdp-client';
@@ -56,7 +59,11 @@ function findMostRecentProxyLog(): string | null {
 
 describe('Proxy Log Verification', () => {
     let bgWs: WebSocket;
+    let pageWs: WebSocket | null = null;
+    let tabId: number | null = null;
     let proxyLogFile: string | null = null;
+
+    const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
 
     beforeAll(async () => {
         // Check CDP is available
@@ -75,6 +82,17 @@ describe('Proxy Log Verification', () => {
     });
 
     afterAll(async () => {
+        // Close content page
+        if (pageWs) {
+            await closeCDP(pageWs);
+        }
+
+        // Close tab
+        if (tabId && bgWs) {
+            await closeTab(bgWs, tabId);
+        }
+
+        // Close background
         if (bgWs) {
             await closeCDP(bgWs);
         }
@@ -276,6 +294,144 @@ describe('Proxy Log Verification', () => {
             expect(logEntry?.stackTrace).toBeDefined();
             expect(logEntry?.stackTrace?.callFrames).toBeDefined();
             expect(Array.isArray(logEntry?.stackTrace?.callFrames)).toBe(true);
+        });
+    });
+
+    describe('Content Script Console Log Capture', () => {
+        test('should capture console.log from content script', async () => {
+            // Create tab with fixture URL
+            tabId = await createTab(bgWs, FIXTURE_URL, true);
+
+            // Find and connect to content page
+            const pageWsUrl = await findContentPage(FIXTURE_URL);
+            pageWs = await connectToCDP(pageWsUrl);
+
+            const testMessage = `CONTENT_SCRIPT_LOG_${Date.now()}`;
+
+            // Execute console.log in content script context
+            await executeInTarget(pageWs, `console.log('${testMessage}')`);
+
+            // Wait for log to be written
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Read proxy log
+            const logEntries = await readProxyLog();
+
+            // Find the log entry from content page
+            const logEntry = logEntries.find((entry) => {
+                if (entry.type !== 'CONSOLE') return false;
+                if (entry.level !== 'LOG') return false;
+                return entry.message?.includes(testMessage) && entry.targetUrl?.includes(FIXTURE_URL);
+            });
+
+            expect(logEntry).toBeDefined();
+            expect(logEntry?.message).toContain(testMessage);
+            expect(logEntry?.targetUrl).toContain(FIXTURE_URL);
+            expect(logEntry?.targetUrl).not.toContain('background.js');
+        });
+
+        test('should capture console.log with multiple arguments from content script', async () => {
+            if (!pageWs) throw new Error('Content page not connected');
+
+            const testId = `CONTENT_ID_${Date.now()}`;
+            const testValue = 999;
+
+            // Execute console.log with multiple args in content script
+            await executeInTarget(
+                pageWs,
+                `console.log('${testId}', ${testValue}, true, { key: 'value' })`
+            );
+
+            // Wait for log to be written
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Read proxy log
+            const logEntries = await readProxyLog();
+
+            // Find the log entry
+            const logEntry = logEntries.find((entry) => {
+                if (entry.type !== 'CONSOLE') return false;
+                return entry.message?.includes(testId);
+            });
+
+            expect(logEntry).toBeDefined();
+            expect(logEntry?.message).toContain(testId);
+            expect(logEntry?.args).toBeDefined();
+            expect(logEntry?.args?.length).toBeGreaterThan(0);
+        });
+
+        test('should distinguish between background and content script logs by targetUrl', async () => {
+            if (!pageWs) throw new Error('Content page not connected');
+
+            const bgMessage = `BG_${Date.now()}`;
+            const contentMessage = `CONTENT_${Date.now()}`;
+
+            // Log from background
+            await executeInTarget(bgWs, `console.log('${bgMessage}')`);
+
+            // Log from content script
+            await executeInTarget(pageWs, `console.log('${contentMessage}')`);
+
+            // Wait for logs to be written
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Read proxy log
+            const logEntries = await readProxyLog();
+
+            // Find both entries
+            const bgEntry = logEntries.find(e =>
+                e.type === 'CONSOLE' && e.message?.includes(bgMessage)
+            );
+            const contentEntry = logEntries.find(e =>
+                e.type === 'CONSOLE' && e.message?.includes(contentMessage)
+            );
+
+            expect(bgEntry).toBeDefined();
+            expect(contentEntry).toBeDefined();
+
+            // Verify they have different targetUrls
+            expect(bgEntry?.targetUrl).toContain('background.js');
+            expect(contentEntry?.targetUrl).toContain(FIXTURE_URL);
+            expect(bgEntry?.targetUrl).not.toBe(contentEntry?.targetUrl);
+        });
+
+        test('should list all CDP targets after tab creation (background, content, frontend)', async () => {
+            if (!pageWs) throw new Error('Content page not connected');
+
+            // Get CDP targets
+            const port = process.env.CDP_PORT || '9222';
+            const cdpJsonUrl = `http://127.0.0.1:${port}/json/list`;
+
+            const targets = await new Promise<any[]>((resolve, reject) => {
+                const http = require('http');
+                http.get(cdpJsonUrl, (res: any) => {
+                    let data = '';
+                    res.on('data', (chunk: any) => data += chunk);
+                    res.on('end', () => {
+                        try {
+                            resolve(JSON.parse(data));
+                        } catch (e) {
+                            reject(e);
+                        }
+                    });
+                }).on('error', reject);
+            });
+
+            // Should have multiple targets
+            expect(targets.length).toBeGreaterThan(0);
+
+            // Find different target types
+            const backgroundTarget = targets.find(t => t.url?.includes('background.js'));
+            const pageTarget = targets.find(t => t.url?.includes(FIXTURE_URL));
+            const frontendTarget = targets.find(t => t.url?.includes('frontend.html'));
+
+            expect(backgroundTarget).toBeDefined();
+            expect(pageTarget).toBeDefined();
+
+            console.log(`CDP Targets: ${targets.length} total`);
+            console.log(`  ✓ background=${!!backgroundTarget}`);
+            console.log(`  ✓ content=${!!pageTarget}`);
+            console.log(`  ✓ frontend=${!!frontendTarget}`);
         });
     });
 });
