@@ -93,18 +93,59 @@ Automatically builds and reloads extension.
 
 #### // TODO(hbt) NEXT [tests] consolidate both reporters? fix the headless:seq + :all (aggregate results. pass/fail for whole suite)
 
-### Run single test in headless mode (fully automated)
-bin/dbg test-run tests/cdp/cdp-keyboard.test.ts
+### Recommended: Run single test with bin/dbg test-run (preferred method)
+```bash
+./bin/dbg test-run tests/cdp/commands/cmd-scroll-down.test.ts
+```
 
-- Outputs clean JSON to stdout (structured JSON report with coverage data)
-- All diagnostics and logs written to `/tmp/dbg-test-run-<timestamp>.log`
-- Headless Chrome is launched with Developer Mode enabled plus `--enable-experimental-extension-apis --enable-features=UserScriptsAPI`, so userScripts-based configs work automatically.
+**Why use this:**
+- ✅ **Simplest command** - one command, everything automated
+- ✅ **Clean JSON output** - structured report with coverage data to stdout
+- ✅ **Complete logging** - all diagnostics and logs written to `/tmp/dbg-headless-*.log`
+- ✅ **Full automation** - headless Chrome with Developer Mode + `--enable-experimental-extension-apis --enable-features=UserScriptsAPI`
+- ✅ **Per-test coverage** - automatic V8 coverage collection and delta reporting
 
-### Run all tests in parallel headless mode (limit of 16 concurrent)
-npm run test:cdp:headless:all
+**Example output:**
+```json
+{"type":"test-summary","success":true,"tests":2,"passed":2,"failed":0,"slow":0,"assertions":4,"duration":4110,"coverage":...}
+```
 
-### Run single test in live browser (requires manual setup from user)
-npm run test:cdp:live tests/cdp/cdp-keyboard.test.ts
+### Alternative: Direct npm scripts (more verbose)
+
+**Run single test in headless mode:**
+```bash
+./bin/dbg test-run tests/cdp/commands/cmd-scroll-down.test.ts
+```
+
+**Run all tests in parallel headless mode** (limit of 16 concurrent):
+```bash
+./bin/dbg run-allp
+```
+
+**Run single test in live browser** (requires manual setup from user):
+```bash
+npm run test:cdp:live tests/cdp/commands/cmd-scroll-down.test.ts
+```
+
+### Best Practices for Test Fixtures
+
+**Avoid network traffic in tests:**
+- ❌ Don't use fixtures with external links (e.g., `hackernews.html` has links to github.com, cloudflare.com, etc.)
+- ✅ Use self-contained fixtures like `scroll-test.html` (no external resources)
+- ✅ Fixtures should have inline styles, no external CSS/JS
+- ✅ Keep fixtures minimal but with enough content for scrolling/interaction
+
+**Example: Good fixture**
+```html
+<!DOCTYPE html>
+<html><head><style>/* inline styles */</style></head>
+<body><!-- self-contained content --></body></html>
+```
+
+**Test organization:**
+- Name test files after command unique_id: `cmd-scroll-down.test.ts`
+- One command per test file (focused testing)
+- Keep tests simple: behavior verification without complex async waits
 
 
 
