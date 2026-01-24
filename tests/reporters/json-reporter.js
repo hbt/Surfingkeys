@@ -627,8 +627,15 @@ class JSONReporter {
     injectPerTestCoverage(perTestData) {
         this.suites.forEach(suite => {
             suite.tests.forEach(test => {
-                if (perTestData[test.title]) {
-                    test.coverage = perTestData[test.title];
+                // Try to find coverage by full test ID first (key in perTestData)
+                if (perTestData[test.id]) {
+                    test.coverage = perTestData[test.id];
+                } else {
+                    // Fallback: try to find by test title (last part of ID)
+                    const matchingKey = Object.keys(perTestData).find(key => key === test.id || key.endsWith(test.title));
+                    if (matchingKey) {
+                        test.coverage = perTestData[matchingKey];
+                    }
                 }
             });
         });

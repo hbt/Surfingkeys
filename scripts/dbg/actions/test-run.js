@@ -33,6 +33,40 @@ function log(message) {
 }
 
 /**
+ * Inject per-test coverage data into test objects
+ * Matches test.title against coverage.perTest keys and attaches coverage object
+ */
+function injectPerTestCoverage(report) {
+    if (!report.suites || !report.coverage?.perTest) {
+        return report;
+    }
+
+    report.suites.forEach(suite => {
+        if (suite.tests) {
+            suite.tests.forEach(test => {
+                // Try to find matching coverage by full test ID first, then by title
+                let coverageData = report.coverage.perTest[test.id];
+
+                if (!coverageData) {
+                    // Fallback: match by test title (last part of ID)
+                    const testTitle = test.title;
+                    const matchingKey = Object.keys(report.coverage.perTest).find(
+                        key => key === test.id || key.endsWith(testTitle)
+                    );
+                    coverageData = matchingKey ? report.coverage.perTest[matchingKey] : null;
+                }
+
+                if (coverageData) {
+                    test.coverage = coverageData;
+                }
+            });
+        }
+    });
+
+    return report;
+}
+
+/**
  * Extract headless log file path from output
  * Looks for pattern: "Log: /tmp/cdp-headless-*.log"
  * Returns path or null if not found
@@ -138,6 +172,9 @@ async function runTest(testFile) {
 
             if (json) {
                 log(`✓ Successfully extracted JSON from ${source}`);
+
+                // Inject per-test coverage data into test objects
+                json = injectPerTestCoverage(json);
 
                 // Add headless log path to JSON output if found
                 if (headlessLogFile) {

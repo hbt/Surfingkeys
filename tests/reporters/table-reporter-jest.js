@@ -43,6 +43,8 @@ function formatCellValue(value, format = 'text') {
             return `${value}ms`;
         case 'status':
             return value === 'passed' ? '✅' : value === 'failed' ? '❌' : '⊘';
+        case 'coverage-number':
+            return String(value || '');
         default:
             return escapeCell(value);
     }
@@ -163,6 +165,10 @@ function generateMarkdownReport(jsonReport) {
             { header: 'Assertions', accessor: 'assertions.passing', format: 'number' },
             { header: 'Duration', accessor: 'duration', format: 'duration' },
             { header: 'Retries', accessor: 'invocations', format: 'number' },
+            { header: 'Func Ex', accessor: (test) => test.coverage?.summary?.coverage?.functions?.covered || '', format: 'coverage-number' },
+            { header: 'Func New', accessor: (test) => test.coverage?.summary?.coverage?.functions?.new || '', format: 'coverage-number' },
+            { header: 'Stmt Ex', accessor: (test) => test.coverage?.summary?.coverage?.statements?.covered || '', format: 'coverage-number' },
+            { header: 'Stmt New', accessor: (test) => test.coverage?.summary?.coverage?.statements?.new || '', format: 'coverage-number' },
         ];
         md += buildTable(suite.tests, testColumnDefs);
         md += '\n';
@@ -176,6 +182,10 @@ function generateMarkdownReport(jsonReport) {
                 { header: 'Status', accessor: 'status', format: 'status' },
                 { header: 'Assertions', accessor: 'assertions.passing', format: 'number' },
                 { header: 'Duration', accessor: 'duration', format: 'duration' },
+                { header: 'Func Ex', accessor: (test) => test.coverage?.summary?.coverage?.functions?.covered || '', format: 'coverage-number' },
+                { header: 'Func New', accessor: (test) => test.coverage?.summary?.coverage?.functions?.new || '', format: 'coverage-number' },
+                { header: 'Stmt Ex', accessor: (test) => test.coverage?.summary?.coverage?.statements?.covered || '', format: 'coverage-number' },
+                { header: 'Stmt New', accessor: (test) => test.coverage?.summary?.coverage?.statements?.new || '', format: 'coverage-number' },
             ];
             md += buildTable(suite.tests, testColumnDefs);
             md += '\n';
