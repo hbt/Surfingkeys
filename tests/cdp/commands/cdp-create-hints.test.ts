@@ -27,7 +27,9 @@ import {
     sendKey,
     clickAt,
     countElements,
-    enableInputDomain
+    enableInputDomain,
+    waitForSurfingkeysReady,
+    waitFor
 } from '../utils/browser-actions';
 import {
     startCoverage,
@@ -73,7 +75,7 @@ describe('DOM Manipulation - Hints', () => {
         enableInputDomain(pageWs);
 
         // Wait for page to load
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await waitForSurfingkeysReady(pageWs);
 
         // Start V8 coverage collection
         await startCoverage(pageWs, 'content-page');
@@ -119,6 +121,57 @@ describe('DOM Manipulation - Hints', () => {
     });
 
     describe('Hint Creation', () => {
+        const hintSnapshotScript = `
+            (function() {
+                const hintsHost = document.querySelector('.surfingkeys_hints_host');
+                if (!hintsHost || !hintsHost.shadowRoot) {
+                    return { found: false, count: 0, sample: [], sortedHints: [] };
+                }
+
+                const shadowRoot = hintsHost.shadowRoot;
+                const hintElements = Array.from(shadowRoot.querySelectorAll('div'));
+
+                const hintDivs = hintElements.filter(d => {
+                    const text = (d.textContent || '').trim();
+                    return text.length >= 1 && text.length <= 3 && /^[A-Z]+$/.test(text);
+                });
+
+                const sample = hintDivs.slice(0, 5).map(h => ({
+                    text: h.textContent?.trim(),
+                    visible: h.offsetParent !== null
+                }));
+
+                const sortedHints = hintDivs.map(h => h.textContent?.trim()).sort();
+
+                return {
+                    found: true,
+                    count: hintDivs.length,
+                    sample,
+                    sortedHints
+                };
+            })()
+        `;
+
+        async function fetchHintSnapshot() {
+            return executeInTarget(pageWs, hintSnapshotScript);
+        }
+
+        async function waitForHintCount(minCount: number) {
+            await waitFor(async () => {
+                const snapshot = await fetchHintSnapshot();
+                return snapshot.found && snapshot.count >= minCount;
+            }, 6000, 100);
+        }
+
+        async function waitForHintsCleared() {
+            await waitFor(async () => {
+                const count = await executeInTarget(pageWs, `
+                    document.querySelectorAll('#sk_hints span').length
+                `);
+                return count === 0;
+            }, 4000, 100);
+        }
+
         test('should have no hints initially', async () => {
             const initialHints = await executeInTarget(pageWs, `
                 document.querySelectorAll('#sk_hints span').length
@@ -133,37 +186,10 @@ describe('DOM Manipulation - Hints', () => {
 
             // Press 'f' to trigger hints
             await sendKey(pageWs, 'f');
-
-            // Wait for hints to render
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await waitForHintCount(20);
 
             // Query hints in shadowRoot
-            const hintData = await executeInTarget(pageWs, `
-                (function() {
-                    const hintsHost = document.querySelector('.surfingkeys_hints_host');
-                    if (!hintsHost || !hintsHost.shadowRoot) {
-                        return { found: false, count: 0, hints: [] };
-                    }
-
-                    const shadowRoot = hintsHost.shadowRoot;
-                    const hintElements = Array.from(shadowRoot.querySelectorAll('div'));
-
-                    // Filter to only hint divs (1-3 uppercase letters)
-                    const hintDivs = hintElements.filter(d => {
-                        const text = (d.textContent || '').trim();
-                        return text.length >= 1 && text.length <= 3 && /^[A-Z]+$/.test(text);
-                    });
-
-                    return {
-                        found: true,
-                        count: hintDivs.length,
-                        hints: hintDivs.slice(0, 5).map(h => ({
-                            text: h.textContent?.trim(),
-                            visible: h.offsetParent !== null
-                        }))
-                    };
-                })()
-            `);
+            const hintData = await fetchHintSnapshot();
 
             // Assertions
             expect(hintData.found).toBe(true);
@@ -171,8 +197,8 @@ describe('DOM Manipulation - Hints', () => {
             expect(hintData.count).toBeLessThan(100);
 
             // Check sample hints are visible
-            if (hintData.hints.length > 0) {
-                hintData.hints.forEach((hint: any) => {
+            if (hintData.sample.length > 0) {
+                hintData.sample.forEach((hint: any) => {
                     expect(hint.visible).toBe(true);
                     expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
                 });
@@ -196,50 +222,28 @@ describe('DOM Manipulation - Hints', () => {
             expect(hostInfo.shadowRootChildren).toBeGreaterThan(0);
         });
 
-        test('should create consistent hints snapshot test', async () => {
-            // Close previous hints
-            await sendKey(pageWs, 'Escape');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            test('should create consistent hints snapshot test', async () => {
+                // Close previous hints
+                await sendKey(pageWs, 'Escape');
+                await waitForHintsCleared();
 
-            // Click page and trigger hints
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'f');
-            await new Promise(resolve => setTimeout(resolve, 1000));
+                // Click page and trigger hints
+                await clickAt(pageWs, 100, 100);
+                await sendKey(pageWs, 'f');
+                await waitForHintCount(20);
 
-            // Capture all hint values
-            const hintSnapshot = await executeInTarget(pageWs, `
-                (function() {
-                    const hintsHost = document.querySelector('.surfingkeys_hints_host');
-                    if (!hintsHost || !hintsHost.shadowRoot) {
-                        return { found: false, hints: [] };
-                    }
-
-                    const shadowRoot = hintsHost.shadowRoot;
-                    const hintElements = Array.from(shadowRoot.querySelectorAll('div'));
-
-                    // Filter to only hint divs (1-3 uppercase letters)
-                    const hintDivs = hintElements.filter(d => {
-                        const text = (d.textContent || '').trim();
-                        return text.length >= 1 && text.length <= 3 && /^[A-Z]+$/.test(text);
-                    });
-
-                    // Capture sorted list of hints for consistent snapshots
-                    const hints = hintDivs.map(h => h.textContent?.trim()).sort();
-
-                    return {
-                        found: true,
-                        count: hints.length,
-                        hints: hints
-                    };
-                })()
-            `);
+                // Capture all hint values
+                const hintSnapshot = await fetchHintSnapshot();
 
             // Verify hints were created
             expect(hintSnapshot.found).toBe(true);
             expect(hintSnapshot.count).toBeGreaterThan(20);
 
             // Snapshot test - ensures hints remain deterministic and consistent
-            expect(hintSnapshot).toMatchSnapshot();
+            expect({
+                count: hintSnapshot.count,
+                sortedHints: hintSnapshot.sortedHints
+            }).toMatchSnapshot();
         });
     });
 });

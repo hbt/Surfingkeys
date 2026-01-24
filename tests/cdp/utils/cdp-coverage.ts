@@ -11,6 +11,20 @@ import * as path from 'path';
 
 const COVERAGE_DIR = '/tmp/cdp-coverage';
 
+const COVERAGE_LOG_VERBOSE = process.env.CDP_COVERAGE_DEBUG === '1';
+
+function coverageLog(...args: any[]) {
+    if (COVERAGE_LOG_VERBOSE) {
+        console.log(...args);
+    }
+}
+
+function coverageWarn(...args: any[]) {
+    if (COVERAGE_LOG_VERBOSE) {
+        console.warn(...args);
+    }
+}
+
 // Message ID counter per WebSocket connection
 const wsMessageIds = new WeakMap<WebSocket, number>();
 
@@ -92,15 +106,15 @@ export async function startCoverage(targetWs: WebSocket, targetName: string = 'p
     }
 
     try {
-        console.log(`✓ Starting V8 coverage collection for ${targetName}...`);
+        coverageLog(`✓ Starting V8 coverage collection for ${targetName}...`);
         await sendCDPCommand(targetWs, 'Profiler.enable');
         await sendCDPCommand(targetWs, 'Profiler.startPreciseCoverage', {
             callCount: true,
             detailed: true
         });
-        console.log(`✓ V8 coverage collection started for ${targetName}`);
+        coverageLog(`✓ V8 coverage collection started for ${targetName}`);
     } catch (err) {
-        console.error(`Warning: Could not start coverage for ${targetName}:`, err);
+        coverageWarn(`Warning: Could not start coverage for ${targetName}:`, err);
     }
 }
 
@@ -115,7 +129,7 @@ export async function collectCoverage(
     testName: string = 'test'
 ): Promise<string | null> {
     try {
-        console.log('✓ Collecting V8 coverage...');
+        coverageLog('✓ Collecting V8 coverage...');
         const coverage = await sendCDPCommand(targetWs, 'Profiler.takePreciseCoverage');
         await sendCDPCommand(targetWs, 'Profiler.stopPreciseCoverage');
 
@@ -124,11 +138,11 @@ export async function collectCoverage(
         const coverageFileName = `page-${testName}-coverage-${timestamp}.json`;
         const coveragePath = path.join(COVERAGE_DIR, coverageFileName);
         fs.writeFileSync(coveragePath, JSON.stringify(coverage, null, 2));
-        console.log(`✓ Coverage saved: ${coverageFileName}`);
+        coverageLog(`✓ Coverage saved: ${coverageFileName}`);
 
         return coveragePath;
     } catch (err) {
-        console.error('Warning: Could not collect coverage:', err);
+        coverageWarn('Warning: Could not collect coverage:', err);
         return null;
     }
 }
@@ -265,7 +279,7 @@ export async function collectCoverageWithAnalysis(
     testName: string = 'test'
 ): Promise<string | null> {
     try {
-        console.log('✓ Collecting V8 coverage with analysis...');
+        coverageLog('✓ Collecting V8 coverage with analysis...');
         const coverage = await sendCDPCommand(targetWs, 'Profiler.takePreciseCoverage');
         await sendCDPCommand(targetWs, 'Profiler.stopPreciseCoverage');
 
@@ -287,11 +301,11 @@ export async function collectCoverageWithAnalysis(
         const coverageFileName = `page-${testName}-coverage-${timestamp}.json`;
         const coveragePath = path.join(COVERAGE_DIR, coverageFileName);
         fs.writeFileSync(coveragePath, JSON.stringify(enhancedCoverage, null, 2));
-        console.log(`✓ Coverage with analysis saved: ${coverageFileName}`);
+        coverageLog(`✓ Coverage with analysis saved: ${coverageFileName}`);
 
         return coveragePath;
     } catch (err) {
-        console.error('Warning: Could not collect coverage:', err);
+        coverageWarn('Warning: Could not collect coverage:', err);
         return null;
     }
 }
@@ -367,7 +381,7 @@ export async function captureBeforeCoverage(ws: WebSocket): Promise<any> {
         const coverage = await sendCDPCommand(ws, 'Profiler.takePreciseCoverage');
         return coverage;
     } catch (err) {
-        console.error('Warning: Could not capture before coverage:', err);
+        coverageWarn('Warning: Could not capture before coverage:', err);
         return null;
     }
 }
@@ -385,7 +399,7 @@ export async function captureAfterCoverage(
     beforeCoverage: any
 ): Promise<string | null> {
     if (!beforeCoverage) {
-        console.warn('Warning: No before coverage available for delta calculation');
+        coverageWarn('Warning: No before coverage available for delta calculation');
         return null;
     }
 
@@ -417,11 +431,11 @@ export async function captureAfterCoverage(
         const coverageFileName = `page-${sanitizedTestName}-per-test-coverage-${timestamp}.json`;
         const coveragePath = path.join(COVERAGE_DIR, coverageFileName);
         fs.writeFileSync(coveragePath, JSON.stringify(perTestCoverage, null, 2));
-        console.log(`✓ Per-test coverage saved: ${coverageFileName}`);
+        coverageLog(`✓ Per-test coverage saved: ${coverageFileName}`);
 
         return coveragePath;
     } catch (err) {
-        console.error('Warning: Could not capture after coverage:', err);
+        coverageWarn('Warning: Could not capture after coverage:', err);
         return null;
     }
 }

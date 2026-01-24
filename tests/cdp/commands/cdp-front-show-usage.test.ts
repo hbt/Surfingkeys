@@ -24,7 +24,9 @@ import {
 } from '../utils/cdp-client';
 import {
     sendKey,
-    enableInputDomain
+    enableInputDomain,
+    waitForSurfingkeysReady,
+    waitFor
 } from '../utils/browser-actions';
 import { startCoverage, collectCoverageWithAnalysis, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
@@ -67,7 +69,7 @@ describe('Frontend - Show Usage (Help Menu)', () => {
         enableInputDomain(pageWs);
 
         // Wait for page to load
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await waitForSurfingkeysReady(pageWs);
 
         // Start V8 coverage collection for page
         await startCoverage(pageWs, 'content-page');
@@ -197,16 +199,34 @@ describe('Frontend - Show Usage (Help Menu)', () => {
         });
     }
 
+    async function ensureHelpMenuOpen(key: string): Promise<void> {
+        await sendKey(pageWs, key);
+        await waitFor(async () => {
+            try {
+                const ws = await getFrontendWs();
+                const isVisible = await executeInTarget(ws, `
+                    (function() {
+                        const usageDiv = document.querySelector('#sk_usage');
+                        if (!usageDiv) {
+                            return false;
+                        }
+                        return window.getComputedStyle(usageDiv).display !== 'none';
+                    })()
+                `);
+                return Boolean(isVisible);
+            } catch {
+                return false;
+            }
+        }, 8000, 200);
+    }
+
     describe('Help Menu Setup', () => {
         test('should open help menu when pressing ?', async () => {
-            // Press ? to open help menu
-            await sendKey(pageWs, '?');
-
-            // Wait for help menu to render
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await ensureHelpMenuOpen('?');
         });
 
         test('fuzzy search input should exist', async () => {
+            await ensureHelpMenuOpen('?');
             const ws = await getFrontendWs();
 
             const result = await executeInTarget(ws, `
@@ -228,6 +248,7 @@ describe('Frontend - Show Usage (Help Menu)', () => {
         });
 
         test('help usage container should exist', async () => {
+            await ensureHelpMenuOpen('?');
             const ws = await getFrontendWs();
 
             const result = await executeInTarget(ws, `
@@ -251,6 +272,7 @@ describe('Frontend - Show Usage (Help Menu)', () => {
         // Note: Detailed filter tests are covered in tests/unit/fuzzyFilter.test.js
         // These CDP tests verify the integration and UI elements work in a real browser
         test('should have fuzzy filter script loaded and working', async () => {
+            await ensureHelpMenuOpen('?');
             const ws = await getFrontendWs();
 
             // Verify the fuzzy filter module is loaded and accessible

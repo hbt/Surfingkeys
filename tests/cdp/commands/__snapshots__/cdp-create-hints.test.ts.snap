@@ -3,8 +3,7 @@
 exports[`DOM Manipulation - Hints Hint Creation should create consistent hints snapshot test 1`] = `
 {
   "count": 31,
-  "found": true,
-  "hints": [
+  "sortedHints": [
     "AA",
     "AB",
     "AC",

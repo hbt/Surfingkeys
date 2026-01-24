@@ -31,7 +31,10 @@ import {
     getScrollPosition,
     getPageTitle,
     getPageURL,
-    enableInputDomain
+    enableInputDomain,
+    waitFor,
+    waitForSurfingkeysReady,
+    waitForScrollChange
 } from '../utils/browser-actions';
 import {
     runHeadlessConfigSet,
@@ -75,7 +78,7 @@ describe('Scroll Commands', () => {
             enableInputDomain(pageWs);
 
             // Wait for page to load and Surfingkeys to inject
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await waitForSurfingkeysReady(pageWs);
 
             // Start V8 coverage collection for page
             await startCoverage(pageWs, 'content-page');
@@ -130,12 +133,10 @@ describe('Scroll Commands', () => {
 
                 // Press 'j' to scroll down
                 await sendKey(pageWs, 'j');
-
-                // Wait for scroll animation
-                await new Promise(resolve => setTimeout(resolve, 300));
-
-                // Get new scroll position
-                const newScroll = await getScrollPosition(pageWs);
+                const newScroll = await waitForScrollChange(pageWs, initialScroll, {
+                    direction: 'down',
+                    minDelta: 20
+                });
 
                 // Assert scroll happened
                 expect(newScroll).toBeGreaterThan(initialScroll);
@@ -146,16 +147,18 @@ describe('Scroll Commands', () => {
             test('should scroll up when pressing k key', async () => {
                 // First ensure we're scrolled down
                 await sendKey(pageWs, 'j');
-                await new Promise(resolve => setTimeout(resolve, 300));
-
-                const scrolledPosition = await getScrollPosition(pageWs);
+                const scrolledPosition = await waitForScrollChange(pageWs, 0, {
+                    direction: 'down',
+                    minDelta: 20
+                });
                 expect(scrolledPosition).toBeGreaterThan(0);
 
                 // Press 'k' to scroll up
                 await sendKey(pageWs, 'k');
-                await new Promise(resolve => setTimeout(resolve, 300));
-
-                const newScroll = await getScrollPosition(pageWs);
+                const newScroll = await waitForScrollChange(pageWs, scrolledPosition, {
+                    direction: 'up',
+                    minDelta: 20
+                });
 
                 // Assert scroll up happened
                 expect(newScroll).toBeLessThan(scrolledPosition);
@@ -165,16 +168,16 @@ describe('Scroll Commands', () => {
                 // Scroll down first
                 await sendKey(pageWs, 'j');
                 await sendKey(pageWs, 'j');
-                await new Promise(resolve => setTimeout(resolve, 300));
-
-                const scrolledPosition = await getScrollPosition(pageWs);
+                const scrolledPosition = await waitForScrollChange(pageWs, 0, {
+                    direction: 'down',
+                    minDelta: 30
+                });
                 expect(scrolledPosition).toBeGreaterThan(0);
 
                 // Press 'gg' to scroll to top
                 await sendKey(pageWs, 'g');
                 await sendKey(pageWs, 'g');
-                await new Promise(resolve => setTimeout(resolve, 300));
-
+                await waitFor(async () => (await getScrollPosition(pageWs)) === 0, 4000, 100);
                 const newScroll = await getScrollPosition(pageWs);
                 expect(newScroll).toBe(0);
             });
@@ -187,17 +190,19 @@ describe('Scroll Commands', () => {
 
                 // Press 'j' once
                 await sendKey(pageWs, 'j');
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                const after1j = await getScrollPosition(pageWs);
+                const after1j = await waitForScrollChange(pageWs, initial, {
+                    direction: 'down',
+                    minDelta: 20
+                });
                 const distance1j = after1j - initial;
                 console.log(`After 1x 'j': ${after1j}px (distance: ${distance1j}px)`);
 
                 // Press 'j' again
                 await sendKey(pageWs, 'j');
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                const after2j = await getScrollPosition(pageWs);
+                const after2j = await waitForScrollChange(pageWs, after1j, {
+                    direction: 'down',
+                    minDelta: 20
+                });
                 const distance2j = after2j - after1j;
                 console.log(`After 2x 'j': ${after2j}px (distance: ${distance2j}px)`);
 
@@ -264,7 +269,7 @@ describe('Scroll Commands', () => {
             pageWs = await connectToCDP(pageWsUrl);
             enableInputDomain(pageWs);
 
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await waitForSurfingkeysReady(pageWs);
 
             // Start V8 coverage collection for page
             await startCoverage(pageWs, 'content-page');
@@ -302,29 +307,32 @@ describe('Scroll Commands', () => {
 
         test('custom mapkey (w) scrolls down proving config executed', async () => {
             await executeInTarget(pageWs, 'window.scrollTo(0, 0)');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await waitFor(async () => (await getScrollPosition(pageWs)) === 0, 4000, 100);
 
             const initialScroll = await getScrollPosition(pageWs);
             expect(initialScroll).toBe(0);
 
             await sendKey(pageWs, 'w');
-            await new Promise(resolve => setTimeout(resolve, 400));
-
-            const after = await getScrollPosition(pageWs);
+            const after = await waitForScrollChange(pageWs, initialScroll, {
+                direction: 'down',
+                minDelta: 5
+            });
             expect(after).toBeGreaterThan(initialScroll);
         });
 
         test('pressing j scrolls approximately 20px (custom scrollStepSize)', async () => {
             await executeInTarget(pageWs, 'window.scrollTo(0, 0)');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await waitFor(async () => (await getScrollPosition(pageWs)) === 0, 4000, 100);
 
             const start = await getScrollPosition(pageWs);
             expect(start).toBe(0);
 
             await sendKey(pageWs, 'j');
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const after = await getScrollPosition(pageWs);
+            const after = await waitForScrollChange(pageWs, start, {
+                direction: 'down',
+                minDelta: 10,
+                timeoutMs: 6000
+            });
             const delta = after - start;
             console.log(`[custom-config] Scroll delta after 'j': ${delta}`);
             if (delta <= 12 || delta >= 32) {

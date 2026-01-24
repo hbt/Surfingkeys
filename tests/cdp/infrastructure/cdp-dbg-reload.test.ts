@@ -21,6 +21,7 @@ import {
     closeCDP,
     executeInTarget
 } from '../utils/cdp-client';
+import { waitFor } from '../utils/browser-actions';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 import http from 'http';
@@ -57,7 +58,14 @@ describe('Reload Command - Tab Management', () => {
         extensionId = bgInfo.extensionId;
         bgWs = await connectToCDP(bgInfo.wsUrl);
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => {
+            try {
+                await executeInTarget(bgWs, 'true');
+                return true;
+            } catch {
+                return false;
+            }
+        }, 5000, 100);
 
         // Start V8 coverage collection
         await startCoverage(bgWs, 'background');

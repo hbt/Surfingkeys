@@ -18,6 +18,7 @@ import {
     closeTab,
     closeCDP
 } from '../utils/cdp-client';
+import { waitFor } from '../utils/browser-actions';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
@@ -49,7 +50,14 @@ describe('Chrome Tabs API', () => {
         bgWs = await connectToCDP(bgInfo.wsUrl);
 
         // Wait for background to be ready
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await waitFor(async () => {
+            try {
+                await executeInTarget(bgWs, 'true');
+                return true;
+            } catch {
+                return false;
+            }
+        }, 5000, 100);
 
         // Start V8 coverage collection
         await startCoverage(bgWs, 'background');

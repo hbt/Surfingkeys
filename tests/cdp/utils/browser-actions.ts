@@ -10,6 +10,17 @@ import { executeInTarget } from './cdp-client';
 
 let globalMessageId = 1000;
 
+interface WaitOptions {
+    timeoutMs?: number;
+    intervalMs?: number;
+    postReadyDelayMs?: number;
+}
+
+interface ScrollWaitOptions extends WaitOptions {
+    direction: 'up' | 'down';
+    minDelta?: number;
+}
+
 /**
  * Send a key press to the page
  */
@@ -157,6 +168,53 @@ export async function waitFor(
     }
 
     throw new Error(`Timeout waiting for condition (${timeoutMs}ms)`);
+}
+
+/**
+ * Wait until Surfingkeys runtime is injected and ready.
+ */
+export async function waitForSurfingkeysReady(
+    ws: WebSocket,
+    options: WaitOptions = {}
+): Promise<void> {
+    const timeout = options.timeoutMs ?? 8000;
+    const interval = options.intervalMs ?? 200;
+    await waitFor(async () => {
+        try {
+            return Boolean(await executeInTarget(ws, `document.readyState === 'complete'`));
+        } catch {
+            return false;
+        }
+    }, timeout, interval);
+
+    const settleDelay = options.postReadyDelayMs ?? 500;
+    if (settleDelay > 0) {
+        await new Promise(resolve => setTimeout(resolve, settleDelay));
+    }
+}
+
+/**
+ * Wait until scroll position moves at least minDelta in a direction.
+ * Returns the new scroll position once the condition is met.
+ */
+export async function waitForScrollChange(
+    ws: WebSocket,
+    baseline: number,
+    options: ScrollWaitOptions
+): Promise<number> {
+    const timeout = options.timeoutMs ?? 4000;
+    const interval = options.intervalMs ?? 100;
+    const minDelta = options.minDelta ?? 1;
+
+    await waitFor(async () => {
+        const current = await getScrollPosition(ws);
+        if (options.direction === 'down') {
+            return current - baseline >= minDelta;
+        }
+        return baseline - current >= minDelta;
+    }, timeout, interval);
+
+    return getScrollPosition(ws);
 }
 
 /**

@@ -25,7 +25,9 @@ import {
 } from '../utils/cdp-client';
 import {
     sendKey,
-    enableInputDomain
+    enableInputDomain,
+    waitForSurfingkeysReady,
+    waitFor
 } from '../utils/browser-actions';
 import {
     runHeadlessConfigSet,
@@ -105,6 +107,27 @@ describe('Command Metadata - Migration and API Testing', () => {
         });
     }
 
+    async function ensureHelpMenuOpen(key: string): Promise<void> {
+        await sendKey(pageWs, key);
+        await waitFor(async () => {
+            try {
+                const ws = await getFrontendWs();
+                const isVisible = await executeInTarget(ws, `
+                    (function() {
+                        const usageDiv = document.querySelector('#sk_usage');
+                        if (!usageDiv) {
+                            return false;
+                        }
+                        return window.getComputedStyle(usageDiv).display !== 'none';
+                    })()
+                `);
+                return Boolean(isVisible);
+            } catch {
+                return false;
+            }
+        }, 8000, 200);
+    }
+
     beforeAll(async () => {
         // Check CDP is available
         const cdpAvailable = await checkCDPAvailable();
@@ -140,7 +163,7 @@ describe('Command Metadata - Migration and API Testing', () => {
         enableInputDomain(pageWs);
 
         // Wait for page to load and Surfingkeys to inject
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await waitForSurfingkeysReady(pageWs);
 
         // Start V8 coverage collection for page
         await startCoverage(pageWs, 'content-page');
@@ -185,15 +208,12 @@ describe('Command Metadata - Migration and API Testing', () => {
     // ==================== STEP 1: Default Built-in Help Menu ====================
     describe('Step 1 - Default Help Menu ("?" key)', () => {
         test('should open help menu when pressing default "?" key', async () => {
-            // Press ? to open help menu
-            await sendKey(pageWs, '?');
-
-            // Wait for help menu to render and stabilize
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await ensureHelpMenuOpen('?');
             console.log(`✓ Default "?" key pressed`);
         });
 
         test('verify fuzzy search input exists with correct properties', async () => {
+            await ensureHelpMenuOpen('?');
             const ws = await getFrontendWs();
 
             const searchResult = await executeInTarget(ws, `
@@ -216,6 +236,7 @@ describe('Command Metadata - Migration and API Testing', () => {
         });
 
         test('verify help usage container is visible', async () => {
+            await ensureHelpMenuOpen('?');
             const ws = await getFrontendWs();
 
             const usageResult = await executeInTarget(ws, `
@@ -236,6 +257,7 @@ describe('Command Metadata - Migration and API Testing', () => {
         });
 
         test('verify fuzzy filter function is loaded', async () => {
+            await ensureHelpMenuOpen('?');
             const ws = await getFrontendWs();
 
             const filterResult = await executeInTarget(ws, `
@@ -250,15 +272,12 @@ describe('Command Metadata - Migration and API Testing', () => {
     // ==================== STEP 2: Custom F1 Mapping ====================
     describe('Step 2 - Custom F1 Mapping from Config', () => {
         test('should open help menu when pressing custom F1 key', async () => {
-            // Press F1 - mapped in config via api.mapkey() to api.Front.showUsage()
-            await sendKey(pageWs, 'F1');
-
-            // Wait for help menu to render and stabilize
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await ensureHelpMenuOpen('F1');
             console.log(`✓ Custom F1 key pressed`);
         });
 
         test('verify F1 opens fuzzy search input (same as "?")', async () => {
+            await ensureHelpMenuOpen('F1');
             const ws = await getFrontendWs();
 
             const searchResult = await executeInTarget(ws, `
@@ -281,6 +300,7 @@ describe('Command Metadata - Migration and API Testing', () => {
         });
 
         test('verify F1 opens help usage container (same as "?")', async () => {
+            await ensureHelpMenuOpen('F1');
             const ws = await getFrontendWs();
 
             const usageResult = await executeInTarget(ws, `
@@ -301,6 +321,7 @@ describe('Command Metadata - Migration and API Testing', () => {
         });
 
         test('verify F1 loads fuzzy filter function (same as "?")', async () => {
+            await ensureHelpMenuOpen('F1');
             const ws = await getFrontendWs();
 
             const filterResult = await executeInTarget(ws, `
@@ -315,15 +336,12 @@ describe('Command Metadata - Migration and API Testing', () => {
     // ==================== STEP 3: F2 with New mapcmdkey() API ====================
     describe('Step 3 - F2 Mapping with New Command Metadata API', () => {
         test('should open help menu when pressing F2 mapped via api.mapcmdkey()', async () => {
-            // Press F2 - mapped in config via new api.mapcmdkey('F2', 'cmd_show_usage')
-            await sendKey(pageWs, 'F2');
-
-            // Wait for help menu to render and stabilize
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await ensureHelpMenuOpen('F2');
             console.log(`✓ F2 key via api.mapcmdkey() pressed`);
         });
 
         test('verify F2 opens fuzzy search input (same as "?" and F1)', async () => {
+            await ensureHelpMenuOpen('F2');
             const ws = await getFrontendWs();
 
             const searchResult = await executeInTarget(ws, `
@@ -346,6 +364,7 @@ describe('Command Metadata - Migration and API Testing', () => {
         });
 
         test('verify F2 opens help usage container (same as "?" and F1)', async () => {
+            await ensureHelpMenuOpen('F2');
             const ws = await getFrontendWs();
 
             const usageResult = await executeInTarget(ws, `
