@@ -54,7 +54,9 @@ const ACTIONS = {
     'test-run': 'Run Jest tests with JSON output (no npm noise)',
     'vtest-run': 'Run Jest tests with visual table output (human-readable)',
     'test-all': 'Run all CDP tests sequentially, aggregate results to JSON',
-    'test-allp': 'Run all CDP tests in parallel (configurable limit), aggregate results to JSON'
+    'vtest-all': 'Run all CDP tests sequentially, aggregate results to visual markdown report',
+    'test-allp': 'Run all CDP tests in parallel (configurable limit), aggregate results to JSON',
+    'vtest-allp': 'Run all CDP tests in parallel, aggregate results to visual markdown report'
 };
 
 /**
