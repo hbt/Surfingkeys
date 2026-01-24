@@ -161,6 +161,7 @@ function isEmptyObject(obj) {
 
 function applyUserSettings(delta) {
     if (delta.error !== "") {
+        console.error("[SurfingKeys] Error found in settings: " + delta.error);
         if (window === top) {
             showPopup("[SurfingKeys] Error found in settings: " + delta.error);
         } else {
@@ -816,6 +817,17 @@ if (!Array.prototype.flatMap) {
 
 function parseAnnotation(ag) {
     let an = ag.annotation;
+
+    // Preserve object annotations with unique_id (for command registry)
+    if (typeof an === 'object' && an !== null && !Array.isArray(an) && an.unique_id) {
+        // Extract feature_group from object if present, otherwise keep existing
+        if (an.feature_group !== undefined) {
+            ag.feature_group = an.feature_group;
+        }
+        return ag;  // Return unchanged, preserving object structure
+    }
+
+    // Legacy string annotation parsing
     if (an.constructor.name === "String") {
         // for parameterized annotations such as ["#6Search selected with {0}", "Google"]
         an = [an];
