@@ -36,7 +36,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     mapkey(';G', '#3Group this tab', function() {
         front.groupTab();
     });
-    mapkey('?', '#0Show usage', function() {
+    mapkey('?', {
+        short: "Show usage",
+        unique_id: "cmd_show_usage",
+        feature_group: 0,
+        category: "help",
+        description: "Display help showing all available keyboard shortcuts",
+        tags: ["help", "usage", "keyboard"]
+    }, function() {
         front.showUsage();
     });
     mapkey('Q', '#8Open omnibar for word translation', function() {
