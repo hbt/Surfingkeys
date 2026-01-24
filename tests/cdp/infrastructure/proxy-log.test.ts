@@ -23,6 +23,7 @@ import {
     closeCDP,
     executeInTarget
 } from '../utils/cdp-client';
+import { sendKey } from '../utils/browser-actions';
 import { CDP_PORT } from '../cdp-config';
 
 interface ProxyLogEntry {
@@ -60,6 +61,7 @@ function findMostRecentProxyLog(): string | null {
 describe('Proxy Log Verification', () => {
     let bgWs: WebSocket;
     let pageWs: WebSocket | null = null;
+    let frontendWs: WebSocket | null = null;
     let tabId: number | null = null;
     let proxyLogFile: string | null = null;
 
@@ -82,6 +84,11 @@ describe('Proxy Log Verification', () => {
     });
 
     afterAll(async () => {
+        // Close frontend
+        if (frontendWs) {
+            await closeCDP(frontendWs);
+        }
+
         // Close content page
         if (pageWs) {
             await closeCDP(pageWs);
@@ -166,6 +173,31 @@ describe('Proxy Log Verification', () => {
 
             return true;
         });
+    }
+
+    /**
+     * Helper: Get CDP targets and find frontend target
+     */
+    async function findFrontendTarget(): Promise<any | undefined> {
+        const port = process.env.CDP_PORT || '9222';
+        const cdpJsonUrl = `http://127.0.0.1:${port}/json/list`;
+
+        const targets = await new Promise<any[]>((resolve, reject) => {
+            const http = require('http');
+            http.get(cdpJsonUrl, (res: any) => {
+                let data = '';
+                res.on('data', (chunk: any) => data += chunk);
+                res.on('end', () => {
+                    try {
+                        resolve(JSON.parse(data));
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+            }).on('error', reject);
+        });
+
+        return targets.find(t => t.url?.includes('frontend.html') && t.webSocketDebuggerUrl);
     }
 
     describe('Console Log Capture', () => {
@@ -432,6 +464,99 @@ describe('Proxy Log Verification', () => {
             console.log(`  ✓ background=${!!backgroundTarget}`);
             console.log(`  ✓ content=${!!pageTarget}`);
             console.log(`  ✓ frontend=${!!frontendTarget}`);
+        });
+    });
+
+    describe('Frontend Console Log Capture', () => {
+        test('should have frontend.html as target (already loaded as iframe)', async () => {
+            if (!pageWs) throw new Error('Content page not connected');
+
+            // Frontend is loaded as an iframe from the start, not on-demand
+            const frontendTarget = await findFrontendTarget();
+            expect(frontendTarget).toBeDefined();
+            expect(frontendTarget?.webSocketDebuggerUrl).toBeDefined();
+            expect(frontendTarget?.type).toBe('iframe');
+
+            console.log(`✓ frontend.html found at: ${frontendTarget?.url?.substring(0, 70)}`);
+        });
+
+        test('should capture console.log from frontend context', async () => {
+            if (!pageWs) throw new Error('Content page not connected');
+
+            // Find and connect to frontend if not already connected
+            if (!frontendWs) {
+                const frontendTarget = await findFrontendTarget();
+                if (!frontendTarget) {
+                    throw new Error('Frontend target not found - press ? key first');
+                }
+                frontendWs = await connectToCDP(frontendTarget.webSocketDebuggerUrl);
+            }
+
+            const testMessage = `FRONTEND_LOG_${Date.now()}`;
+
+            // Execute console.log in frontend context
+            await executeInTarget(frontendWs, `console.log('${testMessage}')`);
+
+            // Wait for log to be written
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Read proxy log
+            const logEntries = await readProxyLog();
+
+            // Find the log entry from frontend
+            const logEntry = logEntries.find((entry) => {
+                if (entry.type !== 'CONSOLE') return false;
+                if (entry.level !== 'LOG') return false;
+                return entry.message?.includes(testMessage) && entry.targetUrl?.includes('frontend.html');
+            });
+
+            expect(logEntry).toBeDefined();
+            expect(logEntry?.message).toContain(testMessage);
+            expect(logEntry?.targetUrl).toContain('frontend.html');
+            expect(logEntry?.targetUrl).not.toContain('background.js');
+            expect(logEntry?.targetUrl).not.toContain(FIXTURE_URL);
+
+            console.log(`✓ frontend console.log captured in proxy log`);
+        });
+
+        test('should distinguish frontend logs by targetUrl from background and content', async () => {
+            if (!pageWs || !frontendWs) throw new Error('Page or frontend not connected');
+
+            const bgMsg = `BG_${Date.now()}`;
+            const contentMsg = `CONTENT_${Date.now()}`;
+            const frontendMsg = `FRONTEND_${Date.now()}`;
+
+            // Log from each context
+            await executeInTarget(bgWs, `console.log('${bgMsg}')`);
+            await executeInTarget(pageWs, `console.log('${contentMsg}')`);
+            await executeInTarget(frontendWs, `console.log('${frontendMsg}')`);
+
+            // Wait for logs to be written
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Read proxy log
+            const logEntries = await readProxyLog();
+
+            // Find entries from each context
+            const bgEntry = logEntries.find(e => e.type === 'CONSOLE' && e.message?.includes(bgMsg));
+            const contentEntry = logEntries.find(e => e.type === 'CONSOLE' && e.message?.includes(contentMsg));
+            const frontendEntry = logEntries.find(e => e.type === 'CONSOLE' && e.message?.includes(frontendMsg));
+
+            expect(bgEntry).toBeDefined();
+            expect(contentEntry).toBeDefined();
+            expect(frontendEntry).toBeDefined();
+
+            // Verify distinct targetUrls
+            expect(bgEntry?.targetUrl).toContain('background.js');
+            expect(contentEntry?.targetUrl).toContain(FIXTURE_URL);
+            expect(frontendEntry?.targetUrl).toContain('frontend.html');
+
+            // All three should be different
+            const urls = [bgEntry?.targetUrl, contentEntry?.targetUrl, frontendEntry?.targetUrl];
+            const uniqueUrls = new Set(urls);
+            expect(uniqueUrls.size).toBe(3);
+
+            console.log(`✓ All three contexts logged with distinct targetUrls`);
         });
     });
 });
