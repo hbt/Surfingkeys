@@ -306,3 +306,50 @@ export async function captureScreenshot(ws: WebSocket, format: 'png' | 'jpeg' = 
 export async function getSettingValue(ws: WebSocket, settingKey: string): Promise<any> {
     return executeInTarget(ws, `(globalThis.runtime?.conf?.${settingKey} !== undefined ? globalThis.runtime.conf.${settingKey} : 'UNDEFINED')`);
 }
+
+/**
+ * Wait for config snippets to be fully registered in MV3 userScripts.
+ *
+ * Polls globalThis._isConfigReady() in the background service worker until config loading completes.
+ * Eliminates the need for arbitrary waitAfterSetMs delays in tests.
+ *
+ * @param ws WebSocket connection to background service worker
+ * @param timeoutMs Maximum time to wait (default: 5000ms)
+ * @returns Promise that resolves when config is ready, rejects on timeout
+ */
+export async function waitForConfigReady(
+    ws: WebSocket,
+    timeoutMs: number = 5000
+): Promise<void> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeoutMs) {
+        try {
+            const isReady = await executeInTarget(ws, `
+                (async () => {
+                    if (!globalThis._isConfigReady) return false;
+                    return await globalThis._isConfigReady();
+                })()
+            `);
+
+            if (isReady) {
+                return;
+            }
+        } catch (error) {
+            // Not ready yet, continue polling
+        }
+
+        // Poll every 100ms
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Timeout - try to get error details
+    let errorDetails = 'No error details available';
+    try {
+        errorDetails = await executeInTarget(ws, `globalThis._configLoadError?.message || 'No error captured'`);
+    } catch {
+        // Ignore
+    }
+
+    throw new Error(`Config not ready after ${timeoutMs}ms. Error: ${errorDetails}`);
+}
