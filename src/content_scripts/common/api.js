@@ -22,6 +22,8 @@ import {
 } from './utils.js';
 
 function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
+    // Command registry - use closure variable for reliable access across all functions
+    let commandRegistry = new Map();
 
     function createKeyTarget(code, ag, repeatIgnore) {
         var keybound = {
@@ -133,32 +135,36 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      * mapcmdkey('<F2>', 'cmd_show_usage', { domain: /example.com/i });
      */
     function mapcmdkey(keys, unique_id, options) {
-        // Command metadata mapping: dispatch based on unique_id
-        // This is the migration mechanism from string annotations to unique_id
-        const annotation = unique_id;
-        let commandCode = function() {
-            LOG("warn", `No handler for command: ${unique_id}`);
-        };
+        // Lookup command in registry (will be populated after default mappings load)
+        const command = commandRegistry.get(unique_id);
 
-        // Command registry: map unique_ids to their implementations
-        const commandRegistry = {
-            'cmd_show_usage': function() {
-                front.showUsage();
-            },
-            'cmd_scroll_down': function() {
-                normal.scroll('down');
-            },
-            'cmd_scroll_up': function() {
-                normal.scroll('up');
-            },
-            // Add more commands as they are migrated...
-        };
-
-        if (commandRegistry[unique_id]) {
-            commandCode = commandRegistry[unique_id];
+        if (!command) {
+            const availableCommands = Array.from(commandRegistry.keys()).join(', ');
+            LOG("warn", `Unknown command unique_id: ${unique_id}. Available commands: ${availableCommands}`);
+            // Create a no-op mapping with warning
+            mapkey(keys, `[UNKNOWN: ${unique_id}]`, function() {
+                LOG("warn", `Command not found: ${unique_id}`);
+            }, options);
+            return;
         }
 
-        mapkey(keys, annotation, commandCode, options);
+        // Create mapping using the original command's implementation
+        // Preserve all metadata from the original command
+        const mappingOptions = Object.assign({}, options, {
+            repeatIgnore: command.repeatIgnore
+        });
+
+        // Extract annotation string - handle both object and string annotations
+        let annotationStr;
+        if (typeof command.annotation === 'object' && command.annotation !== null && !Array.isArray(command.annotation)) {
+            // Structured annotation object - use the short description
+            annotationStr = command.annotation.short || unique_id;
+        } else {
+            // Legacy string or array annotation
+            annotationStr = command.annotation;
+        }
+
+        mapkey(keys, annotationStr, command.code, mappingOptions);
     }
 
     /**
@@ -492,6 +498,22 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         mapcmdkey: (keys, unique_id, options) => {
             mapcmdkey(keys, unique_id, options);
         },
+        listCommands: () => {
+            return Array.from(commandRegistry.keys()).sort();
+        },
+        getCommand: (unique_id) => {
+            const cmd = commandRegistry.get(unique_id);
+            if (cmd) {
+                // Return sanitized version (without code function for security)
+                return {
+                    unique_id: unique_id,
+                    annotation: cmd.annotation,
+                    originalKey: cmd.originalKey,
+                    mode: cmd.mode
+                };
+            }
+            return null;
+        },
         mapkey: (keys, annotation, options) => {
             if (options.codeHasParameter) {
                 mapkey(keys, annotation, (key) => {
@@ -515,7 +537,8 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         },
         readText: browser.readText,
     });
-    return {
+
+    const api = {
         RUNTIME,
         aceVimMap,
         addVimMapKey,
@@ -540,6 +563,18 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         tabOpenLink,
         vmap,
         vmapkey,
+        // Command registry support
+        __commandRegistry__: commandRegistry,
+        _setCommandRegistry: function(registry) {
+            commandRegistry = registry;
+            this.__commandRegistry__ = registry;
+        },
+        listCommands: function() {
+            return Array.from(commandRegistry.keys()).sort();
+        },
+        getCommand: function(unique_id) {
+            return commandRegistry.get(unique_id);
+        },
         Clipboard: clipboard,
         Normal: {
             feedkeys: normal.feedkeys,
@@ -572,6 +607,8 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
             showUsage: front.showUsage,
         },
     };
+
+    return api;
 }
 
 export default createAPI;
