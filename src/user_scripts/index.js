@@ -299,6 +299,7 @@ export default (extensionRootUrl, uf) => {
             uf(api, settings);
         } catch(e) {
             error = e.toString();
+            console.error(e);
         }
         applyUserSettings({settings, error});
     };
