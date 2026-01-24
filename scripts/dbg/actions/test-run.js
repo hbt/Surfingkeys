@@ -121,6 +121,24 @@ function extractHeadlessLogPath(output) {
 }
 
 /**
+ * Extract proxy log file path from output
+ * Looks for pattern: "Proxy log saved to: /tmp/dbg-proxy-test-*.jsonl"
+ * Returns path or null if not found
+ */
+function extractProxyLogPath(output) {
+    // Remove ANSI color codes
+    const clean = output.replace(/\u001b\[[0-9;]*m/g, '');
+
+    // Look for "Proxy log saved to: /tmp/dbg-proxy-test-*.jsonl" pattern
+    const match = clean.match(/Proxy log saved to:\s*(\S*dbg-proxy-test[^\s]*\.jsonl)/);
+    if (match && match[1]) {
+        return match[1];
+    }
+
+    return null;
+}
+
+/**
  * Extract JSON from mixed output (handles npm noise)
  * Returns extracted JSON or null if not found
  */
@@ -193,6 +211,12 @@ async function runTest(testFile) {
                 log(`✓ Found headless log: ${headlessLogFile}`);
             }
 
+            // Extract proxy log path (appears in stdout)
+            const proxyLogFile = extractProxyLogPath(stdout);
+            if (proxyLogFile) {
+                log(`✓ Found proxy log: ${proxyLogFile}`);
+            }
+
             // Try to extract JSON from stdout first, then stderr
             let json = null;
             let source = 'stdout';
@@ -215,9 +239,12 @@ async function runTest(testFile) {
                 // Inject error information from full report file
                 json = injectErrorInformation(json);
 
-                // Add headless log path to JSON output if found
+                // Add log file paths to JSON output if found
                 if (headlessLogFile) {
                     json.headlessLogFile = headlessLogFile;
+                }
+                if (proxyLogFile) {
+                    json.proxyLogFile = proxyLogFile;
                 }
 
                 resolve({

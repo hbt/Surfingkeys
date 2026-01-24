@@ -22,6 +22,7 @@ const net = require('net');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { createProxy } = require('../../scripts/dbg/lib/proxy-core');
 
 // Log file setup
 const timestamp = new Date().toISOString().split('T')[0];
@@ -202,6 +203,44 @@ function buildReporterArgs(mode, streamingReporterPath) {
     }
 }
 
+/**
+ * Start CDP proxy for this test run
+ * Returns { proxyPort, proxyLogFile, shutdown }
+ */
+async function startTestProxy(cdpPort, testFileName) {
+    try {
+        // Find available proxy port (9500+)
+        const proxyPort = await findAvailablePort(9500, 100);
+
+        // Generate unique log file name based on test file name
+        const timestamp = new Date().toISOString().split('T')[0];
+        const randomId = Math.random().toString(36).substring(2, 8);
+        const proxyLogFile = `/tmp/dbg-proxy-test-${testFileName}-${timestamp}-${randomId}.jsonl`;
+
+        log(`Starting CDP proxy on port ${proxyPort}...`);
+        log(`  Proxy log: ${proxyLogFile}`);
+
+        const proxyResult = await createProxy({
+            port: proxyPort,
+            logFile: proxyLogFile,
+            cdpPort: cdpPort,
+            cdpHost: '127.0.0.1'
+        });
+
+        log(`CDP proxy started on port ${proxyPort}`);
+
+        return {
+            port: proxyPort,
+            logFile: proxyLogFile,
+            shutdown: proxyResult.shutdown
+        };
+    } catch (err) {
+        log(`Warning: Failed to start proxy: ${err.message}`);
+        log(`Tests will continue without proxy event capture`);
+        return null;
+    }
+}
+
 async function main() {
     const cli = parseCli(process.argv.slice(2));
     const testFile = cli.positional[0];
@@ -268,6 +307,18 @@ async function main() {
     const randomOffset = Math.floor(Math.random() * 50); // Random offset 0-49
     const port = await findAvailablePort(9300 + randomOffset);
     log(`Found available port: ${port}`);
+
+    // Start CDP proxy for event capture
+    const testFileName = path.basename(testFile, '.test.ts');
+    let proxyInfo = null;
+    try {
+        proxyInfo = await startTestProxy(port, testFileName);
+        if (proxyInfo) {
+            log(`Proxy ready on port ${proxyInfo.port}`);
+        }
+    } catch (err) {
+        log(`Failed to start proxy: ${err.message}`);
+    }
 
     // Create unique temporary user data directory
     const uniqueId = generateUniqueId();
@@ -365,12 +416,19 @@ async function main() {
     }
     log('');
 
+    const testEnv = {
+        ...process.env,
+        CDP_PORT: port.toString(),
+        FORCE_COLOR: '1'  // Ensure colored output
+    };
+
+    // Add proxy port if proxy is running
+    if (proxyInfo && proxyInfo.port) {
+        testEnv.CDP_PROXY_PORT = proxyInfo.port.toString();
+    }
+
     const testProcess = spawn('npx', [command, ...args], {
-        env: {
-            ...process.env,
-            CDP_PORT: port.toString(),
-            FORCE_COLOR: '1'  // Ensure colored output
-        },
+        env: testEnv,
         stdio: ['inherit', 'inherit', 'inherit']  // Explicitly inherit all streams
     });
 
@@ -386,6 +444,19 @@ async function main() {
 
     // Cleanup
     log('\nCleaning up...');
+
+    // Shutdown proxy if running
+    if (proxyInfo && proxyInfo.shutdown) {
+        try {
+            log('Shutting down CDP proxy...');
+            proxyInfo.shutdown();
+            const proxyMsg = `Proxy log saved to: ${proxyInfo.logFile}`;
+            log(proxyMsg);
+            console.log(proxyMsg);  // Print to stdout for extraction by test-run.js
+        } catch (err) {
+            log(`Error shutting down proxy: ${err.message}`);
+        }
+    }
 
     // Kill Chrome
     try {

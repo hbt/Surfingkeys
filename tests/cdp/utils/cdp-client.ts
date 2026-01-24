@@ -3,6 +3,12 @@
  *
  * Helper functions for connecting to Chrome DevTools Protocol
  * and executing commands.
+ *
+ * Proxy Support:
+ * - When CDP_PROXY_PORT env var is set, a proxy server is running on that port
+ * - Proxy auto-discovers and monitors all CDP targets for event capture
+ * - Tests connect directly to CDP as usual; proxy captures events in background
+ * - Captured events written to JSONL log file (/tmp/dbg-proxy-test-*.jsonl)
  */
 
 import WebSocket from 'ws';
