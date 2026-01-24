@@ -139,6 +139,49 @@ function applySettings(api, normal, rs) {
     }, {once: true});
 }
 
+/**
+ * Build command registry from all mode mappings with unique_id
+ * @param {Object} modes - Object containing mode instances {normal, insert, visual, hints}
+ * @returns {Map} Registry mapping unique_id -> command metadata
+ */
+function buildCommandRegistry(modes) {
+    const registry = new Map();
+    const modesToScan = [modes.normal, modes.insert, modes.visual, modes.hints];
+
+    modesToScan.forEach(mode => {
+        if (!mode || !mode.mappings) return;
+
+        // getMetas requires a criterion function, we use it to collect all metas
+        const allMetas = mode.mappings.getMetas(() => true);
+
+        allMetas.forEach(meta => {
+            // Check if annotation has unique_id
+            const annotation = meta.annotation;
+            let unique_id = null;
+
+            if (typeof annotation === 'object' && annotation !== null && !Array.isArray(annotation)) {
+                unique_id = annotation.unique_id;
+            }
+
+            if (unique_id) {
+                if (registry.has(unique_id)) {
+                    console.warn(`Duplicate unique_id detected: ${unique_id} (existing: ${registry.get(unique_id).originalKey}, new: ${meta.word})`);
+                }
+                registry.set(unique_id, {
+                    code: meta.code,
+                    annotation: meta.annotation,
+                    feature_group: meta.feature_group,
+                    originalKey: meta.word,
+                    mode: mode.name,
+                    repeatIgnore: meta.repeatIgnore
+                });
+            }
+        });
+    });
+
+    return registry;
+}
+
 function _initModules() {
     const clipboard = createClipboard();
     const insert = createInsert();
@@ -151,6 +194,11 @@ function _initModules() {
 
     const api = createAPI(clipboard, insert, normal, hints, visual, front, _browser);
     createDefaultMappings(api, clipboard, insert, normal, hints, visual, front, _browser);
+
+    // Build and inject command registry after all default mappings are loaded
+    const commandRegistry = buildCommandRegistry({ normal, insert, visual, hints });
+    api._setCommandRegistry(commandRegistry);
+
     if (typeof(_browser.plugin) === "function") {
         _browser.plugin({ front });
     }
