@@ -4,11 +4,12 @@ import * as crypto from 'crypto';
 import * as vm from 'vm';
 import WebSocket from 'ws';
 import { executeInTarget } from './cdp-client';
+import { waitForConfigReady } from './browser-actions';
 
 export interface HeadlessConfigSetOptions {
     bgWs: WebSocket;
     configPath: string;
-    waitAfterSetMs?: number;
+    waitAfterSetMs?: number;  // Timeout for config registration (not arbitrary delay)
     ensureAdvancedMode?: boolean;
     localPathUrl?: string;
 }
@@ -101,7 +102,7 @@ export async function runHeadlessConfigSet(options: HeadlessConfigSetOptions): P
     const {
         bgWs,
         configPath,
-        waitAfterSetMs = 800,
+        waitAfterSetMs = 5000,  // Timeout (not delay) - waits for globalThis._isConfigReady()
         ensureAdvancedMode = true,
         localPathUrl
     } = options;
@@ -200,8 +201,9 @@ export async function runHeadlessConfigSet(options: HeadlessConfigSetOptions): P
         };
     }
 
+    // Wait for config to be registered (signal-based, not arbitrary delay)
     if (waitAfterSetMs > 0) {
-        await new Promise(resolve => setTimeout(resolve, waitAfterSetMs));
+        await waitForConfigReady(bgWs, waitAfterSetMs);  // waitAfterSetMs now used as timeout, not delay
     }
 
     const postValidationSnapshot = await readStorageSnapshot(bgWs);

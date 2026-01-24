@@ -139,11 +139,11 @@ describe('Command Metadata - Migration and API Testing', () => {
         const bgInfo = await findExtensionBackground();
         bgWs = await connectToCDP(bgInfo.wsUrl);
 
-        // Set config using headless config-set (validated approach)
+        // Set config using headless config-set (signal-based wait via globalThis._isConfigReady())
         configResult = await runHeadlessConfigSet({
             bgWs,
             configPath: CONFIG_FIXTURE_PATH,
-            waitAfterSetMs: 1200,
+            waitAfterSetMs: 5000,  // Timeout for config registration (not arbitrary delay)
             ensureAdvancedMode: true
         });
 
