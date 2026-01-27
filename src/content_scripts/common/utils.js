@@ -851,7 +851,15 @@ function mapInMode(mode, nks, oks, new_annotation) {
         // meta.word need to be new
         var meta = Object.assign({}, old_map.meta);
         if (new_annotation) {
-            meta = Object.assign(meta, parseAnnotation({ annotation: new_annotation }));
+            var parsed = parseAnnotation({ annotation: new_annotation });
+            // Explicitly update annotation and feature_group to ensure proper override
+            meta.annotation = parsed.annotation;
+            if (parsed.feature_group !== undefined) {
+                meta.feature_group = parsed.feature_group;
+            }
+            if (parsed.repeatIgnore !== undefined) {
+                meta.repeatIgnore = parsed.repeatIgnore;
+            }
         }
         mode.mappings.add(nks, meta);
         if (!isInUIFrame()) {
