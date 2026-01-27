@@ -28,7 +28,8 @@
     "lint:css": "stylelint --config config/stylelint.config.js 'src/**/*.css'",
     "validate:mappings": "bun scripts/validate-mappings.js",
     "validate:mappings:prefixes": "bun scripts/validate-mappings.js --prefixes",
-    "report:migration": "bun scripts/find-migrated-commands.js"
+    "report:migration": "bun scripts/find-migrated-commands.js",
+    "report:mappings:json": "bun scripts/mappings-json-report.ts"
   },
   "repository": {
     "type": "git",
