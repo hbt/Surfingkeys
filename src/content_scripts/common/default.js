@@ -1306,7 +1306,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                     element.querySelectorAll('input, textarea').forEach(function(ip) {
                         if (fd.hasOwnProperty(ip.name) && ip.type !== "hidden") {
                             if (ip.type === "radio") {
-                                var op = element.querySelector(`input[name='${ip.name}'][value='${fd[ip.name}']`);
+                                var op = element.querySelector(`input[name='${ip.name}'][value='${fd[ip.name]}']`);
                                 if (op) {
                                     op.checked = true;
                                 }
