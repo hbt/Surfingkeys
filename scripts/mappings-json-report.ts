@@ -916,6 +916,9 @@ function generateSummary(mappings: MappingEntry[]): Summary {
         config_options: generateConfigOptionsReport(mappings)  // NEW: Add config options discovery
     };
 
+    // Track unique_ids to detect duplicates
+    const uniqueIdMap = new Map<string, MappingEntry[]>();
+
     for (const mapping of mappings) {
         // Count by mode
         summary.by_mode[mapping.mode] = (summary.by_mode[mapping.mode] || 0) + 1;
@@ -937,7 +940,40 @@ function generateSummary(mappings: MappingEntry[]): Summary {
             mapping.validationErrors = validation.errors;
         }
 
+        // Track unique_ids for duplicate detection
+        if (typeof mapping.annotation === 'object' && mapping.annotation.unique_id) {
+            const uid = mapping.annotation.unique_id;
+            if (!uniqueIdMap.has(uid)) {
+                uniqueIdMap.set(uid, []);
+            }
+            uniqueIdMap.get(uid)!.push(mapping);
+        }
+
         summary.validation[validation.status]++;
+    }
+
+    // Second pass: mark duplicates as invalid
+    for (const [uid, mappingsWithId] of uniqueIdMap.entries()) {
+        if (mappingsWithId.length > 1) {
+            // Mark all but the first as invalid duplicates
+            for (let i = 1; i < mappingsWithId.length; i++) {
+                const mapping = mappingsWithId[i];
+                // Decrement the old validation count
+                if (mapping.validationStatus) {
+                    summary.validation[mapping.validationStatus]--;
+                }
+                // Update to invalid
+                mapping.validationStatus = 'invalid';
+                if (!mapping.validationErrors) {
+                    mapping.validationErrors = [];
+                }
+                mapping.validationErrors.push(
+                    `Duplicate unique_id: "${uid}" (also used in ${mappingsWithId[0].source.file}:${mappingsWithId[0].source.line})`
+                );
+                // Increment invalid count
+                summary.validation.invalid++;
+            }
+        }
     }
 
     return summary;
