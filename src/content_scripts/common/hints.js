@@ -75,7 +75,13 @@ kbd {
     regionalHintsHost.shadowRoot.appendChild(hintsStyle);
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
-        annotation: "Exit regional hints mode",
+        annotation: {
+            short: "Exit regional hints mode",
+            unique_id: "cmd_hints_exit_regional",
+            category: "hints",
+            description: "Exit regional hints mode and return to normal mode",
+            tags: ["hints", "exit", "regional"]
+        },
         feature_group: 17,
         code: function() {
             self.exit();
@@ -83,7 +89,13 @@ kbd {
     });
 
     self.mappings.add("ct", {
-        annotation: "copy text from target element",
+        annotation: {
+            short: "Copy text from element",
+            unique_id: "cmd_hints_copy_text",
+            category: "hints",
+            description: "Copy text from target element in regional hints mode",
+            tags: ["hints", "clipboard", "copy", "text"]
+        },
         feature_group: 17,
         code: function() {
             clipboard.write(overlay.link.innerText);
@@ -91,7 +103,13 @@ kbd {
     });
 
     self.mappings.add("ch", {
-        annotation: "copy html from target element",
+        annotation: {
+            short: "Copy HTML from element",
+            unique_id: "cmd_hints_copy_html",
+            category: "hints",
+            description: "Copy HTML from target element in regional hints mode",
+            tags: ["hints", "clipboard", "copy", "html"]
+        },
         feature_group: 17,
         code: function() {
             clipboard.write(overlay.link.innerHTML);
@@ -99,7 +117,13 @@ kbd {
     });
 
     self.mappings.add("d", {
-        annotation: "delete target element",
+        annotation: {
+            short: "Delete target element",
+            unique_id: "cmd_hints_delete_element",
+            category: "hints",
+            description: "Delete target element in regional hints mode",
+            tags: ["hints", "delete", "dom"]
+        },
         feature_group: 17,
         code: function() {
             overlay.link.remove();
@@ -108,7 +132,13 @@ kbd {
     });
 
     self.mappings.add("l", {
-        annotation: "learn more about target element",
+        annotation: {
+            short: "Learn about element",
+            unique_id: "cmd_hints_learn_element",
+            category: "hints",
+            description: "Learn more about target element using LLM chat in hints mode",
+            tags: ["hints", "llm", "learn", "ai"]
+        },
         feature_group: 17,
         code: function() {
             const system = overlay.link.innerText;

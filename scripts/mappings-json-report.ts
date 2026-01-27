@@ -450,6 +450,7 @@ function parseMappingsAddPatternsAST(
             // Determine mode from file path
             let mode = 'Normal';
             if (relPath.includes('insert.js')) mode = 'Insert';
+            else if (relPath.includes('visual.js')) mode = 'Visual';
             else if (relPath.includes('omnibar.js')) mode = 'Omnibar';
             else if (relPath.includes('hints.js')) mode = 'Hints';
             else if (relPath.includes('cursorPrompt.js')) mode = 'CursorPrompt';

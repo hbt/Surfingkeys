@@ -121,72 +121,156 @@ function createVisual(clipboard, hints) {
     self.map_node = self.mappings;
     self.repeats = "";
     self.mappings.add("l", {
-        annotation: "forward character",
+        annotation: {
+            short: "Move forward character",
+            unique_id: "cmd_visual_forward_char",
+            category: "visual",
+            description: "Move the cursor forward by one character in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("h", {
-        annotation: "backward character",
+        annotation: {
+            short: "Move backward character",
+            unique_id: "cmd_visual_backward_char",
+            category: "visual",
+            description: "Move the cursor backward by one character in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("j", {
-        annotation: "forward line",
+        annotation: {
+            short: "Move forward line",
+            unique_id: "cmd_visual_forward_line",
+            category: "visual",
+            description: "Move the cursor forward by one line in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("k", {
-        annotation: "backward line",
+        annotation: {
+            short: "Move backward line",
+            unique_id: "cmd_visual_backward_line",
+            category: "visual",
+            description: "Move the cursor backward by one line in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("w", {
-        annotation: "forward word",
+        annotation: {
+            short: "Move forward word",
+            unique_id: "cmd_visual_forward_word",
+            category: "visual",
+            description: "Move the cursor forward by one word in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("e", {
-        annotation: "forward word",
+        annotation: {
+            short: "Move to word end",
+            unique_id: "cmd_visual_word_end",
+            category: "visual",
+            description: "Move the cursor to the end of the current word in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("b", {
-        annotation: "backward word",
+        annotation: {
+            short: "Move backward word",
+            unique_id: "cmd_visual_backward_word",
+            category: "visual",
+            description: "Move the cursor backward by one word in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add(")", {
-        annotation: "forward sentence",
+        annotation: {
+            short: "Move forward sentence",
+            unique_id: "cmd_visual_forward_sentence",
+            category: "visual",
+            description: "Move the cursor forward by one sentence in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("(", {
-        annotation: "backward sentence",
+        annotation: {
+            short: "Move backward sentence",
+            unique_id: "cmd_visual_backward_sentence",
+            category: "visual",
+            description: "Move the cursor backward by one sentence in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("}", {
-        annotation: "forward paragraphboundary",
+        annotation: {
+            short: "Move forward paragraph",
+            unique_id: "cmd_visual_forward_paragraph",
+            category: "visual",
+            description: "Move the cursor forward to the next paragraph boundary in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("{", {
-        annotation: "backward paragraphboundary",
+        annotation: {
+            short: "Move backward paragraph",
+            unique_id: "cmd_visual_backward_paragraph",
+            category: "visual",
+            description: "Move the cursor backward to the previous paragraph boundary in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("0", {
-        annotation: "backward lineboundary",
+        annotation: {
+            short: "Move to line start",
+            unique_id: "cmd_visual_line_start",
+            category: "visual",
+            description: "Move the cursor to the beginning of the current line in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("$", {
-        annotation: "forward lineboundary",
+        annotation: {
+            short: "Move to line end",
+            unique_id: "cmd_visual_line_end",
+            category: "visual",
+            description: "Move the cursor to the end of the current line in visual mode.",
+            tags: ["visual", "movement", "vim"]
+        },
         feature_group: 9,
         code: modifySelection
     });
     self.mappings.add("G", {
-        annotation: "forward documentboundary",
+        annotation: {
+            short: "Go to document end",
+            unique_id: "cmd_visual_document_end",
+            category: "visual",
+            description: "Move the cursor to the end of the document in visual mode.",
+            tags: ["visual", "movement", "vim", "scroll"]
+        },
         feature_group: 9,
         code: function() {
             document.scrollingElement.scrollTop = document.scrollingElement.scrollHeight;
@@ -204,7 +288,13 @@ function createVisual(clipboard, hints) {
         }
     });
     self.mappings.add("gg", {
-        annotation: "backward documentboundary",
+        annotation: {
+            short: "Go to document start",
+            unique_id: "cmd_visual_document_start",
+            category: "visual",
+            description: "Move the cursor to the beginning of the document in visual mode.",
+            tags: ["visual", "movement", "vim", "scroll"]
+        },
         feature_group: 9,
         code: function() {
             // there may be some fixed-position div for navbar on top on some pages.
@@ -227,7 +317,13 @@ function createVisual(clipboard, hints) {
     });
 
     self.mappings.add("o", {
-        annotation: "Go to Other end of highlighted text",
+        annotation: {
+            short: "Toggle selection direction",
+            unique_id: "cmd_visual_toggle_end",
+            category: "selection",
+            description: "Go to the other end of the highlighted text in visual mode.",
+            tags: ["visual", "selection", "vim"]
+        },
         feature_group: 9,
         code: function() {
             self.hideCursor();
@@ -282,7 +378,13 @@ function createVisual(clipboard, hints) {
         }
     }];
     self.mappings.add("*", {
-        annotation: "Search word under the cursor",
+        annotation: {
+            short: "Search word under cursor",
+            unique_id: "cmd_visual_search_word",
+            category: "search",
+            description: "Search for the word under the cursor in visual mode.",
+            tags: ["visual", "search", "vim"]
+        },
         feature_group: 9,
         code: function() {
             self.star();
@@ -294,21 +396,39 @@ function createVisual(clipboard, hints) {
         });
     }
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Enter>"), {
-        annotation: "Click on node under cursor.",
+        annotation: {
+            short: "Click node under cursor",
+            unique_id: "cmd_visual_click_node",
+            category: "visual",
+            description: "Click on the node under the cursor in visual mode.",
+            tags: ["visual", "click", "interaction"]
+        },
         feature_group: 9,
         code: function() {
             clickLink(selection.focusNode.parentNode, false);
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Enter>"), {
-        annotation: "Click on node under cursor.",
+        annotation: {
+            short: "Click node in new tab",
+            unique_id: "cmd_visual_click_node_newtab",
+            category: "visual",
+            description: "Click on the node under the cursor in a new tab in visual mode.",
+            tags: ["visual", "click", "interaction", "tab"]
+        },
         feature_group: 9,
         code: function() {
             clickLink(selection.focusNode.parentNode, true);
         }
     });
     self.mappings.add("zt", {
-        annotation: "make cursor at top of window.",
+        annotation: {
+            short: "Scroll cursor to top",
+            unique_id: "cmd_visual_scroll_top",
+            category: "scroll",
+            description: "Scroll the page to position the cursor at the top of the window in visual mode.",
+            tags: ["visual", "scroll", "vim"]
+        },
         feature_group: 9,
         code: function() {
             var offset = cursor.getBoundingClientRect().top;
@@ -318,7 +438,13 @@ function createVisual(clipboard, hints) {
         }
     });
     self.mappings.add("zz", {
-        annotation: "make cursor at center of window.",
+        annotation: {
+            short: "Scroll cursor to center",
+            unique_id: "cmd_visual_scroll_center",
+            category: "scroll",
+            description: "Scroll the page to position the cursor at the center of the window in visual mode.",
+            tags: ["visual", "scroll", "vim"]
+        },
         feature_group: 9,
         code: function() {
             var offset = cursor.getBoundingClientRect().top - window.innerHeight/2;
@@ -328,7 +454,13 @@ function createVisual(clipboard, hints) {
         }
     });
     self.mappings.add("zb", {
-        annotation: "make cursor at bottom of window.",
+        annotation: {
+            short: "Scroll cursor to bottom",
+            unique_id: "cmd_visual_scroll_bottom",
+            category: "scroll",
+            description: "Scroll the page to position the cursor at the bottom of the window in visual mode.",
+            tags: ["visual", "scroll", "vim"]
+        },
         feature_group: 9,
         code: function() {
             var offset = window.innerHeight - cursor.getBoundingClientRect().bottom;
@@ -338,7 +470,13 @@ function createVisual(clipboard, hints) {
         }
     });
     self.mappings.add("f", {
-        annotation: "Forward to next char.",
+        annotation: {
+            short: "Find forward character",
+            unique_id: "cmd_visual_find_forward",
+            category: "visual",
+            description: "Enter find mode to move forward to the next occurrence of a character in visual mode.",
+            tags: ["visual", "find", "vim"]
+        },
         feature_group: 9,
         code: function() {
             self.statusLine = self.name + " - " + status[state] + " - forward";
@@ -347,7 +485,13 @@ function createVisual(clipboard, hints) {
         }
     });
     self.mappings.add("F", {
-        annotation: "Backward to next char.",
+        annotation: {
+            short: "Find backward character",
+            unique_id: "cmd_visual_find_backward",
+            category: "visual",
+            description: "Enter find mode to move backward to the previous occurrence of a character in visual mode.",
+            tags: ["visual", "find", "vim"]
+        },
         feature_group: 9,
         code: function() {
             self.statusLine = self.name + " - " + status[state] + " - backward";
@@ -356,7 +500,13 @@ function createVisual(clipboard, hints) {
         }
     });
     self.mappings.add(";", {
-        annotation: "Repeat latest f, F",
+        annotation: {
+            short: "Repeat find forward",
+            unique_id: "cmd_visual_repeat_find",
+            category: "visual",
+            description: "Repeat the latest f or F find operation in the same direction in visual mode.",
+            tags: ["visual", "find", "vim"]
+        },
         feature_group: 9,
         code: function() {
             if (lastF) {
@@ -365,7 +515,13 @@ function createVisual(clipboard, hints) {
         }
     });
     self.mappings.add(",", {
-        annotation: "Repeat latest f, F in opposite direction",
+        annotation: {
+            short: "Repeat find backward",
+            unique_id: "cmd_visual_repeat_find_opposite",
+            category: "visual",
+            description: "Repeat the latest f or F find operation in the opposite direction in visual mode.",
+            tags: ["visual", "find", "vim"]
+        },
         feature_group: 9,
         code: function() {
             if (lastF) {
@@ -375,7 +531,13 @@ function createVisual(clipboard, hints) {
     });
 
     self.mappings.add("p", {
-        annotation: "Expand selection to parent element",
+        annotation: {
+            short: "Expand to parent element",
+            unique_id: "cmd_visual_expand_parent",
+            category: "selection",
+            description: "Expand the selection to the parent element in visual mode.",
+            tags: ["visual", "selection", "expand"]
+        },
         feature_group: 9,
         code: function() {
             var p = selection.focusNode;
@@ -398,7 +560,13 @@ function createVisual(clipboard, hints) {
     });
 
     self.mappings.add("V", {
-        annotation: "Select a word(w) or line(l) or sentence(s) or paragraph(p)",
+        annotation: {
+            short: "Select text unit",
+            unique_id: "cmd_visual_select_unit",
+            category: "selection",
+            description: "Select a word (w), line (l), sentence (s), or paragraph (p) in visual mode.",
+            tags: ["visual", "selection", "vim"]
+        },
         feature_group: 9,
         code: function(w) {
             self.hideCursor();

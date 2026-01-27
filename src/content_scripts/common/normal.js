@@ -56,12 +56,24 @@ function createLurk(normal) {
     self.mappings = new Trie();
     self.map_node = self.mappings;
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
-        annotation: "Enter normal mode",
+        annotation: {
+            short: "Enter normal mode",
+            unique_id: "cmd_lurk_enter_normal",
+            category: "modes",
+            description: "Exit Lurk mode and enter Normal mode to enable SurfingKeys",
+            tags: ["modes", "lurk"]
+        },
         feature_group: 16,
         code: enterNormal
     });
     self.mappings.add("p", {
-        annotation: "Enter ephemeral normal mode to temporarily enable SurfingKeys",
+        annotation: {
+            short: "Ephemeral normal mode",
+            unique_id: "cmd_lurk_ephemeral_normal",
+            category: "modes",
+            description: "Temporarily enter Normal mode for 1 second then return to Lurk mode",
+            tags: ["modes", "lurk", "ephemeral"]
+        },
         feature_group: 16,
         code: function() {
             enterNormal();
@@ -322,14 +334,26 @@ function createNormal(insert) {
         self.enter();
     };
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
-        annotation: "Enter PassThrough mode to temporarily suppress SurfingKeys",
+        annotation: {
+            short: "Enter PassThrough mode",
+            unique_id: "cmd_passthrough_enter",
+            category: "modes",
+            description: "Enter PassThrough mode to temporarily suppress SurfingKeys and pass all keys to the page",
+            tags: ["modes", "passthrough"]
+        },
         feature_group: 0,
         code: function() {
             self.passThrough();
         }
     });
     self.mappings.add("p", {
-        annotation: "Enter ephemeral PassThrough mode to temporarily suppress SurfingKeys",
+        annotation: {
+            short: "Ephemeral PassThrough mode",
+            unique_id: "cmd_passthrough_ephemeral",
+            category: "modes",
+            description: "Temporarily enter PassThrough mode for 1 second then return to Normal mode",
+            tags: ["modes", "passthrough", "ephemeral"]
+        },
         feature_group: 0,
         code: function() {
             self.passThrough(1000);
@@ -798,14 +822,26 @@ function createNormal(insert) {
     };
 
     self.mappings.add("yG", {
-        annotation: "Capture current full page",
+        annotation: {
+            short: "Capture full page",
+            unique_id: "cmd_capture_full_page",
+            category: "clipboard",
+            description: "Capture a screenshot of the entire current page",
+            tags: ["capture", "screenshot", "clipboard"]
+        },
         feature_group: 7,
         code: function() {
             self.captureElement(document.scrollingElement);
         }
     });
     self.mappings.add("yS", {
-        annotation: "Capture scrolling element",
+        annotation: {
+            short: "Capture scrolling element",
+            unique_id: "cmd_capture_scrolling_element",
+            category: "clipboard",
+            description: "Capture a screenshot of the current scrolling element",
+            tags: ["capture", "screenshot", "clipboard", "scroll"]
+        },
         feature_group: 7,
         code: function() {
             var scrollNode = document.scrollingElement;
@@ -1019,7 +1055,13 @@ function createNormal(insert) {
     });
 
     self.mappings.add("/", {
-        annotation: "Find in current page",
+        annotation: {
+            short: "Find in page",
+            unique_id: "cmd_find_in_page",
+            category: "search",
+            description: "Open the find interface to search for text in the current page",
+            tags: ["search", "find", "vim"]
+        },
         feature_group: 9,
         repeatIgnore: true,
         code: function() {
@@ -1028,7 +1070,13 @@ function createNormal(insert) {
     });
 
     self.mappings.add("E", {
-        annotation: "Go one tab left",
+        annotation: {
+            short: "Go to previous tab",
+            unique_id: "cmd_tab_previous",
+            category: "navigation",
+            description: "Switch to the tab to the left of the current tab",
+            tags: ["tabs", "navigation", "vim"]
+        },
         feature_group: 3,
         repeatIgnore: true,
         code: function() {
@@ -1036,7 +1084,13 @@ function createNormal(insert) {
         }
     });
     self.mappings.add("R", {
-        annotation: "Go one tab right",
+        annotation: {
+            short: "Go to next tab",
+            unique_id: "cmd_tab_next",
+            category: "navigation",
+            description: "Switch to the tab to the right of the current tab",
+            tags: ["tabs", "navigation", "vim"]
+        },
         feature_group: 3,
         repeatIgnore: true,
         code: function() {

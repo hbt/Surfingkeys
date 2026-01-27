@@ -57,7 +57,13 @@ function createOmnibar(front, clipboard) {
 
     var savedFocused = -1;
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-d>"), {
-        annotation: "Delete focused item from bookmark or history",
+        annotation: {
+            short: "Delete focused item",
+            unique_id: "cmd_omnibar_delete_focused",
+            category: "omnibar",
+            description: "Delete focused item from bookmark or history",
+            tags: ["omnibar", "deletion", "bookmarks", "history"]
+        },
         feature_group: 8,
         code: function () {
             var fi = self.resultsDiv.querySelector('li.focused');
@@ -88,7 +94,13 @@ function createOmnibar(front, clipboard) {
 
     const searchEngine = SearchEngine(self, front);
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-i>"), {
-        annotation: "Edit selected URL with vim editor, then open",
+        annotation: {
+            short: "Edit selected URL",
+            unique_id: "cmd_omnibar_edit_url",
+            category: "omnibar",
+            description: "Edit selected URL with vim editor, then open",
+            tags: ["omnibar", "editing", "url"]
+        },
         feature_group: 8,
         code: function () {
             var fi = self.resultsDiv.querySelector('li.focused');
@@ -121,7 +133,13 @@ function createOmnibar(front, clipboard) {
     });
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-j>"), {
-        annotation: "Toggle Omnibar's position",
+        annotation: {
+            short: "Toggle Omnibar position",
+            unique_id: "cmd_omnibar_toggle_position",
+            category: "omnibar",
+            description: "Toggle Omnibar's position between middle and bottom",
+            tags: ["omnibar", "position", "toggle"]
+        },
         feature_group: 8,
         code: function () {
             if (runtime.conf.omnibarPosition === "bottom") {
@@ -137,7 +155,13 @@ function createOmnibar(front, clipboard) {
     });
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-.>"), {
-        annotation: "Show results of next page",
+        annotation: {
+            short: "Show next page",
+            unique_id: "cmd_omnibar_next_page",
+            category: "omnibar",
+            description: "Show results of next page",
+            tags: ["omnibar", "pagination", "navigation"]
+        },
         feature_group: 8,
         code: function () {
             if (_items) {
@@ -152,7 +176,13 @@ function createOmnibar(front, clipboard) {
     });
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-,>"), {
-        annotation: "Show results of previous page",
+        annotation: {
+            short: "Show previous page",
+            unique_id: "cmd_omnibar_previous_page",
+            category: "omnibar",
+            description: "Show results of previous page",
+            tags: ["omnibar", "pagination", "navigation"]
+        },
         feature_group: 8,
         code: function () {
             if (_items) {
@@ -167,7 +197,13 @@ function createOmnibar(front, clipboard) {
     });
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-c>"), {
-        annotation: "Copy selected item url or all listed item urls",
+        annotation: {
+            short: "Copy item URLs",
+            unique_id: "cmd_omnibar_copy_urls",
+            category: "omnibar",
+            description: "Copy selected item url or all listed item urls",
+            tags: ["omnibar", "copy", "clipboard"]
+        },
         feature_group: 8,
         code: function () {
             // hide Omnibar.input, so that we could use clipboard_holder to make copy
@@ -191,7 +227,13 @@ function createOmnibar(front, clipboard) {
     });
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-D>"), {
-        annotation: "Delete all listed items from bookmark or history",
+        annotation: {
+            short: "Delete all items",
+            unique_id: "cmd_omnibar_delete_all",
+            category: "omnibar",
+            description: "Delete all listed items from bookmark or history",
+            tags: ["omnibar", "deletion", "bookmarks", "history"]
+        },
         feature_group: 8,
         code: function () {
             var uids = Array.from(self.resultsDiv.querySelectorAll('#sk_omnibarSearchResult>ul>li')).map(function(li) {
@@ -215,7 +257,13 @@ function createOmnibar(front, clipboard) {
     });
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-r>"), {
-        annotation: "Re-sort history by visitCount or lastVisitTime",
+        annotation: {
+            short: "Re-sort history",
+            unique_id: "cmd_omnibar_resort_history",
+            category: "omnibar",
+            description: "Re-sort history by visitCount or lastVisitTime",
+            tags: ["omnibar", "sorting", "history"]
+        },
         feature_group: 8,
         code: function () {
             if (handler && handler.onReset) {
@@ -225,7 +273,13 @@ function createOmnibar(front, clipboard) {
     });
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
-        annotation: "Close Omnibar",
+        annotation: {
+            short: "Close Omnibar",
+            unique_id: "cmd_omnibar_close",
+            category: "omnibar",
+            description: "Close Omnibar",
+            tags: ["omnibar", "close"]
+        },
         feature_group: 8,
         code: function () {
             front.hidePopup();
@@ -233,7 +287,13 @@ function createOmnibar(front, clipboard) {
     });
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-m>"), {
-        annotation: "Create vim-like mark for selected item",
+        annotation: {
+            short: "Create vim mark",
+            unique_id: "cmd_omnibar_create_mark",
+            category: "omnibar",
+            description: "Create vim-like mark for selected item",
+            tags: ["omnibar", "marks", "vim"]
+        },
         feature_group: 8,
         code: function (mark) {
             var fi = self.resultsDiv.querySelector('li.focused');
@@ -374,21 +434,39 @@ function createOmnibar(front, clipboard) {
     }
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Tab>"), {
-        annotation: "Forward cycle through the candidates.",
+        annotation: {
+            short: "Cycle forward",
+            unique_id: "cmd_omnibar_cycle_forward",
+            category: "omnibar",
+            description: "Forward cycle through the candidates",
+            tags: ["omnibar", "navigation", "selection"]
+        },
         feature_group: 8,
         code: function () {
             rotateResult(getPosition() === "bottom");
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Tab>"), {
-        annotation: "Backward cycle through the candidates.",
+        annotation: {
+            short: "Cycle backward",
+            unique_id: "cmd_omnibar_cycle_backward",
+            category: "omnibar",
+            description: "Backward cycle through the candidates",
+            tags: ["omnibar", "navigation", "selection"]
+        },
         feature_group: 8,
         code: function () {
             rotateResult(getPosition() !== "bottom");
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-n>"), {
-        annotation: "Forward cycle through the input history.",
+        annotation: {
+            short: "Cycle input history forward",
+            unique_id: "cmd_omnibar_history_forward",
+            category: "omnibar",
+            description: "Forward cycle through the input history",
+            tags: ["omnibar", "history", "navigation"]
+        },
         feature_group: 8,
         code: function () {
             if (handler && handler.rotateInput) {
@@ -399,7 +477,13 @@ function createOmnibar(front, clipboard) {
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-p>"), {
-        annotation: "Backward cycle through the input history.",
+        annotation: {
+            short: "Cycle input history backward",
+            unique_id: "cmd_omnibar_history_backward",
+            category: "omnibar",
+            description: "Backward cycle through the input history",
+            tags: ["omnibar", "history", "navigation"]
+        },
         feature_group: 8,
         code: function () {
             if (handler && handler.rotateInput) {
@@ -410,7 +494,13 @@ function createOmnibar(front, clipboard) {
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-'>"), {
-        annotation: "Toggle quotes in an input element",
+        annotation: {
+            short: "Toggle quotes",
+            unique_id: "cmd_omnibar_toggle_quotes",
+            category: "omnibar",
+            description: "Toggle quotes in an input element",
+            tags: ["omnibar", "editing", "quotes"]
+        },
         feature_group: 8,
         code: toggleQuote
     });

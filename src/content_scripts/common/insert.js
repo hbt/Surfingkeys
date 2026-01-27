@@ -58,7 +58,13 @@ function createInsert() {
     self.mappings = new Trie();
     self.map_node = self.mappings;
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-e>"), {
-        annotation: "Move the cursor to the end of the line",
+        annotation: {
+            short: "Move cursor to end",
+            unique_id: "cmd_insert_cursor_end",
+            category: "editing",
+            description: "Move the cursor to the end of the line in input fields",
+            tags: ["editing", "cursor", "insert"]
+        },
         feature_group: 15,
         code: moveCursorEOL
     });
@@ -78,7 +84,13 @@ function createInsert() {
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-u>"), {
-        annotation: "Delete all entered characters before the cursor",
+        annotation: {
+            short: "Delete before cursor",
+            unique_id: "cmd_insert_delete_before_cursor",
+            category: "editing",
+            description: "Delete all entered characters before the cursor in input fields",
+            tags: ["editing", "delete", "insert"]
+        },
         feature_group: 15,
         code: function() {
             var element = getRealEdit();
@@ -93,7 +105,13 @@ function createInsert() {
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-b>"), {
-        annotation: "Move the cursor Backward 1 word",
+        annotation: {
+            short: "Move cursor backward word",
+            unique_id: "cmd_insert_cursor_backward_word",
+            category: "editing",
+            description: "Move the cursor backward 1 word in input fields",
+            tags: ["editing", "cursor", "insert", "vim"]
+        },
         feature_group: 15,
         code: function() {
             var element = getRealEdit();
@@ -107,7 +125,13 @@ function createInsert() {
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-f>"), {
-        annotation: "Move the cursor Forward 1 word",
+        annotation: {
+            short: "Move cursor forward word",
+            unique_id: "cmd_insert_cursor_forward_word",
+            category: "editing",
+            description: "Move the cursor forward 1 word in input fields",
+            tags: ["editing", "cursor", "insert", "vim"]
+        },
         feature_group: 15,
         code: function() {
             var element = getRealEdit();
@@ -121,7 +145,13 @@ function createInsert() {
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-w>"), {
-        annotation: "Delete a word backwards",
+        annotation: {
+            short: "Delete word backwards",
+            unique_id: "cmd_insert_delete_word_backward",
+            category: "editing",
+            description: "Delete a word backwards in input fields",
+            tags: ["editing", "delete", "insert", "vim"]
+        },
         feature_group: 15,
         code: function() {
             var element = getRealEdit();
@@ -141,7 +171,13 @@ function createInsert() {
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-d>"), {
-        annotation: "Delete a word forwards",
+        annotation: {
+            short: "Delete word forwards",
+            unique_id: "cmd_insert_delete_word_forward",
+            category: "editing",
+            description: "Delete a word forwards in input fields",
+            tags: ["editing", "delete", "insert", "vim"]
+        },
         feature_group: 15,
         code: function() {
             var element = getRealEdit();
@@ -161,7 +197,13 @@ function createInsert() {
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
-        annotation: "Exit insert mode",
+        annotation: {
+            short: "Exit insert mode",
+            unique_id: "cmd_insert_exit",
+            category: "vim",
+            description: "Exit insert mode and return to normal mode",
+            tags: ["insert", "vim", "mode"]
+        },
         feature_group: 15,
         stopPropagation: function(key) {
             // return true only if bind key is not an ASCII key
@@ -191,7 +233,13 @@ function createInsert() {
 
     self.enableEmojiInsertion = () => {
         self.mappings.add(":", {
-            annotation: "Input emoji",
+            annotation: {
+                short: "Insert emoji",
+                unique_id: "cmd_insert_emoji",
+                category: "editing",
+                description: "Open emoji picker to insert emoji in input fields",
+                tags: ["editing", "insert", "emoji", "input"]
+            },
             feature_group: 15,
             stopPropagation: function() {
                 return false;
