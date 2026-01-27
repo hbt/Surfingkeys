@@ -95,6 +95,11 @@ interface SettingStats {
     usages: SettingUsage[];
 }
 
+interface ExcludedSetting {
+    name: string;
+    reason: string;
+}
+
 interface Report {
     mappings: MappingEntry[];
     summary: Summary;
@@ -104,10 +109,35 @@ interface Report {
             unique_settings: number;
             runtime_conf_settings: number;
             settings_api: number;
+            excluded_count: number;
         };
+        excluded: ExcludedSetting[];
         list: any[];
     };
 }
+
+// ============================================================================
+// EXCLUSION LIST
+// ============================================================================
+
+/**
+ * Settings that are false positives detected by the AST scanner.
+ * These are not genuine configuration settings and should be excluded from reports.
+ */
+const EXCLUDED_SETTINGS: ExcludedSetting[] = [
+    {
+        name: 'hasOwnProperty',
+        reason: 'Built-in JavaScript method used for property validation, not a configuration setting'
+    },
+    {
+        name: 'k',
+        reason: 'Loop variable in for...in iterations, not a literal property name (dynamic property access)'
+    },
+    {
+        name: 'error',
+        reason: 'Transient error message property for UI communication, not a user-configurable runtime setting'
+    }
+];
 
 // ============================================================================
 // VALIDATION
@@ -807,9 +837,14 @@ function scanDirectoryForSettings(dir: string, basePath: string, usages: Setting
  * Generate settings statistics from usages
  */
 function generateSettingsStatistics(usages: SettingUsage[]): any {
+    const excludedNames = new Set(EXCLUDED_SETTINGS.map(e => e.name));
+
+    // Filter out excluded settings
+    const filteredUsages = usages.filter(usage => !excludedNames.has(usage.setting));
+
     const statsMap = new Map<string, SettingStats>();
 
-    for (const usage of usages) {
+    for (const usage of filteredUsages) {
         const key = `${usage.type}.${usage.setting}`;
 
         if (!statsMap.has(key)) {
@@ -835,11 +870,13 @@ function generateSettingsStatistics(usages: SettingUsage[]): any {
 
     return {
         summary: {
-            total_usages: usages.length,
+            total_usages: filteredUsages.length,
             unique_settings: settingsList.length,
             runtime_conf_settings: settingsList.filter(s => s.type === 'runtime.conf').length,
-            settings_api: settingsList.filter(s => s.type === 'settings').length
+            settings_api: settingsList.filter(s => s.type === 'settings').length,
+            excluded_count: EXCLUDED_SETTINGS.length
         },
+        excluded: EXCLUDED_SETTINGS,
         list: settingsList.map(stat => ({
             setting: stat.setting,
             type: stat.type,
