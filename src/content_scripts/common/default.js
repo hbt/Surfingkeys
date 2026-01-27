@@ -182,7 +182,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         normal.jumpVIMark(mark);
     });
 
-    mapkey('w', '#2Switch frames', function() {
+    mapkey('w', {
+        short: "Switch frames",
+        unique_id: "cmd_frame_switch",
+        feature_group: 2,
+        category: "frames",
+        description: "Switch focus between page frames and iframes",
+        tags: ["frames", "iframe", "navigation"]
+    }, function() {
         // ensure frontend ready so that ui related actions can be available in iframes.
         dispatchSKEvent('ensureFrontEnd');
         if (window === top) {
@@ -553,7 +560,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     mapkey('x', '#3Close current tab', function() {
         RUNTIME("closeTab");
     });
-    mapkey(';w', '#2Focus top window', function() {
+    mapkey(';w', {
+        short: "Focus top window",
+        unique_id: "cmd_frame_focus_top",
+        feature_group: 2,
+        category: "frames",
+        description: "Focus the top-level window from an iframe",
+        tags: ["frames", "window", "focus"]
+    }, function() {
         top.focus();
     });
     mapkey('cc', '#7Open selected link or link from clipboard', function() {
