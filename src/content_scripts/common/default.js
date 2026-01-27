@@ -49,19 +49,40 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     mapkey('Q', '#8Open omnibar for word translation', function() {
         front.openOmniquery({query: getWordUnderCursor(), style: "opacity: 0.8;"});
     });
-    imapkey("<Ctrl-'>", '#15Toggle quotes in an input element', toggleQuote);
+    imapkey("<Ctrl-'>", {
+        short: "Toggle quotes in input",
+        unique_id: "cmd_insert_toggle_quotes",
+        feature_group: 15,
+        category: "insert",
+        description: "Toggle quotes around selected text in input field",
+        tags: ["insert", "input", "editing"]
+    }, toggleQuote);
     function openVim(useNeovim) {
         var element = getRealEdit();
         element.blur();
         insert.exit();
         front.showEditor(element, null, null, useNeovim);
     }
-    imapkey('<Ctrl-i>', '#15Open vim editor for current input', function() {
+    imapkey('<Ctrl-i>', {
+        short: "Open vim editor for input",
+        unique_id: "cmd_insert_vim_editor",
+        feature_group: 15,
+        category: "insert",
+        description: "Open vim editor to edit content of current input field",
+        tags: ["insert", "input", "vim"]
+    }, function() {
         openVim(false);
     });
     const browserName = getBrowserName();
     if (browserName === "Chrome") {
-        imapkey('<Ctrl-Alt-i>', '#15Open neovim for current input', function() {
+        imapkey('<Ctrl-Alt-i>', {
+            short: "Open neovim for input",
+            unique_id: "cmd_insert_neovim_editor",
+            feature_group: 15,
+            category: "insert",
+            description: "Open neovim editor to edit content of current input field",
+            tags: ["insert", "input", "neovim"]
+        }, function() {
             openVim(true);
         });
         mapkey(';s', 'Toggle PDF viewer from SurfingKeys', function() {
