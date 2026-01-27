@@ -949,31 +949,94 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         mapkey('on', '#3Open newtab', function() {
             RUNTIME('openNewtab');
         });
-        mapkey('ga', '#12Open Chrome About', function() {
+        mapkey('ga', {
+            short: "Open Chrome About",
+            unique_id: "cmd_chrome_about",
+            feature_group: 12,
+            category: "chrome",
+            description: "Open Chrome about page showing version information",
+            tags: ["chrome", "internal", "about"]
+        }, function() {
             tabOpenLink("chrome://help/");
         });
-        mapkey('gb', '#12Open Chrome Bookmarks', function() {
+        mapkey('gb', {
+            short: "Open Chrome Bookmarks",
+            unique_id: "cmd_chrome_bookmarks",
+            feature_group: 12,
+            category: "chrome",
+            description: "Open Chrome bookmarks manager page",
+            tags: ["chrome", "internal", "bookmarks"]
+        }, function() {
             tabOpenLink("chrome://bookmarks/");
         });
-        mapkey('gc', '#12Open Chrome Cache', function() {
+        mapkey('gc', {
+            short: "Open Chrome Cache",
+            unique_id: "cmd_chrome_cache",
+            feature_group: 12,
+            category: "chrome",
+            description: "Open Chrome cache viewer page",
+            tags: ["chrome", "internal", "cache"]
+        }, function() {
             tabOpenLink("chrome://cache/");
         });
-        mapkey('gd', '#12Open Chrome Downloads', function() {
+        mapkey('gd', {
+            short: "Open Chrome Downloads",
+            unique_id: "cmd_chrome_downloads",
+            feature_group: 12,
+            category: "chrome",
+            description: "Open Chrome downloads page",
+            tags: ["chrome", "internal", "downloads"]
+        }, function() {
             tabOpenLink("chrome://downloads/");
         });
-        mapkey('gh', '#12Open Chrome History', function() {
+        mapkey('gh', {
+            short: "Open Chrome History",
+            unique_id: "cmd_chrome_history",
+            feature_group: 12,
+            category: "chrome",
+            description: "Open Chrome browsing history page",
+            tags: ["chrome", "internal", "history"]
+        }, function() {
             tabOpenLink("chrome://history/");
         });
-        mapkey('gk', '#12Open Chrome Cookies', function() {
+        mapkey('gk', {
+            short: "Open Chrome Cookies",
+            unique_id: "cmd_chrome_cookies",
+            feature_group: 12,
+            category: "chrome",
+            description: "Open Chrome cookies settings page",
+            tags: ["chrome", "internal", "cookies"]
+        }, function() {
             tabOpenLink("chrome://settings/cookies");
         });
-        mapkey('ge', '#12Open Chrome Extensions', function() {
+        mapkey('ge', {
+            short: "Open Chrome Extensions",
+            unique_id: "cmd_chrome_extensions",
+            feature_group: 12,
+            category: "chrome",
+            description: "Open Chrome extensions management page",
+            tags: ["chrome", "internal", "extensions"]
+        }, function() {
             tabOpenLink("chrome://extensions/");
         });
-        mapkey('gn', '#12Open Chrome net-internals', function() {
+        mapkey('gn', {
+            short: "Open Chrome Net Internals",
+            unique_id: "cmd_chrome_net_internals",
+            feature_group: 12,
+            category: "chrome",
+            description: "Open Chrome network internals diagnostic page",
+            tags: ["chrome", "internal", "network"]
+        }, function() {
             tabOpenLink("chrome://net-internals/#proxy");
         });
-        mapkey(';i', '#12Open Chrome Inspect', function() {
+        mapkey(';i', {
+            short: "Open Chrome Inspect",
+            unique_id: "cmd_chrome_inspect",
+            feature_group: 12,
+            category: "chrome",
+            description: "Open Chrome device inspection page for debugging",
+            tags: ["chrome", "internal", "inspect"]
+        }, function() {
             tabOpenLink("chrome://inspect/#devices");
         });
         mapkey(';v', '#11Open neovim', function() {
@@ -1039,7 +1102,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                 clipboard.write(items.join(','));
             });
         });
-        mapkey('gs', '#12View page source', function() {
+        mapkey('gs', {
+            short: "View page source",
+            unique_id: "cmd_chrome_view_source",
+            feature_group: 12,
+            category: "chrome",
+            description: "View HTML source code of current page",
+            tags: ["chrome", "source", "view"]
+        }, function() {
             RUNTIME("viewSource", { tab: { tabbed: true }});
         });
         mapkey(';pm', '#11Preview markdown', function() {
@@ -1052,7 +1122,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                 });
             });
         });
-        mapkey(';j', '#12Close Downloads Shelf', function() {
+        mapkey(';j', {
+            short: "Close downloads shelf",
+            unique_id: "cmd_chrome_close_downloads_shelf",
+            feature_group: 12,
+            category: "chrome",
+            description: "Close the downloads shelf at bottom of browser",
+            tags: ["chrome", "downloads", "ui"]
+        }, function() {
             RUNTIME("closeDownloadsShelf", {clearHistory: true});
         });
         mapkey(';dh', '#14Delete history older than 30 days', function() {
