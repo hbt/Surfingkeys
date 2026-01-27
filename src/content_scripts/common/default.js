@@ -44,10 +44,24 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         description: "Click on the next page link on current page",
         tags: ["navigation", "links", "next"]
     }, hints.nextPage);
-    mapkey('T', '#3Choose a tab', function() {
+    mapkey('T', {
+        short: "Choose a tab",
+        unique_id: "cmd_tab_choose",
+        feature_group: 3,
+        category: "tabs",
+        description: "Choose and switch to a tab from a list",
+        tags: ["tabs", "navigation", "switch"]
+    }, function() {
         front.chooseTab();
     });
-    mapkey(';G', '#3Group this tab', function() {
+    mapkey(';G', {
+        short: "Group this tab",
+        unique_id: "cmd_tab_group",
+        feature_group: 3,
+        category: "tabs",
+        description: "Group current tab into a tab group",
+        tags: ["tabs", "organization", "group"]
+    }, function() {
         front.groupTab();
     });
     mapkey('?', {
@@ -592,19 +606,54 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     });
 
 
-    map('g0', ':feedkeys 99E', 0, "#3Go to the first tab");
-    map('g$', ':feedkeys 99R', 0, "#3Go to the last tab");
-    mapkey('zr', '#3zoom reset', function() {
+    map('g0', ':feedkeys 99E', 0, {
+        short: "Go to first tab",
+        unique_id: "cmd_tab_first",
+        feature_group: 3,
+        category: "tabs",
+        description: "Go to the first tab in the tab bar",
+        tags: ["tabs", "navigation", "jump"]
+    });
+    map('g$', ':feedkeys 99R', 0, {
+        short: "Go to last tab",
+        unique_id: "cmd_tab_last",
+        feature_group: 3,
+        category: "tabs",
+        description: "Go to the last tab in the tab bar",
+        tags: ["tabs", "navigation", "jump"]
+    });
+    mapkey('zr', {
+        short: "Zoom reset",
+        unique_id: "cmd_tab_zoom_reset",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reset page zoom to default level",
+        tags: ["tabs", "zoom", "reset"]
+    }, function() {
         RUNTIME('setZoom', {
             zoomFactor: 0
         });
     });
-    mapkey('zi', '#3zoom in', function() {
+    mapkey('zi', {
+        short: "Zoom in",
+        unique_id: "cmd_tab_zoom_in",
+        feature_group: 3,
+        category: "tabs",
+        description: "Zoom in on current page",
+        tags: ["tabs", "zoom", "increase"]
+    }, function() {
         RUNTIME('setZoom', {
             zoomFactor: 0.1
         });
     });
-    mapkey('zo', '#3zoom out', function() {
+    mapkey('zo', {
+        short: "Zoom out",
+        unique_id: "cmd_tab_zoom_out",
+        feature_group: 3,
+        category: "tabs",
+        description: "Zoom out on current page",
+        tags: ["tabs", "zoom", "decrease"]
+    }, function() {
         RUNTIME('setZoom', {
             zoomFactor: -0.1
         });
@@ -795,10 +844,24 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         hints.create("img, button", hints.dispatchMouseClick);
     });
-    mapkey('<Alt-p>', '#3pin/unpin current tab', function() {
+    mapkey('<Alt-p>', {
+        short: "Pin/unpin tab",
+        unique_id: "cmd_tab_pin_toggle",
+        feature_group: 3,
+        category: "tabs",
+        description: "Toggle pin status of current tab",
+        tags: ["tabs", "pin", "toggle"]
+    }, function() {
         RUNTIME("togglePinTab");
     });
-    mapkey('<Alt-m>', '#3mute/unmute current tab', function() {
+    mapkey('<Alt-m>', {
+        short: "Mute/unmute tab",
+        unique_id: "cmd_tab_mute_toggle",
+        feature_group: 3,
+        category: "tabs",
+        description: "Toggle audio mute status of current tab",
+        tags: ["tabs", "mute", "audio"]
+    }, function() {
         RUNTIME("muteTab");
     });
     mapkey('B', {
@@ -831,13 +894,34 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("goToLastTab");
     });
-    mapkey('gT', '#4Go to first activated tab', function() {
+    mapkey('gT', {
+        short: "Go to first activated tab",
+        unique_id: "cmd_tab_history_first",
+        feature_group: 4,
+        category: "tabs",
+        description: "Go to the first tab in activation history",
+        tags: ["tabs", "history", "navigation"]
+    }, function() {
         RUNTIME("historyTab", {index: 0});
     }, {repeatIgnore: true});
-    mapkey('gt', '#4Go to last activated tab', function() {
+    mapkey('gt', {
+        short: "Go to last activated tab",
+        unique_id: "cmd_tab_history_last",
+        feature_group: 4,
+        category: "tabs",
+        description: "Go to the last activated tab in history",
+        tags: ["tabs", "history", "navigation"]
+    }, function() {
         RUNTIME("historyTab", {index: -1});
     }, {repeatIgnore: true});
-    mapkey('gp', '#4Go to the playing tab', function() {
+    mapkey('gp', {
+        short: "Go to playing tab",
+        unique_id: "cmd_tab_playing",
+        feature_group: 4,
+        category: "tabs",
+        description: "Switch to the tab that is currently playing audio",
+        tags: ["tabs", "audio", "navigation"]
+    }, function() {
         RUNTIME('getTabs', { queryInfo: {audible: true}}, response => {
             if (response.tabs?.at(0)) {
                 const tab = response.tabs[0];
@@ -956,7 +1040,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             clipboard.write(element.value);
         });
     });
-    mapkey('x', '#3Close current tab', function() {
+    mapkey('x', {
+        short: "Close current tab",
+        unique_id: "cmd_tab_close",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close the current tab",
+        tags: ["tabs", "close", "management"]
+    }, function() {
         RUNTIME("closeTab");
     });
     mapkey(';w', {
@@ -1034,10 +1125,24 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             });
         });
     });
-    mapkey('yt', '#3Duplicate current tab', function() {
+    mapkey('yt', {
+        short: "Duplicate tab",
+        unique_id: "cmd_tab_duplicate",
+        feature_group: 3,
+        category: "tabs",
+        description: "Duplicate current tab and switch to it",
+        tags: ["tabs", "duplicate", "copy"]
+    }, function() {
         RUNTIME("duplicateTab");
     });
-    mapkey('yT', '#3Duplicate current tab in background', function() {
+    mapkey('yT', {
+        short: "Duplicate tab in background",
+        unique_id: "cmd_tab_duplicate_background",
+        feature_group: 3,
+        category: "tabs",
+        description: "Duplicate current tab without switching to it",
+        tags: ["tabs", "duplicate", "background"]
+    }, function() {
         RUNTIME("duplicateTab", {active: false});
     });
     mapkey('yy', {
@@ -1239,22 +1344,64 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         window.location.href = window.location.origin;
     });
-    mapkey('gxt', '#3Close tab on left', function() {
+    mapkey('gxt', {
+        short: "Close tab on left",
+        unique_id: "cmd_tab_close_left",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close the tab to the left of current tab",
+        tags: ["tabs", "close", "management"]
+    }, function() {
         RUNTIME("closeTabLeft");
     });
-    mapkey('gxT', '#3Close tab on right', function() {
+    mapkey('gxT', {
+        short: "Close tab on right",
+        unique_id: "cmd_tab_close_right",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close the tab to the right of current tab",
+        tags: ["tabs", "close", "management"]
+    }, function() {
         RUNTIME("closeTabRight");
     });
-    mapkey('gx0', '#3Close all tabs on left', function() {
+    mapkey('gx0', {
+        short: "Close all tabs on left",
+        unique_id: "cmd_tab_close_all_left",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close all tabs to the left of current tab",
+        tags: ["tabs", "close", "management"]
+    }, function() {
         RUNTIME("closeTabsToLeft");
     });
-    mapkey('gx$', '#3Close all tabs on right', function() {
+    mapkey('gx$', {
+        short: "Close all tabs on right",
+        unique_id: "cmd_tab_close_all_right",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close all tabs to the right of current tab",
+        tags: ["tabs", "close", "management"]
+    }, function() {
         RUNTIME("closeTabsToRight");
     });
-    mapkey('gxx', '#3Close all tabs except current one', function() {
+    mapkey('gxx', {
+        short: "Close all tabs except current",
+        unique_id: "cmd_tab_close_others",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close all tabs except the current tab",
+        tags: ["tabs", "close", "management"]
+    }, function() {
         RUNTIME("tabOnly");
     });
-    mapkey('gxp', '#3Close playing tab', function() {
+    mapkey('gxp', {
+        short: "Close playing tab",
+        unique_id: "cmd_tab_close_playing",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close the tab that is currently playing audio",
+        tags: ["tabs", "close", "audio"]
+    }, function() {
         RUNTIME("closeAudibleTab");
     });
     mapkey(';e', {
@@ -1334,7 +1481,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
 
     const bn = getBrowserName();
     if (bn === "Firefox") {
-        mapkey('on', '#3Open newtab', function() {
+        mapkey('on', {
+            short: "Open newtab",
+            unique_id: "cmd_tab_new",
+            feature_group: 3,
+            category: "tabs",
+            description: "Open a new tab",
+            tags: ["tabs", "new", "create"]
+        }, function() {
             tabOpenLink("about:blank");
         });
     } else if (bn === "Chrome") {
@@ -1450,7 +1604,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             readText(window.getSelection().toString(), {verbose: true});
         });
 
-        mapkey('on', '#3Open newtab', function() {
+        mapkey('on', {
+            short: "Open newtab",
+            unique_id: "cmd_tab_new",
+            feature_group: 3,
+            category: "tabs",
+            description: "Open a new tab",
+            tags: ["tabs", "new", "create"]
+        }, function() {
             RUNTIME('openNewtab');
         });
         mapkey('ga', {
@@ -1555,7 +1716,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
     }
 
-    mapkey('X', '#3Restore closed tab', function() {
+    mapkey('X', {
+        short: "Restore closed tab",
+        unique_id: "cmd_tab_restore",
+        feature_group: 3,
+        category: "tabs",
+        description: "Restore the most recently closed tab",
+        tags: ["tabs", "restore", "undo"]
+    }, function() {
         RUNTIME("openLast");
     });
 
@@ -1625,29 +1793,57 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             front.openOmnibar({type: "History"});
         });
         mapkey('W', {
-            short: "Open windows omnibar",
-            unique_id: "cmd_omnibar_windows",
+            short: "Move tab to another window",
+            unique_id: "cmd_tab_move_window",
             feature_group: 3,
-            category: "omnibar",
-            description: "Open omnibar to move tab to another window",
-            tags: ["omnibar", "windows", "tabs"]
+            category: "tabs",
+            description: "Move current tab to a different browser window",
+            tags: ["tabs", "move", "window"]
         }, function() {
             front.openOmnibar(({type: "Windows"}));
         });
-        mapkey(';gt', '#3Gather filtered tabs into current window', function() {
+        mapkey(';gt', {
+            short: "Gather filtered tabs",
+            unique_id: "cmd_tab_gather_filtered",
+            feature_group: 3,
+            category: "tabs",
+            description: "Gather selected tabs from other windows into current window",
+            tags: ["tabs", "gather", "window"]
+        }, function() {
             front.openOmnibar({type: "Tabs", extra: {
                 action: "gather"
             }});
         });
-        mapkey(';gw', '#3Gather all tabs into current window',  function() {
+        mapkey(';gw', {
+            short: "Gather all tabs",
+            unique_id: "cmd_tab_gather_all",
+            feature_group: 3,
+            category: "tabs",
+            description: "Gather all tabs from all windows into current window",
+            tags: ["tabs", "gather", "window"]
+        }, function() {
             RUNTIME("gatherWindows");
         });
-        mapkey('<<', '#3Move current tab to left', function() {
+        mapkey('<<', {
+            short: "Move tab to left",
+            unique_id: "cmd_tab_move_left",
+            feature_group: 3,
+            category: "tabs",
+            description: "Move current tab one position to the left",
+            tags: ["tabs", "move", "position"]
+        }, function() {
             RUNTIME('moveTab', {
                 step: -1
             });
         });
-        mapkey('>>', '#3Move current tab to right', function() {
+        mapkey('>>', {
+            short: "Move tab to right",
+            unique_id: "cmd_tab_move_right",
+            feature_group: 3,
+            category: "tabs",
+            description: "Move current tab one position to the right",
+            tags: ["tabs", "move", "position"]
+        }, function() {
             RUNTIME('moveTab', {
                 step: 1
             });
