@@ -265,7 +265,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         hints.mouseoutLastElement();
     });
 
-    mapkey(';pp', '#7Paste html on current page', function() {
+    mapkey(';pp', {
+        short: "Paste html on page",
+        unique_id: "cmd_paste_html",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Replace current page content with HTML from clipboard",
+        tags: ["clipboard", "paste", "html"]
+    }, function() {
         clipboard.read(function(response) {
             document.documentElement.removeAttributes();
             document.body.removeAttributes();
@@ -614,7 +621,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             clipboard.write(JSON.stringify(response.settings, null, 4));
         });
     });
-    mapkey(';pj', "#7Restore settings data from clipboard", function() {
+    mapkey(';pj', {
+        short: "Restore settings from clipboard",
+        unique_id: "cmd_paste_settings",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Restore SurfingKeys settings from JSON in clipboard",
+        tags: ["clipboard", "paste", "settings"]
+    }, function() {
         clipboard.read(function(response) {
             RUNTIME('updateSettings', {
                 settings: JSON.parse(response.data.trim())
@@ -694,7 +708,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
         clipboard.write(JSON.stringify(fd, null, 4));
     });
-    mapkey(';pf', '#7Fill form with data from yf', function() {
+    mapkey(';pf', {
+        short: "Fill form from clipboard",
+        unique_id: "cmd_paste_form",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Fill form fields with data from clipboard",
+        tags: ["clipboard", "paste", "form"]
+    }, function() {
         hints.create('form', function(element, event) {
             var formKey = generateFormKey(element);
             clipboard.read(function(response) {
@@ -704,7 +725,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                     element.querySelectorAll('input, textarea').forEach(function(ip) {
                         if (fd.hasOwnProperty(ip.name) && ip.type !== "hidden") {
                             if (ip.type === "radio") {
-                                var op = element.querySelector(`input[name='${ip.name}'][value='${fd[ip.name]}']`);
+                                var op = element.querySelector(`input[name='${ip.name}'][value='${fd[ip.name}']`);
                                 if (op) {
                                     op.checked = true;
                                 }
@@ -857,7 +878,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                 clipboard.write(JSON.stringify(response.settings, null, 4));
             });
         });
-        mapkey(';ap', '#13Apply proxy info from clipboard', function() {
+        mapkey(';ap', {
+            short: "Apply proxy from clipboard",
+            unique_id: "cmd_paste_proxy",
+            feature_group: 13,
+            category: "clipboard",
+            description: "Apply proxy configuration from JSON in clipboard",
+            tags: ["clipboard", "paste", "proxy"]
+        }, function() {
             clipboard.read(function(response) {
                 var proxyConf = JSON.parse(response.data);
                 RUNTIME('updateProxy', {
@@ -1037,7 +1065,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                 clipboard.write(response.history.map(h => h.url).join("\n"));
             });
         });
-        mapkey(';ph', '#14Put histories from clipboard', function() {
+        mapkey(';ph', {
+            short: "Put histories from clipboard",
+            unique_id: "cmd_paste_history",
+            feature_group: 14,
+            category: "clipboard",
+            description: "Import browser history URLs from clipboard",
+            tags: ["clipboard", "paste", "history"]
+        }, function() {
             clipboard.read(function(response) {
                 RUNTIME('addHistories', {history: response.data.split("\n")});
             });
