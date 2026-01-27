@@ -46,7 +46,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         front.showUsage();
     });
-    mapkey('Q', '#8Open omnibar for word translation', function() {
+    mapkey('Q', {
+        short: "Open omnibar for translation",
+        unique_id: "cmd_omnibar_translate",
+        feature_group: 8,
+        category: "omnibar",
+        description: "Open omnibar to translate word under cursor",
+        tags: ["omnibar", "translation", "query"]
+    }, function() {
         front.openOmniquery({query: getWordUnderCursor(), style: "opacity: 0.8;"});
     });
     imapkey("<Ctrl-'>", {
@@ -562,16 +569,44 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
     });
 
-    mapkey('H', '#8Open opened URL in current tab', function() {
+    mapkey('H', {
+        short: "Open tab URLs omnibar",
+        unique_id: "cmd_omnibar_tab_urls",
+        feature_group: 8,
+        category: "omnibar",
+        description: "Open omnibar showing URLs from open tabs",
+        tags: ["omnibar", "tabs", "urls"]
+    }, function() {
         front.openOmnibar({type: "TabURLs"});
     });
-    mapkey('om', '#8Open URL from vim-like marks', function() {
+    mapkey('om', {
+        short: "Open vim marks omnibar",
+        unique_id: "cmd_omnibar_vim_marks",
+        feature_group: 8,
+        category: "omnibar",
+        description: "Open omnibar to select from saved vim-like marks",
+        tags: ["omnibar", "marks", "vim"]
+    }, function() {
         front.openOmnibar({type: "VIMarks"});
     });
-    mapkey(':', '#8Open commands', function() {
+    mapkey(':', {
+        short: "Open commands omnibar",
+        unique_id: "cmd_omnibar_commands",
+        feature_group: 8,
+        category: "omnibar",
+        description: "Open omnibar to execute SurfingKeys commands",
+        tags: ["omnibar", "commands", "execute"]
+    }, function() {
         front.openOmnibar({type: "Commands"});
     });
-    mapkey('A', '#8Open llm chat', function() {
+    mapkey('A', {
+        short: "Open LLM chat",
+        unique_id: "cmd_omnibar_llm_chat",
+        feature_group: 8,
+        category: "omnibar",
+        description: "Open omnibar for LLM chat interface",
+        tags: ["omnibar", "llm", "ai"]
+    }, function() {
         front.openOmnibar({type: "LLMChat"});
     });
     vmapkey('A', '#8Open llm chat', function() {
@@ -1049,29 +1084,78 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     });
 
     if (!getBrowserName().startsWith("Safari")) {
-        mapkey('t', '#8Open a URL', function() {
+        mapkey('t', {
+            short: "Open URL omnibar",
+            unique_id: "cmd_omnibar_url",
+            feature_group: 8,
+            category: "omnibar",
+            description: "Open omnibar to enter URL in new tab",
+            tags: ["omnibar", "url", "navigation"]
+        }, function() {
             front.openOmnibar({type: "URLs"});
         });
-        mapkey('go', '#8Open a URL in current tab', function() {
+        mapkey('go', {
+            short: "Open URL in current tab",
+            unique_id: "cmd_omnibar_url_current",
+            feature_group: 8,
+            category: "omnibar",
+            description: "Open omnibar to enter URL in current tab",
+            tags: ["omnibar", "url", "navigation"]
+        }, function() {
             front.openOmnibar({type: "URLs", tabbed: false});
         });
-        mapkey('ox', '#8Open recently closed URL', function() {
+        mapkey('ox', {
+            short: "Open recently closed omnibar",
+            unique_id: "cmd_omnibar_recent_closed",
+            feature_group: 8,
+            category: "omnibar",
+            description: "Open omnibar showing recently closed tabs",
+            tags: ["omnibar", "history", "tabs"]
+        }, function() {
             front.openOmnibar({type: "RecentlyClosed"});
         });
-        mapkey('b', '#8Open a bookmark', function() {
+        mapkey('b', {
+            short: "Open bookmarks omnibar",
+            unique_id: "cmd_omnibar_bookmarks",
+            feature_group: 8,
+            category: "omnibar",
+            description: "Open omnibar to select and open a bookmark",
+            tags: ["omnibar", "bookmarks", "navigation"]
+        }, function() {
             front.openOmnibar(({type: "Bookmarks"}));
         });
-        mapkey('ab', '#8Bookmark current page to selected folder', function() {
+        mapkey('ab', {
+            short: "Add bookmark omnibar",
+            unique_id: "cmd_omnibar_add_bookmark",
+            feature_group: 8,
+            category: "omnibar",
+            description: "Open omnibar to save current page to a bookmark folder",
+            tags: ["omnibar", "bookmarks", "save"]
+        }, function() {
             var page = {
                 url: window.location.href,
                 title: document.title
             };
             front.openOmnibar(({type: "AddBookmark", extra: page}));
         });
-        mapkey('oh', '#8Open URL from history', function() {
+        mapkey('oh', {
+            short: "Open history omnibar",
+            unique_id: "cmd_omnibar_history",
+            feature_group: 8,
+            category: "omnibar",
+            description: "Open omnibar to select URL from browser history",
+            tags: ["omnibar", "history", "navigation"]
+        }, function() {
             front.openOmnibar({type: "History"});
         });
-        mapkey('W', '#3Move current tab to another window',  function() {
+        mapkey('W', {
+            short: "Open windows omnibar",
+            unique_id: "cmd_omnibar_windows",
+            feature_group: 3,
+            category: "omnibar",
+            description: "Open omnibar to move tab to another window",
+            tags: ["omnibar", "windows", "tabs"]
+        }, function() {
             front.openOmnibar(({type: "Windows"}));
         });
         mapkey(';gt', '#3Gather filtered tabs into current window', function() {
