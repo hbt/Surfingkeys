@@ -163,6 +163,8 @@ function extractValue(node: any): any {
                     key = prop.key.name;
                 } else if (t.isStringLiteral(prop.key)) {
                     key = prop.key.value;
+                } else if (t.isNumericLiteral(prop.key)) {
+                    key = String(prop.key.value);
                 } else {
                     continue;
                 }
@@ -657,7 +659,7 @@ function main(): void {
     };
 
     // Output JSON
-    console.log(JSON.stringify(report, null, 2));
+    process.stdout.write(JSON.stringify(report, null, 2) + '\n');
 }
 
 main();
