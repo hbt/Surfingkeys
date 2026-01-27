@@ -42,10 +42,10 @@ interface MappingEntry {
         line: number;
     };
     mappingType: 'mapkey' | 'direct' | 'search_alias' | 'command';
-    feature_group?: number;
-    repeatIgnore?: boolean;
     validationStatus?: 'valid' | 'invalid' | 'not_migrated';
     validationErrors?: string[];
+    // Allow any additional mapping-level properties
+    [key: string]: any;
 }
 
 interface Summary {
@@ -58,6 +58,14 @@ interface Summary {
         valid: number;
         invalid: number;
         not_migrated: number;
+    };
+    // Configuration options discovery
+    config_options: {
+        [optionName: string]: {
+            count: number;
+            percentage: string;
+            sample_values: any[];
+        };
     };
 }
 
@@ -320,8 +328,7 @@ function parseMappingsAddPatternsAST(
 
             // Extract properties from the options object
             let annotation: string | AnnotationObject | undefined;
-            let feature_group: number | undefined;
-            let repeatIgnore: boolean | undefined;
+            const mappingConfig: Record<string, any> = {};
 
             for (const prop of objArg.properties) {
                 if (!t.isObjectProperty(prop) || prop.computed) continue;
@@ -333,12 +340,18 @@ function parseMappingsAddPatternsAST(
                     propKey = prop.key.value;
                 }
 
+                if (!propKey) continue;
+
                 if (propKey === 'annotation') {
                     annotation = extractValue(prop.value);
-                } else if (propKey === 'feature_group') {
-                    feature_group = extractValue(prop.value);
-                } else if (propKey === 'repeatIgnore') {
-                    repeatIgnore = extractValue(prop.value);
+                } else {
+                    // Extract ALL other properties as mapping config
+                    // Handle function nodes specially
+                    if (t.isFunction(prop.value) || t.isArrowFunctionExpression(prop.value)) {
+                        mappingConfig[propKey] = '<Function>';
+                    } else {
+                        mappingConfig[propKey] = extractValue(prop.value);
+                    }
                 }
             }
 
@@ -359,8 +372,7 @@ function parseMappingsAddPatternsAST(
                 annotation,
                 source: { file: relPath, line: lineNum },
                 mappingType: 'direct',
-                feature_group,
-                repeatIgnore
+                ...mappingConfig  // Spread all discovered config options
             });
         }
     });
@@ -526,6 +538,56 @@ function scanDirectory(dir: string, basePath: string, mappings: MappingEntry[]):
 // SUMMARY GENERATION
 // ============================================================================
 
+/**
+ * Generate configuration options report by discovering all properties
+ * across all mappings (excluding standard fields)
+ */
+function generateConfigOptionsReport(mappings: MappingEntry[]): Record<string, any> {
+    const configStats: Record<string, { count: number; values: Set<any> }> = {};
+
+    // Standard properties that should be excluded from config options
+    const standardProps = ['key', 'mode', 'annotation', 'source', 'mappingType', 'validationStatus', 'validationErrors'];
+
+    for (const mapping of mappings) {
+        // Collect all properties except standard ones
+        for (const [key, value] of Object.entries(mapping)) {
+            if (standardProps.includes(key)) continue;
+            if (value === undefined) continue;
+
+            if (!configStats[key]) {
+                configStats[key] = { count: 0, values: new Set() };
+            }
+
+            configStats[key].count++;
+
+            // Store sample values (limit to unique values)
+            if (configStats[key].values.size < 5) {
+                if (typeof value === 'function' || value === '<Function>') {
+                    configStats[key].values.add('<Function>');
+                } else if (typeof value === 'object' && value !== null) {
+                    configStats[key].values.add(JSON.stringify(value));
+                } else {
+                    configStats[key].values.add(value);
+                }
+            }
+        }
+    }
+
+    // Convert to final format
+    const result: Record<string, any> = {};
+    const total = mappings.length;
+
+    for (const [key, stats] of Object.entries(configStats)) {
+        result[key] = {
+            count: stats.count,
+            percentage: ((stats.count / total) * 100).toFixed(1) + '%',
+            sample_values: Array.from(stats.values)
+        };
+    }
+
+    return result;
+}
+
 function generateSummary(mappings: MappingEntry[]): Summary {
     const summary: Summary = {
         total: mappings.length,
@@ -537,7 +599,8 @@ function generateSummary(mappings: MappingEntry[]): Summary {
             valid: 0,
             invalid: 0,
             not_migrated: 0
-        }
+        },
+        config_options: generateConfigOptionsReport(mappings)  // NEW: Add config options discovery
     };
 
     for (const mapping of mappings) {
