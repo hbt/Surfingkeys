@@ -155,9 +155,30 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         visual.feedkeys('20j');
     });
 
-    mapkey('m', '#10Add current URL to vim-like marks', normal.addVIMark);
-    mapkey("'", '#10Jump to vim-like mark', normal.jumpVIMark);
-    mapkey("<Ctrl-'>", '#10Jump to vim-like mark in new tab.', function(mark) {
+    mapkey('m', {
+        short: "Add vim-like mark",
+        unique_id: "cmd_marks_add",
+        feature_group: 10,
+        category: "marks",
+        description: "Save current URL as a vim-like mark for quick access",
+        tags: ["marks", "vim", "save"]
+    }, normal.addVIMark);
+    mapkey("'", {
+        short: "Jump to vim mark",
+        unique_id: "cmd_marks_jump",
+        feature_group: 10,
+        category: "marks",
+        description: "Jump to a saved vim-like mark in current tab",
+        tags: ["marks", "vim", "navigation"]
+    }, normal.jumpVIMark);
+    mapkey("<Ctrl-'>", {
+        short: "Jump to vim mark in new tab",
+        unique_id: "cmd_marks_jump_new_tab",
+        feature_group: 10,
+        category: "marks",
+        description: "Jump to a saved vim-like mark in a new tab",
+        tags: ["marks", "vim", "tab"]
+    }, function(mark) {
         normal.jumpVIMark(mark);
     });
 
