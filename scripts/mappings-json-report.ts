@@ -20,12 +20,12 @@ import * as path from 'path';
 // ============================================================================
 
 interface AnnotationObject {
-    short?: string;
-    unique_id?: string;
-    feature_group?: number;
-    category?: string;
-    description?: string;
-    tags?: string[];
+    short: string;
+    unique_id: string;
+    feature_group: number;
+    category: string;
+    description: string;
+    tags: string[]; // Must have at least one tag
 }
 
 interface MappingEntry {
@@ -37,6 +37,8 @@ interface MappingEntry {
         line: number;
     };
     mappingType: 'mapkey' | 'direct' | 'search_alias' | 'command';
+    validationStatus?: 'valid' | 'invalid' | 'not_migrated';
+    validationErrors?: string[];
 }
 
 interface Summary {
@@ -45,11 +47,60 @@ interface Summary {
     by_type: Record<string, number>;
     migrated: number;
     not_migrated: number;
+    validation: {
+        valid: number;
+        invalid: number;
+        not_migrated: number;
+    };
 }
 
 interface Report {
     mappings: MappingEntry[];
     summary: Summary;
+}
+
+// ============================================================================
+// VALIDATION
+// ============================================================================
+
+function validateAnnotation(annotation: string | AnnotationObject): {
+    status: 'valid' | 'invalid' | 'not_migrated';
+    errors: string[];
+} {
+    // String annotations are considered not migrated
+    if (typeof annotation === 'string') {
+        return {
+            status: 'not_migrated',
+            errors: ['Annotation is still a string, not migrated to object format']
+        };
+    }
+
+    const errors: string[] = [];
+
+    // Check required fields
+    if (!annotation.short) {
+        errors.push('Missing required field: short');
+    }
+    if (!annotation.unique_id) {
+        errors.push('Missing required field: unique_id');
+    }
+    if (annotation.feature_group === undefined || annotation.feature_group === null) {
+        errors.push('Missing required field: feature_group');
+    }
+    if (!annotation.category) {
+        errors.push('Missing required field: category');
+    }
+    if (!annotation.description) {
+        errors.push('Missing required field: description');
+    }
+    if (!annotation.tags || !Array.isArray(annotation.tags) || annotation.tags.length === 0) {
+        errors.push('Missing required field: tags (must be a non-empty array)');
+    }
+
+    return {
+        status: errors.length === 0 ? 'valid' : 'invalid',
+        errors
+    };
 }
 
 // ============================================================================
@@ -184,6 +235,18 @@ function parseMappingsAddPatterns(
 
             const featureGroupMatch = objectBody.match(/feature_group\s*:\s*(\d+)/);
             if (featureGroupMatch) annotationObj.feature_group = parseInt(featureGroupMatch[1]);
+
+            const categoryMatch = annotationBody.match(/category\s*:\s*["']([^"']+)["']/);
+            if (categoryMatch) annotationObj.category = categoryMatch[1];
+
+            const descMatch = annotationBody.match(/description\s*:\s*["']([^"']+)["']/);
+            if (descMatch) annotationObj.description = descMatch[1];
+
+            const tagsMatch = annotationBody.match(/tags\s*:\s*\[([\s\S]*?)\]/);
+            if (tagsMatch) {
+                const tagsStr = tagsMatch[1];
+                annotationObj.tags = tagsStr.match(/["']([^"']+)["']/g)?.map(t => t.slice(1, -1)) || [];
+            }
 
             annotation = annotationObj;
         } else {
@@ -341,7 +404,12 @@ function generateSummary(mappings: MappingEntry[]): Summary {
         by_mode: {},
         by_type: {},
         migrated: 0,
-        not_migrated: 0
+        not_migrated: 0,
+        validation: {
+            valid: 0,
+            invalid: 0,
+            not_migrated: 0
+        }
     };
 
     for (const mapping of mappings) {
@@ -351,12 +419,21 @@ function generateSummary(mappings: MappingEntry[]): Summary {
         // Count by type
         summary.by_type[mapping.mappingType] = (summary.by_type[mapping.mappingType] || 0) + 1;
 
-        // Count migration status
+        // Count migration status (legacy)
         if (typeof mapping.annotation === 'object' && mapping.annotation.unique_id) {
             summary.migrated++;
         } else {
             summary.not_migrated++;
         }
+
+        // Validate annotation and update counts
+        const validation = validateAnnotation(mapping.annotation);
+        mapping.validationStatus = validation.status;
+        if (validation.errors.length > 0) {
+            mapping.validationErrors = validation.errors;
+        }
+
+        summary.validation[validation.status]++;
     }
 
     return summary;
