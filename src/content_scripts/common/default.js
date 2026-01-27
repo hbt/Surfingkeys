@@ -120,7 +120,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }, function() {
             openVim(true);
         });
-        mapkey(';s', 'Toggle PDF viewer from SurfingKeys', function() {
+        mapkey(';s', {
+            short: "Toggle PDF viewer",
+            unique_id: "cmd_misc_toggle_pdf_viewer",
+            feature_group: 16,
+            category: "misc",
+            description: "Toggle between SurfingKeys PDF viewer and native Chrome PDF viewer",
+            tags: ["misc", "pdf", "viewer"]
+        }, function() {
             var pdfUrl = window.location.href;
             if (pdfUrl.indexOf(chrome.runtime.getURL("/pages/pdf_viewer.html")) === 0) {
                 const filePos = window.location.search.indexOf("=") + 1;
@@ -659,7 +666,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
     });
 
-    map('ZQ', ':quit');
+    map('ZQ', ':quit', 0, {
+        short: "Quit without saving",
+        unique_id: "cmd_misc_quit",
+        feature_group: 16,
+        category: "misc",
+        description: "Quit and close all tabs without saving session",
+        tags: ["misc", "quit", "session"]
+    });
     mapkey('ZZ', {
         short: "Save session and quit",
         unique_id: "cmd_session_save_quit",
@@ -685,7 +699,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             name: 'LAST'
         });
     });
-    map('u', 'e');
+    map('u', 'e', 0, {
+        short: "Alias for e",
+        unique_id: "cmd_misc_alias_u",
+        feature_group: 16,
+        category: "misc",
+        description: "Alias for 'e' - scroll up half page",
+        tags: ["misc", "alias", "scroll"]
+    });
     mapkey('af', {
         short: "Open link in active tab",
         unique_id: "cmd_hints_link_active_tab",
@@ -716,7 +737,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         hints.create("", hints.dispatchMouseClick, {multipleHits: true});
     });
-    map('C', 'gf');
+    map('C', 'gf', 0, {
+        short: "Alias for gf",
+        unique_id: "cmd_misc_alias_c",
+        feature_group: 16,
+        category: "misc",
+        description: "Alias for 'gf' - open link in non-active new tab",
+        tags: ["misc", "alias", "hints"]
+    });
     mapkey('<Ctrl-h>', {
         short: "Mouse over elements",
         unique_id: "cmd_hints_mouseover",
@@ -831,7 +859,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
     });
 
-    map('<Ctrl-i>', 'I');
+    map('<Ctrl-i>', 'I', 0, {
+        short: "Alias for I",
+        unique_id: "cmd_misc_alias_ctrl_i",
+        feature_group: 16,
+        category: "misc",
+        description: "Alias for 'I' - go to edit box with vim editor",
+        tags: ["misc", "alias", "input"]
+    });
     cmap('<ArrowDown>', '<Ctrl-n>');
     cmap('<ArrowUp>', '<Ctrl-p>');
     mapkey('q', {
