@@ -42,10 +42,18 @@ interface MappingEntry {
         line: number;
     };
     mappingType: 'mapkey' | 'direct' | 'search_alias' | 'command';
+    mapping_options?: {
+        feature_group?: number;
+        repeatIgnore?: boolean;
+        code?: any;
+        stopPropagation?: any;
+        [key: string]: any;  // Allow other discovered options
+    };
+    runtime_options?: {
+        accepts_count: boolean;
+    };
     validationStatus?: 'valid' | 'invalid' | 'not_migrated';
     validationErrors?: string[];
-    // Allow any additional mapping-level properties
-    [key: string]: any;
 }
 
 interface Summary {
@@ -132,28 +140,70 @@ const MODE_MAP: Record<string, string> = {
 // ============================================================================
 
 /**
+ * Helper function to get readable name from AST node
+ */
+function getNodeName(node: any): string {
+    if (t.isIdentifier(node)) return node.name;
+    if (t.isMemberExpression(node)) {
+        const obj = getNodeName(node.object);
+        const prop = t.isIdentifier(node.property) ? node.property.name : '<computed>';
+        return `${obj}.${prop}`;
+    }
+    return '<expr>';
+}
+
+/**
+ * Helper function to get call expression name
+ */
+function getCallExpressionName(callee: any): string {
+    if (t.isIdentifier(callee)) {
+        return callee.name;
+    }
+    if (t.isMemberExpression(callee)) {
+        return getMemberExpressionName(callee);
+    }
+    return '<expr>';
+}
+
+/**
+ * Helper function to get member expression name
+ */
+function getMemberExpressionName(node: any): string {
+    if (t.isIdentifier(node.object) && t.isIdentifier(node.property)) {
+        return `${node.object.name}.${node.property.name}`;
+    }
+    if (t.isMemberExpression(node.object)) {
+        const objName = getMemberExpressionName(node.object);
+        const propName = t.isIdentifier(node.property) ? node.property.name : '<computed>';
+        return `${objName}.${propName}`;
+    }
+    if (t.isIdentifier(node.object)) {
+        const propName = t.isIdentifier(node.property) ? node.property.name : '<computed>';
+        return `${node.object.name}.${propName}`;
+    }
+    return '<expr>';
+}
+
+/**
  * Extract the value from an AST node
- * Handles strings, numbers, booleans, objects, and arrays
+ * Handles strings, numbers, booleans, objects, arrays, functions, call expressions, identifiers, and member expressions
  */
 function extractValue(node: any): any {
     if (!node) return undefined;
 
-    if (t.isStringLiteral(node)) {
-        return node.value;
-    }
-    if (t.isNumericLiteral(node)) {
-        return node.value;
-    }
-    if (t.isBooleanLiteral(node)) {
-        return node.value;
-    }
+    // Existing literal handling
+    if (t.isStringLiteral(node)) return node.value;
+    if (t.isNumericLiteral(node)) return node.value;
+    if (t.isBooleanLiteral(node)) return node.value;
+    if (t.isNullLiteral(node)) return null;
+
     if (t.isTemplateLiteral(node)) {
-        // Handle template literals with no expressions
         if (node.expressions.length === 0 && node.quasis.length === 1) {
             return node.quasis[0].value.cooked;
         }
-        return undefined; // Complex template literals not supported
+        return undefined;
     }
+
     if (t.isObjectExpression(node)) {
         const obj: any = {};
         for (const prop of node.properties) {
@@ -173,11 +223,51 @@ function extractValue(node: any): any {
         }
         return obj;
     }
+
     if (t.isArrayExpression(node)) {
         return node.elements.map((elem: any) => extractValue(elem)).filter((v: any) => v !== undefined);
     }
-    if (t.isNullLiteral(node)) {
-        return null;
+
+    // NEW: Handle function expressions
+    if (t.isFunctionExpression(node) || t.isArrowFunctionExpression(node)) {
+        return '<Function>';
+    }
+
+    // NEW: Handle call expressions (e.g., bindScrollForHints("down"))
+    if (t.isCallExpression(node)) {
+        const calleeName = getCallExpressionName(node.callee);
+        const args = node.arguments.map(arg => {
+            const val = extractValue(arg);
+            if (val !== undefined && typeof val !== 'object') {
+                return JSON.stringify(val);
+            }
+            return '<expr>';
+        }).join(', ');
+        return `<CallExpression: ${calleeName}(${args})>`;
+    }
+
+    // NEW: Handle identifiers (variable references)
+    if (t.isIdentifier(node)) {
+        return `<Identifier: ${node.name}>`;
+    }
+
+    // NEW: Handle member expressions (e.g., self.scroll)
+    if (t.isMemberExpression(node)) {
+        const memberName = getMemberExpressionName(node);
+        return `<MemberExpression: ${memberName}>`;
+    }
+
+    // NEW: Handle bind expressions (e.g., self.scroll.bind(self, "down"))
+    if (t.isCallExpression(node) && t.isMemberExpression(node.callee)) {
+        const member = node.callee;
+        if (t.isIdentifier(member.property) && member.property.name === 'bind') {
+            const target = getMemberExpressionName(member.object);
+            const args = node.arguments.slice(1).map(arg => {
+                const val = extractValue(arg);
+                return val !== undefined && typeof val !== 'object' ? JSON.stringify(val) : '<expr>';
+            }).join(', ');
+            return `<BoundFunction: ${target}(${args})>`;
+        }
     }
 
     return undefined;
@@ -330,7 +420,7 @@ function parseMappingsAddPatternsAST(
 
             // Extract properties from the options object
             let annotation: string | AnnotationObject | undefined;
-            const mappingConfig: Record<string, any> = {};
+            const mappingOptions: Record<string, any> = {};
 
             for (const prop of objArg.properties) {
                 if (!t.isObjectProperty(prop) || prop.computed) continue;
@@ -347,12 +437,10 @@ function parseMappingsAddPatternsAST(
                 if (propKey === 'annotation') {
                     annotation = extractValue(prop.value);
                 } else {
-                    // Extract ALL other properties as mapping config
-                    // Handle function nodes specially
-                    if (t.isFunction(prop.value) || t.isArrowFunctionExpression(prop.value)) {
-                        mappingConfig[propKey] = '<Function>';
-                    } else {
-                        mappingConfig[propKey] = extractValue(prop.value);
+                    // All other properties are mapping options
+                    const value = extractValue(prop.value);
+                    if (value !== undefined) {
+                        mappingOptions[propKey] = value;
                     }
                 }
             }
@@ -368,13 +456,19 @@ function parseMappingsAddPatternsAST(
 
             const lineNum = path.node.loc?.start.line || 0;
 
+            // Derive runtime options from mapping options
+            const runtimeOptions = {
+                accepts_count: mappingOptions.repeatIgnore !== true
+            };
+
             mappings.push({
                 key,
                 mode,
                 annotation,
                 source: { file: relPath, line: lineNum },
                 mappingType: 'direct',
-                ...mappingConfig  // Spread all discovered config options
+                ...(Object.keys(mappingOptions).length > 0 ? { mapping_options: mappingOptions } : {}),
+                runtime_options: runtimeOptions
             });
         }
     });
@@ -542,18 +636,15 @@ function scanDirectory(dir: string, basePath: string, mappings: MappingEntry[]):
 
 /**
  * Generate configuration options report by discovering all properties
- * across all mappings (excluding standard fields)
+ * from mapping_options across all mappings
  */
 function generateConfigOptionsReport(mappings: MappingEntry[]): Record<string, any> {
     const configStats: Record<string, { count: number; values: Set<any> }> = {};
 
-    // Standard properties that should be excluded from config options
-    const standardProps = ['key', 'mode', 'annotation', 'source', 'mappingType', 'validationStatus', 'validationErrors'];
-
     for (const mapping of mappings) {
-        // Collect all properties except standard ones
-        for (const [key, value] of Object.entries(mapping)) {
-            if (standardProps.includes(key)) continue;
+        if (!mapping.mapping_options) continue;
+
+        for (const [key, value] of Object.entries(mapping.mapping_options)) {
             if (value === undefined) continue;
 
             if (!configStats[key]) {
@@ -562,11 +653,9 @@ function generateConfigOptionsReport(mappings: MappingEntry[]): Record<string, a
 
             configStats[key].count++;
 
-            // Store sample values (limit to unique values)
+            // Store sample values (limit to 5)
             if (configStats[key].values.size < 5) {
-                if (typeof value === 'function' || value === '<Function>') {
-                    configStats[key].values.add('<Function>');
-                } else if (typeof value === 'object' && value !== null) {
+                if (typeof value === 'object') {
                     configStats[key].values.add(JSON.stringify(value));
                 } else {
                     configStats[key].values.add(value);
