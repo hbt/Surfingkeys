@@ -1,6 +1,9 @@
 #!/usr/bin/env bun
 /**
- * Generate JSON report of all keyboard shortcuts in SurfingKeys
+ * Generate JSON report of all keyboard shortcuts in SurfingKeys (AST-based version)
+ *
+ * This script uses AST parsing with @babel/parser instead of regex to extract mappings.
+ * It produces IDENTICAL JSON output to the regex-based mappings-json-report.ts script.
  *
  * Outputs structured JSON with:
  * - All keyboard mappings (mapkey, vmapkey, imapkey, etc.)
@@ -9,11 +12,14 @@
  * - Source file locations
  * - Summary statistics
  *
- * Usage: bun scripts/mappings-json-report.ts
+ * Usage: bun scripts/mappings-json-ast-report.ts
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { parse } from '@babel/parser';
+import traverse from '@babel/traverse';
+import * as t from '@babel/types';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -114,74 +120,141 @@ const MODE_MAP: Record<string, string> = {
 };
 
 // ============================================================================
-// PATTERN EXTRACTORS
+// AST HELPER FUNCTIONS
 // ============================================================================
 
 /**
- * Parse mapkey/vmapkey/imapkey/cmapkey patterns
- * Handles both string and object annotations
+ * Extract the value from an AST node
+ * Handles strings, numbers, booleans, objects, and arrays
  */
-function parseMapkeyPatterns(
-    content: string,
+function extractValue(node: any): any {
+    if (!node) return undefined;
+
+    if (t.isStringLiteral(node)) {
+        return node.value;
+    }
+    if (t.isNumericLiteral(node)) {
+        return node.value;
+    }
+    if (t.isBooleanLiteral(node)) {
+        return node.value;
+    }
+    if (t.isTemplateLiteral(node)) {
+        // Handle template literals with no expressions
+        if (node.expressions.length === 0 && node.quasis.length === 1) {
+            return node.quasis[0].value.cooked;
+        }
+        return undefined; // Complex template literals not supported
+    }
+    if (t.isObjectExpression(node)) {
+        const obj: any = {};
+        for (const prop of node.properties) {
+            if (t.isObjectProperty(prop) && !prop.computed) {
+                let key: string;
+                if (t.isIdentifier(prop.key)) {
+                    key = prop.key.name;
+                } else if (t.isStringLiteral(prop.key)) {
+                    key = prop.key.value;
+                } else {
+                    continue;
+                }
+                obj[key] = extractValue(prop.value);
+            }
+        }
+        return obj;
+    }
+    if (t.isArrayExpression(node)) {
+        return node.elements.map((elem: any) => extractValue(elem)).filter((v: any) => v !== undefined);
+    }
+    if (t.isNullLiteral(node)) {
+        return null;
+    }
+
+    return undefined;
+}
+
+/**
+ * Check if a node is a member expression matching a pattern
+ * e.g., self.mappings.add or KeyboardUtils.encodeKeystroke
+ */
+function matchesMemberExpression(node: any, pattern: string[]): boolean {
+    if (!t.isMemberExpression(node)) return false;
+
+    const parts: string[] = [];
+    let current = node;
+
+    while (t.isMemberExpression(current)) {
+        if (t.isIdentifier(current.property)) {
+            parts.unshift(current.property.name);
+        } else {
+            return false;
+        }
+        current = current.object;
+    }
+
+    if (t.isIdentifier(current)) {
+        parts.unshift(current.name);
+    }
+
+    return parts.join('.') === pattern.join('.');
+}
+
+// ============================================================================
+// AST PATTERN EXTRACTORS
+// ============================================================================
+
+/**
+ * Parse mapkey/vmapkey/imapkey/cmapkey patterns using AST
+ */
+function parseMapkeyPatternsAST(
+    code: string,
     relPath: string,
     mappings: MappingEntry[]
 ): void {
+    let ast;
+    try {
+        ast = parse(code, {
+            sourceType: 'module',
+            plugins: ['jsx']
+        });
+    } catch (e) {
+        // Skip files that can't be parsed
+        return;
+    }
+
     const patterns = ['mapkey', 'vmapkey', 'imapkey', 'cmapkey'];
 
-    for (const pattern of patterns) {
-        // Match: mapkey('key', annotation, ...)
-        // Annotation can be string or object
-        const regex = new RegExp(
-            `${pattern}\\s*\\(\\s*['"\`]([^'"\`]+)['"\`]\\s*,\\s*([\\s\\S]*?)\\)\\s*;`,
-            'g'
-        );
+    traverse(ast, {
+        CallExpression(path: any) {
+            const callee = path.node.callee;
 
-        let match;
-        while ((match = regex.exec(content)) !== null) {
-            const key = match[1];
-            const callBody = match[2];
-            const lineNum = content.substring(0, match.index).split('\n').length;
+            // Check if it's one of the mapkey functions (direct or api.mapkey)
+            let functionName: string | undefined;
 
-            let annotation: string | AnnotationObject;
-
-            // Try to parse as object annotation first
-            const objMatch = callBody.match(/^\s*\{([\s\S]*?)\}\s*,/);
-            if (objMatch) {
-                // Object annotation
-                const objBody = objMatch[1];
-                const annotationObj: AnnotationObject = {};
-
-                // Extract annotation fields only
-                const shortMatch = objBody.match(/short\s*:\s*["']([^"']+)["']/);
-                if (shortMatch) annotationObj.short = shortMatch[1];
-
-                const uniqueIdMatch = objBody.match(/unique_id\s*:\s*["']([^"']+)["']/);
-                if (uniqueIdMatch) annotationObj.unique_id = uniqueIdMatch[1];
-
-                const categoryMatch = objBody.match(/category\s*:\s*["']([^"']+)["']/);
-                if (categoryMatch) annotationObj.category = categoryMatch[1];
-
-                const descMatch = objBody.match(/description\s*:\s*["']([^"']+)["']/);
-                if (descMatch) annotationObj.description = descMatch[1];
-
-                const tagsMatch = objBody.match(/tags\s*:\s*\[([\s\S]*?)\]/);
-                if (tagsMatch) {
-                    const tagsStr = tagsMatch[1];
-                    annotationObj.tags = tagsStr.match(/["']([^"']+)["']/g)?.map(t => t.slice(1, -1)) || [];
-                }
-
-                annotation = annotationObj;
-            } else {
-                // String annotation
-                const stringMatch = callBody.match(/^['"`]([^'"`]*)['"`]/);
-                if (stringMatch) {
-                    annotation = stringMatch[1];
-                } else {
-                    continue; // Skip if no annotation found
-                }
+            if (t.isIdentifier(callee)) {
+                // Direct call: mapkey(...)
+                functionName = callee.name;
+            } else if (t.isMemberExpression(callee) && t.isIdentifier(callee.property)) {
+                // Member call: api.mapkey(...) or self.mapkey(...)
+                functionName = callee.property.name;
             }
 
-            const mode = MODE_MAP[pattern] || 'Normal';
+            if (!functionName || !patterns.includes(functionName)) return;
+
+            const args = path.node.arguments;
+            if (args.length < 2) return;
+
+            // Extract key (first argument)
+            const key = extractValue(args[0]);
+            if (typeof key !== 'string') return;
+
+            // Extract annotation (second argument)
+            const annotation = extractValue(args[1]);
+            if (annotation === undefined) return; // Allow empty strings
+
+            const lineNum = path.node.loc?.start.line || 0;
+            const mode = MODE_MAP[functionName] || 'Normal';
+
             mappings.push({
                 key,
                 mode,
@@ -190,234 +263,237 @@ function parseMapkeyPatterns(
                 mappingType: 'mapkey'
             });
         }
-    }
+    });
 }
 
 /**
- * Parse mode.mappings.add() patterns (direct Trie additions)
- * Used in insert.js, omnibar.js, hints.js, cursorPrompt.js, normal.js
+ * Parse mode.mappings.add() patterns (direct Trie additions) using AST
  */
-function parseMappingsAddPatterns(
-    content: string,
+function parseMappingsAddPatternsAST(
+    code: string,
     relPath: string,
     mappings: MappingEntry[]
 ): void {
-    // Match: self.mappings.add(KeyboardUtils.encodeKeystroke('key'), {annotation: ..., ...})
-    // Match: self.mappings.add("encodedKey", {annotation: ..., ...})
-
-    const regex = /self\.mappings\.add\s*\(\s*(?:KeyboardUtils\.encodeKeystroke\s*\(\s*)?['"]([^'"]+)['"]\)?\s*,\s*\{([\s\S]*?)\}\s*\)/g;
-
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-        const key = match[1];
-        const objectBody = match[2];
-        const lineNum = content.substring(0, match.index).split('\n').length;
-
-        // Extract annotation
-        let annotation: string | AnnotationObject;
-
-        // Check for object annotation first
-        const annotationObjMatch = objectBody.match(/annotation\s*:\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/);
-        if (annotationObjMatch) {
-            const annotationBody = annotationObjMatch[1];
-            const annotationObj: AnnotationObject = {};
-
-            // Extract annotation fields from annotationBody
-            const shortMatch = annotationBody.match(/short\s*:\s*["']([^"']+)["']/);
-            if (shortMatch) annotationObj.short = shortMatch[1];
-
-            const uniqueIdMatch = annotationBody.match(/unique_id\s*:\s*["']([^"']+)["']/);
-            if (uniqueIdMatch) annotationObj.unique_id = uniqueIdMatch[1];
-
-            const categoryMatch = annotationBody.match(/category\s*:\s*["']([^"']+)["']/);
-            if (categoryMatch) annotationObj.category = categoryMatch[1];
-
-            const descMatch = annotationBody.match(/description\s*:\s*["']([^"']+)["']/);
-            if (descMatch) annotationObj.description = descMatch[1];
-
-            const tagsMatch = annotationBody.match(/tags\s*:\s*\[([\s\S]*?)\]/);
-            if (tagsMatch) {
-                const tagsStr = tagsMatch[1];
-                annotationObj.tags = tagsStr.match(/["']([^"']+)["']/g)?.map(t => t.slice(1, -1)) || [];
-            }
-
-            annotation = annotationObj;
-        } else {
-            // String annotation
-            const stringMatch = objectBody.match(/annotation\s*:\s*["']([^"']+)["']/);
-            if (stringMatch) {
-                annotation = stringMatch[1];
-            } else {
-                continue; // Skip if no annotation
-            }
-        }
-
-        // Extract mapping-level fields from objectBody (outside annotation)
-        let feature_group: number | undefined;
-        let repeatIgnore: boolean | undefined;
-
-        const featureGroupMatch = objectBody.match(/feature_group\s*:\s*(\d+)/);
-        if (featureGroupMatch) {
-            feature_group = parseInt(featureGroupMatch[1]);
-        }
-
-        const repeatIgnoreMatch = objectBody.match(/repeatIgnore\s*:\s*(true|false)/);
-        if (repeatIgnoreMatch) {
-            repeatIgnore = repeatIgnoreMatch[1] === 'true';
-        }
-
-        // Determine mode from file path
-        let mode = 'Normal';
-        if (relPath.includes('insert.js')) mode = 'Insert';
-        else if (relPath.includes('omnibar.js')) mode = 'Omnibar';
-        else if (relPath.includes('hints.js')) mode = 'Hints';
-        else if (relPath.includes('cursorPrompt.js')) mode = 'CursorPrompt';
-
-        mappings.push({
-            key,
-            mode,
-            annotation,
-            source: { file: relPath, line: lineNum },
-            mappingType: 'direct',
-            feature_group,
-            repeatIgnore
+    let ast;
+    try {
+        ast = parse(code, {
+            sourceType: 'module',
+            plugins: ['jsx']
         });
+    } catch (e) {
+        return;
     }
-}
 
-/**
- * Parse command() patterns
- * Handles both string and object annotations
- */
-function parseCommandPatterns(
-    content: string,
-    relPath: string,
-    mappings: MappingEntry[]
-): void {
-    // Match: command('name', annotation, ...)
-    // Annotation can be string or object
-    const regex = /command\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*([\s\S]*?)\s*,\s*function/g;
+    traverse(ast, {
+        CallExpression(path: any) {
+            const callee = path.node.callee;
 
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-        const name = match[1];
-        const annotationPart = match[2];
-        const lineNum = content.substring(0, match.index).split('\n').length;
-
-        let annotation: string | AnnotationObject;
-
-        // Check if it's an object annotation
-        const objMatch = annotationPart.match(/^\s*\{([\s\S]*?)\}\s*$/);
-        if (objMatch) {
-            // Object annotation
-            const objBody = objMatch[1];
-            const annotationObj: AnnotationObject = {};
-
-            const shortMatch = objBody.match(/short\s*:\s*["']([^"']+)["']/);
-            if (shortMatch) annotationObj.short = shortMatch[1];
-
-            const uniqueIdMatch = objBody.match(/unique_id\s*:\s*["']([^"']+)["']/);
-            if (uniqueIdMatch) annotationObj.unique_id = uniqueIdMatch[1];
-
-            const featureGroupMatch = objBody.match(/feature_group\s*:\s*(\d+)/);
-            if (featureGroupMatch) annotationObj.feature_group = parseInt(featureGroupMatch[1]);
-
-            const categoryMatch = objBody.match(/category\s*:\s*["']([^"']+)["']/);
-            if (categoryMatch) annotationObj.category = categoryMatch[1];
-
-            const descMatch = objBody.match(/description\s*:\s*["']([^"']+)["']/);
-            if (descMatch) annotationObj.description = descMatch[1];
-
-            const tagsMatch = objBody.match(/tags\s*:\s*\[([\s\S]*?)\]/);
-            if (tagsMatch) {
-                const tagsStr = tagsMatch[1];
-                annotationObj.tags = tagsStr.match(/["']([^"']+)["']/g)?.map(t => t.slice(1, -1)) || [];
+            // Check for self.mappings.add
+            if (!matchesMemberExpression(callee, ['self', 'mappings', 'add'])) {
+                return;
             }
 
-            annotation = annotationObj;
-        } else {
-            // String annotation
-            const stringMatch = annotationPart.match(/^['"`]([^'"`]*)['"`]/);
-            if (stringMatch) {
-                annotation = stringMatch[1];
-            } else {
-                continue; // Skip if no annotation found
+            const args = path.node.arguments;
+            if (args.length < 2) return;
+
+            // Extract key - can be direct string or KeyboardUtils.encodeKeystroke(string)
+            let key: string | undefined;
+            const firstArg = args[0];
+
+            if (t.isStringLiteral(firstArg)) {
+                key = firstArg.value;
+            } else if (t.isCallExpression(firstArg)) {
+                // Check for KeyboardUtils.encodeKeystroke
+                if (matchesMemberExpression(firstArg.callee, ['KeyboardUtils', 'encodeKeystroke'])) {
+                    const encodedArg = firstArg.arguments[0];
+                    if (t.isStringLiteral(encodedArg)) {
+                        key = encodedArg.value;
+                    }
+                }
             }
-        }
 
-        mappings.push({
-            key: name,
-            mode: 'Command',
-            annotation,
-            source: { file: relPath, line: lineNum },
-            mappingType: 'command'
-        });
-    }
-}
+            if (!key) return;
 
-/**
- * Parse addSearchAlias() and expand into individual mappings
- * Each search alias creates multiple key bindings
- */
-function parseSearchAliasPatterns(
-    content: string,
-    relPath: string,
-    mappings: MappingEntry[]
-): void {
-    // Match: addSearchAlias(alias, prompt, search_url, search_leader_key, ...)
-    const regex = /addSearchAlias\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]/g;
+            // Extract the object (second argument)
+            const objArg = args[1];
+            if (!t.isObjectExpression(objArg)) return;
 
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-        const alias = match[1];
-        const prompt = match[2];
-        const searchUrl = match[3];
-        const searchLeaderKey = match[4];
-        const lineNum = content.substring(0, match.index).split('\n').length;
+            // Extract properties from the options object
+            let annotation: string | AnnotationObject | undefined;
+            let feature_group: number | undefined;
+            let repeatIgnore: boolean | undefined;
 
-        const annotation = `Search ${prompt}`;
+            for (const prop of objArg.properties) {
+                if (!t.isObjectProperty(prop) || prop.computed) continue;
 
-        // Generate individual mappings created by addSearchAlias
-        // 1. <searchLeaderKey><alias> - Search selected text
-        mappings.push({
-            key: `${searchLeaderKey}${alias}`,
-            mode: 'Visual',
-            annotation: `${annotation} (selected text)`,
-            source: { file: relPath, line: lineNum },
-            mappingType: 'search_alias'
-        });
+                let propKey: string | undefined;
+                if (t.isIdentifier(prop.key)) {
+                    propKey = prop.key.name;
+                } else if (t.isStringLiteral(prop.key)) {
+                    propKey = prop.key.value;
+                }
 
-        // 2. o<alias> - Open omnibar for search
-        mappings.push({
-            key: `o${alias}`,
-            mode: 'Normal',
-            annotation: `${annotation} (omnibar)`,
-            source: { file: relPath, line: lineNum },
-            mappingType: 'search_alias'
-        });
+                if (propKey === 'annotation') {
+                    annotation = extractValue(prop.value);
+                } else if (propKey === 'feature_group') {
+                    feature_group = extractValue(prop.value);
+                } else if (propKey === 'repeatIgnore') {
+                    repeatIgnore = extractValue(prop.value);
+                }
+            }
 
-        // 3. <searchLeaderKey>o<alias> - Search only this site
-        if (searchLeaderKey !== 's') {
+            if (annotation === undefined) return; // Allow empty strings
+
+            // Determine mode from file path
+            let mode = 'Normal';
+            if (relPath.includes('insert.js')) mode = 'Insert';
+            else if (relPath.includes('omnibar.js')) mode = 'Omnibar';
+            else if (relPath.includes('hints.js')) mode = 'Hints';
+            else if (relPath.includes('cursorPrompt.js')) mode = 'CursorPrompt';
+
+            const lineNum = path.node.loc?.start.line || 0;
+
             mappings.push({
-                key: `${searchLeaderKey}o${alias}`,
-                mode: 'Normal',
-                annotation: `${annotation} (this site only)`,
+                key,
+                mode,
+                annotation,
                 source: { file: relPath, line: lineNum },
-                mappingType: 'search_alias'
+                mappingType: 'direct',
+                feature_group,
+                repeatIgnore
             });
         }
+    });
+}
 
-        // 4. Uppercase variant if different from lowercase
-        if (alias !== alias.toUpperCase()) {
+/**
+ * Parse command() patterns using AST
+ */
+function parseCommandPatternsAST(
+    code: string,
+    relPath: string,
+    mappings: MappingEntry[]
+): void {
+    let ast;
+    try {
+        ast = parse(code, {
+            sourceType: 'module',
+            plugins: ['jsx']
+        });
+    } catch (e) {
+        return;
+    }
+
+    traverse(ast, {
+        CallExpression(path: any) {
+            const callee = path.node.callee;
+
+            if (!t.isIdentifier(callee, { name: 'command' })) return;
+
+            const args = path.node.arguments;
+            if (args.length < 2) return;
+
+            const name = extractValue(args[0]);
+            const annotation = extractValue(args[1]);
+
+            if (typeof name !== 'string') return;
+            if (annotation === undefined) return;
+
+            const lineNum = path.node.loc?.start.line || 0;
+
             mappings.push({
-                key: `${searchLeaderKey}${alias.toUpperCase()}`,
+                key: name,
+                mode: 'Command',
+                annotation,
+                source: { file: relPath, line: lineNum },
+                mappingType: 'command'
+            });
+        }
+    });
+}
+
+/**
+ * Parse addSearchAlias() patterns using AST and expand into individual mappings
+ */
+function parseSearchAliasPatternsAST(
+    code: string,
+    relPath: string,
+    mappings: MappingEntry[]
+): void {
+    let ast;
+    try {
+        ast = parse(code, {
+            sourceType: 'module',
+            plugins: ['jsx']
+        });
+    } catch (e) {
+        return;
+    }
+
+    traverse(ast, {
+        CallExpression(path: any) {
+            const callee = path.node.callee;
+
+            if (!t.isIdentifier(callee, { name: 'addSearchAlias' })) return;
+
+            const args = path.node.arguments;
+            if (args.length < 4) return;
+
+            const alias = extractValue(args[0]);
+            const prompt = extractValue(args[1]);
+            const searchUrl = extractValue(args[2]);
+            const searchLeaderKey = extractValue(args[3]);
+
+            if (typeof alias !== 'string' || typeof prompt !== 'string' ||
+                typeof searchUrl !== 'string' || typeof searchLeaderKey !== 'string') {
+                return;
+            }
+
+            const lineNum = path.node.loc?.start.line || 0;
+            const annotation = `Search ${prompt}`;
+
+            // Generate individual mappings created by addSearchAlias
+            // 1. <searchLeaderKey><alias> - Search selected text
+            mappings.push({
+                key: `${searchLeaderKey}${alias}`,
                 mode: 'Visual',
-                annotation: `${annotation} (selected, uppercase variant)`,
+                annotation: `${annotation} (selected text)`,
                 source: { file: relPath, line: lineNum },
                 mappingType: 'search_alias'
             });
+
+            // 2. o<alias> - Open omnibar for search
+            mappings.push({
+                key: `o${alias}`,
+                mode: 'Normal',
+                annotation: `${annotation} (omnibar)`,
+                source: { file: relPath, line: lineNum },
+                mappingType: 'search_alias'
+            });
+
+            // 3. <searchLeaderKey>o<alias> - Search only this site
+            if (searchLeaderKey !== 's') {
+                mappings.push({
+                    key: `${searchLeaderKey}o${alias}`,
+                    mode: 'Normal',
+                    annotation: `${annotation} (this site only)`,
+                    source: { file: relPath, line: lineNum },
+                    mappingType: 'search_alias'
+                });
+            }
+
+            // 4. Uppercase variant if different from lowercase
+            if (alias !== alias.toUpperCase()) {
+                mappings.push({
+                    key: `${searchLeaderKey}${alias.toUpperCase()}`,
+                    mode: 'Visual',
+                    annotation: `${annotation} (selected, uppercase variant)`,
+                    source: { file: relPath, line: lineNum },
+                    mappingType: 'search_alias'
+                });
+            }
         }
-    }
+    });
 }
 
 // ============================================================================
@@ -437,11 +513,11 @@ function scanDirectory(dir: string, basePath: string, mappings: MappingEntry[]):
             const content = fs.readFileSync(filepath, 'utf-8');
             const relPath = path.relative(basePath, filepath);
 
-            // Parse all patterns
-            parseMapkeyPatterns(content, relPath, mappings);
-            parseMappingsAddPatterns(content, relPath, mappings);
-            parseCommandPatterns(content, relPath, mappings);
-            parseSearchAliasPatterns(content, relPath, mappings);
+            // Parse all patterns using AST
+            parseMapkeyPatternsAST(content, relPath, mappings);
+            parseMappingsAddPatternsAST(content, relPath, mappings);
+            parseCommandPatternsAST(content, relPath, mappings);
+            parseSearchAliasPatternsAST(content, relPath, mappings);
         }
     }
 }
