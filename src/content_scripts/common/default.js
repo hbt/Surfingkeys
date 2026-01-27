@@ -137,18 +137,46 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }).join(' → ')));
     }, {repeatIgnore: true});
 
-    mapkey('gi', '#1Go to the first edit box', function() {
+    mapkey('gi', {
+        short: "Go to first edit box",
+        unique_id: "cmd_hints_first_input",
+        feature_group: 1,
+        category: "hints",
+        description: "Focus the first input field on the page",
+        tags: ["hints", "input", "focus"]
+    }, function() {
         hints.createInputLayer();
     });
-    mapkey('i', '#1Go to edit box', function() {
+    mapkey('i', {
+        short: "Go to edit box",
+        unique_id: "cmd_hints_select_input",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to select and focus an input field",
+        tags: ["hints", "input", "selection"]
+    }, function() {
         hints.create(getCssSelectorsOfEditable(), hints.dispatchMouseClick);
     });
-    mapkey('I', '#1Go to edit box with vim editor', function() {
+    mapkey('I', {
+        short: "Go to edit box with vim",
+        unique_id: "cmd_hints_input_vim",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to select an input and open it in vim editor",
+        tags: ["hints", "input", "vim"]
+    }, function() {
         hints.create(getCssSelectorsOfEditable(), function(element) {
             front.showEditor(element);
         });
     });
-    mapkey('L', '#1Enter regional Hints mode', function() {
+    mapkey('L', {
+        short: "Regional hints mode",
+        unique_id: "cmd_hints_regional",
+        feature_group: 1,
+        category: "hints",
+        description: "Enter hints mode for large page regions",
+        tags: ["hints", "regional", "navigation"]
+    }, function() {
         hints.create(getLargeElements(), (e) => { }, { regionalHints: true });
     });
 
@@ -303,7 +331,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         window.location.href = location.origin + pathname;
     });
 
-    mapkey(';m', '#1mouse out last element', function() {
+    mapkey(';m', {
+        short: "Mouse out last element",
+        unique_id: "cmd_hints_mouseout_last",
+        feature_group: 1,
+        category: "hints",
+        description: "Trigger mouseout event on the last hinted element",
+        tags: ["hints", "mouse", "event"]
+    }, function() {
         hints.mouseoutLastElement();
     });
 
@@ -373,7 +408,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }
     }, {repeatIgnore: true});
 
-    mapkey("f", '#1Open a link, press SHIFT to flip overlapped hints, hold SPACE to hide hints', function() {
+    mapkey("f", {
+        short: "Open link",
+        unique_id: "cmd_hints_open_link",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to click on links and interactive elements",
+        tags: ["hints", "link", "click"]
+    }, function() {
         hints.create("", hints.dispatchMouseClick);
     }, {repeatIgnore: true});
 
@@ -410,7 +452,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         visual.next(true);
     }, {repeatIgnore: true});
 
-    mapkey(";fs", '#1Display hints to focus scrollable elements', function() {
+    mapkey(";fs", {
+        short: "Focus scrollable elements",
+        unique_id: "cmd_hints_scrollable",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to focus elements with scrollable content",
+        tags: ["hints", "scroll", "focus"]
+    }, function() {
         hints.create(normal.refreshScrollableElements(), hints.dispatchMouseClick);
     });
 
@@ -450,7 +499,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         return sentence.replace(/\n/g, '');
     }
 
-    mapkey("cq", '#7Query word with Hints', function() {
+    mapkey("cq", {
+        short: "Query word with hints",
+        unique_id: "cmd_hints_query_word",
+        feature_group: 7,
+        category: "hints",
+        description: "Show hints to select and query a word for translation",
+        tags: ["hints", "query", "translation"]
+    }, function() {
         hints.create(runtime.conf.textAnchorPat, function (element) {
             var word = element[2].trim().replace(/[^A-z].*$/, "");
             var b = getTextNodePos(element[0], element[1], element[2].length);
@@ -511,17 +567,45 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
     });
     map('u', 'e');
-    mapkey('af', '#1Open a link in active new tab', function() {
+    mapkey('af', {
+        short: "Open link in active tab",
+        unique_id: "cmd_hints_link_active_tab",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to open link in a new active tab",
+        tags: ["hints", "link", "tab"]
+    }, function() {
         hints.create("", hints.dispatchMouseClick, {tabbed: true, active: true});
     });
-    mapkey('gf', '#1Open a link in non-active new tab', function() {
+    mapkey('gf', {
+        short: "Open link in background tab",
+        unique_id: "cmd_hints_link_background_tab",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to open link in a new background tab",
+        tags: ["hints", "link", "background"]
+    }, function() {
         hints.create("", hints.dispatchMouseClick, {tabbed: true, active: false});
     });
-    mapkey('cf', '#1Open multiple links in a new tab', function() {
+    mapkey('cf', {
+        short: "Open multiple links",
+        unique_id: "cmd_hints_multiple_links",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to open multiple links in new tabs",
+        tags: ["hints", "link", "multiple"]
+    }, function() {
         hints.create("", hints.dispatchMouseClick, {multipleHits: true});
     });
     map('C', 'gf');
-    mapkey('<Ctrl-h>', '#1Mouse over elements.', function() {
+    mapkey('<Ctrl-h>', {
+        short: "Mouse over elements",
+        unique_id: "cmd_hints_mouseover",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to trigger mouseover event on elements",
+        tags: ["hints", "mouse", "event"]
+    }, function() {
         hints.create("", (element, event) => {
             if (chrome.surfingkeys) {
                 const r = element.getClientRects()[0];
@@ -531,7 +615,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             }
         }, {mouseEvents: ["mouseover"]});
     });
-    mapkey('<Ctrl-j>', '#1Mouse out elements.', function() {
+    mapkey('<Ctrl-j>', {
+        short: "Mouse out elements",
+        unique_id: "cmd_hints_mouseout",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to trigger mouseout event on elements",
+        tags: ["hints", "mouse", "event"]
+    }, function() {
         hints.create("", hints.dispatchMouseClick, {mouseEvents: ["mouseout"]});
     });
     mapkey('ya', '#7Copy a link URL to the clipboard', function() {
@@ -589,7 +680,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     map('<Ctrl-i>', 'I');
     cmap('<ArrowDown>', '<Ctrl-n>');
     cmap('<ArrowUp>', '<Ctrl-p>');
-    mapkey('q', '#1Click on an Image or a button', function() {
+    mapkey('q', {
+        short: "Click image or button",
+        unique_id: "cmd_hints_image_button",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to click on images or buttons",
+        tags: ["hints", "image", "button"]
+    }, function() {
         hints.create("img, button", hints.dispatchMouseClick);
     });
     mapkey('<Alt-p>', '#3pin/unpin current tab', function() {
@@ -1283,7 +1381,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         mapkey(';pm', '#11Preview markdown', function() {
             tabOpenLink("/pages/markdown.html");
         });
-        mapkey(';di', '#1Download image', function() {
+        mapkey(';di', {
+            short: "Download image",
+            unique_id: "cmd_hints_download_image",
+            feature_group: 1,
+            category: "hints",
+            description: "Show hints to select and download an image",
+            tags: ["hints", "download", "image"]
+        }, function() {
             hints.create('img', function(element) {
                 RUNTIME('download', {
                     url: element.src
