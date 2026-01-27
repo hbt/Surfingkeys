@@ -640,16 +640,11 @@ describe('Proxy Log Verification', () => {
                 return entry.message?.includes(CONFIG_UUID);
             });
 
-            if (configLogEntry) {
-                console.log(`✓ Config console.log found in proxy: ${configLogEntry.message}`);
-                console.log(`  targetUrl: ${configLogEntry.targetUrl}`);
-                expect(configLogEntry.message).toContain(CONFIG_UUID);
-            } else {
-                console.log(`⚠ UUID not found in proxy logs (config executed via keybinding test, but console.log capture unclear)`);
-                console.log(`  - Config loaded ✓`);
-                console.log(`  - Custom keybinding works ✓`);
-                console.log(`  - Console.log capture: needs investigation`);
-            }
+            // Assert that config console.log was captured in proxy logs
+            expect(configLogEntry).toBeDefined();
+            expect(configLogEntry?.message).toContain(CONFIG_UUID);
+            expect(configLogEntry?.type).toBe('CONSOLE');
+            expect(configLogEntry?.level).toBe('LOG');
         });
 
         afterAll(async () => {

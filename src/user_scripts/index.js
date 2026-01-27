@@ -263,6 +263,9 @@ const api = {
             dispatchSKEvent('api', ['visual:style', element, style]);
         },
     },
+    log: function(msg) {
+        dispatchSKEvent('api', ['log', msg]);
+    },
     Front: {
         registerInlineQuery: (args) => {
             inlineQuery = args;

@@ -598,6 +598,9 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         Visual: {
             style: visual.style,
         },
+        log: function(msg) {
+            RUNTIME('userLog', { msg: msg });
+        },
         Front: {
             openOmnibar: front.openOmnibar,
             registerInlineQuery: front.registerInlineQuery,

@@ -993,6 +993,13 @@ function start(browser) {
             chrome.runtime.reload();
         }, 100);
     };
+    self.userLog = function(message, sender, sendResponse) {
+        const prefix = message.fromUserScript ? '[USER-SCRIPT]' : '[CONTENT]';
+        console.log(prefix, message.msg);
+        if (message.needResponse) {
+            sendResponse({ logged: true, timestamp: Date.now() });
+        }
+    };
     self.loadSettingsFromUrl = function(message, sender, sendResponse) {
         _loadSettingsFromUrl(message.url, function(status) {
             _response(message, sendResponse, status);
