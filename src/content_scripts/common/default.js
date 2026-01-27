@@ -28,8 +28,22 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         searchSelectedWith,
     } = api;
 
-    mapkey('[[', '#1Click on the previous link on current page', hints.previousPage);
-    mapkey(']]', '#1Click on the next link on current page', hints.nextPage);
+    mapkey('[[', {
+        short: "Click previous link",
+        unique_id: "cmd_nav_previous_link",
+        feature_group: 1,
+        category: "navigation",
+        description: "Click on the previous page link on current page",
+        tags: ["navigation", "links", "previous"]
+    }, hints.previousPage);
+    mapkey(']]', {
+        short: "Click next link",
+        unique_id: "cmd_nav_next_link",
+        feature_group: 1,
+        category: "navigation",
+        description: "Click on the next page link on current page",
+        tags: ["navigation", "links", "next"]
+    }, hints.nextPage);
     mapkey('T', '#3Choose a tab', function() {
         front.chooseTab();
     });
@@ -312,7 +326,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }, 500);
     });
 
-    mapkey('gu', '#4Go up one path in the URL', function() {
+    mapkey('gu', {
+        short: "Go up one path",
+        unique_id: "cmd_nav_url_up",
+        feature_group: 4,
+        category: "navigation",
+        description: "Navigate up one level in the URL path hierarchy",
+        tags: ["navigation", "url", "path"]
+    }, function() {
         var pathname = location.pathname;
         if (pathname.length > 1) {
             pathname = pathname.endsWith('/') ? pathname.substr(0, pathname.length - 1) : pathname;
@@ -381,7 +402,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         tags: ["visual", "translation", "google"]
     }, openGoogleTranslate);
 
-    mapkey('O', '#1Open detected links from text', function() {
+    mapkey('O', {
+        short: "Open detected links",
+        unique_id: "cmd_nav_open_detected_link",
+        feature_group: 1,
+        category: "navigation",
+        description: "Open URLs detected in text content",
+        tags: ["navigation", "links", "detection"]
+    }, function() {
         hints.create(runtime.conf.clickablePat, function(element) {
             window.location.assign(element[2]);
         }, {statusLine: "Open detected links from text"});
@@ -696,13 +724,34 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     mapkey('<Alt-m>', '#3mute/unmute current tab', function() {
         RUNTIME("muteTab");
     });
-    mapkey('B', '#4Go one tab history back', function() {
+    mapkey('B', {
+        short: "Tab history back",
+        unique_id: "cmd_nav_tab_history_back",
+        feature_group: 4,
+        category: "navigation",
+        description: "Go back one step in tab-specific history",
+        tags: ["navigation", "history", "back"]
+    }, function() {
         RUNTIME("historyTab", {backward: true});
     }, {repeatIgnore: true});
-    mapkey('F', '#4Go one tab history forward', function() {
+    mapkey('F', {
+        short: "Tab history forward",
+        unique_id: "cmd_nav_tab_history_forward",
+        feature_group: 4,
+        category: "navigation",
+        description: "Go forward one step in tab-specific history",
+        tags: ["navigation", "history", "forward"]
+    }, function() {
         RUNTIME("historyTab", {backward: false});
     }, {repeatIgnore: true});
-    mapkey('<Ctrl-6>', '#4Go to last used tab', function() {
+    mapkey('<Ctrl-6>', {
+        short: "Go to last used tab",
+        unique_id: "cmd_nav_last_tab",
+        feature_group: 4,
+        category: "navigation",
+        description: "Switch to the previously focused tab",
+        tags: ["navigation", "tabs", "history"]
+    }, function() {
         RUNTIME("goToLastTab");
     });
     mapkey('gT', '#4Go to first activated tab', function() {
@@ -722,16 +771,44 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             }
         });
     }, { repeatIgnore: true });
-    mapkey('S', '#4Go back in history', function() {
+    mapkey('S', {
+        short: "Page history back",
+        unique_id: "cmd_nav_history_back",
+        feature_group: 4,
+        category: "navigation",
+        description: "Go back one page in browser history",
+        tags: ["navigation", "history", "back"]
+    }, function() {
         history.go(-1);
     }, {repeatIgnore: true});
-    mapkey('D', '#4Go forward in history', function() {
+    mapkey('D', {
+        short: "Page history forward",
+        unique_id: "cmd_nav_history_forward",
+        feature_group: 4,
+        category: "navigation",
+        description: "Go forward one page in browser history",
+        tags: ["navigation", "history", "forward"]
+    }, function() {
         history.go(1);
     }, {repeatIgnore: true});
-    mapkey('r', '#4Reload the page', function() {
+    mapkey('r', {
+        short: "Reload page",
+        unique_id: "cmd_nav_reload",
+        feature_group: 4,
+        category: "navigation",
+        description: "Reload the current page from cache",
+        tags: ["navigation", "reload", "refresh"]
+    }, function() {
         RUNTIME("reloadTab", { nocache: false });
     });
-    mapkey('oi', '#8Open incognito window', function() {
+    mapkey('oi', {
+        short: "Open incognito window",
+        unique_id: "cmd_nav_incognito",
+        feature_group: 8,
+        category: "navigation",
+        description: "Open current URL in a new incognito window",
+        tags: ["navigation", "incognito", "privacy"]
+    }, function() {
         RUNTIME('openIncognito', {
             url: window.location.href
         });
@@ -808,7 +885,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         top.focus();
     });
-    mapkey('cc', '#7Open selected link or link from clipboard', function() {
+    mapkey('cc', {
+        short: "Open selected link",
+        unique_id: "cmd_nav_open_clipboard",
+        feature_group: 7,
+        category: "navigation",
+        description: "Open selected text or clipboard content as URL",
+        tags: ["navigation", "clipboard", "link"]
+    }, function() {
         if (window.getSelection().toString()) {
             tabOpenLink(window.getSelection().toString());
         } else {
@@ -971,13 +1055,34 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         clipboard.write(JSON.stringify(aa, null, 4));
     });
 
-    mapkey('g?', '#4Reload current page without query string(all parts after question mark)', function() {
+    mapkey('g?', {
+        short: "Remove query string",
+        unique_id: "cmd_nav_remove_query",
+        feature_group: 4,
+        category: "navigation",
+        description: "Reload page after removing query string from URL",
+        tags: ["navigation", "url", "query"]
+    }, function() {
         window.location.href = window.location.href.replace(/\?[^\?]*$/, '');
     });
-    mapkey('g#', '#4Reload current page without hash fragment', function() {
+    mapkey('g#', {
+        short: "Remove hash fragment",
+        unique_id: "cmd_nav_remove_hash",
+        feature_group: 4,
+        category: "navigation",
+        description: "Reload page after removing hash fragment from URL",
+        tags: ["navigation", "url", "hash"]
+    }, function() {
         window.location.href = window.location.href.replace(/\#[^\#]*$/, '');
     });
-    mapkey('gU', '#4Go to root of current URL hierarchy', function() {
+    mapkey('gU', {
+        short: "Go to URL root",
+        unique_id: "cmd_nav_url_root",
+        feature_group: 4,
+        category: "navigation",
+        description: "Navigate to the root of current URL (origin only)",
+        tags: ["navigation", "url", "root"]
+    }, function() {
         window.location.href = window.location.origin;
     });
     mapkey('gxt', '#3Close tab on left', function() {
