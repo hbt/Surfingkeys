@@ -211,12 +211,26 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         visual.toggle("z");
     });
-    mapkey('yv', '#7Yank text of an element', function() {
+    mapkey('yv', {
+        short: "Yank text of element",
+        unique_id: "cmd_yank_element_text",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy text content of a selected element to clipboard",
+        tags: ["clipboard", "yank", "element"]
+    }, function() {
         hints.create(runtime.conf.textAnchorPat, function (element) {
             clipboard.write(element[1] === 0 ? element[0].data.trim() : element[2].trim());
         });
     });
-    mapkey('ymv', '#7Yank text of multiple elements', function() {
+    mapkey('ymv', {
+        short: "Yank text of multiple elements",
+        unique_id: "cmd_yank_multiple_elements",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy text from multiple elements to clipboard as separate lines",
+        tags: ["clipboard", "yank", "multiple"]
+    }, function() {
         var textToYank = [];
         hints.create(runtime.conf.textAnchorPat, function (element) {
             textToYank.push(element[1] === 0 ? element[0].data.trim() : element[2].trim());
@@ -323,7 +337,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }
     });
 
-    mapkey('yg', '#7Capture current page', function() {
+    mapkey('yg', {
+        short: "Capture current page",
+        unique_id: "cmd_yank_screenshot",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Capture screenshot of current page to clipboard",
+        tags: ["clipboard", "screenshot", "capture"]
+    }, function() {
         front.toggleStatus(false);
         setTimeout(function() {
             RUNTIME('captureVisibleTab', null, function(response) {
@@ -674,12 +695,26 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         hints.create("", hints.dispatchMouseClick, {mouseEvents: ["mouseout"]});
     });
-    mapkey('ya', '#7Copy a link URL to the clipboard', function() {
+    mapkey('ya', {
+        short: "Copy link URL",
+        unique_id: "cmd_yank_link_url",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy URL of a selected link to clipboard",
+        tags: ["clipboard", "yank", "link"]
+    }, function() {
         hints.create('*[href]', function(element) {
             clipboard.write(element.href);
         });
     });
-    mapkey('yma', '#7Copy multiple link URLs to the clipboard', function() {
+    mapkey('yma', {
+        short: "Copy multiple link URLs",
+        unique_id: "cmd_yank_multiple_links",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy URLs of multiple links to clipboard as separate lines",
+        tags: ["clipboard", "yank", "multiple"]
+    }, function() {
         var linksToYank = [];
         hints.create('*[href]', function(element) {
             linksToYank.push(element.href);
@@ -696,7 +731,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
         return tds;
     }
-    mapkey('yc', '#7Copy a column of a table', function() {
+    mapkey('yc', {
+        short: "Copy table column",
+        unique_id: "cmd_yank_table_column",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy all cells from a selected table column to clipboard",
+        tags: ["clipboard", "yank", "table"]
+    }, function() {
         hints.create(getTableColumnHeads(), function(element) {
             var column = Array.from(element.closest("table").querySelectorAll("tr")).map(function(tr) {
                 return tr.children.length > element.cellIndex ? tr.children[element.cellIndex].innerText : "";
@@ -704,7 +746,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             clipboard.write(column.join("\n"));
         });
     });
-    mapkey('ymc', '#7Copy multiple columns of a table', function() {
+    mapkey('ymc', {
+        short: "Copy multiple table columns",
+        unique_id: "cmd_yank_table_columns",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy multiple table columns to clipboard as tab-separated values",
+        tags: ["clipboard", "yank", "table"]
+    }, function() {
         var rows = null;
         hints.create(getTableColumnHeads(), function(element) {
             var column = Array.from(element.closest("table").querySelectorAll("tr")).map(function(tr) {
@@ -720,7 +769,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             clipboard.write(rows.join("\n"));
         }, {multipleHits: true});
     });
-    mapkey('yq', '#7Copy pre text', function() {
+    mapkey('yq', {
+        short: "Copy pre text",
+        unique_id: "cmd_yank_pre_text",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy text from a selected pre element to clipboard",
+        tags: ["clipboard", "yank", "code"]
+    }, function() {
         hints.create("pre", function(element) {
             clipboard.write(element.innerText);
         });
@@ -888,7 +944,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             system: sel
         }});
     });
-    mapkey('yi', '#7Yank text of an input', function() {
+    mapkey('yi', {
+        short: "Copy input value",
+        unique_id: "cmd_yank_input_value",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy value from a selected input field to clipboard",
+        tags: ["clipboard", "yank", "input"]
+    }, function() {
         hints.create("input, textarea, select", function(element) {
             clipboard.write(element.value);
         });
@@ -932,11 +995,25 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME('clearQueueURLs');
     });
-    mapkey('ys', "#7Copy current page's source", function() {
+    mapkey('ys', {
+        short: "Copy page source",
+        unique_id: "cmd_yank_page_source",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy HTML source code of current page to clipboard",
+        tags: ["clipboard", "yank", "html"]
+    }, function() {
         var aa = document.documentElement.cloneNode(true);
         clipboard.write(aa.outerHTML);
     });
-    mapkey('yj', "#7Copy current settings", function() {
+    mapkey('yj', {
+        short: "Copy settings",
+        unique_id: "cmd_yank_settings",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy current SurfingKeys settings as JSON to clipboard",
+        tags: ["clipboard", "yank", "settings"]
+    }, function() {
         RUNTIME('getSettings', {
             key: "RAW"
         }, function(response) {
@@ -963,7 +1040,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     mapkey('yT', '#3Duplicate current tab in background', function() {
         RUNTIME("duplicateTab", {active: false});
     });
-    mapkey('yy', "#7Copy current page's URL", function() {
+    mapkey('yy', {
+        short: "Copy current URL",
+        unique_id: "cmd_yank_url",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy current page URL to clipboard",
+        tags: ["clipboard", "yank", "url"]
+    }, function() {
         var url = window.location.href;
         if (url.indexOf(chrome.runtime.getURL("/pages/pdf_viewer.html")) === 0) {
             const filePos = window.location.search.indexOf("=") + 1;
@@ -971,19 +1055,47 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }
         clipboard.write(url);
     });
-    mapkey('yY', "#7Copy all tabs's url", function() {
+    mapkey('yY', {
+        short: "Copy all tabs URLs",
+        unique_id: "cmd_yank_all_urls",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy URLs of all open tabs to clipboard as separate lines",
+        tags: ["clipboard", "yank", "tabs"]
+    }, function() {
         RUNTIME('getTabs', null, function (response) {
             clipboard.write(response.tabs.map(tab => tab.url).join('\n'));
         });
     });
-    mapkey('yh', "#7Copy current page's host", function() {
+    mapkey('yh', {
+        short: "Copy page host",
+        unique_id: "cmd_yank_host",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy hostname of current page to clipboard",
+        tags: ["clipboard", "yank", "host"]
+    }, function() {
         var url = new URL(window.location.href);
         clipboard.write(url.host);
     });
-    mapkey('yl', "#7Copy current page's title", function() {
+    mapkey('yl', {
+        short: "Copy page title",
+        unique_id: "cmd_yank_title",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy title of current page to clipboard",
+        tags: ["clipboard", "yank", "title"]
+    }, function() {
         clipboard.write(document.title);
     });
-    mapkey('yQ', '#7Copy all query history of OmniQuery.', function() {
+    mapkey('yQ', {
+        short: "Copy query history",
+        unique_id: "cmd_yank_query_history",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy all OmniQuery search history to clipboard",
+        tags: ["clipboard", "yank", "history"]
+    }, function() {
         RUNTIME('getSettings', {
             key: 'OmniQueryHistory'
         }, function(response) {
@@ -1023,7 +1135,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     function generateFormKey(form) {
         return (form.method || "get") + "::" + new URL(form.action).pathname;
     }
-    mapkey('yf', '#7Copy form data in JSON on current page', function() {
+    mapkey('yf', {
+        short: "Copy form data as JSON",
+        unique_id: "cmd_yank_form_json",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy form data from current page as JSON to clipboard",
+        tags: ["clipboard", "yank", "form"]
+    }, function() {
         var fd = {};
         document.querySelectorAll('form').forEach(function(form) {
             fd[generateFormKey(form)] = getFormData(form, "json");
@@ -1073,7 +1192,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             });
         });
     });
-    mapkey('yp', '#7Copy form data for POST on current page', function() {
+    mapkey('yp', {
+        short: "Copy form data for POST",
+        unique_id: "cmd_yank_form_post",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy form data formatted for POST request to clipboard",
+        tags: ["clipboard", "yank", "form"]
+    }, function() {
         var aa = [];
         document.querySelectorAll('form').forEach(function(form) {
             var fd = {};
@@ -1526,7 +1652,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                 step: 1
             });
         });
-        mapkey('yd', "#7Copy current downloading URL", function() {
+        mapkey('yd', {
+            short: "Copy downloading URL",
+            unique_id: "cmd_yank_download_url",
+            feature_group: 7,
+            category: "clipboard",
+            description: "Copy URLs of files currently being downloaded to clipboard",
+            tags: ["clipboard", "yank", "download"]
+        }, function() {
             RUNTIME('getDownloads', {
                 query: {state: "in_progress"}
             }, function(response) {
