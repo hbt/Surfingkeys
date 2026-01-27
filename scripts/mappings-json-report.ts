@@ -77,9 +77,36 @@ interface Summary {
     };
 }
 
+interface SettingUsage {
+    setting: string;           // e.g., "scrollStepSize"
+    type: 'runtime.conf' | 'settings';
+    file: string;
+    line: number;
+    functionName: string;      // Function where it's used
+    context: 'read' | 'write'; // Whether it's being read or written
+}
+
+interface SettingStats {
+    setting: string;
+    type: 'runtime.conf' | 'settings';
+    count: number;
+    files: Set<string>;
+    functions: Set<string>;
+    usages: SettingUsage[];
+}
+
 interface Report {
     mappings: MappingEntry[];
     summary: Summary;
+    settings: {
+        summary: {
+            total_usages: number;
+            unique_settings: number;
+            runtime_conf_settings: number;
+            settings_api: number;
+        };
+        list: any[];
+    };
 }
 
 // ============================================================================
@@ -271,6 +298,127 @@ function extractValue(node: any): any {
     }
 
     return undefined;
+}
+
+// ============================================================================
+// SETTINGS DETECTION HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Get the name of the function containing the current node
+ */
+function getContainingFunctionName(path: any): string {
+    let current = path;
+
+    while (current) {
+        const node = current.node;
+
+        // Check for function declaration: function foo() {}
+        if (t.isFunctionDeclaration(node) && node.id) {
+            return node.id.name;
+        }
+
+        // Check for method definition: obj.foo = function() {}
+        if (t.isFunctionExpression(node) || t.isArrowFunctionExpression(node)) {
+            const parent = current.parent;
+
+            // Assignment: foo = function() {}
+            if (t.isAssignmentExpression(parent) && t.isIdentifier(parent.left)) {
+                return parent.left.name;
+            }
+
+            // Object method: { foo: function() {} }
+            if (t.isObjectProperty(parent) && t.isIdentifier(parent.key)) {
+                return parent.key.name;
+            }
+
+            // Variable: const foo = function() {}
+            if (t.isVariableDeclarator(parent) && t.isIdentifier(parent.id)) {
+                return parent.id.name;
+            }
+
+            // Assignment to member: obj.foo = function() {}
+            if (t.isAssignmentExpression(parent) && t.isMemberExpression(parent.left)) {
+                const prop = parent.left.property;
+                if (t.isIdentifier(prop)) {
+                    return prop.name;
+                }
+            }
+        }
+
+        current = current.parentPath;
+    }
+
+    return '<anonymous>';
+}
+
+/**
+ * Determine if this is a read or write access
+ */
+function getAccessContext(path: any): 'read' | 'write' {
+    const parent = path.parent;
+
+    // Check if this is on the left side of an assignment
+    if (t.isAssignmentExpression(parent) && parent.left === path.node) {
+        return 'write';
+    }
+
+    // Default to read
+    return 'read';
+}
+
+/**
+ * Detect settings usage in a file
+ */
+function detectSettingsInFile(filePath: string, relPath: string, usages: SettingUsage[]): void {
+    const code = fs.readFileSync(filePath, 'utf-8');
+
+    let ast;
+    try {
+        ast = parse(code, {
+            sourceType: 'module',
+            plugins: ['jsx', 'typescript']
+        });
+    } catch (e) {
+        // Silently skip files that can't be parsed
+        return;
+    }
+
+    traverse(ast, {
+        MemberExpression(path: any) {
+            const node = path.node;
+
+            // Check for runtime.conf.*
+            if (t.isMemberExpression(node.object) &&
+                t.isIdentifier(node.object.object, { name: 'runtime' }) &&
+                t.isIdentifier(node.object.property, { name: 'conf' }) &&
+                t.isIdentifier(node.property)) {
+
+                usages.push({
+                    setting: node.property.name,
+                    type: 'runtime.conf',
+                    file: relPath,
+                    line: node.loc?.start.line || 0,
+                    functionName: getContainingFunctionName(path),
+                    context: getAccessContext(path)
+                });
+            }
+
+            // Check for settings.*
+            if (t.isIdentifier(node.object, { name: 'settings' }) &&
+                t.isIdentifier(node.property)) {
+
+                usages.push({
+                    setting: node.property.name,
+                    type: 'settings',
+                    file: relPath,
+                    line: node.loc?.start.line || 0,
+                    functionName: getContainingFunctionName(path),
+                    context: getAccessContext(path)
+                });
+            }
+        }
+    });
 }
 
 /**
@@ -631,9 +779,82 @@ function scanDirectory(dir: string, basePath: string, mappings: MappingEntry[]):
     }
 }
 
+function scanDirectoryForSettings(dir: string, basePath: string, usages: SettingUsage[]): void {
+    const files = fs.readdirSync(dir);
+
+    for (const file of files) {
+        const filepath = path.join(dir, file);
+        const stat = fs.statSync(filepath);
+
+        if (stat.isDirectory()) {
+            // Skip node_modules and hidden directories
+            if (file === 'node_modules' || file.startsWith('.')) {
+                continue;
+            }
+            scanDirectoryForSettings(filepath, basePath, usages);
+        } else if (file.endsWith('.js') || file.endsWith('.ts')) {
+            const relPath = path.relative(basePath, filepath);
+            detectSettingsInFile(filepath, relPath, usages);
+        }
+    }
+}
+
 // ============================================================================
 // SUMMARY GENERATION
 // ============================================================================
+
+/**
+ * Generate settings statistics from usages
+ */
+function generateSettingsStatistics(usages: SettingUsage[]): any {
+    const statsMap = new Map<string, SettingStats>();
+
+    for (const usage of usages) {
+        const key = `${usage.type}.${usage.setting}`;
+
+        if (!statsMap.has(key)) {
+            statsMap.set(key, {
+                setting: usage.setting,
+                type: usage.type,
+                count: 0,
+                files: new Set(),
+                functions: new Set(),
+                usages: []
+            });
+        }
+
+        const stat = statsMap.get(key)!;
+        stat.count++;
+        stat.files.add(usage.file);
+        stat.functions.add(usage.functionName);
+        stat.usages.push(usage);
+    }
+
+    // Convert to array and sort by frequency
+    const settingsList = Array.from(statsMap.values()).sort((a, b) => b.count - a.count);
+
+    return {
+        summary: {
+            total_usages: usages.length,
+            unique_settings: settingsList.length,
+            runtime_conf_settings: settingsList.filter(s => s.type === 'runtime.conf').length,
+            settings_api: settingsList.filter(s => s.type === 'settings').length
+        },
+        list: settingsList.map(stat => ({
+            setting: stat.setting,
+            type: stat.type,
+            frequency: stat.count,
+            files: Array.from(stat.files).sort(),
+            functions: Array.from(stat.functions).sort(),
+            usages: stat.usages.map(u => ({
+                file: u.file,
+                line: u.line,
+                function: u.functionName,
+                context: u.context
+            }))
+        }))
+    };
+}
 
 /**
  * Generate configuration options report by discovering all properties
@@ -733,6 +954,11 @@ function main(): void {
     // Scan all source files
     scanDirectory(srcDir, srcDir, mappings);
 
+    // Scan for settings usage
+    const settingsUsages: SettingUsage[] = [];
+    scanDirectoryForSettings(srcDir, srcDir, settingsUsages);
+    const settingsStats = generateSettingsStatistics(settingsUsages);
+
     // Sort by mode, then by key
     mappings.sort((a, b) => {
         if (a.mode !== b.mode) return a.mode.localeCompare(b.mode);
@@ -745,7 +971,8 @@ function main(): void {
     // Create report
     const report: Report = {
         mappings,
-        summary
+        summary,
+        settings: settingsStats
     };
 
     // Output JSON
