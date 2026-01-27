@@ -145,7 +145,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
     }
 
-    mapkey(";ql", '#0Show last action', function() {
+    mapkey(";ql", {
+        short: "Show last action",
+        unique_id: "cmd_tools_show_last_action",
+        feature_group: 0,
+        category: "settings",
+        description: "Display the last executed keyboard action",
+        tags: ["settings", "debug", "history"]
+    }, function() {
         showPopup(htmlEncode(runtime.conf.lastKeys.map(function(k) {
             return KeyboardUtils.decodeKeystroke(k);
         }).join(' → ')));
@@ -386,7 +393,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             tabOpenLink("https://translate.google.com/translate?js=n&sl=auto&tl=zh-CN&u=" + window.location.href);
         }
     }
-    mapkey(';t', 'Translate selected text with google', () => {
+    mapkey(';t', {
+        short: "Translate with Google",
+        unique_id: "cmd_tools_translate_google",
+        feature_group: 0,
+        category: "settings",
+        description: "Translate selected text or entire page with Google Translate",
+        tags: ["settings", "translation", "google"]
+    }, () => {
         if (chrome.surfingkeys) {
             chrome.surfingkeys.translateCurrentPage();
         } else {
@@ -415,7 +429,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }, {statusLine: "Open detected links from text"});
     });
 
-    mapkey(".", '#0Repeat last action', function() {
+    mapkey(".", {
+        short: "Repeat last action",
+        unique_id: "cmd_tools_repeat_action",
+        feature_group: 0,
+        category: "settings",
+        description: "Repeat the last executed keyboard action",
+        tags: ["settings", "repeat", "action"]
+    }, function() {
         // lastKeys in format: <keys in normal mode>[,(<mode name>\t<keys in this mode>)*], examples
         // ['se']
         // ['f', 'Hints\tBA']
@@ -901,7 +922,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             });
         }
     });
-    mapkey(';cq', '#7Clear all URLs in queue to be opened', function() {
+    mapkey(';cq', {
+        short: "Clear queue URLs",
+        unique_id: "cmd_tools_clear_queue",
+        feature_group: 7,
+        category: "settings",
+        description: "Clear all URLs queued for opening",
+        tags: ["settings", "queue", "clear"]
+    }, function() {
         RUNTIME('clearQueueURLs');
     });
     mapkey('ys', "#7Copy current page's source", function() {
@@ -1103,15 +1131,36 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     mapkey('gxp', '#3Close playing tab', function() {
         RUNTIME("closeAudibleTab");
     });
-    mapkey(';e', '#11Edit Settings', function() {
+    mapkey(';e', {
+        short: "Edit settings",
+        unique_id: "cmd_tools_edit_settings",
+        feature_group: 11,
+        category: "settings",
+        description: "Open SurfingKeys settings page for configuration",
+        tags: ["settings", "edit", "configuration"]
+    }, function() {
         tabOpenLink("/pages/options.html");
     });
-    mapkey(';u', '#4Edit current URL with vim editor, and open in new tab', function() {
+    mapkey(';u', {
+        short: "Edit URL and open",
+        unique_id: "cmd_tools_edit_url_new_tab",
+        feature_group: 4,
+        category: "settings",
+        description: "Edit current URL in vim editor and open result in new tab",
+        tags: ["settings", "vim", "url"]
+    }, function() {
         front.showEditor(window.location.href, function(data) {
             tabOpenLink(data);
         }, 'url');
     });
-    mapkey(';U', '#4Edit current URL with vim editor, and reload', function() {
+    mapkey(';U', {
+        short: "Edit URL and reload",
+        unique_id: "cmd_tools_edit_url_reload",
+        feature_group: 4,
+        category: "settings",
+        description: "Edit current URL in vim editor and reload to result",
+        tags: ["settings", "vim", "url"]
+    }, function() {
         front.showEditor(window.location.href, function(data) {
             window.location.href = data;
         }, 'url');
@@ -1252,7 +1301,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             description: "Clear proxy configuration and disable proxy",
             tags: ["proxy", "network", "mode"]
         });
-        mapkey('gr', '#14Read selected text or text from clipboard', function() {
+        mapkey('gr', {
+            short: "Read text from clipboard",
+            unique_id: "cmd_tools_read_text",
+            feature_group: 14,
+            category: "settings",
+            description: "Read selected text or clipboard content aloud using TTS",
+            tags: ["settings", "tts", "accessibility"]
+        }, function() {
             clipboard.read(function(response) {
                 readText(window.getSelection().toString() || response.data, {verbose: true});
             });
@@ -1361,7 +1417,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }, function() {
             tabOpenLink("chrome://inspect/#devices");
         });
-        mapkey(';v', '#11Open neovim', function() {
+        mapkey(';v', {
+            short: "Open neovim",
+            unique_id: "cmd_tools_neovim",
+            feature_group: 11,
+            category: "settings",
+            description: "Open neovim editor in a new tab",
+            tags: ["settings", "neovim", "editor"]
+        }, function() {
             tabOpenLink("/pages/neovim.html");
         });
     }
@@ -1483,7 +1546,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }, function() {
             RUNTIME("viewSource", { tab: { tabbed: true }});
         });
-        mapkey(';pm', '#11Preview markdown', function() {
+        mapkey(';pm', {
+            short: "Preview markdown",
+            unique_id: "cmd_tools_preview_markdown",
+            feature_group: 11,
+            category: "settings",
+            description: "Open markdown preview page",
+            tags: ["settings", "markdown", "preview"]
+        }, function() {
             tabOpenLink("/pages/markdown.html");
         });
         mapkey(';di', {
@@ -1510,12 +1580,26 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }, function() {
             RUNTIME("closeDownloadsShelf", {clearHistory: true});
         });
-        mapkey(';dh', '#14Delete history older than 30 days', function() {
+        mapkey(';dh', {
+            short: "Delete old history",
+            unique_id: "cmd_tools_delete_history",
+            feature_group: 14,
+            category: "settings",
+            description: "Delete browser history entries older than 30 days",
+            tags: ["settings", "history", "delete"]
+        }, function() {
             RUNTIME('deleteHistoryOlderThan', {
                 days: 30
             });
         });
-        mapkey(';yh', '#14Yank histories', function() {
+        mapkey(';yh', {
+            short: "Yank histories",
+            unique_id: "cmd_tools_yank_history",
+            feature_group: 14,
+            category: "settings",
+            description: "Copy all browser history URLs to clipboard",
+            tags: ["settings", "history", "yank"]
+        }, function() {
             RUNTIME('getHistory', {}, function(response) {
                 clipboard.write(response.history.map(h => h.url).join("\n"));
             });
@@ -1532,7 +1616,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                 RUNTIME('addHistories', {history: response.data.split("\n")});
             });
         });
-        mapkey(';db', '#14Remove bookmark for current page', function() {
+        mapkey(';db', {
+            short: "Remove bookmark",
+            unique_id: "cmd_tools_remove_bookmark",
+            feature_group: 14,
+            category: "settings",
+            description: "Remove bookmark for current page if it exists",
+            tags: ["settings", "bookmarks", "delete"]
+        }, function() {
             RUNTIME('removeBookmark');
         });
     }
