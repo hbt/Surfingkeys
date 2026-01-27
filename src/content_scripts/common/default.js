@@ -152,7 +152,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         hints.create(getLargeElements(), (e) => { }, { regionalHints: true });
     });
 
-    mapkey('zv', '#9Enter visual mode, and select whole element', function() {
+    mapkey('zv', {
+        short: "Enter visual mode, and select whole element",
+        unique_id: "cmd_visual_select_element",
+        feature_group: 9,
+        category: "visual",
+        description: "Enter visual mode and select entire element",
+        tags: ["visual", "element", "selection"]
+    }, function() {
         visual.toggle("z");
     });
     mapkey('yv', '#7Yank text of an element', function() {
@@ -168,18 +175,46 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }, { multipleHits: true });
     });
 
-    mapkey('V', '#9Restore visual mode', function() {
+    mapkey('V', {
+        short: "Restore visual mode",
+        unique_id: "cmd_visual_restore",
+        feature_group: 9,
+        category: "visual",
+        description: "Restore previous visual mode selection",
+        tags: ["visual", "restore", "selection"]
+    }, function() {
         visual.restore();
     });
-    mapkey('*', '#9Find selected text in current page', function() {
+    mapkey('*', {
+        short: "Find selected text in current page",
+        unique_id: "cmd_visual_find_selected",
+        feature_group: 9,
+        category: "visual",
+        description: "Search for currently selected text in the page",
+        tags: ["visual", "search", "find"]
+    }, function() {
         visual.star();
         visual.toggle();
     });
 
-    vmapkey('<Ctrl-u>', '#9Backward 20 lines', function() {
+    vmapkey('<Ctrl-u>', {
+        short: "Backward 20 lines",
+        unique_id: "cmd_visual_backward_lines",
+        feature_group: 9,
+        category: "visual",
+        description: "Move selection backward 20 lines in visual mode",
+        tags: ["visual", "navigation", "backward"]
+    }, function() {
         visual.feedkeys('20k');
     });
-    vmapkey('<Ctrl-d>', '#9Forward 20 lines', function() {
+    vmapkey('<Ctrl-d>', {
+        short: "Forward 20 lines",
+        unique_id: "cmd_visual_forward_lines",
+        feature_group: 9,
+        category: "visual",
+        description: "Move selection forward 20 lines in visual mode",
+        tags: ["visual", "navigation", "forward"]
+    }, function() {
         visual.feedkeys('20j');
     });
 
@@ -302,7 +337,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             openGoogleTranslate();
         }
     });
-    vmapkey('t', '#9Translate selected text with google', openGoogleTranslate);
+    vmapkey('t', {
+        short: "Translate selected text with google",
+        unique_id: "cmd_visual_translate",
+        feature_group: 9,
+        category: "visual",
+        description: "Translate selected text using Google Translate",
+        tags: ["visual", "translation", "google"]
+    }, openGoogleTranslate);
 
     mapkey('O', '#1Open detected links from text', function() {
         hints.create(runtime.conf.clickablePat, function(element) {
@@ -335,15 +377,36 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         hints.create("", hints.dispatchMouseClick);
     }, {repeatIgnore: true});
 
-    mapkey("v", '#9Toggle visual mode', function() {
+    mapkey("v", {
+        short: "Toggle visual mode",
+        unique_id: "cmd_visual_toggle",
+        feature_group: 9,
+        category: "visual",
+        description: "Toggle visual mode for text selection",
+        tags: ["visual", "mode", "selection"]
+    }, function() {
         visual.toggle();
     }, {repeatIgnore: true});
 
-    mapkey("n", '#9Next found text', function() {
+    mapkey("n", {
+        short: "Next found text",
+        unique_id: "cmd_visual_next",
+        feature_group: 9,
+        category: "visual",
+        description: "Jump to next occurrence of found text",
+        tags: ["visual", "search", "next"]
+    }, function() {
         visual.next(false);
     }, {repeatIgnore: true});
 
-    mapkey("N", '#9Previous found text', function() {
+    mapkey("N", {
+        short: "Previous found text",
+        unique_id: "cmd_visual_previous",
+        feature_group: 9,
+        category: "visual",
+        description: "Jump to previous occurrence of found text",
+        tags: ["visual", "search", "previous"]
+    }, function() {
         visual.next(true);
     }, {repeatIgnore: true});
 
@@ -351,7 +414,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         hints.create(normal.refreshScrollableElements(), hints.dispatchMouseClick);
     });
 
-    vmapkey("q", '#9Translate word under cursor', function() {
+    vmapkey("q", {
+        short: "Translate word under cursor",
+        unique_id: "cmd_visual_translate_word",
+        feature_group: 9,
+        category: "visual",
+        description: "Show inline translation for word under cursor",
+        tags: ["visual", "translation", "word"]
+    }, function() {
         var w = getWordUnderCursor();
         browser.readText(w);
         var b = visual.getCursorPixelPos();
@@ -609,7 +679,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         front.openOmnibar({type: "LLMChat"});
     });
-    vmapkey('A', '#8Open llm chat', function() {
+    vmapkey('A', {
+        short: "Open llm chat",
+        unique_id: "cmd_visual_llm_chat",
+        feature_group: 8,
+        category: "visual",
+        description: "Open LLM chat with selected text as context",
+        tags: ["visual", "llm", "ai"]
+    }, function() {
         const sel = window.getSelection().toString();
         front.openOmnibar({type: "LLMChat", extra: {
             system: sel
@@ -977,7 +1054,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                 readText(window.getSelection().toString() || response.data, {verbose: true});
             });
         });
-        vmapkey('gr', '#9Read selected text', function() {
+        vmapkey('gr', {
+            short: "Read selected text",
+            unique_id: "cmd_visual_read_text",
+            feature_group: 9,
+            category: "visual",
+            description: "Read selected text aloud using text-to-speech",
+            tags: ["visual", "tts", "accessibility"]
+        }, function() {
             readText(window.getSelection().toString(), {verbose: true});
         });
 
