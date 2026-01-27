@@ -22,6 +22,7 @@ import {
     timeStampString,
     toggleQuote,
 } from '../common/utils.js';
+import { getAnnotationString } from '../../common/commandMetadata.js';
 import { RUNTIME, runtime } from '../common/runtime.js';
 import LLMChat from './llmchat';
 
@@ -1415,7 +1416,8 @@ function Commands(omnibar, front) {
         });
         if (candidates.length) {
             omnibar.listResults(candidates, function(c) {
-                var li = createElementWithContent('li', `${c}<span class=annotation>${htmlEncode(items[c].annotation)}</span>`);
+                const annotationStr = getAnnotationString(items[c].annotation);
+                var li = createElementWithContent('li', `${c}<span class=annotation>${htmlEncode(annotationStr)}</span>`);
                 li.cmd = c;
                 return li;
             });

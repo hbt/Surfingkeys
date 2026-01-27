@@ -22,7 +22,6 @@ import * as path from 'path';
 interface AnnotationObject {
     short: string;
     unique_id: string;
-    feature_group: number;
     category: string;
     description: string;
     tags: string[]; // Must have at least one tag
@@ -37,6 +36,8 @@ interface MappingEntry {
         line: number;
     };
     mappingType: 'mapkey' | 'direct' | 'search_alias' | 'command';
+    feature_group?: number;
+    repeatIgnore?: boolean;
     validationStatus?: 'valid' | 'invalid' | 'not_migrated';
     validationErrors?: string[];
 }
@@ -83,9 +84,6 @@ function validateAnnotation(annotation: string | AnnotationObject): {
     }
     if (!annotation.unique_id) {
         errors.push('Missing required field: unique_id');
-    }
-    if (annotation.feature_group === undefined || annotation.feature_group === null) {
-        errors.push('Missing required field: feature_group');
     }
     if (!annotation.category) {
         errors.push('Missing required field: category');
@@ -153,15 +151,12 @@ function parseMapkeyPatterns(
                 const objBody = objMatch[1];
                 const annotationObj: AnnotationObject = {};
 
-                // Extract fields
+                // Extract annotation fields only
                 const shortMatch = objBody.match(/short\s*:\s*["']([^"']+)["']/);
                 if (shortMatch) annotationObj.short = shortMatch[1];
 
                 const uniqueIdMatch = objBody.match(/unique_id\s*:\s*["']([^"']+)["']/);
                 if (uniqueIdMatch) annotationObj.unique_id = uniqueIdMatch[1];
-
-                const featureGroupMatch = objBody.match(/feature_group\s*:\s*(\d+)/);
-                if (featureGroupMatch) annotationObj.feature_group = parseInt(featureGroupMatch[1]);
 
                 const categoryMatch = objBody.match(/category\s*:\s*["']([^"']+)["']/);
                 if (categoryMatch) annotationObj.category = categoryMatch[1];
@@ -227,14 +222,12 @@ function parseMappingsAddPatterns(
             const annotationBody = annotationObjMatch[1];
             const annotationObj: AnnotationObject = {};
 
+            // Extract annotation fields from annotationBody
             const shortMatch = annotationBody.match(/short\s*:\s*["']([^"']+)["']/);
             if (shortMatch) annotationObj.short = shortMatch[1];
 
             const uniqueIdMatch = annotationBody.match(/unique_id\s*:\s*["']([^"']+)["']/);
             if (uniqueIdMatch) annotationObj.unique_id = uniqueIdMatch[1];
-
-            const featureGroupMatch = objectBody.match(/feature_group\s*:\s*(\d+)/);
-            if (featureGroupMatch) annotationObj.feature_group = parseInt(featureGroupMatch[1]);
 
             const categoryMatch = annotationBody.match(/category\s*:\s*["']([^"']+)["']/);
             if (categoryMatch) annotationObj.category = categoryMatch[1];
@@ -259,6 +252,20 @@ function parseMappingsAddPatterns(
             }
         }
 
+        // Extract mapping-level fields from objectBody (outside annotation)
+        let feature_group: number | undefined;
+        let repeatIgnore: boolean | undefined;
+
+        const featureGroupMatch = objectBody.match(/feature_group\s*:\s*(\d+)/);
+        if (featureGroupMatch) {
+            feature_group = parseInt(featureGroupMatch[1]);
+        }
+
+        const repeatIgnoreMatch = objectBody.match(/repeatIgnore\s*:\s*(true|false)/);
+        if (repeatIgnoreMatch) {
+            repeatIgnore = repeatIgnoreMatch[1] === 'true';
+        }
+
         // Determine mode from file path
         let mode = 'Normal';
         if (relPath.includes('insert.js')) mode = 'Insert';
@@ -271,32 +278,77 @@ function parseMappingsAddPatterns(
             mode,
             annotation,
             source: { file: relPath, line: lineNum },
-            mappingType: 'direct'
+            mappingType: 'direct',
+            feature_group,
+            repeatIgnore
         });
     }
 }
 
 /**
  * Parse command() patterns
+ * Handles both string and object annotations
  */
 function parseCommandPatterns(
     content: string,
     relPath: string,
     mappings: MappingEntry[]
 ): void {
-    // Match: command('name', 'description', ...)
-    const regex = /command\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*['"`]([^'"`]+)['"`]/g;
+    // Match: command('name', annotation, ...)
+    // Annotation can be string or object
+    const regex = /command\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*([\s\S]*?)\s*,\s*function/g;
 
     let match;
     while ((match = regex.exec(content)) !== null) {
         const name = match[1];
-        const description = match[2];
+        const annotationPart = match[2];
         const lineNum = content.substring(0, match.index).split('\n').length;
+
+        let annotation: string | AnnotationObject;
+
+        // Check if it's an object annotation
+        const objMatch = annotationPart.match(/^\s*\{([\s\S]*?)\}\s*$/);
+        if (objMatch) {
+            // Object annotation
+            const objBody = objMatch[1];
+            const annotationObj: AnnotationObject = {};
+
+            const shortMatch = objBody.match(/short\s*:\s*["']([^"']+)["']/);
+            if (shortMatch) annotationObj.short = shortMatch[1];
+
+            const uniqueIdMatch = objBody.match(/unique_id\s*:\s*["']([^"']+)["']/);
+            if (uniqueIdMatch) annotationObj.unique_id = uniqueIdMatch[1];
+
+            const featureGroupMatch = objBody.match(/feature_group\s*:\s*(\d+)/);
+            if (featureGroupMatch) annotationObj.feature_group = parseInt(featureGroupMatch[1]);
+
+            const categoryMatch = objBody.match(/category\s*:\s*["']([^"']+)["']/);
+            if (categoryMatch) annotationObj.category = categoryMatch[1];
+
+            const descMatch = objBody.match(/description\s*:\s*["']([^"']+)["']/);
+            if (descMatch) annotationObj.description = descMatch[1];
+
+            const tagsMatch = objBody.match(/tags\s*:\s*\[([\s\S]*?)\]/);
+            if (tagsMatch) {
+                const tagsStr = tagsMatch[1];
+                annotationObj.tags = tagsStr.match(/["']([^"']+)["']/g)?.map(t => t.slice(1, -1)) || [];
+            }
+
+            annotation = annotationObj;
+        } else {
+            // String annotation
+            const stringMatch = annotationPart.match(/^['"`]([^'"`]*)['"`]/);
+            if (stringMatch) {
+                annotation = stringMatch[1];
+            } else {
+                continue; // Skip if no annotation found
+            }
+        }
 
         mappings.push({
             key: name,
             mode: 'Command',
-            annotation: description,
+            annotation,
             source: { file: relPath, line: lineNum },
             mappingType: 'command'
         });
