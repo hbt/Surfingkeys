@@ -955,6 +955,17 @@ function generateSummary(mappings: MappingEntry[]): Summary {
     // Second pass: mark duplicates as invalid
     for (const [uid, mappingsWithId] of uniqueIdMap.entries()) {
         if (mappingsWithId.length > 1) {
+            // Check if these are browser-specific variants (same key, same file, different implementations)
+            const isBrowserVariant =
+                mappingsWithId.every(m => m.key === mappingsWithId[0].key) && // Same key
+                mappingsWithId.every(m => m.source.file === mappingsWithId[0].source.file) && // Same file
+                mappingsWithId.length === 2; // Exactly 2 variants
+
+            if (isBrowserVariant) {
+                // Skip marking as invalid - these are intentional browser-specific implementations
+                continue;
+            }
+
             // Mark all but the first as invalid duplicates
             for (let i = 1; i < mappingsWithId.length; i++) {
                 const mapping = mappingsWithId[i];
