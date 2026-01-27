@@ -373,13 +373,27 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     });
 
     map('ZQ', ':quit');
-    mapkey('ZZ', '#5Save session and quit', function() {
+    mapkey('ZZ', {
+        short: "Save session and quit",
+        unique_id: "cmd_session_save_quit",
+        feature_group: 5,
+        category: "session",
+        description: "Save current session and close all tabs",
+        tags: ["session", "save", "quit"]
+    }, function() {
         RUNTIME('createSession', {
             name: 'LAST',
             quitAfterSaved: true
         });
     });
-    mapkey('ZR', '#5Restore last session', function() {
+    mapkey('ZR', {
+        short: "Restore last session",
+        unique_id: "cmd_session_restore",
+        feature_group: 5,
+        category: "session",
+        description: "Restore previously saved session",
+        tags: ["session", "restore", "open"]
+    }, function() {
         RUNTIME('openSession', {
             name: 'LAST'
         });
