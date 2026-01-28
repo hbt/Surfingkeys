@@ -113,8 +113,10 @@ interface SettingsAnnotation {
 }
 
 interface Report {
-    mappings: MappingEntry[];
-    summary: Summary;
+    mappings: {
+        summary: Summary;
+        list: MappingEntry[];
+    };
     settings: {
         summary: {
             total_usages: number;
@@ -1112,8 +1114,10 @@ function main(): void {
 
     // Create report
     const report: Report = {
-        mappings,
-        summary,
+        mappings: {
+            summary,
+            list: mappings
+        },
         settings: settingsStats
     };
 
