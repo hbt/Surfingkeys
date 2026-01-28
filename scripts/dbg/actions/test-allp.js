@@ -10,9 +10,11 @@
  * Logs: Verbose aggregate report written to /tmp/cdp-test-reports/
  *
  * Usage:
- *   bin/dbg test-allp                              (default: 12 concurrent)
- *   bin/dbg test-allp --max-parallel 8             (limit to 8 concurrent)
- *   bin/dbg test-allp --concurrency 16             (limit to 16 concurrent)
+ *   bin/dbg test-allp                                       (default: tests/cdp, 12 concurrent)
+ *   bin/dbg test-allp tests/cdp/commands                    (run only commands tests)
+ *   bin/dbg test-allp tests/cdp/commands --max-parallel 4   (specify concurrency with directory)
+ *   bin/dbg test-allp --max-parallel 8                      (default dir, 8 concurrent)
+ *   bin/dbg test-allp --concurrency 16                      (default dir, 16 concurrent)
  *   bin/dbg test-allp | jq .
  *   cat $(bin/dbg test-allp | jq -r .aggregateReportFile)
  */
@@ -31,11 +33,32 @@ if (!fs.existsSync(REPORTS_DIR)) {
 }
 
 /**
- * Parse command line arguments for concurrency limit
+ * Parse command line arguments for directory and concurrency limit
  */
-function parseConcurrencyLimit(args) {
-    let limit = 12; // default
+function parseArgs(args) {
+    let testDir = path.join(PROJECT_ROOT, 'tests/cdp'); // default
+    let limit = 12; // default concurrency
 
+    for (let i = 0; i < args.length; i++) {
+        // Skip flag pairs
+        if (args[i] === '--max-parallel' || args[i] === '--concurrency') {
+            if (args[i + 1]) i++; // skip next arg
+            continue;
+        }
+        // Skip flags that are pairs
+        if (args[i].startsWith('--')) {
+            continue;
+        }
+        // First non-flag argument is the directory
+        if (!args[i].startsWith('-')) {
+            testDir = path.isAbsolute(args[i])
+                ? args[i]
+                : path.join(PROJECT_ROOT, args[i]);
+            break;
+        }
+    }
+
+    // Parse concurrency limit
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--max-parallel' && args[i + 1]) {
             limit = parseInt(args[i + 1], 10);
@@ -53,15 +76,18 @@ function parseConcurrencyLimit(args) {
         }
     }
 
-    return Math.max(1, limit); // ensure at least 1
+    return {
+        testDir: testDir,
+        concurrencyLimit: Math.max(1, limit)
+    };
 }
 
 /**
- * Discover all test files
+ * Discover all test files in a directory
  */
-function discoverTestFiles() {
+function discoverTestFiles(testDir) {
     try {
-        const findCommand = `find ${TESTS_DIR} -name '*.test.ts' -type f`;
+        const findCommand = `find ${testDir} -name '*.test.ts' -type f`;
         const output = execSync(findCommand, { encoding: 'utf8' });
         return output
             .trim()
@@ -69,7 +95,7 @@ function discoverTestFiles() {
             .filter(f => f.length > 0)
             .sort();
     } catch (error) {
-        throw new Error(`Failed to discover test files: ${error.message}`);
+        throw new Error(`Failed to discover test files in ${testDir}: ${error.message}`);
     }
 }
 
@@ -293,16 +319,18 @@ async function run(args) {
     try {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 
-        // Parse concurrency limit from arguments
-        const concurrencyLimit = parseConcurrencyLimit(args);
+        // Parse arguments for directory and concurrency limit
+        const parsedArgs = parseArgs(args);
+        const testDir = parsedArgs.testDir;
+        const concurrencyLimit = parsedArgs.concurrencyLimit;
 
         // Discover all test files
-        const testFiles = discoverTestFiles();
+        const testFiles = discoverTestFiles(testDir);
 
         if (testFiles.length === 0) {
             console.log(JSON.stringify({
                 success: false,
-                error: 'No test files found in tests/cdp/',
+                error: `No test files found in ${testDir}`,
                 aggregateReportFile: null
             }));
             process.exit(1);

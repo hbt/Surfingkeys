@@ -28,8 +28,10 @@ describe('cmd_scroll_up', () => {
     });
 
     beforeEach(async () => {
-        // Scroll to bottom of page for scroll up tests
-        await executeInTarget(pageWs, 'window.scrollTo(0, document.body.scrollHeight)');
+        // Scroll to near bottom of page for scroll up tests (leave enough room for multiple scrolls)
+        await executeInTarget(pageWs, 'window.scrollTo(0, Math.max(500, document.body.scrollHeight - window.innerHeight - 200))');
+        // Wait for scroll to complete
+        await new Promise(resolve => setTimeout(resolve, 200));
         const state = expect.getState();
         currentTestName = state.currentTestName || 'unknown-test';
         beforeCovData = await captureBeforeCoverage(pageWs);
