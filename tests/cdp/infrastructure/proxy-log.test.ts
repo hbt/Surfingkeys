@@ -633,6 +633,10 @@ describe('Proxy Log Verification', () => {
 
             console.log(`✓ Console.log captured: ${consoleLogEntry?.message}`);
 
+            // Verification Step 4: Check if api.mapcmdkey function was actually called
+            // by looking at the call counter we increment inside it
+            const callCountBefore = await executeInTarget(diagPageWs, 'window.__mapcmdkey_call_count || 0');
+            console.log(`[STEP4] Call count before: ${callCountBefore}`);
 
             // Cleanup
             await closeCDP(diagPageWs);
@@ -730,6 +734,15 @@ describe('Proxy Log Verification', () => {
             const initialScroll = await getScrollPosition(configPageWs);
             expect(initialScroll).toBe(0);
 
+            // Log call count before key press (to proxy logs for visibility)
+            await executeInTarget(configPageWs, `
+                const before = window.__mapcmdkey_call_count || 0;
+                console.log('[MAPCMDKEY-COUNTER] Before key press: ' + before);
+                window.__mapcmdkey_before = before;
+            `);
+
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             // Send 'w' key (custom mapped to cmd_scroll_down by config)
             await sendKey(configPageWs, 'w');
 
@@ -738,6 +751,18 @@ describe('Proxy Log Verification', () => {
                 direction: 'down',
                 minDelta: 20
             });
+
+            // Log call count after key press (to proxy logs for visibility)
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            console.log('[TEST] About to check call counter after scroll...');
+            const afterCounter = await executeInTarget(configPageWs, `
+                console.log('[CHECK-AFTER] Entry point');
+                const after = window.__mapcmdkey_call_count || 0;
+                console.log('[CHECK-AFTER] Value: ' + after);
+                after;
+            `);
+            console.log('[TEST] Counter value after keypress:', afterCounter);
 
             // Assert scroll happened (proves custom config was executed)
             expect(finalScroll).toBeGreaterThan(initialScroll);
