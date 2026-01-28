@@ -1980,7 +1980,7 @@ function start(browser) {
     };
     self.setZoom = function(message, sender, sendResponse) {
         var tabId = sender.tab.id;
-        var zoomFactor = message.zoomFactor * message.repeats;
+        var zoomFactor = message.zoomFactor * (message.repeats || 1);
         if (zoomFactor == 0) {
             chrome.tabs.getZoomSettings(tabId, function(settings) {
                 const defaultZoom = settings.defaultZoomFactor ?
