@@ -1,0 +1,93 @@
+{
+  "short": "Default search engine alias used in omnibar",
+  "unique_id": "setting_defaultSearchEngine",
+  "category": "search-behavior",
+  "description": "Specifies the default search engine to use when performing searches through the omnibar. The value is a single character alias that corresponds to a registered search alias (e.g., 'g' for Google, 'd' for DuckDuckGo). When a user enters a non-URL query in the omnibar without specifying a search engine, the URL template of this default engine is used to construct the search URL.",
+  "tags": [
+    "search",
+    "omnibar",
+    "search-engine",
+    "default",
+    "configuration"
+  ],
+  "valueType": "string",
+  "valueDescription": "A single character string representing a search engine alias. Built-in aliases include: 'g' (Google), 'd' (DuckDuckGo), 'b' (Baidu), 'e' (Wikipedia), 'w' (Bing), 's' (Stack Overflow), 'h' (GitHub), 'y' (YouTube), and custom aliases defined by the user via 'addSearchAlias'.",
+  "values": [
+    {
+      "value": "\"g\"",
+      "description": "Default value; Google search engine",
+      "source": "src/content_scripts/common/runtime.js:57 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "\"d\"",
+      "description": "DuckDuckGo search engine",
+      "source": "src/content_scripts/common/default.js:1481 - addSearchAlias definition"
+    },
+    {
+      "value": "\"b\"",
+      "description": "Baidu search engine",
+      "source": "src/content_scripts/common/default.js:1487 - addSearchAlias definition"
+    },
+    {
+      "value": "\"e\"",
+      "description": "Wikipedia search engine",
+      "source": "src/content_scripts/common/default.js:1492 - addSearchAlias definition"
+    },
+    {
+      "value": "\"w\"",
+      "description": "Bing search engine",
+      "source": "src/content_scripts/common/default.js:1495 - addSearchAlias definition"
+    },
+    {
+      "value": "\"s\"",
+      "description": "Stack Overflow search engine",
+      "source": "src/content_scripts/common/default.js:1499 - addSearchAlias definition"
+    },
+    {
+      "value": "\"h\"",
+      "description": "GitHub search engine",
+      "source": "src/content_scripts/common/default.js:1500 - addSearchAlias definition"
+    },
+    {
+      "value": "\"y\"",
+      "description": "YouTube search engine",
+      "source": "src/content_scripts/common/default.js:1509 - addSearchAlias definition"
+    },
+    {
+      "value": "<custom_alias>",
+      "description": "Any user-defined custom search alias registered via addSearchAlias command",
+      "source": "src/content_scripts/ui/omnibar.js:1426 - Custom aliases added via addSearchAlias"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/ui/omnibar.js",
+      "src/content_scripts/common/default.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 57,
+        "function": "runtime.conf",
+        "context": "Initialized with default value 'g' (Google) in runtime configuration object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 712,
+        "function": "openFocused",
+        "context": "Used to look up the default search engine alias in searchEngine.aliases to construct the search URL when a non-URL query is entered in omnibar"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/default.js",
+        "line": 1477,
+        "function": "applySettings",
+        "context": "Referenced to determine which search engine to use by default for omnibar searches"
+      }
+    ]
+  },
+  "notes": "This setting determines the fallback search engine when a user types a search query in the omnibar without prefixing it with a search engine alias. The value must correspond to a valid search engine alias; using an undefined alias will result in a JavaScript error. Custom search engines can be added through the 'addSearchAlias' function, which dynamically registers new aliases at runtime. The setting is user-configurable and persists across browser sessions."
+}

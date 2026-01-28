@@ -1,0 +1,97 @@
+{
+  "short": "Default LLM provider for AI features",
+  "unique_id": "setting_defaultLLMProvider",
+  "category": "ai",
+  "description": "Sets the default Large Language Model (LLM) provider used for AI-powered features such as LLM chat functionality. This setting specifies which LLM backend service will be used when initiating AI interactions. The available providers depend on the system configuration and which providers have been set up with appropriate credentials and endpoints. Users can override the default provider when opening an LLM chat session by explicitly specifying a provider. The provider must be one of the installed and configured LLM clients available in the extension.",
+  "tags": [
+    "ai",
+    "llm",
+    "chat",
+    "language-model",
+    "provider",
+    "configuration",
+    "ai-features"
+  ],
+  "valueType": "string",
+  "valueDescription": "Name of an available LLM provider. Must match one of the configured LLM client names exported from the llm module.",
+  "values": [
+    {
+      "value": "\"ollama\"",
+      "description": "Default value; local Ollama instance running on http://localhost:11434. Provides free, open-source LLM inference with models like qwen2.5-coder:32b",
+      "source": "src/content_scripts/common/runtime.js:56 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "\"bedrock\"",
+      "description": "AWS Bedrock provider for enterprise-grade LLM services. Requires AWS credentials (accessKeyId, secretAccessKey, sessionToken) and model configuration",
+      "source": "src/background/llm.js:160-284 - Bedrock implementation with EventStream parsing"
+    },
+    {
+      "value": "\"deepseek\"",
+      "description": "DeepSeek API provider. Requires API key configuration and model specification (defaults to 'deepseek-chat')",
+      "source": "src/background/llm.js:343-413 - DeepSeek implementation"
+    },
+    {
+      "value": "\"gemini\"",
+      "description": "Google Gemini API provider. Requires API key configuration and model specification (defaults to 'gemini-2.0-flash')",
+      "source": "src/background/llm.js:415-499 - Gemini implementation"
+    },
+    {
+      "value": "\"custom\"",
+      "description": "Custom OpenAI-compatible LLM service endpoint. Requires service URL, API key, and model configuration for any custom LLM server",
+      "source": "src/background/llm.js:501-590 - Custom provider implementation"
+    }
+  ],
+  "default": "ollama",
+  "readmeDocumented": true,
+  "readmeSection": "settings",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 56)",
+    "src/content_scripts/ui/llmchat.js (line 231)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/ui/llmchat.js",
+      "src/background/llm.js",
+      "src/background/start.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 56,
+        "context": "Initialized in runtime.conf with default value 'ollama'"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/llmchat.js",
+        "line": 231,
+        "function": "onOpen",
+        "context": "Used as fallback when no provider is explicitly passed via opts parameter to LLM chat session"
+      },
+      {
+        "type": "configuration",
+        "file": "src/background/start.js",
+        "lines": "1618-1630",
+        "context": "LLM provider configuration is set up with credentials and models from user settings"
+      },
+      {
+        "type": "enumeration",
+        "file": "src/background/start.js",
+        "function": "getAllLlmProviders",
+        "context": "Returns list of available providers via Object.keys(llmClients) when UI queries available options"
+      }
+    ]
+  },
+  "relatedCommands": [
+    "cmd-llm-chat"
+  ],
+  "relatedSettings": [
+    "llmChatHistory"
+  ],
+  "notes": "This is a user-configurable setting for AI feature integration. The actual provider used may be overridden when opening an LLM chat session by passing an explicit provider option. The availability of providers depends on system configuration: Ollama requires a local server instance, while other providers (Bedrock, DeepSeek, Gemini, Custom) require external API credentials. The extension automatically provides users with the list of configured providers via the getAllLlmProviders RPC call. If an invalid provider name is set, the UI will display available providers for selection.",
+  "example": {
+    "description": "Set the default LLM provider to Gemini",
+    "code": "settings.defaultLLMProvider = \"gemini\";"
+  }
+}

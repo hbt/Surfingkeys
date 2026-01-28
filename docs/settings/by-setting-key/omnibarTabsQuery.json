@@ -1,0 +1,77 @@
+{
+  "short": "Query filter for tabs in Omnibar search",
+  "unique_id": "setting_omnibarTabsQuery",
+  "category": "omnibar",
+  "description": "A query filter object that controls which tabs are included when searching in the Omnibar. This object is passed directly to the Chrome Tabs API query() method to filter tabs based on properties like window ID, active state, muted status, and more. Allows users to customize which tabs appear in Omnibar search results.",
+  "tags": [
+    "omnibar",
+    "tabs",
+    "search",
+    "filter",
+    "query",
+    "chrome-api",
+    "runtime"
+  ],
+  "valueType": "object",
+  "valueDescription": "A Chrome Tabs API queryInfo object with optional properties for filtering tabs (active, audible, autoDiscardable, currentWindow, discarded, frozen, groupId, highlighted, index, lastFocusedWindow, muted, pinned, status, title, url, windowId, windowType)",
+  "values": [
+    {
+      "value": "{}",
+      "description": "Default value - empty object returns all available tabs across all windows",
+      "source": "src/content_scripts/common/runtime.js:79 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "{\"currentWindow\": true}",
+      "description": "Filter to return only tabs in the current (active) window",
+      "source": "src/background/start.js:1189 - Used as default fallback in getTabs handler"
+    },
+    {
+      "value": "{\"active\": true}",
+      "description": "Filter to return only the currently active tab in each window"
+    },
+    {
+      "value": "{\"currentWindow\": true, \"active\": true}",
+      "description": "Filter to return only the active tab in the current window"
+    },
+    {
+      "value": "{\"muted\": false}",
+      "description": "Filter to exclude muted tabs from search results"
+    },
+    {
+      "value": "{\"pinned\": false}",
+      "description": "Filter to exclude pinned tabs from search results"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/ui/omnibar.js",
+      "src/background/start.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 79,
+        "function": "runtime.conf",
+        "context": "Initialized as empty object in runtime configuration"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 823,
+        "function": "OpenURLs handler",
+        "context": "Passed as queryInfo parameter to getTabs message handler"
+      },
+      {
+        "type": "read",
+        "file": "src/background/start.js",
+        "line": 1078,
+        "function": "getTabs",
+        "context": "Received from content script and used to query tabs via chrome.tabs.query()"
+      }
+    ]
+  },
+  "chromeApiReference": "https://developer.chrome.com/docs/extensions/reference/api/tabs#method-query",
+  "notes": "This is a runtime state setting that allows users to customize the tab filtering behavior in Omnibar searches. The setting accepts any valid Chrome Tabs API queryInfo object structure. An empty object {} returns all tabs, while specific properties can be set to filter results. This setting is directly passed to chrome.tabs.query() which enforces the valid property constraints."
+}

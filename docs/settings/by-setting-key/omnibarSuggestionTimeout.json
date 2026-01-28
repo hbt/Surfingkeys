@@ -1,0 +1,57 @@
+{
+  "short": "Delay before fetching omnibar suggestions",
+  "unique_id": "set_omnibar_suggestion_timeout",
+  "category": "omnibar",
+  "description": "The delay in milliseconds before sending a request to fetch search suggestions from the suggestion URL. This timeout helps prevent rate-limiting when typing a long query by allowing the user to type multiple characters before the suggestion request is sent. This is particularly useful for search engines with strict rate limits, such as GitHub's API.",
+  "tags": [
+    "omnibar",
+    "search",
+    "suggestions",
+    "timeout",
+    "debounce",
+    "rate-limiting",
+    "performance"
+  ],
+  "valueType": "integer",
+  "valueDescription": "Delay in milliseconds before fetching suggestions (must be non-negative integer)",
+  "values": [
+    {
+      "value": 200,
+      "description": "Default - 200ms delay before fetching suggestions"
+    },
+    {
+      "value": 0,
+      "description": "Immediate - fetch suggestions without delay (may trigger rate limits)"
+    },
+    {
+      "value": 500,
+      "description": "Conservative - 500ms delay for slower typing or API with strict rate limits"
+    },
+    {
+      "value": 1000,
+      "description": "Very conservative - 1 second delay, suitable for heavily rate-limited APIs"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/ui/omnibar.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 78,
+        "context": "Initialized with default value of 200 milliseconds in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 1422,
+        "function": "getSearchSuggestions",
+        "context": "Used as the delay parameter for setTimeout() before dispatching a suggestion request to prevent rate-limiting on rapid typing"
+      }
+    ]
+  },
+  "notes": "This setting implements a debouncing pattern to optimize API usage. When a user types in the omnibar, the suggestion request is delayed by this amount of milliseconds, allowing multiple keystrokes to be buffered before sending a request. If a new keystroke occurs within this timeout period, the pending request is canceled and the timer is reset. This significantly reduces the number of API calls made to the suggestion endpoint."
+}

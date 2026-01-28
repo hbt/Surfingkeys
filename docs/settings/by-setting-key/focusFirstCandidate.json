@@ -1,0 +1,91 @@
+{
+  "short": "Automatically focus the first candidate in omnibar results",
+  "unique_id": "setting_focusFirstCandidate",
+  "category": "omnibar",
+  "description": "Controls whether the first search result in the omnibar should be automatically focused when results are displayed. When enabled, the first candidate in omnibar search results (bookmarks, open tabs, VI marks, user URLs, etc.) will have visual focus applied, making it ready for selection with Enter. Individual omnibar handlers can override this setting with their own focusFirstCandidate property.",
+  "tags": [
+    "omnibar",
+    "search",
+    "focus",
+    "ui",
+    "interaction",
+    "default-behavior"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "true to automatically focus the first candidate in omnibar results; false to not focus any result by default",
+  "values": [
+    {
+      "value": "false",
+      "description": "Default value; no result is automatically focused when omnibar results are displayed",
+      "source": "src/content_scripts/common/runtime.js:63 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true",
+      "description": "First candidate in omnibar results is automatically focused; used by most omnibar handlers (bookmarks, tabs, marks, user URLs)",
+      "source": "src/content_scripts/ui/omnibar.js:1026, 1171, 1288, 1634 - Handler-specific overrides in AddBookmark, OpenTabs, OpenVIMarks, OpenUserURLs"
+    },
+    {
+      "value": "false",
+      "description": "Specific override for Commands handler which does not auto-focus results",
+      "source": "src/content_scripts/ui/omnibar.js:1471 - Handler-specific override in Commands handler"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/ui/omnibar.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 63,
+        "function": "runtime.conf",
+        "context": "Initialized as false in runtime.conf object, serves as the global default"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 769,
+        "function": "listResults",
+        "context": "Checked with logical OR against handler.focusFirstCandidate to determine if first result should be focused"
+      },
+      {
+        "type": "handler-override",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 1026,
+        "function": "AddBookmark",
+        "context": "Handler sets focusFirstCandidate: true to auto-focus first bookmark folder"
+      },
+      {
+        "type": "handler-override",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 1171,
+        "function": "OpenTabs",
+        "context": "Handler sets focusFirstCandidate: true to auto-focus first tab result"
+      },
+      {
+        "type": "handler-override",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 1288,
+        "function": "OpenVIMarks",
+        "context": "Handler sets focusFirstCandidate: true to auto-focus first VI mark"
+      },
+      {
+        "type": "handler-override",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 1471,
+        "function": "Commands",
+        "context": "Handler sets focusFirstCandidate: false to not auto-focus command results"
+      },
+      {
+        "type": "handler-override",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 1634,
+        "function": "OpenUserURLs",
+        "context": "Handler sets focusFirstCandidate: true to auto-focus first user URL"
+      }
+    ]
+  },
+  "notes": "This is a global runtime configuration setting that serves as a fallback default for omnibar result focusing behavior. Individual omnibar handlers (AddBookmark, OpenTabs, OpenVIMarks, Commands, OpenUserURLs) can override this setting with their own focusFirstCandidate property. The decision to focus is made when results are displayed using a logical OR: if either the global setting OR the handler-specific setting is true, the first result gets focus. This allows granular control per handler while providing a global default."
+}

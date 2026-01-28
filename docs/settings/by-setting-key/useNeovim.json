@@ -1,0 +1,98 @@
+{
+  "short": "Use neovim for external editor instead of built-in vim",
+  "unique_id": "setting_useNeovim",
+  "category": "editing",
+  "description": "Controls whether to use an external neovim instance for text editing instead of the built-in JavaScript-based vim editor. When enabled (true), the extension communicates with a native neovim instance through native messaging (Chrome only). This requires neovim version 0.5 or above to be installed and properly configured for native messaging. When disabled (false), the built-in vim editor implementation is used. The setting is automatically managed by the extension based on whether a neovim server instance is successfully connected.",
+  "tags": [
+    "editing",
+    "vim",
+    "neovim",
+    "external-editor",
+    "input",
+    "chrome-only"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag indicating whether an external neovim instance is available and should be used for text editing",
+  "values": [
+    {
+      "value": "false",
+      "description": "Default value; built-in JavaScript vim editor is used for all text editing operations",
+      "source": "src/content_scripts/common/runtime.js:101 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true or false (dynamically set)",
+      "description": "Automatically set based on native messaging connection status. Set to true if neovim server instance is successfully connected, false if connection fails or is unavailable",
+      "source": "src/background/start.js:1565 - Written in onFullSettingsRequested: data.useNeovim = browser.nvimServer && browser.nvimServer.instance"
+    },
+    {
+      "value": "true (when user explicitly requests neovim)",
+      "description": "User can explicitly request neovim editor via Ctrl-Alt-i keybinding in insert mode (Chrome only)",
+      "source": "src/content_scripts/common/default.js:121 - openVim(true) passed to front.showEditor"
+    },
+    {
+      "value": "false (fallback to vim)",
+      "description": "User can use standard Ctrl-i keybinding in insert mode to use the built-in vim editor",
+      "source": "src/content_scripts/common/default.js:109 - openVim(false) passed to front.showEditor"
+    }
+  ],
+  "default": false,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 101)",
+    "src/background/start.js (line 1565)",
+    "src/content_scripts/front.js (line 309)",
+    "src/content_scripts/common/default.js (line 95-122)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/background/start.js",
+      "src/background/chrome.js",
+      "src/content_scripts/front.js",
+      "src/content_scripts/common/default.js",
+      "src/content_scripts/common/api.js",
+      "src/user_scripts/index.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 101,
+        "context": "Initialized as false in runtime.conf object"
+      },
+      {
+        "type": "write",
+        "file": "src/background/start.js",
+        "line": 1565,
+        "function": "onFullSettingsRequested",
+        "context": "Dynamically set based on neovim server availability: data.useNeovim = browser.nvimServer && browser.nvimServer.instance. This checks if nvimServer object exists and has an active instance promise"
+      },
+      {
+        "type": "write",
+        "file": "src/background/chrome.js",
+        "line": 340,
+        "function": "setupNativeConnection callback",
+        "context": "nvimServer.instance is set to startNative() promise when native connection succeeds, or deleted when connection fails"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/front.js",
+        "line": 309,
+        "function": "showEditor",
+        "context": "Checked as part of condition to determine editor type: if (useNeovim || runtime.conf.useNeovim). When true, sets cmd.file_name for neovim; when false, uses built-in editor"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/default.js",
+        "line": 95,
+        "function": "openVim",
+        "context": "Function parameter that determines which editor to use. Called with openVim(false) for Ctrl-i (built-in vim) and openVim(true) for Ctrl-Alt-i (neovim, Chrome only)"
+      }
+    ]
+  },
+  "platformSupport": {
+    "Chrome": "Full support with native messaging to neovim",
+    "Firefox": "Not supported; neovim keybinding (Ctrl-Alt-i) is not registered on Firefox"
+  },
+  "relatedSettings": [],
+  "notes": "This is a boolean setting that controls which vim editor implementation is used for text editing. The setting is automatically populated by the extension based on whether a neovim server instance can be successfully connected via native messaging. Users cannot directly set this setting in their configuration - it is managed by the extension itself based on system capabilities. On Chrome, users can choose between the built-in vim editor (Ctrl-i) or an external neovim instance (Ctrl-Alt-i). The Ctrl-Alt-i keybinding is only registered on Chrome and requires neovim version 0.5 or above to be installed and configured for native messaging. If neovim connection fails, a warning is logged: 'Failed to connect neovim, please make sure your neovim version 0.5 or above.'"
+}

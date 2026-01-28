@@ -1,0 +1,64 @@
+{
+  "short": "Focus text input after quitting from vim editor",
+  "unique_id": "setting_focusOnSaved",
+  "category": "vim-editor",
+  "description": "Controls whether to automatically focus a text input element after exiting the vim editor mode (Ace editor). When enabled (true), after saving and closing the vim editor, the extension automatically focuses the text input element that was being edited and enters insert mode. When disabled (false), the focus is not automatically restored to the text input element; the user must manually focus it or use Surfingkeys commands to navigate to it. This setting provides a seamless editing experience by restoring focus to the original input element immediately after vim editing is complete.",
+  "tags": [
+    "vim-editor",
+    "focus-management",
+    "input",
+    "user-experience",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to enable/disable automatic focus on text input after exiting vim editor",
+  "values": [
+    {
+      "value": "true",
+      "description": "Default value; text input element automatically receives focus after exiting vim editor and enters insert mode",
+      "source": "src/content_scripts/common/runtime.js:64 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true",
+      "description": "Used in ace_editor_saved action handler to automatically focus the element behind the editor and enter insert mode",
+      "source": "src/content_scripts/front.js:600 - Read in ace_editor_saved action handler to control focus restoration after vim editor saves"
+    },
+    {
+      "value": "false",
+      "description": "When disabled, focus is not automatically restored to the text input after vim editor exits; user must manually focus the element",
+      "source": "src/content_scripts/front.js:600-604 - When false, the focus and insert mode entry are skipped after vim editor save"
+    }
+  ],
+  "default": true,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 64)",
+    "src/content_scripts/front.js (line 600)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/front.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 64,
+        "context": "Initialized as true in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/front.js",
+        "line": 600,
+        "function": "ace_editor_saved action handler",
+        "context": "Checked when vim editor saves; if true and element behind editor is editable, restores focus to that element and enters insert mode"
+      }
+    ]
+  },
+  "relatedSettings": [],
+  "example": {
+    "description": "Disable automatic focus restoration after vim editor",
+    "code": "settings.focusOnSaved = false;"
+  },
+  "notes": "This is a boolean setting that controls focus behavior after vim editor (Ace editor) usage. When enabled (true, the default), the extension automatically restores focus to the text input element that was being edited after the vim editor is closed and saved, immediately entering insert mode for continued editing. This provides a smooth workflow where users can seamlessly transition from vim editing back to the input element without losing focus. When disabled (false), the focus is not automatically restored, allowing users to maintain keyboard navigation or perform other actions after vim editing. The setting only applies when the editor is saved (not when it's closed without saving), and only if the element behind the editor is still editable."
+}

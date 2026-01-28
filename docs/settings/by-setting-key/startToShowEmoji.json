@@ -1,0 +1,83 @@
+{
+  "short": "Characters needed after colon to show emoji suggestion",
+  "unique_id": "setting_startToShowEmoji",
+  "category": "editing",
+  "description": "Controls the minimum number of characters required after the ':' prefix to trigger emoji suggestions in the emoji picker. When a user starts typing ':' followed by emoji name characters in an input field, the emoji picker will only display suggestions once this threshold is reached. For example, with a value of 2, typing ':a' shows no suggestions, but ':ab' triggers the picker to display matching emoji. This setting works in conjunction with enableEmojiInsertion, which must be enabled for emoji picking to work at all.",
+  "tags": [
+    "editing",
+    "emoji",
+    "insertion",
+    "input",
+    "threshold",
+    "character-count",
+    "runtime"
+  ],
+  "valueType": "number",
+  "valueDescription": "Minimum number of characters after ':' required to trigger emoji suggestions",
+  "values": [
+    {
+      "value": "2",
+      "description": "Default value; emoji suggestions appear after typing 2 characters following the ':' prefix (e.g., ':sm' for 'smile')",
+      "source": "src/content_scripts/common/runtime.js:90 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "1",
+      "description": "Show emoji suggestions after typing just 1 character following ':' (e.g., ':s' shows all emoji starting with 's'). More suggestions appear immediately but may be slower to render.",
+      "source": "User customizable via settings"
+    },
+    {
+      "value": "3",
+      "description": "Require 3 characters after ':' before showing suggestions (e.g., ':smi' for 'smile'). Results in fewer matches but faster filtering.",
+      "source": "User customizable via settings"
+    },
+    {
+      "value": "0",
+      "description": "Show all emoji immediately when ':' is pressed with no character requirement. Shows full emoji list on activation.",
+      "source": "User customizable via settings"
+    }
+  ],
+  "default": 2,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 90)",
+    "src/content_scripts/common/insert.js (line 249)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/insert.js",
+      "src/content_scripts/common/cursorPrompt.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 90,
+        "context": "Initialized as numeric value (2) in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/insert.js",
+        "line": 249,
+        "function": "emojiCompletion (keydown handler)",
+        "context": "Retrieved from runtime.conf and passed as the 'threshold' parameter to emojiPrompt.activate()"
+      },
+      {
+        "type": "parameter_usage",
+        "file": "src/content_scripts/common/cursorPrompt.js",
+        "method": "activate(parentElement, data, threshold, insertOffset)",
+        "context": "Used as the threshold property to control when emoji suggestions are displayed based on character count"
+      }
+    ]
+  },
+  "relatedSettings": [
+    "enableEmojiInsertion"
+  ],
+  "relatedCommands": [
+    "Insert emoji completion"
+  ],
+  "example": {
+    "description": "Set emoji suggestion threshold to require only 1 character",
+    "code": "set startToShowEmoji 1;"
+  },
+  "notes": "This is a numeric setting that controls the emoji suggestion threshold. It requires the enableEmojiInsertion setting to be enabled (true) for the emoji picker feature to work at all. The threshold parameter is passed directly to the CursorPrompt.activate() method, which uses it to determine when to display emoji suggestions. Lower values (0-1) show suggestions immediately or very quickly, while higher values (3+) require more typing before suggestions appear. This setting affects the emoji insertion feature when users press ':' in text input fields during insert mode."
+}

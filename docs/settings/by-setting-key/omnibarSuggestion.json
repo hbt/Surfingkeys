@@ -1,0 +1,64 @@
+{
+  "short": "Whether to show search suggestions in the omnibar",
+  "unique_id": "setting_omnibarSuggestion",
+  "category": "omnibar",
+  "description": "Controls whether search suggestions are displayed while typing in the omnibar. When enabled, the omnibar will fetch and display search suggestions from the configured search alias's suggestion API. This requires a valid suggestionURL to be configured for the search alias. The suggestions are fetched after a configurable delay (omnibarSuggestionTimeout) to avoid excessive API requests while the user is still typing.",
+  "tags": [
+    "omnibar",
+    "search",
+    "suggestions",
+    "ui",
+    "feature",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to enable/disable search suggestions in the omnibar",
+  "values": [
+    {
+      "value": "true",
+      "description": "Default value; search suggestions are fetched and displayed as the user types in the omnibar",
+      "source": "src/content_scripts/common/runtime.js:77 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "false",
+      "description": "Search suggestions are disabled; the omnibar will not fetch or display suggestions regardless of configuration",
+      "source": "src/content_scripts/ui/omnibar.js:1394 - When showSuggestions is false, empty suggestions list is passed to listSuggestions"
+    }
+  ],
+  "default": true,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 77)",
+    "src/content_scripts/ui/omnibar.js (line 1391)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/ui/omnibar.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 77,
+        "context": "Initialized as true in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 1391,
+        "function": "onInput",
+        "context": "Checked to determine whether to fetch search suggestions: canSuggest && runtime.conf.omnibarSuggestion"
+      }
+    ]
+  },
+  "example": {
+    "description": "Disable search suggestions to reduce API requests",
+    "code": "settings.omnibarSuggestion = false;"
+  },
+  "relatedSettings": [
+    "omnibarSuggestionTimeout",
+    "omnibarMaxResults",
+    "omnibarPosition"
+  ],
+  "notes": "This is a boolean runtime setting that controls the availability of search suggestions in the omnibar. When enabled, the extension will make HTTP requests to the suggestion API of the configured search alias (e.g., Google Suggest, DuckDuckGo Suggest) while the user types. The actual suggestion request is delayed by omnibarSuggestionTimeout (default 200ms) to reduce the number of API calls and respect rate limits. This setting requires a valid suggestionURL to be configured for the search alias; if no suggestionURL is available, suggestions will not be shown regardless of this setting's value."
+}
