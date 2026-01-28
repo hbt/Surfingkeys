@@ -11,6 +11,8 @@
             padding: 20px;
             max-width: 800px;
             margin: 0 auto;
+            /* Enable horizontal scrolling */
+            min-width: 3000px;
         }
         .section {
             margin-bottom: 100px;
@@ -20,11 +22,24 @@
         }
         h1 { color: #333; }
         h2 { color: #666; }
+        /* Wide content for horizontal scrolling */
+        .wide-content {
+            width: 2800px;
+            background: #e0e0e0;
+            padding: 10px;
+            margin: 20px 0;
+            white-space: nowrap;
+            overflow: visible;
+        }
     </style>
 </head>
 <body>
     <h1>Scroll Test Page</h1>
     <p>This page is designed for testing scroll commands. It has no external resources or network requests.</p>
+
+    <div class="wide-content">
+        Wide content for horizontal scrolling: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+    </div>
 
     <div class="section">
         <h2>Section 1</h2>

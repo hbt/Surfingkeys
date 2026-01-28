@@ -17,7 +17,7 @@ interface WaitOptions {
 }
 
 interface ScrollWaitOptions extends WaitOptions {
-    direction: 'up' | 'down';
+    direction: 'up' | 'down' | 'left' | 'right';
     minDelta?: number;
 }
 
@@ -98,10 +98,17 @@ export async function clickAt(ws: WebSocket, x: number, y: number): Promise<void
 }
 
 /**
- * Get scroll position
+ * Get scroll position (vertical)
  */
 export async function getScrollPosition(ws: WebSocket): Promise<number> {
     return executeInTarget(ws, 'window.scrollY');
+}
+
+/**
+ * Get horizontal scroll position
+ */
+export async function getScrollPositionX(ws: WebSocket): Promise<number> {
+    return executeInTarget(ws, 'window.scrollX');
 }
 
 /**
@@ -215,6 +222,30 @@ export async function waitForScrollChange(
     }, timeout, interval);
 
     return getScrollPosition(ws);
+}
+
+/**
+ * Wait until horizontal scroll position moves at least minDelta in a direction.
+ * Returns the new scroll position once the condition is met.
+ */
+export async function waitForScrollChangeX(
+    ws: WebSocket,
+    baseline: number,
+    options: ScrollWaitOptions
+): Promise<number> {
+    const timeout = options.timeoutMs ?? 4000;
+    const interval = options.intervalMs ?? 100;
+    const minDelta = options.minDelta ?? 1;
+
+    await waitFor(async () => {
+        const current = await getScrollPositionX(ws);
+        if (options.direction === 'right') {
+            return current - baseline >= minDelta;
+        }
+        return baseline - current >= minDelta;
+    }, timeout, interval);
+
+    return getScrollPositionX(ws);
 }
 
 /**
