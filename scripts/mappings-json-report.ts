@@ -118,6 +118,20 @@ interface SettingsAnnotation {
     default?: any;
 }
 
+interface CustomConfigMapping {
+    key: string;
+    type: 'mapkey' | 'vmapkey' | 'imapkey' | 'cmapkey' | 'map' | 'unmap';
+    unique_id?: string;
+    description?: string;
+}
+
+interface CustomConfiguration {
+    summary: {
+        total: number;
+    };
+    mappings: CustomConfigMapping[];
+}
+
 interface Report {
     mappings: {
         summary: Summary;
@@ -134,6 +148,7 @@ interface Report {
         excluded: ExcludedSetting[];
         list: any[];
     };
+    custom_configuration?: CustomConfiguration;
 }
 
 // ============================================================================
@@ -1242,6 +1257,115 @@ function loadSettingsAnnotations(): Map<string, SettingsAnnotation> {
 }
 
 // ============================================================================
+// CUSTOM CONFIGURATION PARSER
+// ============================================================================
+
+/**
+ * Parse custom configuration file using AST
+ * Extracts mapkey/vmapkey/imapkey/cmapkey/map/unmap calls
+ * Returns custom mappings with optional unique_id and description
+ */
+function parseCustomConfigAST(configPath: string): CustomConfiguration {
+    const mappings: CustomConfigMapping[] = [];
+
+    if (!fs.existsSync(configPath)) {
+        return {
+            summary: { total: 0 },
+            mappings: []
+        };
+    }
+
+    const code = fs.readFileSync(configPath, 'utf-8');
+
+    let ast;
+    try {
+        ast = parse(code, {
+            sourceType: 'module',
+            plugins: ['jsx']
+        });
+    } catch (e) {
+        // Return empty config if file can't be parsed
+        return {
+            summary: { total: 0 },
+            mappings: []
+        };
+    }
+
+    traverse(ast, {
+        CallExpression(path: any) {
+            const callee = path.node.callee;
+
+            // Determine function name
+            let functionName: string | undefined;
+
+            if (t.isIdentifier(callee)) {
+                // Direct call: mapkey(...), unmap(...), etc.
+                functionName = callee.name;
+            } else if (t.isMemberExpression(callee) && t.isIdentifier(callee.property)) {
+                // Member call: api.mapkey(...) or self.mapkey(...)
+                functionName = callee.property.name;
+            }
+
+            // Check if it's a mapping function we care about
+            const supportedFunctions = ['mapkey', 'vmapkey', 'imapkey', 'cmapkey', 'mapcmdkey', 'vmapcmdkey', 'imapcmdkey', 'cmapcmdkey', 'map', 'unmap'];
+            if (!functionName || !supportedFunctions.includes(functionName)) {
+                return;
+            }
+
+            const args = path.node.arguments;
+
+            // All functions need at least a key argument
+            if (args.length < 1) return;
+
+            // Extract key (first argument)
+            const key = extractValue(args[0]);
+            if (typeof key !== 'string') return;
+
+            let unique_id: string | undefined;
+            let description: string | undefined;
+
+            // For mapcmdkey/vmapcmdkey/imapcmdkey/cmapcmdkey: second arg is the unique_id directly
+            if (['mapcmdkey', 'vmapcmdkey', 'imapcmdkey', 'cmapcmdkey'].includes(functionName)) {
+                if (args.length >= 2) {
+                    const secondArg = extractValue(args[1]);
+                    if (typeof secondArg === 'string') {
+                        unique_id = secondArg;
+                    }
+                }
+            }
+            // For mapkey/vmapkey/imapkey/cmapkey: annotation is 2nd argument
+            // For map/unmap: description might be in a different position or options object
+            else if (['mapkey', 'vmapkey', 'imapkey', 'cmapkey'].includes(functionName)) {
+                if (args.length >= 2) {
+                    const annotation = extractValue(args[1]);
+
+                    // If annotation is an object, extract unique_id and short/description
+                    if (typeof annotation === 'object' && annotation !== null) {
+                        unique_id = annotation.unique_id;
+                        description = annotation.short || annotation.description;
+                    } else if (typeof annotation === 'string') {
+                        // For legacy string annotations, use as description
+                        description = annotation;
+                    }
+                }
+            }
+
+            mappings.push({
+                key,
+                type: functionName as any,
+                ...(unique_id && { unique_id }),
+                ...(description && { description })
+            });
+        }
+    });
+
+    return {
+        summary: { total: mappings.length },
+        mappings
+    };
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -1273,13 +1397,18 @@ function main(): void {
     // Generate summary
     const summary = generateSummary(mappings, testMap, settingsUsages);
 
+    // Parse custom configuration
+    const customConfigPath = path.join(process.env.HOME || '/root', '.surfingkeys-2026.js');
+    const customConfig = parseCustomConfigAST(customConfigPath);
+
     // Create report
     const report: Report = {
         mappings: {
             summary,
             list: mappings
         },
-        settings: settingsStats
+        settings: settingsStats,
+        ...(customConfig.mappings.length > 0 && { custom_configuration: customConfig })
     };
 
     // Output JSON
