@@ -1,0 +1,109 @@
+{
+  "short": "Array of hostnames to exclude from frame looping with 'w'",
+  "unique_id": "setting_ignoredFrameHosts",
+  "category": "frame-navigation",
+  "description": "An array of URL origins (hostname patterns) that should be excluded from frame switching when using the 'w' command to loop through frames on a page. When Surfingkeys initializes frames and scripts in iframes, it checks if the iframe's origin matches any of these patterns. If a match is found, the frame is skipped from normal Surfingkeys functionality. This is particularly useful for excluding advertisement frames, tracking frames, or other embedded content that should not receive keyboard input from Surfingkeys. By default, Google's ad syndication frame is excluded to prevent interfering with ad networks.",
+  "tags": [
+    "frame-navigation",
+    "frame-switching",
+    "iframe",
+    "ads",
+    "filtering",
+    "blocking",
+    "advanced"
+  ],
+  "valueType": "array of strings",
+  "valueDescription": "An array of full URL origins (protocol + hostname) as strings. Each entry should be a complete origin like 'https://example.com' or 'https://tpc.googlesyndication.com'. Frames whose window.origin matches any entry in this array will be excluded from Surfingkeys frame initialization and keyboard handling.",
+  "values": [
+    {
+      "value": "[\"https://tpc.googlesyndication.com\"]",
+      "description": "Default value; excludes Google's ad syndication frame which is commonly embedded for advertisements",
+      "source": "src/content_scripts/common/runtime.js:96 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "[]",
+      "description": "Empty array; all frames (subject to size and visibility checks) will be initialized for Surfingkeys",
+      "source": "User configuration example"
+    },
+    {
+      "value": "[\"https://tpc.googlesyndication.com\", \"https://pagead2.googlesyndication.com\"]",
+      "description": "Multiple Google ad services excluded",
+      "source": "User configuration example"
+    },
+    {
+      "value": "[\"https://ads.example.com\", \"https://tracker.example.com\"]",
+      "description": "Custom ad and tracking frames excluded for a specific site",
+      "source": "User configuration example"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/content.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 96,
+        "function": "runtime.conf",
+        "context": "Initialized as array with default Google ad syndication URL in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/content.js",
+        "line": 240,
+        "function": "window.getFrameId",
+        "context": "Checked using indexOf() to determine if current iframe should be initialized with Surfingkeys"
+      },
+      {
+        "type": "test",
+        "file": "src/content_scripts/content.js",
+        "line": 240,
+        "function": "window.getFrameId",
+        "context": "Tests if window.origin matches any entry in ignoredFrameHosts array; if found (index !== -1), frame initialization is skipped"
+      }
+    ]
+  },
+  "relatedCommands": [
+    "cmd_next_frame (w) - Loop through frames; ignored frames are skipped"
+  ],
+  "relatedSettings": [],
+  "usageNotes": [
+    "Each entry must be a complete origin string including the protocol (http:// or https://)",
+    "The comparison uses window.origin which is the full scheme + hostname (e.g., 'https://example.com')",
+    "Ignored frames still load normally in the browser but will not have Surfingkeys functionality (no keyboard shortcuts or visual mode)",
+    "Frames are also filtered by other criteria: minimum size (16x16), visibility, z-index, and whether they have content",
+    "If a frame is ignored, it won't appear in the frame loop when pressing 'w'",
+    "This setting is checked in the getFrameId function which is called on frame focus or when content needs to be initialized",
+    "Advertisement and tracking frame origins should be added here to prevent keyboard input interference"
+  ],
+  "implementationDetails": {
+    "checkingLogic": "runtime.conf.ignoredFrameHosts.indexOf(window.origin) === -1",
+    "meaning": "The frame is only initialized if its origin is NOT found in the ignoredFrameHosts array (indexOf returns -1 when not found)"
+  },
+  "examples": [
+    {
+      "title": "Exclude Google ad services",
+      "description": "Prevent Surfingkeys from initializing in Google ad frames",
+      "code": "settings.ignoredFrameHosts = [\n  \"https://tpc.googlesyndication.com\",\n  \"https://pagead2.googlesyndication.com\"\n]",
+      "effect": "These Google ad frames will be skipped when looping frames with 'w'"
+    },
+    {
+      "title": "Exclude multiple ad networks",
+      "description": "Exclude several common advertising networks",
+      "code": "settings.ignoredFrameHosts = [\n  \"https://tpc.googlesyndication.com\",\n  \"https://ads.facebook.com\",\n  \"https://adservice.google.com\"\n]",
+      "effect": "Frames from these origins will not receive Surfingkeys keyboard shortcuts"
+    },
+    {
+      "title": "Allow all frames (empty list)",
+      "description": "Initialize Surfingkeys in all frames that meet size/visibility criteria",
+      "code": "settings.ignoredFrameHosts = []",
+      "effect": "No frames are excluded by this setting (other size/visibility checks still apply)"
+    }
+  ],
+  "notes": "This is a whitelist-inversion setting: the ignoredFrameHosts array contains frames that should NOT be initialized, rather than frames that SHOULD be. Frames are filtered at initialization time in window.getFrameId(), which is called when a frame receives focus or when content scripts need to initialize. The setting is particularly useful for pages with many advertisement or tracking iframes, which would otherwise slow down Surfingkeys or interfere with normal browsing. Users should add any problematic ad or tracking frame origins to this array to improve performance and usability.",
+  "security": {
+    "note": "This setting affects which frames receive Surfingkeys functionality and should be carefully configured to avoid disabling the extension on legitimate content frames."
+  }
+}

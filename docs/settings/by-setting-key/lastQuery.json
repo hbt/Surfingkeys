@@ -1,0 +1,91 @@
+{
+  "short": "Last find-in-page query string for visual mode",
+  "unique_id": "setting_lastQuery",
+  "category": "visual-mode",
+  "description": "Stores the most recent find-in-page query string used in visual mode. This setting enables the visual mode to remember and reuse the last search query when navigating through matches with 'n' or 'N' commands, or when the page is resized. The setting is automatically populated from the browser's find history.",
+  "tags": [
+    "visual-mode",
+    "find",
+    "search",
+    "query",
+    "state",
+    "runtime"
+  ],
+  "valueType": "string",
+  "valueDescription": "A regular expression pattern string representing the last find-in-page query. Empty string indicates no previous query.",
+  "values": [
+    {
+      "value": "\"\"",
+      "description": "Default value; no previous find query has been performed",
+      "source": "src/content_scripts/common/runtime.js:70 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "rs.findHistory[0] or \"\"",
+      "description": "Set from browser's find history when settings are applied; populated with the most recent find query if history exists, otherwise empty string",
+      "source": "src/content_scripts/content.js:115 - Written in applySettings function"
+    },
+    {
+      "value": "<regex_pattern_string>",
+      "description": "Any valid JavaScript regex pattern used for highlighting matches in visual mode",
+      "source": "src/content_scripts/common/visual.js:100, 101, 842, 843, 844 - Read in createVisual and next functions for highlighting and navigation"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/content.js",
+      "src/content_scripts/common/visual.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 70,
+        "context": "Initialized as empty string in runtime.conf object"
+      },
+      {
+        "type": "write",
+        "file": "src/content_scripts/content.js",
+        "line": 115,
+        "function": "applySettings",
+        "context": "Set from findHistory on settings load"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/visual.js",
+        "line": 100,
+        "function": "createVisual",
+        "context": "Checked and used when page resizes to update visual state"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/visual.js",
+        "line": 101,
+        "function": "createVisual",
+        "context": "Passed to visualUpdate to refresh highlights on resize"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/visual.js",
+        "line": 842,
+        "function": "next",
+        "context": "Checked to determine if a previous query exists when navigating with 'n' key"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/visual.js",
+        "line": 843,
+        "function": "next",
+        "context": "Used to create RegExp pattern for highlighting matches (used twice: once with caseSensitive flag)"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/visual.js",
+        "line": 844,
+        "function": "next",
+        "context": "Passed to visualEnter to enter visual mode with the previous query"
+      }
+    ]
+  },
+  "notes": "This is a runtime state setting that is populated from the browser's find history. It persists across page reloads within the same session and is used to support the visual mode's find-and-navigate functionality. The setting is read-only from the user's perspective; it's automatically managed by the extension based on find history."
+}

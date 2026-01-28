@@ -1,0 +1,75 @@
+{
+  "short": "Force threshold for continuous scrolling",
+  "unique_id": "setting_scrollFriction",
+  "category": "movement",
+  "description": "Controls the force (in milliseconds of key hold duration) required to transition from a single scroll step to continuous scrolling. When a scroll key (j/k/h/l) is held down, the initial scroll step is executed immediately. After the initial step completes, if the key is still held and the hold duration exceeds scrollFriction, continuous scrolling begins. A higher value requires longer key hold before continuous scrolling starts, which helps maintain precision for the first scroll step but may feel less responsive. A value of 0 (default) means continuous scrolling begins immediately after the initial step completes.",
+  "tags": [
+    "scroll",
+    "movement",
+    "keyboard",
+    "continuous-scroll",
+    "friction",
+    "smoothness",
+    "j",
+    "k",
+    "h",
+    "l",
+    "delay",
+    "runtime"
+  ],
+  "valueType": "number",
+  "valueDescription": "Non-negative integer representing milliseconds of key hold time required to enable continuous scrolling after the initial scroll step",
+  "values": [
+    {
+      "value": 0,
+      "description": "Default value; continuous scrolling begins immediately after first step with no delay",
+      "source": "src/content_scripts/common/runtime.js:97 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "<positive integer>",
+      "description": "User-configurable value in milliseconds that adds a delay before continuous scrolling activates",
+      "source": "User settings configuration"
+    }
+  ],
+  "default": 0,
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/normal.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 97,
+        "context": "Initialized with default value 0 in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 436,
+        "function": "smoothScrollBy",
+        "context": "Compared against keyHeld duration to determine if continuous scrolling should be enabled after initial scroll step"
+      }
+    ]
+  },
+  "notes": "This setting works in conjunction with smoothScroll to control the behavior of smooth scrolling animations. The keyHeld variable tracks how long the scroll key has been held (in animation frame steps). When stepCompleted is true (first scroll step is done) and keyHeld > scrollFriction, the scroll begins to repeat continuously. Setting a higher value can help ensure the first scroll step is precise by preventing immediate repeat scrolling, but may introduce a noticeable pause before continuous scrolling begins. Values are compared as numbers, representing animation frame iterations rather than actual milliseconds despite the conceptual meaning.",
+  "relatedSettings": [
+    "scrollStepSize",
+    "smoothScroll"
+  ],
+  "relatedCommands": [
+    "cmd-scroll-down",
+    "cmd-scroll-up",
+    "cmd-scroll-left",
+    "cmd-scroll-right",
+    "cmd-scroll-page-down",
+    "cmd-scroll-full-page-down",
+    "cmd-scroll-page-up",
+    "cmd-scroll-full-page-up"
+  ],
+  "example": {
+    "description": "Set a friction threshold of 50 to add delay before continuous scrolling",
+    "code": "settings.scrollFriction = 50;"
+  }
+}

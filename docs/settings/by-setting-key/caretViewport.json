@@ -1,0 +1,87 @@
+{
+  "short": "Limit hints generation on v in format [top, left, bottom, right]",
+  "unique_id": "setting_caretViewport",
+  "category": "visual-mode",
+  "description": "Defines a rectangular viewport region within which hints are generated when entering visual mode with the 'v' command. This allows users to restrict hint generation to a specific area of the page, such as the center of the viewport or a particular section. The setting is useful for focusing text selection on specific regions of the page while using caret browsing in visual mode.",
+  "tags": [
+    "visual-mode",
+    "caret",
+    "hints",
+    "viewport",
+    "text-selection",
+    "positioning"
+  ],
+  "valueType": "array",
+  "valueDescription": "An array of four integers representing [top, left, bottom, right] pixel coordinates relative to the viewport. Each value defines the boundary of the rectangular region within which hints will be generated. If the array is not exactly 4 elements or the setting is null, the entire viewport is used as the hint generation region.",
+  "values": [
+    {
+      "value": "null",
+      "description": "Default value; hints are generated across the entire viewport (from 0 to window.innerHeight for vertical, 0 to window.innerWidth for horizontal)",
+      "source": "src/content_scripts/common/runtime.js:99 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "[0, 0, window.innerHeight, window.innerWidth]",
+      "description": "Equivalent to null; generates hints for the entire window. This is the default fallback used when caretViewport is not set or is invalid.",
+      "source": "src/content_scripts/common/hints.js:882 - Default initialization in createHintsForTextNode function"
+    },
+    {
+      "value": "[top, left, bottom, right]",
+      "description": "Custom viewport region where top/bottom are Y-axis coordinates (0 at window top), and left/right are X-axis coordinates (0 at window left). For example, [window.innerHeight / 2 - 10, 0, window.innerHeight / 2 + 10, window.innerWidth] limits hints to a horizontal band in the middle of the window.",
+      "source": "src/content_scripts/common/hints.js:883-884 - Read and validated in createHintsForTextNode function"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/hints.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 99,
+        "context": "Initialized as null in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 883,
+        "function": "createHintsForTextNode",
+        "context": "Checked to determine if a custom viewport region is defined (must be array of length 4)"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 884,
+        "function": "createHintsForTextNode",
+        "context": "Used to replace the default viewport bounds for hint generation filtering"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/hints.js",
+        "lines": [887, 888, 889, 890],
+        "function": "createHintsForTextNode",
+        "context": "Array elements indexed as [0]=top, [1]=left, [2]=bottom, [3]=right; used to filter out text elements outside the viewport region"
+      }
+    ]
+  },
+  "notes": "This is a runtime configuration setting that affects the visual mode hint generation behavior. The setting expects an array of exactly 4 numeric elements. If the array length is not 4 or the setting is null/undefined, the entire window viewport is used. Coordinates are in pixels relative to the viewport (0,0 at top-left corner). Text elements whose position falls outside this region will not have hints generated for them during visual mode text selection.",
+  "examples": [
+    {
+      "description": "Restrict hints to the vertical center of the window (useful for focusing on content while ignoring headers/footers)",
+      "code": "settings.caretViewport = [window.innerHeight / 2 - 10, 0, window.innerHeight / 2 + 10, window.innerWidth];"
+    },
+    {
+      "description": "Restrict hints to the left half of the window",
+      "code": "settings.caretViewport = [0, 0, window.innerHeight, window.innerWidth / 2];"
+    },
+    {
+      "description": "Restrict hints to a centered square region",
+      "code": "settings.caretViewport = [100, 100, window.innerHeight - 100, window.innerWidth - 100];"
+    },
+    {
+      "description": "Reset to use entire viewport (equivalent to null)",
+      "code": "settings.caretViewport = null;"
+    }
+  ]
+}

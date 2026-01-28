@@ -1,0 +1,63 @@
+{
+  "short": "Whether digits are reserved for repeats",
+  "unique_id": "setting_digitForRepeat",
+  "category": "keyboard-mapping",
+  "description": "Controls whether numeric digits (0-9) are reserved for specifying repeat counts for commands or whether they can be freely mapped as regular key bindings. When enabled (true), digits are intercepted and used to build a repeat count prefix (e.g., '3j' scrolls down 3 times, '10w' moves forward 10 words). When disabled (false), digits are treated as normal keys and can be mapped to custom commands, allowing users to bind numeric keys to arbitrary actions. This setting affects all modes that support command repetition, including Normal mode.",
+  "tags": [
+    "keyboard-mapping",
+    "repeat",
+    "command-execution",
+    "digit-keys",
+    "mode-control",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to enable/disable digit reservation for repeat counts",
+  "values": [
+    {
+      "value": "true",
+      "description": "Default value; digits are reserved for repeat counts. When user presses a digit key at the start of mapping (e.g., 3), it is accumulated into a repeat count rather than being treated as a command key. Enables keyboard shortcuts like '5j' to repeat the 'j' command 5 times.",
+      "source": "src/content_scripts/common/runtime.js:73 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "false",
+      "description": "Digits are treated as regular key bindings and can be freely mapped to custom commands. Users can bind '1', '2', ... '9' to arbitrary actions without digit values being consumed for repeat counts.",
+      "source": "docs/settings-reference.md, README.md - Documented behavior when disabled"
+    },
+    {
+      "value": "true (checked in mode handling)",
+      "description": "Checked in Normal mode's keydown handler when a digit key is pressed at the top-level mappings to determine whether to accumulate the digit into this.repeats or treat it as a command key lookup. When true and conditions are met, digit is appended to this.repeats.",
+      "source": "src/content_scripts/common/mode.js:294 - Conditional check in _handleMapKey for digit accumulation"
+    }
+  ],
+  "default": true,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 73)",
+    "src/content_scripts/common/mode.js (line 294)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/mode.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 73,
+        "context": "Initialized as true in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/mode.js",
+        "line": 294,
+        "function": "_handleMapKey",
+        "context": "Checked as part of condition to determine if a digit key should be accumulated for repeat count. The full condition is: this.repeats !== undefined && this.map_node === this.mappings && runtime.conf.digitForRepeat && (key >= '1' || (this.repeats !== '' && key >= '0')) && key <= '9' && this.map_node.getWords().length > 0. When all conditions are true, the digit is accumulated into this.repeats instead of being looked up in the keymap."
+      }
+    ]
+  },
+  "relatedSettings": [
+    "repeatThreshold"
+  ],
+  "notes": "This is a runtime configuration setting that determines how numeric keys are interpreted at the keyboard level. When enabled (true), numeric digits function as repeat prefixes and are not individually mapped as commands. When disabled (false), users can map numeric keys to arbitrary commands, which is useful for creating number-based shortcuts. The repeat threshold is further controlled by the repeatThreshold setting, which limits the maximum repeat count that can be used. Related documentation can be found in the glossary which mentions 'Number prefix for actions (e.g., 3j scrolls down 3 times). Controlled by settings.digitForRepeat.'"
+}

@@ -1,0 +1,87 @@
+{
+  "short": "Enable auto focus on input elements after mouse click",
+  "unique_id": "setting_enableAutoFocus",
+  "category": "focus-management",
+  "description": "Controls whether input elements should automatically receive focus when they become available through mouse clicks or dynamic page modifications. When enabled (true), clicking on a link that focuses an input element will allow the element to receive focus normally. When disabled (false), input elements that would receive focus through mouse interaction are prevented from getting focus, allowing continued use of Surfingkeys keyboard commands without needing to press Esc first. This setting works in conjunction with stealFocusOnLoad, which controls initial page load focus behavior. Disabling enableAutoFocus requires explicit user action (Escape key) to exit input focus and return to normal keyboard navigation mode.",
+  "tags": [
+    "focus-management",
+    "input",
+    "mouse-interaction",
+    "keyboard",
+    "user-experience",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to enable/disable auto focus on input elements after mouse click",
+  "values": [
+    {
+      "value": "true",
+      "description": "Default value; input elements receive focus automatically when clicked or made available through dynamic page changes",
+      "source": "src/content_scripts/common/runtime.js:60 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true",
+      "description": "Used in focus event handler to allow focus to pass to editable elements when enableAutoFocus is enabled",
+      "source": "src/content_scripts/common/normal.js:262 - Read in window focus event handler to determine if focus should be allowed"
+    },
+    {
+      "value": "true",
+      "description": "Used in mousedown event handler to enable focus passing on mouse clicks when enableAutoFocus is enabled",
+      "source": "src/content_scripts/common/normal.js:284 - Read in mousedown event handler to control passFocus behavior"
+    },
+    {
+      "value": "false",
+      "description": "When disabled, input elements do not receive focus on click or dynamic availability; user must use Escape to exit focused inputs before keyboard commands work",
+      "source": "src/content_scripts/common/normal.js:262-264 - Prevents focus passing when enableAutoFocus is false"
+    }
+  ],
+  "default": true,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 60)",
+    "src/content_scripts/common/normal.js (line 262, 284)",
+    "src/content_scripts/common/clipboard.js (line 14)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/normal.js",
+      "src/content_scripts/common/clipboard.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 60,
+        "context": "Initialized as true in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 262,
+        "function": "window focus event handler",
+        "context": "Checked when window regains focus; if false, prevents focus on input elements even if _passFocus is true or element has enableAutoFocus set"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 284,
+        "function": "mousedown event handler",
+        "context": "Checked on mouse click to determine if human mouse clicks should allow focus to pass to editable elements. When true, all clicks pass focus; when false, only trusted events pass focus"
+      },
+      {
+        "type": "attribute_reference",
+        "file": "src/content_scripts/common/clipboard.js",
+        "line": 14,
+        "context": "The clipboard holder element's enableAutoFocus attribute is set to true (DOM-level attribute, not the setting), used alongside the setting to control clipboard element focus behavior"
+      }
+    ]
+  },
+  "relatedSettings": [
+    "stealFocusOnLoad"
+  ],
+  "example": {
+    "description": "Disable auto focus to prevent input elements from receiving focus on mouse click",
+    "code": "settings.enableAutoFocus = false;"
+  },
+  "notes": "This is a boolean setting that controls whether input elements automatically receive focus when clicked or dynamically made available on the page. The default value (true) allows normal browser focus behavior, enabling users to interact with input elements freely. When set to false, input elements are prevented from receiving focus through mouse clicks, which helps maintain keyboard command availability without needing to press Escape. This setting is distinct from stealFocusOnLoad: stealFocusOnLoad applies only to the initial page load, while enableAutoFocus controls focus behavior for dynamically-shown elements and mouse-triggered focus events. These two settings work together to provide comprehensive control over when input elements can automatically receive focus."
+}

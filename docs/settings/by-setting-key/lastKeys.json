@@ -1,0 +1,91 @@
+{
+  "short": "Last pressed keys (internal state)",
+  "unique_id": "setting_lastKeys",
+  "category": "repeat-action",
+  "description": "Stores the last executed keyboard action as an array of keystroke strings. The first element is the keys pressed in normal mode, and subsequent elements contain mode name and keys in tab-separated format (e.g., 'ModeName\\tkeys'). This setting enables the repeat action functionality (use the '.' key to repeat) and the show-last-action functionality (use the '`' key). The setting is automatically populated whenever a user executes a keyboard action.",
+  "tags": [
+    "repeat",
+    "action",
+    "keyboard",
+    "state",
+    "runtime",
+    "internal"
+  ],
+  "valueType": "array",
+  "valueDescription": "An array of keystroke strings where the first element is the last normal mode keystroke, and optional subsequent elements are mode-specific keystrokes in 'ModeName\\tkeys' format. Empty array indicates no previous action has been recorded.",
+  "values": [
+    {
+      "value": "[]",
+      "description": "Default value; no keyboard action has been recorded yet",
+      "source": "src/content_scripts/common/runtime.js:45 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "[\"se\"]",
+      "description": "Simple keystroke without mode switching; represents the last action in normal mode only",
+      "source": "src/content_scripts/common/normal.js:651 - Set when a keystroke is executed via setLastKeys function"
+    },
+    {
+      "value": "[\"f\", \"Hints\\tBA\"]",
+      "description": "Keystroke with mode switching; first element is the initial normal mode keystroke, subsequent elements contain mode name and keys for that mode",
+      "source": "src/content_scripts/common/normal.js:667 - Built via appendKeysForRepeat function when mode transitions occur"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/normal.js",
+      "src/content_scripts/common/default.js",
+      "src/background/start.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 45,
+        "context": "Initialized as empty string in runtime.conf object"
+      },
+      {
+        "type": "write",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 651,
+        "function": "setLastKeys",
+        "context": "Set as single-element array containing the keystroke when a keyboard action is executed"
+      },
+      {
+        "type": "write",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 667,
+        "function": "appendKeysForRepeat",
+        "context": "Extended with additional mode-specific keystrokes when mode transitions occur during a single action sequence"
+      },
+      {
+        "type": "write",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 659,
+        "function": "saveLastKeys",
+        "context": "Sent to storage via RUNTIME('localData') to persist the last keystroke sequence"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/default.js",
+        "line": 177,
+        "function": "cmd_tools_show_last_action",
+        "context": "Decoded and displayed to user via showPopup when '`' command is executed"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/default.js",
+        "line": 485,
+        "function": "cmd_tools_repeat_action",
+        "context": "Replayed via feedkeys when '.' command is executed; first element fed to normal mode, additional elements fed to respective mode handlers"
+      },
+      {
+        "type": "broadcast",
+        "file": "src/background/start.js",
+        "line": 2043,
+        "context": "Broadcast to all content scripts when lastKeys is updated via localData storage"
+      }
+    ]
+  },
+  "notes": "This is a runtime state setting that is automatically managed by the extension based on user keyboard input. It is stored in chrome.storage.local (not sync) to avoid hitting chrome.storage.sync rate limits. The setting is read-only from the user's perspective; users cannot directly configure it. The array structure allows capturing complex action sequences that span multiple modes (e.g., normal mode → hints mode). Elements after the first are formatted as 'ModeName\\tkeys' to enable proper mode-specific replay of the recorded action."
+}

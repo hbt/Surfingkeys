@@ -1,0 +1,51 @@
+{
+  "short": "Extra CSS selector for hints mode",
+  "unique_id": "clickableSelector",
+  "category": "hints",
+  "description": "An extra CSS selector to match additional HTML elements that should be treated as clickable/focusable in hints mode. This is useful for web applications that use custom components or non-standard HTML elements that Surfingkeys doesn't recognize by default.",
+  "tags": [
+    "css-selector",
+    "hints-mode",
+    "customization"
+  ],
+  "valueType": "string",
+  "valueDescription": "A valid CSS selector string, or empty string to disable custom selectors",
+  "values": [
+    {
+      "value": "\"\"",
+      "description": "Default value; no custom selectors are applied, only built-in clickable elements are recognized",
+      "source": "src/content_scripts/common/runtime.js:53 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "\"*.jfk-button, *.goog-flat-menu-button\"",
+      "description": "Example for Google applications; matches Google's custom button components",
+      "source": "README.md:559 - Documented example"
+    },
+    {
+      "value": "<any_css_selector>",
+      "description": "Any valid CSS selector pattern to match custom clickable elements (e.g., '[data-clickable]', '.interactive-element', '.custom-link')",
+      "source": "src/content_scripts/common/utils.js:246, 247 - Appended to CSS selector list in isElementClickable()"
+    }
+  ],
+  "default": "",
+  "readmeDocumented": true,
+  "readmeSection": "settings.clickableSelector",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 53)",
+    "src/content_scripts/common/utils.js (line 246-247, 568-569)"
+  ],
+  "usageContext": {
+    "mode": "normal",
+    "command": "f (hints mode)",
+    "description": "When entering hints mode with 'f', Surfingkeys generates hints for clickable elements. This setting extends the built-in list of clickable selectors to include custom elements defined by this CSS selector."
+  },
+  "notes": "The custom selector is appended to the default clickable selectors list. Multiple selectors can be combined using commas. The selector is used in conjunction with: a, button, select, input, textarea, summary, *[onclick], *[contenteditable=true], *.jfk-button, *.goog-flat-menu-button, *[role=button], *[role=link], *[role=menuitem], *[role=option], *[role=switch], *[role=tab], *[role=checkbox], *[role=combobox], *[role=menuitemcheckbox], *[role=menuitemradio]",
+  "relatedSettings": [
+    "clickablePat",
+    "editableSelector"
+  ],
+  "example": {
+    "description": "Add custom button class to clickable elements",
+    "code": "settings.clickableSelector = \".material-button, [data-role='clickable']\";"
+  }
+}

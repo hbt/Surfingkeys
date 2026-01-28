@@ -1,0 +1,70 @@
+{
+  "short": "Step size for scroll movements",
+  "unique_id": "scrollStepSize",
+  "category": "movement",
+  "description": "Controls the step size in pixels for each scrolling movement by j/k (vertical scroll) and h/l (horizontal scroll) keys. Also affects the continuous scroll behavior in combination with scrollFriction setting. Used for fine-tuning scroll speed and sensitivity.",
+  "tags": [
+    "scroll",
+    "movement",
+    "keyboard",
+    "j",
+    "k",
+    "h",
+    "l",
+    "step",
+    "pixels"
+  ],
+  "valueType": "number",
+  "valueDescription": "Number of pixels to scroll per keystroke",
+  "values": [
+    {
+      "value": 70,
+      "description": "Default step size in pixels (default)",
+      "source": "src/content_scripts/common/runtime.js (line 85)"
+    },
+    {
+      "value": 20,
+      "description": "Smaller step size for fine-grained scrolling",
+      "source": "data/fixtures/cdp-scrollstepsize-20-config.js (line 3)"
+    },
+    {
+      "value": 25,
+      "description": "Medium-small step size used in command metadata tests",
+      "source": "data/fixtures/cdp-command-metadata-config.js (line 9)"
+    },
+    {
+      "value": 140,
+      "description": "Larger step size for faster scrolling (example in README)",
+      "source": "README.md (line 353)"
+    }
+  ],
+  "default": 70,
+  "readmeDocumented": true,
+  "readmeSection": "settings.scrollStepSize",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 85) - initialization",
+    "src/content_scripts/common/normal.js (line 566) - down scroll",
+    "src/content_scripts/common/normal.js (line 569) - up scroll",
+    "src/content_scripts/common/normal.js (line 590) - left scroll (divided by 2)",
+    "src/content_scripts/common/normal.js (line 593) - right scroll (divided by 2)"
+  ],
+  "notes": "Horizontal scrolling (h/l keys) uses half the scrollStepSize value. The actual scroll implementation uses scrollNode.skScrollBy() method which respects the smoothScroll setting. This setting works in conjunction with scrollFriction to control continuous scroll behavior.",
+  "relatedSettings": [
+    "smoothScroll",
+    "scrollFriction"
+  ],
+  "relatedCommands": [
+    "cmd-scroll-down",
+    "cmd-scroll-up",
+    "cmd-scroll-left",
+    "cmd-scroll-right",
+    "cmd-scroll-page-down",
+    "cmd-scroll-full-page-down",
+    "cmd-scroll-page-up",
+    "cmd-scroll-full-page-up"
+  ],
+  "example": {
+    "description": "Double the default scroll step size for faster scrolling",
+    "code": "settings.scrollStepSize = 140;"
+  }
+}

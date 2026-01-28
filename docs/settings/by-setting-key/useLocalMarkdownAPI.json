@@ -1,0 +1,66 @@
+{
+  "short": "Use local Markdown rendering API instead of GitHub's API",
+  "unique_id": "useLocalMarkdownAPI",
+  "category": "markdown",
+  "description": "Controls whether Markdown rendering uses the local marked.js library or GitHub's remote API. When enabled, Markdown is rendered locally using the marked.js library without requiring network access. When disabled, Markdown is sent to GitHub's API endpoint (https://api.github.com/markdown/raw) for rendering. The local option is faster and works offline, while the GitHub API option provides GitHub-flavored markdown rendering.",
+  "tags": [
+    "markdown",
+    "rendering",
+    "api",
+    "performance",
+    "offline",
+    "github"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to enable/disable local markdown rendering",
+  "values": [
+    {
+      "value": "true",
+      "description": "Default value; use local marked.js library for Markdown rendering (offline, faster)",
+      "source": "src/content_scripts/common/runtime.js:102 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "false",
+      "description": "Use GitHub's remote API (https://api.github.com/markdown/raw) for Markdown rendering (requires network)",
+      "source": "src/content_scripts/markdown.js:76 - Toggle via ;s keybinding"
+    }
+  ],
+  "default": true,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 102)",
+    "src/content_scripts/markdown.js (line 58, 76)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/markdown.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 102,
+        "context": "Initialized as true in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/markdown.js",
+        "line": 58,
+        "function": "previewMarkdown",
+        "context": "Checked to decide between local marked.parse() and GitHub API call"
+      },
+      {
+        "type": "write",
+        "file": "src/content_scripts/markdown.js",
+        "line": 76,
+        "function": "keymap ;s handler",
+        "context": "Toggled by the user via ;s keybinding to switch markdown parsers"
+      }
+    ]
+  },
+  "example": {
+    "description": "Use GitHub's API for markdown rendering",
+    "code": "settings.useLocalMarkdownAPI = false;"
+  },
+  "notes": "This is a boolean setting that controls the markdown rendering strategy. When true (default), markdown is rendered using the local marked.js library without network access. When false, rendering is delegated to GitHub's markdown API. The setting can be toggled at runtime using the ;s keybinding in markdown preview mode."
+}

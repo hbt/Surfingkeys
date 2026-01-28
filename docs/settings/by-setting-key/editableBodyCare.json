@@ -1,0 +1,78 @@
+{
+  "short": "Don't auto-activate Insert mode when document.body is editable",
+  "unique_id": "setting_editableBodyCare",
+  "category": "editing",
+  "description": "Controls whether SurfingKeys automatically enters Insert mode when the document.body element is editable. When enabled (true), SurfingKeys protects the document.body from automatic Insert mode activation, which is important for web-based editors and rich text environments where the entire page may be editable. When this setting is active and the user interacts with an editable body element, it shows a helpful prompt 'Press i to enter Insert mode' instead of automatically switching modes. This prevents accidental mode switches in WYSIWYG editors and similar applications where the body element itself is the editable region.",
+  "tags": [
+    "editing",
+    "insert-mode",
+    "body-element",
+    "editable",
+    "editor",
+    "mode-control",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to enable/disable automatic Insert mode protection for editable body elements",
+  "values": [
+    {
+      "value": "true",
+      "description": "Default value; when the document.body is editable, SurfingKeys does NOT automatically enter Insert mode, and instead shows a prompt 'Press i to enter Insert mode'. This protects WYSIWYG editors and other web-based applications where the body itself is the main editing area.",
+      "source": "src/content_scripts/common/runtime.js:59 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true (checked)",
+      "description": "Checked in normal mode's keydown handler to determine whether to show the 'Press i' prompt when the user presses a key while document.body is editable",
+      "source": "src/content_scripts/common/normal.js:198 - Conditionally prompts user when editableBodyCare is enabled and body is editable"
+    },
+    {
+      "value": "true (used for stopPropagation)",
+      "description": "Used to control whether the 'i' key is intercepted when document.body is editable. When this setting is true and the user presses 'i' on an editable body, the event propagation is stopped and the extension enters Insert mode instead of passing the keypress to the page.",
+      "source": "src/content_scripts/common/normal.js:205 - Determines whether to suppress 'i' key and pass focus to body element"
+    }
+  ],
+  "default": true,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 59)",
+    "src/content_scripts/common/normal.js (line 198)",
+    "src/content_scripts/common/normal.js (line 205)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/normal.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 59,
+        "context": "Initialized as true in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 198,
+        "function": "normal mode keydown handler",
+        "context": "Checked alongside realTarget === document.body && event.key !== 'i' to show the 'Press i to enter Insert mode' prompt. When this condition is true, the normal mode shows helpful status text instead of automatically entering Insert mode."
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 205,
+        "function": "normal mode keydown handler",
+        "context": "Checked alongside realTarget === document.body && event.key === 'i' to determine whether to set sk_stopPropagation flag. When true, the 'i' key is intercepted and the focus is passed to the body element to activate Insert mode."
+      }
+    ]
+  },
+  "example": {
+    "description": "Disable the editableBodyCare setting to allow automatic Insert mode activation on editable body elements",
+    "code": "settings.editableBodyCare = false;"
+  },
+  "relatedSettings": [
+    "showModeStatus",
+    "editableSelector",
+    "enableAutoFocus"
+  ],
+  "notes": "This is a boolean setting that prevents automatic mode switching when the document.body itself is editable. This is particularly important for web-based editors like Google Docs, CodeMirror instances, ACE editors, and other rich text environments where the entire page may be made contenteditable. When enabled (default true), users must explicitly press 'i' to enter Insert mode rather than having it automatically activated when they type. The setting shows helpful UI feedback via the showModeStatus setting. When disabled (set to false), the behavior reverts to older SurfingKeys versions where Insert mode would be automatically activated on editable body elements."
+}

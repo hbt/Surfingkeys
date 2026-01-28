@@ -1,0 +1,76 @@
+{
+  "short": "Enable emoji insertion via ':' key in input fields",
+  "unique_id": "setting_enableEmojiInsertion",
+  "category": "editing",
+  "description": "Controls whether the emoji insertion feature is available in SurfingKeys. When enabled (true), pressing ':' in text input fields will open an emoji picker dialog that allows users to search and insert emoji characters. When disabled (false, default), the ':' key has no special behavior in input fields. The emoji picker displays emoji suggestions based on input characters and can be controlled by the startToShowEmoji setting, which determines the minimum number of characters required before suggestions appear.",
+  "tags": [
+    "editing",
+    "input",
+    "emoji",
+    "insertion",
+    "feature-toggle",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to enable/disable emoji insertion feature with ':' key",
+  "values": [
+    {
+      "value": "false",
+      "description": "Default value; emoji insertion feature is disabled, ':' key has no special behavior in input fields",
+      "source": "src/content_scripts/common/runtime.js:61 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true",
+      "description": "When enabled, triggers registration of the ':' key mapping that opens the emoji picker dialog when pressed in input fields",
+      "source": "src/content_scripts/front.js:484 - Conditionally calls insert.enableEmojiInsertion() when this setting is true"
+    },
+    {
+      "value": "true (active)",
+      "description": "When the emoji insertion feature is enabled, the ':' key is mapped to open the emoji picker with suggestions controlled by startToShowEmoji setting",
+      "source": "src/content_scripts/common/insert.js:234-252 - Defines the enableEmojiInsertion() function that registers the ':' mapping"
+    }
+  ],
+  "default": false,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 61)",
+    "src/content_scripts/front.js (line 484)",
+    "src/content_scripts/common/insert.js (line 234)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/front.js",
+      "src/content_scripts/common/insert.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 61,
+        "context": "Initialized as false in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/front.js",
+        "line": 484,
+        "function": "settings application handler",
+        "context": "Checked after settings are loaded; if true, calls insert.enableEmojiInsertion() to register the ':' key mapping for emoji picking"
+      },
+      {
+        "type": "function_trigger",
+        "file": "src/content_scripts/common/insert.js",
+        "line": 234,
+        "function": "enableEmojiInsertion",
+        "context": "Registers ':' key mapping that opens emojiPrompt.activate() with getRealEdit() element and startToShowEmoji parameter"
+      }
+    ]
+  },
+  "relatedSettings": [
+    "startToShowEmoji"
+  ],
+  "example": {
+    "description": "Enable emoji insertion feature to allow ':' key to open emoji picker",
+    "code": "set enableEmojiInsertion true;"
+  },
+  "notes": "This is a boolean setting that controls whether the emoji insertion feature is available in text input fields. When disabled (default), users cannot access the emoji picker via the ':' key. When enabled, pressing ':' in any input field opens an emoji picker dialog where users can search for and insert emoji characters. The emoji picker behavior is further controlled by the startToShowEmoji setting, which specifies how many characters must be typed before emoji suggestions are displayed. This feature is particularly useful for users who frequently need to insert emoji in form fields, chat applications, or other text-based web interfaces."
+}

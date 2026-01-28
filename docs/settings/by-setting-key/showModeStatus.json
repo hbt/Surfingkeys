@@ -1,0 +1,94 @@
+{
+  "short": "Whether to always show mode status",
+  "unique_id": "setting_showModeStatus",
+  "category": "ui",
+  "description": "Controls whether the current mode name is always displayed in the status line. When enabled, the mode status (e.g., 'Normal', 'Insert', 'Visual') is always shown at the bottom of the page. When disabled, the mode status is only shown when explicitly set via a custom statusLine property. This is useful for users who want constant visual feedback about the current mode they're in, or for those who prefer a minimal UI.",
+  "tags": [
+    "ui",
+    "mode",
+    "status",
+    "display",
+    "visual-feedback",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to enable/disable mode status display",
+  "values": [
+    {
+      "value": "false",
+      "description": "Default value; mode status is only shown when a custom statusLine is explicitly set",
+      "source": "src/content_scripts/common/runtime.js:86 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true",
+      "description": "Mode status is always displayed, showing the current mode name (Normal, Insert, Visual, etc.) in the status line",
+      "source": "src/content_scripts/common/normal.js:200 - Set to true when editableBodyCare mode detects editable body element"
+    },
+    {
+      "value": "false",
+      "description": "Set to false when entering Insert mode on a specific input element (not the document body)",
+      "source": "src/content_scripts/common/insert.js:348 - Reset in insert mode enter function"
+    }
+  ],
+  "default": false,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 86)",
+    "src/content_scripts/common/mode.js (line 239)",
+    "src/content_scripts/common/normal.js (line 200)",
+    "src/content_scripts/common/insert.js (line 348)",
+    "src/content_scripts/front.js (line 430)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/mode.js",
+      "src/content_scripts/common/normal.js",
+      "src/content_scripts/common/insert.js",
+      "src/content_scripts/front.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 86,
+        "context": "Initialized as false in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/mode.js",
+        "line": 239,
+        "function": "Mode.showStatus",
+        "context": "Checked to determine whether to display mode name in status line; used in ternary expression: (runtime.conf.showModeStatus ? cm.name : \"\")"
+      },
+      {
+        "type": "write",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 200,
+        "function": "normal mode keydown handler",
+        "context": "Set to true when editableBodyCare is enabled and an editable body element is detected"
+      },
+      {
+        "type": "write",
+        "file": "src/content_scripts/common/insert.js",
+        "line": 348,
+        "function": "insert.enter",
+        "context": "Set to false when entering Insert mode on document.body element to suppress mode display"
+      },
+      {
+        "type": "comment",
+        "file": "src/content_scripts/front.js",
+        "line": 430,
+        "context": "Comment mentions that showModeStatus being on can cause uiHost to be injected too early in Firefox, breaking host scripts"
+      }
+    ]
+  },
+  "example": {
+    "description": "Enable mode status display to always show current mode",
+    "code": "settings.showModeStatus = true;"
+  },
+  "relatedSettings": [
+    "editableBodyCare",
+    "statusLine"
+  ],
+  "notes": "This is a boolean setting that controls UI feedback about the current mode. When enabled, the mode name (Normal, Insert, Visual, etc.) is always displayed in the status line at the bottom of the page. When disabled, the status line only shows content if a custom statusLine property is explicitly set for a mode. The setting is dynamically toggled in response to certain user actions, particularly when editableBodyCare is enabled and the user interacts with editable elements. Note: In Firefox, enabling this setting may cause uiHost to be injected earlier than desired, potentially affecting compatibility with site scripts."
+}

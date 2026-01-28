@@ -1,0 +1,38 @@
+{
+  "short": "Omnibar position on screen",
+  "unique_id": "omnibarPosition",
+  "category": "ui",
+  "description": "Controls where the Omnibar search box appears on the page. Can be positioned in the middle of the screen (default) or at the bottom. The LLM Chat feature forces this to 'bottom' position, and on Safari iOS it is automatically set to 'bottom'.",
+  "tags": [
+    "omnibar",
+    "ui",
+    "position",
+    "layout",
+    "search"
+  ],
+  "valueType": "string",
+  "valueDescription": "Omnibar position identifier",
+  "values": [
+    {
+      "value": "middle",
+      "description": "Display Omnibar in the middle of the screen (default)"
+    },
+    {
+      "value": "bottom",
+      "description": "Display Omnibar at the bottom of the screen"
+    }
+  ],
+  "default": "middle",
+  "readmeDocumented": true,
+  "readmeSection": "settings.omnibarPosition",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 76)",
+    "src/content_scripts/ui/omnibar.js (lines 51-55, 145-149, 646, 649)",
+    "src/content_scripts/ui/llmchat.js (line 13)"
+  ],
+  "notes": "This setting can be toggled at runtime using Ctrl+; in Omnibar mode. LLM Chat feature overrides this to 'bottom' position. Safari iOS browser automatically forces this to 'bottom' due to browser limitations. The setting is read dynamically when opening Omnibar, allowing real-time position changes.",
+  "example": {
+    "description": "Set Omnibar to appear at the bottom",
+    "code": "settings.omnibarPosition = \"bottom\";"
+  }
+}

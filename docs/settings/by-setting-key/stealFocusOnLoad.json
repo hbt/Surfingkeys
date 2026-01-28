@@ -1,0 +1,76 @@
+{
+  "short": "Prevent focus on input elements when page loads",
+  "unique_id": "setting_stealFocusOnLoad",
+  "category": "focus-management",
+  "description": "Controls whether to steal focus away from input elements when the page finishes loading. When enabled (true), any input element that would automatically receive focus during page load is blurred, allowing the user to immediately use Surfingkeys keyboard commands without first pressing Esc to exit the input. When disabled (false), the browser's default focus behavior is preserved, and the user must press Esc to exit an input element before using Surfingkeys commands. This setting works in conjunction with enableAutoFocus, which controls whether dynamically-shown input elements (e.g., those revealed by clicking a link) automatically receive focus.",
+  "tags": [
+    "focus-management",
+    "input",
+    "page-load",
+    "keyboard",
+    "user-experience",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to enable/disable focus stealing from input elements on page load",
+  "values": [
+    {
+      "value": "true",
+      "description": "Default value; input elements are prevented from receiving focus on page load, allowing immediate use of Surfingkeys commands",
+      "source": "src/content_scripts/common/runtime.js:91 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true",
+      "description": "Applied during content script initialization to blur any automatically-focused input element",
+      "source": "src/content_scripts/content.js:230 - Applied in initialization when stealFocusOnLoad is enabled and document is ready"
+    },
+    {
+      "value": "true",
+      "description": "Applied on window focus event to blur editable elements (unless enableAutoFocus overrides)",
+      "source": "src/content_scripts/common/normal.js:258 - Applied in focus event handler to blur elements when window regains focus"
+    }
+  ],
+  "default": true,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 91)",
+    "src/content_scripts/content.js (line 230)",
+    "src/content_scripts/common/normal.js (line 258)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/content.js",
+      "src/content_scripts/common/normal.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 91,
+        "context": "Initialized as true in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/content.js",
+        "line": 230,
+        "function": "content script initialization",
+        "context": "Checked at initialization time; if true and document body exists with content, calls getRealEdit() and blurs any auto-focused element"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 258,
+        "function": "window focus event handler",
+        "context": "Checked when window regains focus; if true, finds the real editable element and blurs it unless enableAutoFocus or _passFocus override apply"
+      }
+    ]
+  },
+  "relatedSettings": [
+    "enableAutoFocus"
+  ],
+  "example": {
+    "description": "Disable focus stealing to allow browser's default focus behavior on page load",
+    "code": "settings.stealFocusOnLoad = false;"
+  },
+  "notes": "This is a boolean setting that controls focus management behavior on page load. When enabled (true, the default), the extension prevents input elements from receiving focus automatically during page load, allowing seamless use of Surfingkeys keyboard commands immediately after a page loads. When disabled (false), the browser's default auto-focus behavior is preserved. This setting is distinct from enableAutoFocus: stealFocusOnLoad applies only to the initial page load, while enableAutoFocus controls focus behavior for dynamically-shown elements later in the page lifecycle. The two settings work together to provide fine-grained control over when input elements can automatically receive focus."
+}

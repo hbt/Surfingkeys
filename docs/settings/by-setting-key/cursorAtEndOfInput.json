@@ -1,0 +1,70 @@
+{
+  "short": "Move cursor to end of input when entering insert mode",
+  "unique_id": "setting_cursorAtEndOfInput",
+  "category": "editing",
+  "description": "Controls whether the cursor is automatically moved to the end of input or textarea elements when SurfingKeys enters Insert mode. When enabled (true), entering Insert mode on an input element will position the cursor at the end of the text content, which is useful when you want to append text to existing input values. When disabled (false), the cursor position is left unchanged, allowing you to edit at the current cursor position or at the beginning of the input. This setting does not apply to SELECT elements, which have their own focus behavior.",
+  "tags": [
+    "editing",
+    "insert-mode",
+    "input",
+    "cursor",
+    "text-editing",
+    "user-experience",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to control whether cursor is moved to the end of input elements when entering insert mode",
+  "values": [
+    {
+      "value": "true",
+      "description": "Default value; when entering insert mode on an input or textarea element, the cursor is automatically positioned at the end of the text content",
+      "source": "src/content_scripts/common/runtime.js:55 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true (conditional check)",
+      "description": "Checked in the Insert mode enter function to determine if moveCursorEOL() should be called to position the cursor at the end of the input",
+      "source": "src/content_scripts/common/insert.js:355 - Read in enter function to control cursor positioning behavior"
+    },
+    {
+      "value": "false",
+      "description": "When disabled, the cursor position is not automatically adjusted when entering Insert mode; the cursor remains at its current position or at the beginning of the element",
+      "source": "src/content_scripts/common/insert.js:355 - Prevents automatic cursor movement to end when cursorAtEndOfInput is false"
+    }
+  ],
+  "default": true,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 55)",
+    "src/content_scripts/common/insert.js (line 355)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/insert.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 55,
+        "context": "Initialized as true in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/insert.js",
+        "line": 355,
+        "function": "Insert.enter",
+        "context": "Checked in a conditional statement alongside keepCursor and elm.nodeName !== 'SELECT' to determine whether to call moveCursorEOL() and position the cursor at the end of the input element"
+      }
+    ]
+  },
+  "example": {
+    "description": "Disable automatic cursor positioning to keep cursor at current position when entering insert mode",
+    "code": "settings.cursorAtEndOfInput = false;"
+  },
+  "relatedSettings": [
+    "enableAutoFocus",
+    "editableBodyCare",
+    "stealFocusOnLoad"
+  ],
+  "notes": "This is a boolean setting that controls cursor positioning behavior when entering Insert mode on input and textarea elements. The default value (true) automatically positions the cursor at the end of the input text, which is convenient for appending new text. This behavior is skipped for SELECT elements, which have their own native focus handling. When set to false, the cursor position is left as-is, allowing users to edit at specific positions within the input field. This setting works in conjunction with the keepCursor parameter passed to the enter function; if keepCursor is true, the cursor will not be moved regardless of this setting value."
+}

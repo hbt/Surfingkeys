@@ -1,0 +1,83 @@
+{
+  "short": "Hosts with enabled mouse selection to query feature",
+  "unique_id": "setting_mouseSelectToQuery",
+  "category": "input-interaction",
+  "description": "Controls which origins/hosts have the mouse selection to query feature enabled. When mouse text selection occurs on a page that is in this list, the selected text is automatically used as an inline query (opening the query UI with the selected text). This setting maintains a list of origins where this auto-query behavior should be active. The feature can be toggled on a per-origin basis through the toggleMouseQuery method in the background service worker.",
+  "tags": [
+    "mouse-interaction",
+    "query",
+    "selection",
+    "inline-query",
+    "host-specific",
+    "runtime"
+  ],
+  "valueType": "array",
+  "valueDescription": "Array of origin/host strings where mouse selection to query is enabled. Origins are typically in the format 'http://example.com' or 'https://example.com'",
+  "values": [
+    {
+      "value": "[]",
+      "description": "Default value; no hosts have mouse selection to query enabled",
+      "source": "src/content_scripts/common/runtime.js:100 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "[\"http://localhost\", \"https://example.com\", ...]",
+      "description": "Array of origin strings where the feature is enabled. Origins are added or removed by the toggleMouseQuery function when the user toggles the feature",
+      "source": "src/background/start.js:880-893 - Written by toggleMouseQuery function when user enables/disables feature for a specific origin"
+    },
+    {
+      "value": "Check: indexOf(window.origin) !== -1",
+      "description": "Read in _onMouseUp event handler to determine if mouse selection should trigger inline query for the current origin",
+      "source": "src/content_scripts/common/normal.js:1102 - Checked when mouse up event fires to decide whether to trigger querySelectedWord"
+    }
+  ],
+  "default": [],
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 100)",
+    "src/background/start.js (lines 880-893)",
+    "src/content_scripts/common/normal.js (line 1102)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/background/start.js",
+      "src/content_scripts/common/normal.js",
+      "src/content_scripts/ui/frontend.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 100,
+        "context": "Initialized as empty array [] in runtime.conf object"
+      },
+      {
+        "type": "write",
+        "file": "src/background/start.js",
+        "line": 890,
+        "function": "toggleMouseQuery",
+        "context": "Modified when user toggles mouse selection to query feature; either appends or removes the current origin from the array"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 1102,
+        "function": "_onMouseUp",
+        "context": "Checked using indexOf to determine if current window.origin is in the list; if found, triggers inline query with selected text"
+      },
+      {
+        "type": "reference",
+        "file": "src/content_scripts/ui/frontend.js",
+        "line": 836,
+        "context": "Comment indicates mouseSelectToQuery feature; used in document.onmouseup handler to manage the selection UI"
+      }
+    ]
+  },
+  "relatedSettings": [
+    "none"
+  ],
+  "example": {
+    "description": "Enable mouse selection to query on a specific origin",
+    "code": "// This is typically controlled through the toggleMouseQuery message from the UI\n// To manually set: \nchrome.storage.local.set({'mouseSelectToQuery': ['http://localhost', 'https://example.com']});"
+  },
+  "notes": "This is an array setting that maintains a list of origins where the mouse selection to query feature is enabled. When a user selects text on a page that is in this list, the selection automatically triggers an inline query with the selected text. The setting is modified through the toggleMouseQuery function in the background service worker, which is typically called from the UI when the user toggles the feature. The feature only applies to non-extension pages (checked via chrome.runtime.getURL check in toggleMouseQuery). This is a per-origin setting, allowing fine-grained control over where the feature is active."
+}

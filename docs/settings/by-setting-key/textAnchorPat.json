@@ -1,0 +1,88 @@
+{
+  "short": "Regular expression pattern for text anchor detection in hints mode",
+  "unique_id": "setting_textAnchorPat",
+  "category": "hints",
+  "description": "Regular expression pattern used to identify text segments in the DOM for hint generation and selection. This pattern is used when creating hints for text-based operations like yanking text content, querying words for translation, and selecting text in visual mode. The pattern matches text nodes that form meaningful anchors for user interaction.",
+  "tags": [
+    "hints",
+    "text-selection",
+    "regex",
+    "dom-traversal",
+    "yank",
+    "visual-mode",
+    "advanced"
+  ],
+  "valueType": "regex",
+  "valueDescription": "A JavaScript RegExp pattern (as string) that matches text segments eligible for hints. Pattern should include the global flag (g) to match all occurrences. The regex is applied against DOM text node content. Default pattern matches text segments that are either: (1) 3+ non-whitespace characters at line start after optional whitespace, OR (2) 4+ non-whitespace characters at word boundaries.",
+  "values": [
+    {
+      "value": "/(^[\\n\\r\\s]*\\S{3,}|\\b\\S{4,})/g",
+      "description": "Default pattern; matches text segments of 3+ chars at line boundaries or 4+ chars at word boundaries. This balanced pattern avoids creating excessive hints while capturing most meaningful text elements.",
+      "source": "src/content_scripts/common/runtime.js:95 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "/(\\S{2,})/g",
+      "description": "Minimal pattern; matches any 2+ character text segments. Creates more hints but may impact performance on content-heavy pages.",
+      "source": "Alternative pattern example"
+    },
+    {
+      "value": "/(\\b\\w{3,}\\b)/g",
+      "description": "Words only pattern; matches word characters (letters, digits, underscore) only, ignoring punctuation and special characters.",
+      "source": "Alternative pattern example"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/default.js",
+      "src/content_scripts/common/visual.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 95,
+        "context": "Initialized as default regex pattern in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/default.js",
+        "line": 243,
+        "function": "cmd_yank_text",
+        "context": "Passed to hints.create() to generate hints for yanking single element text"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/default.js",
+        "line": 256,
+        "function": "cmd_yank_multiple_elements",
+        "context": "Passed to hints.create() to generate hints for yanking multiple elements with multipleHits enabled"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/default.js",
+        "line": 601,
+        "function": "cmd_hints_query_word",
+        "context": "Passed to hints.create() to generate hints for selecting and querying words for translation"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/visual.js",
+        "line": 799,
+        "function": "visual_mode_text_selection",
+        "context": "Passed to hints.create() to generate hints when entering visual mode text selection"
+      }
+    ]
+  },
+  "relatedCommands": [
+    "cmd_yank_text",
+    "cmd_yank_multiple_elements",
+    "cmd_hints_query_word"
+  ],
+  "notes": "This is a runtime configuration setting that controls hint generation behavior. It is read-only from the user's perspective and must be a valid JavaScript RegExp pattern. Always include the global flag (g) to match all occurrences on a page. Modifying this pattern affects all text-based hint generation operations. Very broad patterns may generate excessive hints and impact performance. The pattern is applied to DOM text node content, not HTML element structure.",
+  "compatibility": {
+    "readOnly": true,
+    "requiresReload": false,
+    "persistence": "stored in runtime.conf only; cannot be modified via user settings"
+  }
+}

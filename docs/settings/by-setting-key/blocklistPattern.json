@@ -1,0 +1,126 @@
+{
+  "short": "Regex pattern to disable Surfingkeys on matching sites",
+  "unique_id": "setting_blocklistPattern",
+  "category": "extension-control",
+  "description": "A regular expression pattern used to automatically disable Surfingkeys on websites matching the pattern. When a page's URL matches this regex, Surfingkeys will be in a disabled state, allowing the website's native keyboard shortcuts to work without interference. This provides site-wide disabling without manually adding each URL via the Alt-s toggle command.",
+  "tags": [
+    "regex",
+    "site-control",
+    "disable",
+    "url-matching",
+    "extension-state"
+  ],
+  "valueType": "regex-string",
+  "valueDescription": "A JavaScript regular expression pattern as a string. The pattern is tested against the full URL (href) of the current page. If undefined or empty string, no URL-based disabling occurs.",
+  "values": [
+    {
+      "value": "undefined",
+      "description": "Default value; no URL pattern-based disabling is applied",
+      "source": "src/content_scripts/common/runtime.js:47 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "\"example\\\\.com\"",
+      "description": "Disable Surfingkeys on example.com and all subdomains",
+      "source": "User configuration"
+    },
+    {
+      "value": "\".*\\\\.github\\\\.com/.*\"",
+      "description": "Disable Surfingkeys on all GitHub URLs and subdomains",
+      "source": "User configuration"
+    },
+    {
+      "value": "\"https?://.*\\\\.wikipedia\\\\.org/.*\"",
+      "description": "Disable Surfingkeys on Wikipedia (both http and https)",
+      "source": "User configuration"
+    },
+    {
+      "value": "\"^https://mail\\\\.google\\\\.com/.*\"",
+      "description": "Disable Surfingkeys only on Gmail HTTPS URLs",
+      "source": "User configuration"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/content.js",
+      "src/content_scripts/common/normal.js",
+      "src/background/start.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 47,
+        "function": "runtime",
+        "context": "Initialized as undefined in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/content.js",
+        "line": 68,
+        "function": "applyRuntimeConf",
+        "context": "Read from runtime.conf and passed to background getState check to determine if current site should be disabled"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 302,
+        "function": "toggleBlocklist",
+        "context": "Passed to background toggleBlocklist action to evaluate state after toggle"
+      },
+      {
+        "type": "test",
+        "file": "src/background/start.js",
+        "line": 827,
+        "function": "_getState",
+        "context": "Converted from RegExp object to new RegExp with source and flags, then tested against url.href to determine extension state"
+      },
+      {
+        "type": "test",
+        "file": "src/background/start.js",
+        "line": 828,
+        "function": "_getState",
+        "context": "blocklistPattern.test(url.href) returns true when URL matches pattern, disabling Surfingkeys"
+      }
+    ]
+  },
+  "relatedSettings": [
+    "settings.blocklist",
+    "settings.lurkingPattern",
+    "settings.disabledOnActiveElementPattern"
+  ],
+  "relatedCommands": [
+    "toggleBlocklist (Alt-s)"
+  ],
+  "usageNotes": [
+    "The regex pattern is tested against the full page URL including protocol and query parameters",
+    "If set to undefined or empty string, the setting is effectively ignored",
+    "Changes take effect when navigating to a new site or reloading the page",
+    "blocklistPattern provides automatic, permanent disabling for matched URLs",
+    "settings.blocklist (toggled via Alt-s) is better for temporary, manual site disabling",
+    "settings.lurkingPattern is similar but puts extension in 'lurk mode' instead of fully disabled",
+    "Malformed regex patterns will not throw errors but will not match any URLs"
+  ],
+  "implementation": {
+    "flowDiagram": "content.js (readValue) → passes to background → start.js _getState() (tests URL) → returns disabled/enabled/lurking state → content.js (disables/enables Surfingkeys)"
+  },
+  "examples": [
+    {
+      "title": "Disable on single domain",
+      "code": "settings.blocklistPattern = 'example\\\\.com'"
+    },
+    {
+      "title": "Disable on multiple domains",
+      "code": "settings.blocklistPattern = '(example|test|staging)\\\\.com'"
+    },
+    {
+      "title": "Disable on specific path",
+      "code": "settings.blocklistPattern = 'github\\\\.com/.*search.*'"
+    },
+    {
+      "title": "Disable on mail services",
+      "code": "settings.blocklistPattern = '(mail\\\\.google\\\\.com|outlook\\\\.office365\\\\.com|mail\\\\.yahoo\\\\.com)'"
+    }
+  ],
+  "notes": "This is a configuration setting that determines URL-based extension state at page load/navigation. It is evaluated in the background service worker and communicated to content scripts to determine if Surfingkeys should be disabled. Unlike settings.blocklist (which stores individual disabled sites), blocklistPattern applies a pattern-based rule for convenience on broader site categories. The actual blocking logic checks the blocklist first, then blocklistPattern, then lurkingPattern in order of precedence."
+}

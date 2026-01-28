@@ -1,0 +1,53 @@
+{
+  "short": "Repeat action confirmation threshold",
+  "unique_id": "setting_repeatThreshold",
+  "category": "misc",
+  "description": "Controls the number of repetitions at which Surfingkeys will prompt for confirmation before executing an action. When a user presses a digit prefix (e.g., '30j' to scroll down 30 times) and the repeat count exceeds this threshold, a confirmation dialog is displayed asking if the user really wants to repeat the action that many times. This prevents accidental execution of actions due to unintended key presses. The default value of 9 means that any action repeated 10 or more times will require confirmation.",
+  "tags": [
+    "action-repeat",
+    "confirmation",
+    "safety",
+    "user-interaction",
+    "numeric-prefix",
+    "runtime"
+  ],
+  "valueType": "integer",
+  "valueDescription": "A positive integer representing the maximum number of action repetitions allowed without confirmation. Any repeat count greater than this value triggers a confirmation dialog.",
+  "values": [
+    {
+      "value": "9",
+      "description": "Default value; actions repeated 10 or more times will prompt for confirmation",
+      "source": "src/content_scripts/common/runtime.js:82 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "<any positive integer>",
+      "description": "User-configurable threshold value that can be set in extension settings to control the confirmation prompt behavior",
+      "source": "User settings configuration"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/mode.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 82,
+        "context": "Initialized with default value 9 in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/mode.js",
+        "line": 328,
+        "function": "Mode.handleMapKey",
+        "context": "Compared against RUNTIME.repeats to determine if confirmation dialog should be displayed before executing a repeated action"
+      }
+    ]
+  },
+  "notes": "This is a safety feature that prevents users from accidentally repeating actions too many times due to mistyped numeric prefixes or accidental key presses. When RUNTIME.repeats exceeds this threshold, a dialog is shown with the action description asking for user confirmation. The threshold comparison is greater-than (>), so if repeatThreshold is 9, the threshold is effectively 10 repetitions.",
+  "relatedSettings": [
+    "digitForRepeat"
+  ]
+}

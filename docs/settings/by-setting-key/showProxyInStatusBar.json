@@ -1,0 +1,64 @@
+{
+  "short": "Show proxy info in status bar",
+  "unique_id": "setting_showProxyInStatusBar",
+  "category": "statusBar",
+  "description": "Controls whether to display the current proxy mode and address in the extension's status bar. When enabled, the status bar will show the proxy mode (e.g., 'byhost', 'always', 'clear') and the associated proxy address when the extension is active and a proxy is configured. This helps users quickly identify what proxy is currently active.",
+  "tags": [
+    "statusBar",
+    "proxy",
+    "configuration",
+    "display",
+    "user-interface"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "A boolean flag that enables or disables proxy information display in the status bar. When true, proxy details are shown; when false, no proxy information is displayed.",
+  "values": [
+    {
+      "value": "false",
+      "description": "Default value; proxy information is not displayed in the status bar",
+      "source": "src/content_scripts/common/runtime.js:87 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true",
+      "description": "Proxy information (mode and address) is displayed in the status bar when the extension is enabled and a proxy is configured",
+      "source": "src/content_scripts/content.js:91-97 - Read and used to conditionally populate the status bar with proxy mode and address information"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/content.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 87,
+        "function": "runtime.conf initialization",
+        "context": "Initialized as boolean false in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/content.js",
+        "line": 91,
+        "function": "unnamed callback in chrome.runtime.onMessage.addListener",
+        "context": "Checked as a boolean flag in conditional statement: if (state === \"enabled\" && runtime.conf.showProxyInStatusBar && resp.proxyMode)"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/content.js",
+        "line": 92,
+        "function": "unnamed callback in chrome.runtime.onMessage.addListener",
+        "context": "If true and proxyMode exists, proxyMode is extracted from response and potentially formatted"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/content.js",
+        "line": 97,
+        "function": "unnamed callback in chrome.runtime.onMessage.addListener",
+        "context": "The formatted proxy info is passed to showStatus event that updates the status bar display"
+      }
+    ]
+  },
+  "notes": "This is a simple user-configurable boolean setting that controls the visibility of proxy information in the status bar. It is user-facing and appears in the settings/options interface. The actual proxy information (proxyMode and proxy address) comes from the background service worker in the response, and this setting acts as a gate to determine whether that information should be displayed to the user. When enabled, it provides transparency about the current proxy configuration."
+}

@@ -1,0 +1,62 @@
+{
+  "short": "Alignment of hints on target elements",
+  "unique_id": "setting_hintAlign",
+  "category": "hints",
+  "description": "Controls the horizontal alignment of hint labels relative to their target elements. This setting determines where hint badges appear when you activate hints mode - they can be aligned to the left edge, right edge, or center of clickable elements. The alignment affects the visual positioning of hint labels on the page, helping to avoid overlaps and improve readability depending on page layout.",
+  "tags": [
+    "hints",
+    "ui",
+    "alignment",
+    "positioning",
+    "layout"
+  ],
+  "valueType": "string",
+  "valueDescription": "Hint alignment direction: one of 'left', 'center', or 'right'",
+  "values": [
+    {
+      "value": "\"center\"",
+      "description": "Default value; hints are centered horizontally on target elements"
+    },
+    {
+      "value": "\"left\"",
+      "description": "Hints are aligned to the left edge of target elements"
+    },
+    {
+      "value": "\"right\"",
+      "description": "Hints are aligned to the right edge of target elements"
+    }
+  ],
+  "default": "center",
+  "readmeDocumented": true,
+  "readmeSection": "settings.hintAlign",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 65)",
+    "src/content_scripts/common/hints.js (lines 741-746)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/hints.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 65,
+        "context": "Initialized in runtime.conf as 'center'"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/hints.js",
+        "lines": "741-746",
+        "function": "placeHints",
+        "context": "Read to determine horizontal positioning of hint labels; checked against 'right' and 'left' values to calculate left coordinate offset"
+      }
+    ]
+  },
+  "notes": "This is a visual presentation setting that affects only the display of hint labels, not the functionality of hints themselves. The alignment is calculated during hint placement in the placeHints function (lines 741-746 of hints.js) to compute the horizontal offset of hint labels relative to target elements. Setting this to 'left' or 'right' can help reduce hint label overlaps on pages with densely packed clickable elements.",
+  "example": {
+    "description": "Set hints to align to the left side of target elements",
+    "code": "settings.hintAlign = \"left\";"
+  }
+}

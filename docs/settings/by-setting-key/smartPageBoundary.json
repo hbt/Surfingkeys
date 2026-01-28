@@ -1,0 +1,51 @@
+{
+  "short": "Smart boundary detection for page scrolling",
+  "unique_id": "setting_smartPageBoundary",
+  "category": "scrolling",
+  "description": "When enabled, detects when the page has reached the top or bottom boundary during scrolling operations. Fires 'topBoundaryHit' or 'bottomBoundaryHit' events when the user attempts to scroll past the page boundary. This allows the extension to provide feedback or trigger alternative actions when page boundaries are reached.",
+  "tags": [
+    "scrolling",
+    "boundary",
+    "page-navigation",
+    "hints",
+    "events",
+    "ui-feedback"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag indicating whether smart page boundary detection is enabled. When true, scroll operations will detect and signal boundary hits. When false, no boundary detection occurs.",
+  "values": [
+    {
+      "value": "false",
+      "description": "Default value; smart page boundary detection is disabled. Scrolling does not trigger boundary events.",
+      "source": "src/content_scripts/common/runtime.js:88 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true",
+      "description": "Smart page boundary detection is enabled. When scrolling attempts to move past the top (scrollTop === 0 and y < 0) or bottom (scrollHeight - scrollTop <= clientHeight + 1 and y > 0) boundary, topBoundaryHit or bottomBoundaryHit events are dispatched.",
+      "source": "src/content_scripts/common/normal.js:377 - Read in skScrollBy function to conditionally dispatch boundary hit events"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/normal.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 88,
+        "function": "runtime.conf",
+        "context": "Initialized as false in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 377,
+        "function": "skScrollBy",
+        "context": "Checked as condition to determine if boundary detection should be active. When true and scrolling reaches document.scrollingElement or single scroll node boundary, dispatches topBoundaryHit or bottomBoundaryHit events"
+      }
+    ]
+  },
+  "notes": "This is a configuration setting that controls scroll boundary detection behavior. When enabled, it helps prevent scroll operations from continuing past page boundaries. The boundary is detected for the main scrolling element or when there is only one scroll node. The setting affects the behavior of scroll commands in normal mode (e.g., 'j' and 'k' keys) and related scroll operations."
+}

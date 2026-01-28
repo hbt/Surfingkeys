@@ -1,0 +1,132 @@
+{
+  "short": "CSS selector pattern to auto-disable extension on matching active elements",
+  "unique_id": "setting_disabledOnActiveElementPattern",
+  "category": "extension-control",
+  "description": "A CSS selector pattern used to automatically disable Surfingkeys when the currently focused element (document.activeElement) matches this pattern. When the active element matches the pattern, the extension is automatically disabled, allowing the web page's native keyboard handling to take precedence. This is useful for interactive components like dropdown lists where users need to type to filter or navigate options. The extension automatically re-enables when the active element changes to a non-matching element.",
+  "tags": [
+    "css-selector",
+    "element-control",
+    "disable",
+    "active-element",
+    "interactive-elements",
+    "runtime"
+  ],
+  "valueType": "css-selector",
+  "valueDescription": "A valid CSS selector string that will be tested against document.activeElement using Element.matches(). If undefined or empty string, no element-based disabling occurs. Examples: 'ul.dropdown-list', 'input[type=text]', '[contenteditable=true]'",
+  "values": [
+    {
+      "value": "undefined",
+      "description": "Default value; no active element pattern-based disabling is applied",
+      "source": "src/content_scripts/common/runtime.js:49 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "\"ul.select-dropdown-options\"",
+      "description": "Disable extension when active element is a dropdown list, allowing users to type to navigate options",
+      "source": "README.md - Documented example for dropdown navigation"
+    },
+    {
+      "value": "\"input[type=text]\"",
+      "description": "Disable extension when active element is a text input field",
+      "source": "User configuration example"
+    },
+    {
+      "value": "\"[contenteditable=true]\"",
+      "description": "Disable extension when active element is a contenteditable element (rich text editors)",
+      "source": "User configuration example"
+    },
+    {
+      "value": "\"textarea, input[type=text], [contenteditable=true]\"",
+      "description": "Disable extension when active element is any form of text input (multiple selectors)",
+      "source": "User configuration example"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/hints.js",
+      "src/content_scripts/common/normal.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 49,
+        "function": "runtime",
+        "context": "Initialized as undefined in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 411,
+        "function": "mouseEventHandler",
+        "context": "After mouse click in hints mode, checks if active element matches pattern using document.activeElement.matches(). If match found, disables normal mode via normal.disable(true) to prevent keyboard shortcuts from interfering"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/normal.js",
+        "line": 31,
+        "function": "Disabled mode keydown handler",
+        "context": "When in Disabled mode, re-enables normal mode if active element no longer matches the pattern using !document.activeElement.matches(). Allows extension to automatically reactivate when user focuses a different element"
+      }
+    ]
+  },
+  "relatedSettings": [
+    "settings.blocklistPattern",
+    "settings.lurkingPattern",
+    "settings.editableSelector",
+    "settings.clickableSelector"
+  ],
+  "relatedCommands": [
+    "Alt-s (toggleBlocklist - manual disable/enable)"
+  ],
+  "usageNotes": [
+    "The CSS selector is tested against document.activeElement using Element.matches() method",
+    "If set to undefined or empty string, the setting is effectively ignored",
+    "Disabling is element-focused, not site-wide; extension re-enables when user focuses a different element",
+    "Unlike blocklistPattern (permanent URL-based disable), this provides dynamic disable based on current active element",
+    "Unlike lurkingPattern (soft disable for entire site), this operates at the element level within a page",
+    "When a matching element is focused, normal.disable(true) is called to prevent keyboard command interference",
+    "When a non-matching element is focused from disabled state, normal.enable() is called to reactivate shortcuts",
+    "Useful for contenteditable elements, form inputs, interactive dropdowns, and custom web components",
+    "The pattern is evaluated in real-time as users interact with page elements"
+  ],
+  "stateTransitions": {
+    "description": "Extension enable/disable transitions based on active element changes",
+    "flow": [
+      "1. User clicks element via hints mode (f key)",
+      "2. dispatchMouseEvent() fires on target element",
+      "3. document.activeElement is now the clicked element",
+      "4. If activeElement.matches(disabledOnActiveElementPattern) → normal.disable(true)",
+      "5. Extension is now disabled, native element handling takes precedence",
+      "6. When user focuses different element not matching pattern",
+      "7. Disabled mode's keydown handler detects change: !activeElement.matches(pattern)",
+      "8. normal.enable() is called to reactivate Surfingkeys"
+    ]
+  },
+  "implementation": {
+    "flowDiagram": "User interaction (click/focus) → activeElement changes → hints.js or normal.js checks matches(pattern) → normal.disable(true) or normal.enable() → Surfingkeys state changes"
+  },
+  "examples": [
+    {
+      "title": "Disable on dropdown selection lists",
+      "code": "settings.disabledOnActiveElementPattern = 'ul.select-dropdown-options';"
+    },
+    {
+      "title": "Disable on text input fields",
+      "code": "settings.disabledOnActiveElementPattern = 'input[type=text], textarea';"
+    },
+    {
+      "title": "Disable on contenteditable rich text editors",
+      "code": "settings.disabledOnActiveElementPattern = '[contenteditable=true]';"
+    },
+    {
+      "title": "Disable on multiple element types",
+      "code": "settings.disabledOnActiveElementPattern = 'textarea, input[type=text], [contenteditable], .rich-editor';"
+    },
+    {
+      "title": "Disable on specific custom component",
+      "code": "settings.disabledOnActiveElementPattern = '[role=listbox], [role=combobox]';"
+    }
+  ],
+  "notes": "This is a runtime configuration setting that dynamically enables/disables the extension based on the currently focused element. Unlike URL-based patterns (blocklistPattern, lurkingPattern), this operates at the element level and can change multiple times during a single page session. The pattern matching uses native CSS selector matching via Element.matches(), so any valid CSS selector is acceptable. This provides a fine-grained control mechanism for interactive elements where keyboard input should be processed by the element rather than Surfingkeys commands."
+}

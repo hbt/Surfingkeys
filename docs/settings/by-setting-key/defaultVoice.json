@@ -1,0 +1,76 @@
+{
+  "short": "Default text-to-speech voice",
+  "unique_id": "setting_defaultVoice",
+  "category": "tts",
+  "description": "Sets the default text-to-speech voice used for reading text aloud. This voice is applied when using the readText function or autoSpeakOnInlineQuery feature. The available voices depend on the system and browser, and can be listed using the listVoices command. The voice name must match exactly one of the system's available voices.",
+  "tags": [
+    "tts",
+    "text-to-speech",
+    "voice",
+    "audio",
+    "accessibility",
+    "speech"
+  ],
+  "valueType": "string",
+  "valueDescription": "Voice name string matching a system-available TTS voice",
+  "values": [
+    {
+      "value": "\"Daniel\"",
+      "description": "Default value; standard macOS/system voice used for text-to-speech synthesis"
+    },
+    {
+      "value": "<any valid voice name>",
+      "description": "Any voice name available on the system. Use listVoices command to see available voices with their languages, genders, and remote status. Examples: 'Victoria' (macOS), 'David' (macOS), or system-specific voices"
+    }
+  ],
+  "default": "Daniel",
+  "readmeDocumented": false,
+  "readmeSection": "N/A",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 58)",
+    "src/content_scripts/chrome.js (line 18)",
+    "src/content_scripts/content.js (line 111)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/chrome.js",
+      "src/content_scripts/content.js",
+      "src/background/start.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 58,
+        "context": "Initialized in runtime.conf with default value 'Daniel'"
+      },
+      {
+        "type": "write",
+        "file": "src/content_scripts/content.js",
+        "line": 111,
+        "function": "applySettings",
+        "context": "Set from user settings via applySettings when loading page configuration"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/chrome.js",
+        "line": 18,
+        "function": "readText",
+        "context": "Used as voiceName option when calling RUNTIME('read', ...) to specify which voice synthesizes the text"
+      },
+      {
+        "type": "discovery",
+        "file": "src/background/start.js",
+        "line": 2137,
+        "function": "getVoices",
+        "context": "Background script provides available voices via chrome.tts.getVoices() for voice selection"
+      }
+    ]
+  },
+  "notes": "This is a user-configurable setting for text-to-speech playback. The available voices depend on the operating system and browser. When an invalid or unavailable voice name is set, the TTS engine will use a system default. Users can discover available voices using the listVoices command in Surfingkeys. The setting persists across sessions via the browser's storage API.",
+  "example": {
+    "description": "Set the default voice to a different available voice",
+    "code": "settings.defaultVoice = \"Victoria\";"
+  }
+}

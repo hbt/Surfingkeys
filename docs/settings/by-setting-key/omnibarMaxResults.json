@@ -1,0 +1,27 @@
+{
+  "short": "Omnibar results per page",
+  "unique_id": "set_omnibar_max_results",
+  "category": "omnibar",
+  "description": "Maximum number of results displayed per page in the Omnibar search results. This value controls pagination when search results exceed the page size limit.",
+  "tags": ["omnibar", "pagination", "search", "results"],
+  "valueType": "integer",
+  "valueDescription": "Number of search results to display per page (must be positive integer)",
+  "values": [
+    {
+      "value": 10,
+      "description": "Default - 10 results per page"
+    },
+    {
+      "value": 5,
+      "description": "Compact view with fewer results"
+    },
+    {
+      "value": 20,
+      "description": "Expanded view with more results per page"
+    },
+    {
+      "value": 50,
+      "description": "Large view for displaying many results"
+    }
+  ]
+}

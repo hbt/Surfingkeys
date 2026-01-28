@@ -1,0 +1,50 @@
+{
+  "short": "Default zoom factor for browser tabs",
+  "unique_id": "defaultZoomFactor",
+  "category": "zoom",
+  "description": "The default zoom level applied to tabs. This is a read-only property obtained from the Chrome Tabs API (chrome.tabs.getZoomSettings). It represents the default zoom factor that the browser applies when a tab's zoom is reset to defaults. The value is retrieved dynamically from the browser's zoom settings and is used as a fallback when resetting zoom levels to their default state. This setting is part of the ZoomSettings type in the Chrome extension API (Chrome 43+).",
+  "tags": [
+    "zoom",
+    "tabs",
+    "chrome-api",
+    "read-only",
+    "zoom-settings",
+    "browser-property"
+  ],
+  "valueType": "number",
+  "valueDescription": "Decimal number representing the default zoom factor (e.g., 1.0 for 100%, 1.5 for 150%). The default fallback value if not provided by the browser is 1 (100% zoom).",
+  "values": [
+    {
+      "value": 1,
+      "description": "Standard 100% zoom level (fallback default when browser value is undefined)",
+      "source": "src/background/start.js:1987 - Fallback value used in setZoom function"
+    },
+    {
+      "value": "settings.defaultZoomFactor (from chrome.tabs.getZoomSettings)",
+      "description": "Value retrieved from Chrome Tabs API ZoomSettings, represents the browser's configured default zoom for the tab",
+      "source": "src/background/start.js:1986 - Retrieved via chrome.tabs.getZoomSettings(tabId, callback)"
+    }
+  ],
+  "default": 1,
+  "isReadOnly": true,
+  "isChromeBrowserAPI": true,
+  "chromeAPIReference": "chrome.tabs.getZoomSettings() returns ZoomSettings object with defaultZoomFactor property (Chrome 43+)",
+  "usageLocations": [
+    "src/background/start.js (line 1986) - getZoomSettings retrieval",
+    "src/background/start.js (line 1987) - conditional check with fallback to 1",
+    "src/background/start.js (line 1988) - passed to chrome.tabs.setZoom as default"
+  ],
+  "relatedCommands": [
+    "cmd-zoom-in",
+    "cmd-zoom-out",
+    "cmd-zoom-reset"
+  ],
+  "relatedSettings": [
+    "zoom"
+  ],
+  "notes": "This is a browser-provided property, not a user-configurable setting. It is obtained dynamically from the Chrome Tabs API when the setZoom command is triggered with a zoom factor of 0 (which signals a reset to default). The property is optional in the ZoomSettings type, so code includes a conditional check with a fallback value of 1. The actual zoom reset operation uses this value via chrome.tabs.setZoom(tabId, defaultZoom). Different browser profiles or zoom configurations may result in different defaultZoomFactor values.",
+  "example": {
+    "description": "How the zoom reset functionality uses defaultZoomFactor internally",
+    "code": "chrome.tabs.getZoomSettings(tabId, function(settings) {\n  const defaultZoom = settings.defaultZoomFactor ? settings.defaultZoomFactor : 1;\n  chrome.tabs.setZoom(tabId, defaultZoom);\n});"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "short": "Sort history by most-used order in Omnibar",
+  "unique_id": "historyMUOrder",
+  "category": "omnibar",
+  "description": "Controls the sorting order of history items displayed in the Omnibar search results. When enabled (true), history items are sorted by visit count (most used first). When disabled (false), history items are sorted by last visit time (most recent first). This setting affects the order of suggestions when opening the Omnibar with history mode, allowing users to choose between accessing frequently-visited sites or recently-visited sites.",
+  "tags": [
+    "omnibar",
+    "history",
+    "sorting",
+    "mru",
+    "ui",
+    "search"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to control history sorting order: true for most-used (visitCount), false for most-recent (lastVisitTime)",
+  "values": [
+    {
+      "value": "true",
+      "description": "Default value; sort history by most-used (visitCount descending) - frequently visited sites appear first",
+      "source": "src/content_scripts/common/runtime.js:68 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "false",
+      "description": "Sort history by most-recent (lastVisitTime descending) - recently visited sites appear first",
+      "source": "src/content_scripts/ui/omnibar.js:1152 - Written when toggling history sort order"
+    }
+  ],
+  "default": true,
+  "readmeDocumented": true,
+  "readmeSection": "settings.historyMUOrder",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 68)",
+    "src/content_scripts/ui/omnibar.js (lines 1152-1163)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/ui/omnibar.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 68,
+        "context": "Initialized as true in runtime.conf object"
+      },
+      {
+        "type": "read-write",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 1152,
+        "function": "onReset handler",
+        "context": "Toggled (inverted) when user presses reset key in history mode; controls subsequent sort behavior"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 1154,
+        "function": "onReset handler",
+        "context": "Checked to determine sort order for history items (visitCount if true, lastVisitTime if false)"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "lines": "1155-1162",
+        "function": "onReset handler",
+        "context": "Used to decide between sort by visitCount (line 1156) or sort by lastVisitTime (line 1160)"
+      }
+    ]
+  },
+  "sortingBehavior": {
+    "whenTrue": {
+      "description": "Sort by most-used (visit count)",
+      "sortKey": "visitCount",
+      "order": "descending (most used first)",
+      "useCase": "Users who want to quickly access their most frequently visited sites"
+    },
+    "whenFalse": {
+      "description": "Sort by most-recent (last visit time)",
+      "sortKey": "lastVisitTime",
+      "order": "descending (most recent first)",
+      "useCase": "Users who want to access recently visited sites regardless of frequency"
+    }
+  },
+  "example": {
+    "description": "Switch to sorting history by most recent instead of most used",
+    "code": "settings.historyMUOrder = false;"
+  },
+  "notes": "This is a UI preference setting that controls how the Omnibar presents history items. The setting is toggled by pressing the 'reset' key (typically Escape) while browsing history results in the Omnibar. The toggle happens in the onReset handler, allowing users to quickly switch between the two sorting strategies during an Omnibar session. The setting persists across sessions and affects all subsequent history queries in the Omnibar. Similar to tabsMRUOrder which controls tab sorting behavior."
+}

@@ -1,0 +1,53 @@
+{
+  "short": "Extra CSS selector for editable elements",
+  "unique_id": "setting_editableSelector",
+  "category": "input-handling",
+  "description": "An extra CSS selector to match additional HTML elements that should be treated as editable/focusable in the extension. This is useful for web applications that use custom rich text editors or contenteditable containers that Surfingkeys doesn't recognize by default as editable.",
+  "tags": [
+    "css-selector",
+    "input-handling",
+    "customization",
+    "editable-elements",
+    "rich-text-editors"
+  ],
+  "valueType": "string",
+  "valueDescription": "A valid CSS selector string, or empty string to disable custom selectors",
+  "values": [
+    {
+      "value": "\"div.CodeMirror-scroll,div.ace_content\"",
+      "description": "Default value; matches CodeMirror and ACE editor containers for syntax highlighting editors",
+      "source": "src/content_scripts/common/runtime.js:54 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "\"\"",
+      "description": "Empty selector; disables custom editable element detection, only built-in elements (textarea, input, contenteditable) are recognized",
+      "source": "Potential user configuration"
+    },
+    {
+      "value": "<any_css_selector>",
+      "description": "Any valid CSS selector pattern to match custom editable elements (e.g., '.editor-container', '[contenteditable]', '.Monaco-editor', '.tiptap-editor')",
+      "source": "src/content_scripts/common/utils.js:363 - Used in isEditable() function to check if element matches custom selectors"
+    }
+  ],
+  "default": "\"div.CodeMirror-scroll,div.ace_content\"",
+  "readmeDocumented": false,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 54)",
+    "src/content_scripts/common/utils.js (line 363)"
+  ],
+  "usageContext": {
+    "file": "src/content_scripts/common/utils.js",
+    "function": "isEditable(element)",
+    "line": 358,
+    "description": "Determines if an element is editable by checking if it is a textarea, select, contenteditable, or matches the editableSelector CSS selector. This is used to identify elements where text input should be captured."
+  },
+  "notes": "The custom selector is checked via element.matches() in the isEditable() function. Multiple selectors can be combined using commas. By default, it targets common code editor containers: CodeMirror (used by many online code editors) and ACE editor (used by Cloud9, JSFiddle, etc.). This setting helps the extension properly identify custom rich text editors and code editors on web applications.",
+  "relatedSettings": [
+    "clickableSelector",
+    "editableBodyCare"
+  ],
+  "example": {
+    "description": "Add custom editor class to editable elements",
+    "code": "settings.editableSelector = \"div.CodeMirror-scroll,div.ace_content,.monaco-editor,.tiptap-editor,[data-editor=true]\";"
+  }
+}

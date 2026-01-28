@@ -1,0 +1,65 @@
+{
+  "short": "Automatically speak query string with TTS on inline query",
+  "unique_id": "setting_autoSpeakOnInlineQuery",
+  "category": "tts",
+  "description": "Controls whether the query string is automatically spoken aloud using text-to-speech (TTS) when performing an inline query. When enabled (true), the query text is read using the voice specified in the defaultVoice setting. When disabled (false, default), inline queries produce no audio output. This feature is useful for accessibility and hands-free query input, particularly in dictionary lookups or other inline query operations.",
+  "tags": [
+    "tts",
+    "text-to-speech",
+    "inline-query",
+    "accessibility",
+    "audio",
+    "feature-toggle",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to enable/disable automatic text-to-speech on inline query operations",
+  "values": [
+    {
+      "value": "false",
+      "description": "Default value; inline queries produce no audio output, query text is not spoken",
+      "source": "src/content_scripts/common/runtime.js:44 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true",
+      "description": "When enabled, triggers browser.readText() to speak the query string when an inline query is performed",
+      "source": "src/content_scripts/front.js:382 - Checked before calling browser.readText(query) for inline query operations"
+    }
+  ],
+  "default": false,
+  "readmeDocumented": true,
+  "readmeSection": "Settings",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 44)",
+    "src/content_scripts/front.js (line 382)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/front.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 44,
+        "context": "Initialized as false in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/front.js",
+        "line": 382,
+        "function": "inline query handler",
+        "context": "Checked when an inline query is performed; if true, calls browser.readText(query) to speak the query string using the configured defaultVoice"
+      }
+    ]
+  },
+  "relatedSettings": [
+    "defaultVoice"
+  ],
+  "example": {
+    "description": "Enable automatic text-to-speech on inline queries",
+    "code": "set autoSpeakOnInlineQuery true;"
+  },
+  "notes": "This is a boolean setting that controls whether inline queries are automatically spoken aloud. When disabled (default), users must manually select text and use a separate command to hear it spoken. When enabled, any inline query operation (such as dictionary lookups) will automatically trigger text-to-speech using the voice configured in the defaultVoice setting. The audio output uses the system's text-to-speech engine, and the specific voice can be customized through the defaultVoice setting. This feature is particularly useful for accessibility purposes and for users who prefer audio feedback when performing text lookups or queries."
+}

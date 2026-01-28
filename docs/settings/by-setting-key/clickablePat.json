@@ -1,0 +1,114 @@
+{
+  "short": "Regex pattern to detect clickable links from text",
+  "unique_id": "setting_clickablePat",
+  "category": "hints",
+  "description": "A regular expression pattern used to detect clickable links (URLs and other resource identifiers) within plain text content on web pages. When the 'O' command is executed, Surfingkeys uses this pattern to find all matching links in the text and presents them as hints for the user to select and open. This enables efficient navigation to links that are embedded in text rather than HTML anchor tags.",
+  "tags": [
+    "regex",
+    "hints-mode",
+    "link-detection",
+    "text-parsing",
+    "customization",
+    "resource-identifiers"
+  ],
+  "valueType": "regex-string",
+  "valueDescription": "A JavaScript regular expression pattern as a string that matches URLs and resource identifiers. The pattern is tested against page text content to find clickable links. The regex is converted to a RegExp object with source and flags for matching.",
+  "values": [
+    {
+      "value": "/(https?:\\/\\/|thunder:\\/\\/|magnet:)\\S+/ig",
+      "description": "Default value; matches HTTP/HTTPS URLs, Thunder protocol links, and magnet links. Case-insensitive global matching of non-whitespace characters after the protocol prefix",
+      "source": "src/content_scripts/common/runtime.js:52 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "/(https?:\\/\\/|ftp:\\/\\/|ftps:\\/\\/)\\S+/ig",
+      "description": "Example to detect HTTP, HTTPS, and FTP URLs only (excludes Thunder and magnet protocols)",
+      "source": "User configuration"
+    },
+    {
+      "value": "/(https?:\\/\\/\\S+|www\\.\\S+|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})/ig",
+      "description": "Extended example to also detect email addresses and www URLs without explicit protocol",
+      "source": "User configuration"
+    },
+    {
+      "value": "<any_regex_pattern>",
+      "description": "Any valid JavaScript regex pattern to match custom URL schemes or resource identifiers (e.g., '/(https?:\\/\\/|bitcoin:)\\S+/ig' for cryptocurrency protocols)",
+      "source": "src/content_scripts/content.js:66 - Validated via ensureRegex() before use"
+    }
+  ],
+  "default": "/(https?:\\/\\/|thunder:\\/\\/|magnet:)\\S+/ig",
+  "readmeDocumented": true,
+  "readmeSection": "settings.clickablePat",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 52)",
+    "src/content_scripts/content.js (line 66)",
+    "src/content_scripts/common/default.js (line 469)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/content.js",
+      "src/content_scripts/common/default.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 52,
+        "function": "runtime",
+        "context": "Initialized as a RegExp literal in runtime.conf object"
+      },
+      {
+        "type": "validation",
+        "file": "src/content_scripts/content.js",
+        "line": 66,
+        "function": "applyRuntimeConf",
+        "context": "Validated via ensureRegex() to convert regex string representations to RegExp objects with preserved source and flags"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/default.js",
+        "line": 469,
+        "function": "mapkey (O command)",
+        "context": "Passed to hints.create() to find and generate hints for all matching URLs in page text when 'O' command is executed"
+      }
+    ]
+  },
+  "relatedSettings": [
+    "clickableSelector",
+    "textAnchorPat"
+  ],
+  "relatedCommands": [
+    "O (Open detected links command)"
+  ],
+  "usageNotes": [
+    "The regex pattern is tested against plain text content extracted from the page",
+    "The pattern must be a valid JavaScript regex; malformed patterns may cause silent failures",
+    "Global flag (g) and case-insensitive flag (i) are recommended for matching all occurrences",
+    "Non-whitespace character class (\\S) is commonly used to match URL content until whitespace boundary",
+    "The regex is automatically validated and converted to a RegExp object by ensureRegex()",
+    "Multiple protocols can be matched using the pipe operator (|) in alternation groups",
+    "Match groups are used by hints.create() where element[2] contains the matched URL string"
+  ],
+  "implementation": {
+    "flowDiagram": "User presses 'O' → default.js mapkey → hints.create(clickablePat) → Page text scanned against regex → Hints generated for matches → User selects hint → window.location.assign(matched_url)"
+  },
+  "examples": [
+    {
+      "title": "Default configuration",
+      "code": "settings.clickablePat = /(https?:\\/\\/|thunder:\\/\\/|magnet:)\\S+/ig"
+    },
+    {
+      "title": "HTTP and HTTPS only",
+      "code": "settings.clickablePat = /https?:\\/\\/\\S+/ig"
+    },
+    {
+      "title": "Include www URLs and email addresses",
+      "code": "settings.clickablePat = /(https?:\\/\\/|www\\.)\\S+|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/ig"
+    },
+    {
+      "title": "Multiple protocol schemes",
+      "code": "settings.clickablePat = /(https?:\\/\\/|ftp:\\/\\/|ftps:\\/\\/|file:\\/\\/|bitcoin:)\\S+/ig"
+    }
+  ],
+  "notes": "This is a configuration setting that controls URL/resource detection for the 'O' (Open detected links) command in hints mode. Unlike clickableSelector which uses CSS selectors to find HTML elements, clickablePat uses regex pattern matching to find resource identifiers within plain text content. The setting is converted from a regex string representation to a RegExp object before use, allowing it to be stored and transmitted as a serializable string while maintaining full regex functionality. Changes take effect immediately and apply to all subsequently executed 'O' commands."
+}

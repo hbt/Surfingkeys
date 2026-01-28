@@ -1,0 +1,46 @@
+{
+  "short": "Rich hints timeout for keystroke",
+  "unique_id": "richHintsForKeystroke",
+  "category": "ui",
+  "description": "Timeout in milliseconds to display rich hints showing available commands after a keystroke is pressed. Rich hints display next possible keystroke options and their associated commands in an expandable popup. Set to 0 to completely disable rich hints, or use values between 1-10000 ms for the delay before hints appear.",
+  "tags": [
+    "ui",
+    "hints",
+    "keystroke",
+    "timeout",
+    "display",
+    "help"
+  ],
+  "valueType": "number",
+  "valueDescription": "Timeout in milliseconds (0 disables, valid range 0-10000)",
+  "values": [
+    {
+      "value": 0,
+      "description": "Disable rich hints completely - no keystroke hints will be shown"
+    },
+    {
+      "value": 500,
+      "description": "Show rich hints after 500ms (quick response)"
+    },
+    {
+      "value": 1000,
+      "description": "Show rich hints after 1000ms (default, one second delay)"
+    },
+    {
+      "value": 2000,
+      "description": "Show rich hints after 2000ms (slower response for less distraction)"
+    }
+  ],
+  "default": 1000,
+  "readmeDocumented": true,
+  "readmeSection": "settings.richHintsForKeystroke",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 83)",
+    "src/content_scripts/ui/frontend.js (line 720, 790, 793)"
+  ],
+  "notes": "Values outside the 1-10000 range (except 0) are treated as invalid and hints will not be shown. The value is used to set a setTimeout delay before calling showRichHints(). This setting is commonly used to avoid visual clutter while still providing command hints after a brief pause.",
+  "example": {
+    "description": "Disable rich hints to reduce visual distraction",
+    "code": "settings.richHintsForKeystroke = 0;"
+  }
+}

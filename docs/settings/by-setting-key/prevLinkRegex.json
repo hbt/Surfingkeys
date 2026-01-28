@@ -1,0 +1,127 @@
+{
+  "short": "Regex pattern to match links that indicate the previous page",
+  "unique_id": "setting_prevLinkRegex",
+  "category": "navigation",
+  "description": "A regular expression pattern used to match and identify HTML links that indicate navigation to the previous page. This setting is essential for the previousPage command to locate previous page links when rel='prev' attributes are not available. The pattern is tested against both the element's textContent and aria-label attributes to match clickable elements (those with cursor:pointer). When the previousPage command is invoked, it first looks for elements with rel='prev' attribute that match this pattern; if none are found, it falls back to the pageUrlRegex setting for URL-based pagination extraction.",
+  "tags": [
+    "navigation",
+    "pagination",
+    "regex",
+    "link-detection",
+    "page-traversal",
+    "accessibility"
+  ],
+  "valueType": "regex",
+  "valueDescription": "A JavaScript regular expression pattern (case-insensitive flag 'i' recommended) that matches text indicating a previous/backward page link. The pattern is tested against clickable element text content and aria-label attributes using the regex.test() method.",
+  "values": [
+    {
+      "value": "/^(\\b(prev|previous)\\b)|上页|上一页|前页|上頁|上一頁|前頁|<<|«$/i",
+      "description": "Default value; matches common previous page indicators in English and Chinese/Japanese. Includes: 'prev', 'previous', Chinese/Japanese characters for previous page, and arrow symbols << and «",
+      "source": "src/content_scripts/common/runtime.js:81 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "/back|previous|prev/i",
+      "description": "Simple pattern matching common English text for previous page links",
+      "source": "User configuration example"
+    },
+    {
+      "value": "/(back|prev|previous|\\u00ab|<<)/i",
+      "description": "Pattern including Unicode « (left-pointing double angle quotation mark, U+00AB) for international sites",
+      "source": "User configuration example"
+    },
+    {
+      "value": "/(anterior|previous|prev|\\d+\\s*<)/i",
+      "description": "Extended pattern supporting 'anterior' (Spanish) and numeric pagination indicators",
+      "source": "User configuration example"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/content.js",
+      "src/content_scripts/common/hints.js",
+      "src/content_scripts/common/utils.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 81,
+        "function": "runtime.conf",
+        "context": "Initialized with default regex pattern in runtime.conf object"
+      },
+      {
+        "type": "validation",
+        "file": "src/content_scripts/content.js",
+        "line": 64,
+        "function": "applyRuntimeConf",
+        "context": "Converted from RegExp-like object to proper RegExp instance if needed using ensureRegex()"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 628,
+        "function": "previousPage",
+        "context": "Passed to getClickableElements() to match previous page links for previousPage command"
+      },
+      {
+        "type": "test",
+        "file": "src/content_scripts/common/utils.js",
+        "line": 606,
+        "function": "getClickableElements",
+        "context": "Used with regex.test() to match against element.textContent and element.getAttribute('aria-label')"
+      }
+    ]
+  },
+  "relatedCommands": [
+    "cmd_previous_page ([[])"
+  ],
+  "relatedSettings": [
+    "settings.nextLinkRegex",
+    "settings.pageUrlRegex"
+  ],
+  "usageNotes": [
+    "prevLinkRegex is the primary method for locating previous page links; it's matched against clickable elements with rel='prev' first",
+    "If no rel='prev' elements match this pattern, the previousPage command falls back to pageUrlRegex for URL-based pagination",
+    "The regex is tested against both element.textContent and element.getAttribute('aria-label') attributes",
+    "Elements must be clickable (computed cursor style === 'pointer' and have non-zero offsetHeight/offsetWidth) to be considered",
+    "The pattern should include the 'i' (case-insensitive) flag to match various text case combinations",
+    "The default pattern includes Chinese/Japanese characters and arrow symbols for international site compatibility",
+    "For custom configurations, test the regex thoroughly against target websites to ensure proper link detection",
+    "Use nextLinkRegex and prevLinkRegex together for comprehensive pagination support",
+    "A properly configured prevLinkRegex avoids the need for URL-based pagination patterns (pageUrlRegex)"
+  ],
+  "implementationDetails": {
+    "matchingLogic": "getClickableElements('[rel=prev]', runtime.conf.prevLinkRegex) finds all elements with rel='prev' attribute AND matches the pattern against textContent or aria-label",
+    "patternTesting": "regex.test(element.textContent) || regex.test(element.getAttribute('aria-label'))",
+    "elementFiltering": "Only elements with offsetHeight > 0, offsetWidth > 0, and computed cursor style === 'pointer' are considered clickable",
+    "fallbackBehavior": "If previousPage() finds no matching rel='prev' elements, it calls walkPageUrl(-1) to use pageUrlRegex for URL-based navigation"
+  },
+  "examples": [
+    {
+      "title": "Default comprehensive pattern",
+      "description": "Matches English prev/previous and Chinese/Japanese equivalents with arrow symbols",
+      "code": "settings.prevLinkRegex = /(\\b(prev|previous)\\b)|上页|上一页|前页|上頁|上一頁|前頁|<<|«/i",
+      "matchesText": ["Previous", "PREV", "上页", "上一頁", "<<", "«", "Back to Previous"]
+    },
+    {
+      "title": "Simple English-only pattern",
+      "description": "Minimal pattern for English-only sites",
+      "code": "settings.prevLinkRegex = /prev(ious)?\\s*(page)?/i",
+      "matchesText": ["previous", "Previous", "prev page", "PREV PAGE"]
+    },
+    {
+      "title": "Multiple language support",
+      "description": "Support English, Spanish, French, and German previous page indicators",
+      "code": "settings.prevLinkRegex = /(prev(ious)?|back|anterior|précédent|zurück|earlier)/i",
+      "matchesText": ["Previous", "Back", "Anterior", "Précédent", "Zurück", "Earlier"]
+    },
+    {
+      "title": "Numeric pagination pattern",
+      "description": "Match numeric pagination with previous indicators",
+      "code": "settings.prevLinkRegex = /(\\d+\\s*<|previous|<\\s*)/i",
+      "matchesText": ["3 <", "< 3", "2 <", "Previous", "< Previous"]
+    }
+  ],
+  "notes": "prevLinkRegex is essential for pagination navigation on websites that use semantic pagination links with text content but lack rel='prev' attributes. The default pattern is designed for international compatibility and covers most common pagination link text patterns. Custom patterns should use the case-insensitive flag and test thoroughly against target websites. The regex is applied at runtime after being converted to a proper RegExp object to ensure it works correctly across different configuration sources."
+}

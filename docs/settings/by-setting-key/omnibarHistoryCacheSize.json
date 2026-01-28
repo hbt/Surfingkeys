@@ -1,0 +1,70 @@
+{
+  "short": "Maximum number of history items to cache in omnibar",
+  "unique_id": "setting_omnibarHistoryCacheSize",
+  "category": "omnibar",
+  "description": "Specifies the maximum number of history items that the omnibar will request and cache when displaying history search results. This setting controls the size of the result set retrieved from the browser's history database. Higher values allow more history items to be searched through, but may impact performance. The omnibar displays this cache size indicator with a '+' suffix when the total number of results equals this limit, indicating that more items exist but are not loaded.",
+  "tags": [
+    "omnibar",
+    "history",
+    "cache",
+    "performance",
+    "search"
+  ],
+  "valueType": "number",
+  "valueDescription": "A positive integer representing the maximum number of history items to retrieve and cache. Must be greater than 0.",
+  "values": [
+    {
+      "value": "100",
+      "description": "Default value; caches up to 100 history items for omnibar search",
+      "source": "src/content_scripts/common/runtime.js:75 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "<custom_number>",
+      "description": "Any positive integer value can be set by users to control the history cache size. Higher values (e.g., 500) allow searching through more history items but may be slower. Lower values (e.g., 50) reduce performance overhead.",
+      "source": "src/content_scripts/ui/omnibar.js:583, 607, 812, 831 - Read in getHistoryCacheSize and used in history queries"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/ui/omnibar.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 75,
+        "context": "Initialized with default value of 100 in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 582,
+        "function": "getHistoryCacheSize",
+        "context": "Method that returns the cache size value for external use"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 607,
+        "function": "_listResultPage",
+        "context": "Checked to determine if results count equals cache limit; displays '+' indicator if true"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 812,
+        "function": "OpenURLs handler for History",
+        "context": "Passed as maxResults parameter to getHistory runtime call for browser history retrieval"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 831,
+        "function": "OpenURLs handler for URLs",
+        "context": "Used to calculate remaining cache capacity (maxResults parameter adjusted by subtracting already-loaded results count)"
+      }
+    ]
+  },
+  "notes": "This is a configuration setting that controls omnibar history search performance and result set size. It primarily affects the History search handler in the omnibar. When the total number of results matches this cache size, the omnibar appends a '+' indicator to show that more items exist but are not loaded. Users can adjust this value to balance between search depth and performance. The setting is user-configurable through the extension's settings mechanism."
+}

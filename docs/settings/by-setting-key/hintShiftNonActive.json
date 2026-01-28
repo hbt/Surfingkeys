@@ -1,0 +1,62 @@
+{
+  "short": "Whether new tab is active after entering hint while holding Shift",
+  "unique_id": "setting_hintShiftNonActive",
+  "category": "hints",
+  "description": "Controls whether a new tab opened via hint activation with Shift modifier key will be the active (focused) tab. When enabled (true), holding Shift while activating a hint opens the target link in a new background (non-active) tab, allowing you to continue using the current tab without focus switching. When disabled (false, default), holding Shift opens the link in a new active tab that immediately receives focus.",
+  "tags": [
+    "hints",
+    "tabs",
+    "shift-modifier",
+    "tab-focus",
+    "user-experience",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to control whether hint activation with Shift opens new tab as non-active (true) or active (false)",
+  "values": [
+    {
+      "value": "false",
+      "description": "Default value; holding Shift while activating a hint opens link in new active (focused) tab",
+      "source": "src/content_scripts/common/runtime.js:67 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true",
+      "description": "When enabled, holding Shift while activating a hint opens link in new non-active (background) tab; mouseEventModifiers.shiftKey is set to false to prevent active tab switching",
+      "source": "src/content_scripts/common/hints.js:389-391 - Read in hint activation handler to control tab focus behavior on Shift+hint activation"
+    }
+  ],
+  "default": false,
+  "readmeDocumented": true,
+  "readmeSection": "settings.hintShiftNonActive",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 67)",
+    "src/content_scripts/common/hints.js (line 389)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/hints.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 67,
+        "context": "Initialized as false in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 389,
+        "function": "hint activation handler",
+        "context": "Checked when Shift key is pressed during hint activation; if true, opens new tab in background (non-active); sets mouseEventModifiers.shiftKey to false to prevent active tab switching"
+      }
+    ]
+  },
+  "relatedSettings": [],
+  "example": {
+    "description": "Enable opening new tabs in background when using Shift+hint activation",
+    "code": "settings.hintShiftNonActive = true;"
+  },
+  "notes": "This is a boolean setting that modifies hint behavior when the Shift modifier key is pressed. The default value (false) follows standard browser conventions where Shift+click opens a new active tab. When set to true, this setting provides an alternative workflow where Shift+hint activation opens the target in a background tab, allowing uninterrupted continued browsing on the current page. This is useful for users who prefer to batch-open multiple links without context-switching to each new tab. The setting only affects behavior when using hints with the Shift modifier; regular hint activation (without Shift) is not affected."
+}

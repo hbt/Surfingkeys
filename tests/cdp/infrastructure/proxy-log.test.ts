@@ -633,6 +633,7 @@ describe('Proxy Log Verification', () => {
 
             console.log(`✓ Console.log captured: ${consoleLogEntry?.message}`);
 
+
             // Cleanup
             await closeCDP(diagPageWs);
             await closeTab(bgWs, diagTabId);
@@ -683,11 +684,53 @@ describe('Proxy Log Verification', () => {
             // Wait for page to load and content script injection
             await waitForSurfingkeysReady(configPageWs);
 
+            // ===== STEP 1: Verify proxy is attached to this target =====
+            let proxyAttachmentConfirmed = false;
+            let attachmentEntry: ProxyLogEntry | undefined;
+            const attachMaxWaitMs = 3000;
+            const attachPollIntervalMs = 100;
+            const attachStartTime = Date.now();
+
+            while (Date.now() - attachStartTime < attachMaxWaitMs && !proxyAttachmentConfirmed) {
+                const logEntries = await readProxyLog();
+                attachmentEntry = logEntries.find((entry) => {
+                    if (entry.type !== 'PROXY') return false;
+                    if (entry.message !== 'Passive connection opened') return false;
+                    if (entry.status !== 'connected') return false;
+                    return entry.targetUrl?.includes(FIXTURE_URL);
+                });
+
+                if (attachmentEntry) {
+                    proxyAttachmentConfirmed = true;
+                    console.log(`✓ CONFIRMED: Proxy attached to config tab at ${attachmentEntry.timestamp}`);
+                } else {
+                    await new Promise(resolve => setTimeout(resolve, attachPollIntervalMs));
+                }
+            }
+
+            expect(proxyAttachmentConfirmed).toBe(true);
+            expect(attachmentEntry?.targetUrl).toContain(FIXTURE_URL);
+
+            // ===== STEP 2: Issue console.log via CDP directly to verify proxy captures it =====
+            const directLogMsg = `DIRECT_CDP_TEST_${Date.now()}`;
+            await executeInTarget(configPageWs, `console.log('${directLogMsg}')`);
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            const directLogEntries = await readProxyLog();
+            const directLogEntry = directLogEntries.find((entry) => {
+                if (entry.type !== 'CONSOLE') return false;
+                return entry.message?.includes(directLogMsg) && entry.targetUrl?.includes(FIXTURE_URL);
+            });
+
+            expect(directLogEntry).toBeDefined();
+            console.log(`✓ CONFIRMED: Direct CDP console.log captured: "${directLogMsg}"`);
+
+            // ===== STEP 3: Test actual keybinding (proves config executed) =====
             // Get initial scroll position (should be at top)
             const initialScroll = await getScrollPosition(configPageWs);
             expect(initialScroll).toBe(0);
 
-            // Send 'w' key (custom mapped to cmd_scroll_down)
+            // Send 'w' key (custom mapped to cmd_scroll_down by config)
             await sendKey(configPageWs, 'w');
 
             // Wait for scroll to change (using pattern from cmd-scroll-down.test.ts)

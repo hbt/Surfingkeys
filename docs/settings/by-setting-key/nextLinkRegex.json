@@ -1,0 +1,149 @@
+{
+  "short": "Regular expression pattern to match links indicating the next page",
+  "unique_id": "setting_nextLinkRegex",
+  "category": "navigation",
+  "description": "A regular expression pattern used to identify and match clickable elements (links or buttons) that indicate navigation to the next page. When the nextPage command (]]) is executed, the extension first looks for links with rel='next' attribute. If none are found, it searches for clickable elements whose text content or aria-label matches this pattern. The default pattern matches common 'next' link text in English and Chinese, as well as common pagination symbols. This setting enables automatic pagination navigation on websites that don't use semantic HTML pagination links.",
+  "tags": [
+    "navigation",
+    "pagination",
+    "regex",
+    "link-matching",
+    "page-traversal",
+    "i18n",
+    "common"
+  ],
+  "valueType": "regex",
+  "valueDescription": "A JavaScript regular expression pattern (stored as an object with 'source' and 'flags' properties) that matches text content or aria-label attributes of clickable elements. The pattern is tested against element.textContent and element.getAttribute('aria-label'). Case-insensitive matching is recommended for reliability. An empty pattern will only match elements with rel='next' attribute.",
+  "values": [
+    {
+      "value": "/(\b(next)\b)|下页|下一页|后页|下頁|下一頁|後頁|>>|»/i",
+      "description": "Default value; matches 'next' word boundary, Chinese pagination text (simplified and traditional), and common pagination symbols (>> and »). Case-insensitive.",
+      "source": "src/content_scripts/common/runtime.js:72 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "/(\b(next)\b)|下页|下一页|后页|下頁|下一頁|後頁|>>|»/i (after ensureRegex)",
+      "description": "At runtime, if the setting is a string with source and flags properties, it is converted to a RegExp object via ensureRegex before use",
+      "source": "src/content_scripts/content.js:65 - Converted via ensureRegex in applyRuntimeConf function"
+    },
+    {
+      "value": "/(\b(next)\b)/i",
+      "description": "Simplified pattern matching only English 'next' word. Useful for English-only sites.",
+      "source": "User configuration example"
+    },
+    {
+      "value": "/next|following|continue|more/i",
+      "description": "Extended English pattern matching multiple synonyms for next navigation: 'next', 'following', 'continue', 'more'",
+      "source": "User configuration example"
+    },
+    {
+      "value": "/next|next page|page suivante|siguiente/i",
+      "description": "Multilingual pattern supporting English, French, and Spanish next page indicators",
+      "source": "User configuration example"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/content.js",
+      "src/content_scripts/common/hints.js",
+      "src/content_scripts/common/utils.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 72,
+        "function": "runtime.conf",
+        "context": "Initialized as regex literal in runtime.conf object"
+      },
+      {
+        "type": "conversion",
+        "file": "src/content_scripts/content.js",
+        "line": 65,
+        "function": "applyRuntimeConf",
+        "context": "String-based regex settings are converted to RegExp objects via ensureRegex function"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 638,
+        "function": "nextPage",
+        "context": "Passed as 'pattern' argument to getClickableElements; used to search for next page links when rel='next' links are not found"
+      },
+      {
+        "type": "test",
+        "file": "src/content_scripts/common/utils.js",
+        "line": 606,
+        "function": "getClickableElements",
+        "context": "pattern.test() is called on element.textContent to match clickable elements"
+      },
+      {
+        "type": "test",
+        "file": "src/content_scripts/common/utils.js",
+        "line": 607,
+        "function": "getClickableElements",
+        "context": "pattern.test() is called on element.getAttribute('aria-label') to match accessible elements"
+      }
+    ]
+  },
+  "relatedCommands": [
+    "cmd_next_page (]]) - Navigate to next page using nextPage function",
+    "cmd_bottom - Triggered at page bottom, automatically calls nextPage if smartPageBoundary is enabled"
+  ],
+  "relatedSettings": [
+    "settings.prevLinkRegex - Pattern for matching previous page links",
+    "settings.pageUrlRegex - Fallback URL pattern matching for pagination when links are unavailable",
+    "settings.smartPageBoundary - Enables automatic page navigation when scrolling to page boundaries"
+  ],
+  "usageNotes": [
+    "The regex is tested against both element.textContent and element.getAttribute('aria-label')",
+    "Only clickable elements (with cursor:pointer style) with visible dimensions (offsetHeight > 0, offsetWidth > 0) are matched",
+    "The regex pattern must be a valid JavaScript RegExp; invalid patterns will cause runtime errors",
+    "The pattern is case-insensitive (flag 'i') by default to improve reliability across different sites",
+    "If nextLinkRegex is empty or does not match any elements, the nextPage function falls back to URL-based pagination using pageUrlRegex",
+    "nextLinkRegex is preferred over pageUrlRegex for sites with semantic pagination links",
+    "Custom patterns should account for the site's specific text content and aria-label attributes",
+    "Unicode characters (like Chinese text) are supported in the pattern",
+    "Symbols like >> and » are commonly used for next/previous pagination and are included in the default pattern"
+  ],
+  "implementationDetails": {
+    "matchingLogic": "getClickableElements searches for elements matching CSS selector OR pattern: (n.matches(selectorString) || pattern && (pattern.test(n.textContent) || pattern.test(n.getAttribute('aria-label'))))",
+    "elementRequirements": "Elements must have offsetHeight > 0, offsetWidth > 0, and computed cursor style === 'pointer'",
+    "fallbackChain": "1. Look for rel='next' links 2. Match nextLinkRegex against clickable elements 3. Fall back to pageUrlRegex for URL-based pagination",
+    "conversionLogic": "ensureRegex converts string-based regex settings to RegExp: 'if (r && r.source && !(r instanceof RegExp)) { runtime.conf[regexName] = new RegExp(r.source, r.flags); }'"
+  },
+  "examples": [
+    {
+      "title": "Default - English and Chinese with symbols",
+      "description": "Matches common English/Chinese next indicators and pagination symbols",
+      "code": "settings.nextLinkRegex = /(\\b(next)\\b)|下页|下一页|后页|下頁|下一頁|後頁|>>|»/i",
+      "matchesText": ["next", "Next", "NEXT", "下页", "下一页", "后页", ">>", "»"]
+    },
+    {
+      "title": "English only",
+      "description": "Simple pattern for English-only sites",
+      "code": "settings.nextLinkRegex = /(\\b(next)\\b)/i",
+      "matchesText": ["next", "Next", "NEXT"]
+    },
+    {
+      "title": "Multiple English synonyms",
+      "description": "Match multiple English terms for next navigation",
+      "code": "settings.nextLinkRegex = /(next|following|more|continue|further)/i",
+      "matchesText": ["next", "Next", "more", "continue", "following"]
+    },
+    {
+      "title": "Multilingual support",
+      "description": "Support English, French, and Spanish next page text",
+      "code": "settings.nextLinkRegex = /(next|page suivante|siguiente|siguiente página)/i",
+      "matchesText": ["next", "Next", "page suivante", "siguiente", "siguiente página"]
+    },
+    {
+      "title": "Strict word boundary matching",
+      "description": "Match only 'next' as a complete word, not as part of other words",
+      "code": "settings.nextLinkRegex = /\\bnext\\b/i",
+      "matchesText": ["next", "Next"],
+      "doesNotMatch": ["nexting", "nextLevel"]
+    }
+  ],
+  "notes": "nextLinkRegex is a configuration setting for automatic pagination navigation. It is particularly useful for sites that don't use semantic HTML (rel='next' links) for pagination. The regex is matched against the textContent and aria-label of clickable elements to identify next-page navigation. When a match is found, the first matching element is automatically clicked. If no matches are found, the extension falls back to URL-based pagination using pageUrlRegex. The default pattern includes both English and Chinese text to support international sites. For best results, test custom patterns against target sites to ensure they match the intended elements. The pattern is stored as a RegExp object at runtime but may be serialized as a string in configuration files (with source and flags properties for later conversion)."
+}

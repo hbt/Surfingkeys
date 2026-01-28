@@ -1,0 +1,71 @@
+{
+  "short": "Mode to enter after yanking text in visual mode",
+  "unique_id": "setting_modeAfterYank",
+  "category": "visual-mode",
+  "description": "Controls which mode the extension enters after yanking (copying) text in visual mode. This setting allows users to automatically transition to Caret mode for cursor positioning, Normal mode to exit visual mode, or remain in visual mode (empty string). This is useful for workflows where users want to quickly navigate to where they just copied from, or return to normal keyboard navigation.",
+  "tags": [
+    "visual-mode",
+    "yank",
+    "copy",
+    "mode-transition",
+    "behavior",
+    "state"
+  ],
+  "valueType": "string",
+  "valueDescription": "A string representing the target mode after yanking: 'Caret' for caret mode, 'Normal' for normal mode, or empty string to stay in visual mode",
+  "values": [
+    {
+      "value": "\"\"",
+      "description": "Default value; remain in visual mode after yanking, allowing continued text selection and copying operations"
+    },
+    {
+      "value": "\"Caret\"",
+      "description": "Enter Caret mode after yanking, positioning cursor at the end of the yanked selection for fine-grained text navigation"
+    },
+    {
+      "value": "\"Normal\"",
+      "description": "Enter Normal mode after yanking, exiting visual mode and returning to normal keyboard navigation and command execution"
+    }
+  ],
+  "default": "\"\"",
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/visual.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 71,
+        "context": "Initialized as empty string in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/visual.js",
+        "line": 369,
+        "function": "yank command",
+        "context": "Checked to determine if Caret mode should be entered after yanking, positioning cursor and showing caret"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/visual.js",
+        "line": 374,
+        "function": "yank command",
+        "context": "Checked to determine if Normal mode should be entered after yanking, exiting visual mode"
+      },
+      {
+        "type": "reference",
+        "file": "src/content_scripts/common/visual.js",
+        "line": 835,
+        "function": "next",
+        "context": "Comment indicating that visual mode re-entry is needed when modeAfterYank is set to Normal or Caret"
+      }
+    ]
+  },
+  "notes": "This is a user-configurable setting that affects the behavior of the yank command in visual mode. The setting is read directly from runtime.conf when the yank command is executed. Setting this to 'Normal' is useful for users who want to quickly exit visual mode after copying, while 'Caret' is useful for those who want to position their cursor at the copied text for further editing.",
+  "example": {
+    "description": "Configure mode to return to Normal mode after yanking",
+    "code": "set modeAfterYank=Normal"
+  }
+}

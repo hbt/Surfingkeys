@@ -1,0 +1,65 @@
+{
+  "short": "Enable smooth scrolling animations",
+  "unique_id": "smoothScroll",
+  "category": "movement",
+  "description": "Controls whether scrolling movements (triggered by j, k, h, l and related commands) should animate smoothly to their destination or jump instantly. When enabled, scroll animations are calculated with a duration proportional to the scroll distance. When disabled, scrolling uses instant 'behavior' for immediate position changes. This setting affects the visual user experience of all scroll operations.",
+  "tags": [
+    "scroll",
+    "movement",
+    "animation",
+    "keyboard",
+    "smoothing",
+    "behavior",
+    "j",
+    "k",
+    "h",
+    "l"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "true enables smooth animated scrolling, false disables animation and scrolls instantly",
+  "values": [
+    {
+      "value": true,
+      "description": "Default value; smooth scrolling is enabled with animation duration calculated as Math.max(100, 20 * Math.log(Math.abs(distance)))",
+      "source": "src/content_scripts/common/runtime.js:89 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": false,
+      "description": "Smooth scrolling is disabled; scrollBy uses instant behavior for immediate scrolling without animation",
+      "source": "data/fixtures/cdp-scrollstepsize-20-config.js:4 - Test fixture override for CDP tests"
+    },
+    {
+      "value": false,
+      "description": "Smooth scrolling disabled in command metadata test configuration",
+      "source": "data/fixtures/cdp-command-metadata-config.js:8 - Test fixture override"
+    }
+  ],
+  "default": true,
+  "readmeDocumented": false,
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 89) - initialization in runtime.conf",
+    "src/content_scripts/common/normal.js (line 391) - conditional check in scroll implementation",
+    "src/content_scripts/common/normal.js (line 393) - calls smoothScrollBy when enabled",
+    "src/content_scripts/common/normal.js (line 396-401) - uses instant scrollBy when disabled",
+    "src/content_scripts/common/normal.js (line 417) - smoothScrollBy function implementation with animation"
+  ],
+  "notes": "When enabled, the smoothScroll setting works in conjunction with scrollStepSize to determine both the distance and duration of scroll animations. The animation duration is logarithmically scaled (Math.max(100, 20 * Math.log(Math.abs(distance)))) to provide consistent animation speed regardless of scroll distance. When disabled, scrolling behaves instantly with no animation. The setting also interacts with scrollFriction for continuous scroll behavior when keys are held down.",
+  "relatedSettings": [
+    "scrollStepSize",
+    "scrollFriction"
+  ],
+  "relatedCommands": [
+    "cmd-scroll-down",
+    "cmd-scroll-up",
+    "cmd-scroll-left",
+    "cmd-scroll-right",
+    "cmd-scroll-page-down",
+    "cmd-scroll-full-page-down",
+    "cmd-scroll-page-up",
+    "cmd-scroll-full-page-up"
+  ],
+  "example": {
+    "description": "Disable smooth scrolling for instant scroll behavior",
+    "code": "settings.smoothScroll = false;"
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "short": "UI language for localization",
+  "unique_id": "setting_language",
+  "category": "localization",
+  "description": "Override the default browser language for Surfingkeys UI localization. When set, this value takes precedence over the browser's navigator.language property. Used by the initL10n function to load translated text strings from l10n.json. If not set (undefined), the browser's navigator.language is used as fallback. Supports language tags like 'en-US', 'zh-CN', 'ru-RU', 'ko-Kr' as defined in src/pages/l10n.json.",
+  "tags": [
+    "localization",
+    "l10n",
+    "language",
+    "browser-api",
+    "internationalization",
+    "ui",
+    "settings"
+  ],
+  "valueType": "string|undefined",
+  "valueDescription": "Language code in format 'language-COUNTRY' (e.g., 'en-US', 'zh-CN', 'ru-RU', 'ko-Kr'). The value should match keys in src/pages/l10n.json to load correct translations. Undefined (default) means the browser's navigator.language will be used.",
+  "values": [
+    {
+      "value": "undefined",
+      "description": "Default value; use browser's navigator.language for localization",
+      "source": "src/content_scripts/common/runtime.js:69 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "\"en-US\"",
+      "description": "English (US) - no translation applied, strings are returned as-is",
+      "source": "src/content_scripts/common/utils.js:773 - Special case in initL10n function"
+    },
+    {
+      "value": "\"zh-CN\"",
+      "description": "Chinese (Simplified) - loads translations from l10n.json[zh-CN]",
+      "source": "src/pages/l10n.json:2 - Available translation language"
+    },
+    {
+      "value": "\"ru-RU\"",
+      "description": "Russian (Russia) - loads translations from l10n.json[ru-RU]",
+      "source": "src/pages/l10n.json:255 - Available translation language"
+    },
+    {
+      "value": "\"ko-Kr\"",
+      "description": "Korean (Korea) - loads translations from l10n.json[ko-Kr]",
+      "source": "src/pages/l10n.json:506 - Available translation language"
+    },
+    {
+      "value": "<other_language_code>",
+      "description": "Any other language code defined in l10n.json will be loaded if available, otherwise no translations are applied",
+      "source": "src/content_scripts/common/utils.js:778 - fetch l10n.json to load translations"
+    }
+  ],
+  "default": "undefined",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 69) - Initial declaration",
+    "src/content_scripts/common/utils.js (line 772) - Read in initL10n function"
+  ],
+  "relatedFiles": [
+    "src/pages/l10n.json - Translation strings for supported languages",
+    "src/content_scripts/content.js (line 111) - Settings applied via applySettings"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/utils.js",
+      "src/content_scripts/content.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 69,
+        "context": "Initialized as undefined in runtime.conf object"
+      },
+      {
+        "type": "write",
+        "file": "src/content_scripts/content.js",
+        "line": 111,
+        "function": "applySettings",
+        "context": "Set from user settings when settings are loaded or updated"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/utils.js",
+        "line": 772,
+        "function": "initL10n",
+        "context": "Read to determine which language translations to load; falls back to window.navigator.language if undefined"
+      }
+    ]
+  },
+  "notes": "This is a user-configurable localization setting that allows overriding the browser's default language. The setting is applied through the settings mechanism and affects which translation strings are loaded for the UI. If the specified language is not available in l10n.json, or the fetch fails, the UI will remain in English (strings from code). The special case for 'en-US' skips translation loading entirely, as it's the default language.",
+  "example": {
+    "description": "Force Surfingkeys UI to use Chinese (Simplified) translations",
+    "code": "settings.language = \"zh-CN\";"
+  }
+}

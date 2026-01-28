@@ -1,0 +1,65 @@
+{
+  "short": "Whether to always show hints explicitly, even for single matches",
+  "unique_id": "setting_hintExplicit",
+  "category": "hints",
+  "description": "Controls whether hints mode will always show hint labels even when only a single element matches the hint selector. When enabled (true), the hints mode enters an explicit interaction state where hints are always displayed and require explicit keystroke selection, even if only one matching element is found. When disabled (false, default), single matching elements are automatically activated without showing the hints interface, providing a faster interaction pattern for cases where hint selection is unambiguous.",
+  "tags": [
+    "hints",
+    "user-experience",
+    "interaction-mode",
+    "keyboard",
+    "single-match",
+    "runtime"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean flag to control whether hints are displayed for single matches (true) or auto-activated (false)",
+  "values": [
+    {
+      "value": "false",
+      "description": "Default value; when a hint selector matches only one element, that element is automatically activated without showing the hints interface. This is called implicit mode because the user action is implicit - the single match is executed automatically.",
+      "source": "src/content_scripts/common/runtime.js:66 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "true",
+      "description": "When enabled, the hints interface always displays even when only one element matches the selector. The user must explicitly press a key to activate the matched element. This provides consistent visual feedback and explicit user confirmation regardless of match count.",
+      "source": "src/content_scripts/common/hints.js:1023 - Read in Hints.create function to control whether hints mode is entered"
+    }
+  ],
+  "default": false,
+  "readmeDocumented": true,
+  "readmeSection": "settings.hintExplicit",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 66)",
+    "src/content_scripts/common/hints.js (line 1023)"
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/hints.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 66,
+        "context": "Initialized as false in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 1023,
+        "function": "Hints.create",
+        "context": "Checked in the condition 'found > (runtime.conf.hintExplicit ? 0 : 1)' to determine whether to enter hints mode. When true, hints mode is entered if found > 0 (always show). When false, hints mode is entered only if found > 1 (auto-activate single matches)."
+      }
+    ]
+  },
+  "relatedSettings": [
+    "hintAlign",
+    "hintShiftNonActive"
+  ],
+  "example": {
+    "description": "Enable explicit hint mode to require keystroke confirmation even for single matches",
+    "code": "settings.hintExplicit = true;"
+  },
+  "notes": "This is a boolean setting that changes the interaction pattern for hint activation. The default value (false) provides faster interaction for unambiguous matches by automatically activating single elements without displaying the hints interface. When set to true, users get consistent and explicit visual feedback from the hints interface for all matches. This can be useful for users who prefer explicit confirmation over implicit automation, or for pages where single-element matches might be unexpected. The setting affects the internal decision logic in Hints.create (line 1023) which compares the number of found hints against either 0 or 1 depending on this setting's value."
+}

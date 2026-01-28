@@ -1,0 +1,37 @@
+{
+  "short": "ACE editor keybindings",
+  "unique_id": "aceKeybindings",
+  "category": "editor",
+  "description": "Set keybindings for the ACE editor. Choose between Vim and Emacs style keybindings. In Emacs mode, use Ctrl+X Ctrl+S to save input.",
+  "tags": [
+    "editor",
+    "keybindings",
+    "ace",
+    "vim",
+    "emacs"
+  ],
+  "valueType": "string",
+  "valueDescription": "Keybinding style identifier",
+  "values": [
+    {
+      "value": "vim",
+      "description": "Use Vim-style keybindings in ACE editor (default)"
+    },
+    {
+      "value": "emacs",
+      "description": "Use Emacs-style keybindings in ACE editor. Save with Ctrl+X Ctrl+S."
+    }
+  ],
+  "default": "vim",
+  "readmeDocumented": true,
+  "readmeSection": "settings.aceKeybindings",
+  "usageLocations": [
+    "src/content_scripts/common/runtime.js (line 98)",
+    "src/content_scripts/ui/frontend.js (line 1074, 1279, 1282, 1284)"
+  ],
+  "notes": "This setting controls keyboard handler for the ACE editor used in Surfingkeys' text input areas. Invalid values default to 'vim'.",
+  "example": {
+    "description": "Use Emacs keybindings in editor",
+    "code": "settings.aceKeybindings = \"emacs\";"
+  }
+}

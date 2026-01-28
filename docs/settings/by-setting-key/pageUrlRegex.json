@@ -1,0 +1,144 @@
+{
+  "short": "Array of regex patterns for extracting and incrementing page numbers from URLs",
+  "unique_id": "setting_pageUrlRegex",
+  "category": "navigation",
+  "description": "An array of regular expression patterns used to extract page numbers from the current URL and navigate to the next/previous page. Each regex should contain exactly 3 capturing groups: (1) the URL prefix up to and including the page number, (2) the page number itself, and (3) the URL suffix after the page number. When nextPage or previousPage commands are invoked and no explicit next/previous page links are found, these patterns are tested in sequence against the current URL to identify the page number, increment or decrement it, and construct a new URL. This enables automatic pagination navigation even on sites without standard rel='next' or rel='prev' links.",
+  "tags": [
+    "navigation",
+    "pagination",
+    "regex",
+    "url-manipulation",
+    "page-traversal",
+    "advanced"
+  ],
+  "valueType": "array of regex-string",
+  "valueDescription": "An array of JavaScript regular expression patterns (as strings). Each pattern should match URLs containing page numbers with 3 capture groups: group 1 = URL prefix, group 2 = page number, group 3 = URL suffix. The pattern is matched against window.location.href. Empty array (default) means no automatic page number navigation is attempted.",
+  "values": [
+    {
+      "value": "[]",
+      "description": "Default value; empty array means no automatic page number extraction is attempted. Next/previous navigation falls back to finding rel='next' and rel='prev' links.",
+      "source": "src/content_scripts/common/runtime.js:80 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "[/(.*?)(?:page|p)=?(\\d+)(.*)/i]",
+      "description": "Single pattern to match URLs with 'page' or 'p' query parameter. Extracts page number from URLs like example.com?page=2 or example.com?p=3",
+      "source": "User configuration example"
+    },
+    {
+      "value": "[/(.*?)(\\d+)(?:/|$)/]",
+      "description": "Pattern to match numeric page segments in URL path. Matches URLs like example.com/articles/page/2/",
+      "source": "User configuration example"
+    },
+    {
+      "value": "[/(.*?)([\\d]+)(/.*)?$/]",
+      "description": "Matches page number at end of URL path with optional trailing segments. Works with URLs like site.com/blog/2/",
+      "source": "User configuration example"
+    },
+    {
+      "value": "[/(.*page)(\\d+)(.*)/i, /(.*?)(\\d+)(\\.html)/]",
+      "description": "Multiple patterns for matching different URL formats: 'page2', 'page3' style and numbered HTML files like article2.html, article3.html",
+      "source": "User configuration example"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/hints.js",
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/common/default.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 80,
+        "function": "runtime.conf",
+        "context": "Initialized as empty array in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 574,
+        "function": "walkPageUrl",
+        "context": "Iterated in a loop to find first matching page number pattern"
+      },
+      {
+        "type": "test",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 575,
+        "function": "walkPageUrl",
+        "context": "Each regex pattern is matched against window.location.href to extract page number components"
+      },
+      {
+        "type": "use",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 579,
+        "function": "walkPageUrl",
+        "context": "When match succeeds with 4 groups (index 0-3), page number is incremented/decremented and new URL is constructed"
+      },
+      {
+        "type": "fallback",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 633,
+        "function": "previousPage",
+        "context": "Called as fallback when no rel='prev' links are found to navigate to previous page"
+      },
+      {
+        "type": "fallback",
+        "file": "src/content_scripts/common/hints.js",
+        "line": 643,
+        "function": "nextPage",
+        "context": "Called as fallback when no rel='next' links are found to navigate to next page"
+      }
+    ]
+  },
+  "relatedCommands": [
+    "cmd_next_page (]])",
+    "cmd_previous_page ([[])"
+  ],
+  "relatedSettings": [
+    "settings.nextLinkRegex",
+    "settings.prevLinkRegex"
+  ],
+  "usageNotes": [
+    "pageUrlRegex is only used as a fallback when nextPage/previousPage commands cannot find explicit rel='next' or rel='prev' links on the page",
+    "Each regex pattern MUST contain exactly 3 capturing groups: (1) URL prefix, (2) page number, (3) URL suffix",
+    "The regex is matched against window.location.href using the match() function, which must return an array with 4 elements (index 0 = full match, 1-3 = groups)",
+    "The page number (group 2) must be numeric and parseable with parseInt(); it is compared against 0xffffffff to prevent overflow",
+    "Patterns are tested in array order; the first pattern that matches is used",
+    "Each pattern should include appropriate flags like 'i' (case-insensitive) if needed",
+    "Use nextLinkRegex and prevLinkRegex in conjunction with this setting for comprehensive pagination support",
+    "On sites with semantic pagination links, nextLinkRegex/prevLinkRegex are preferred; use pageUrlRegex only when links are unavailable"
+  ],
+  "implementationDetails": {
+    "matchingLogic": "for (var i = 0; i < runtime.conf.pageUrlRegex.length; i++) { var numbers = window.location.href.match(runtime.conf.pageUrlRegex[i]); if (numbers && numbers.length === 4) { /* extract and increment */ } }",
+    "numberExtraction": "The page number is extracted as parseInt(numbers[2]) and must be less than 0xffffffff to prevent overflow navigation",
+    "urlConstruction": "New URL is built as: numbers[1] + (cp + step) + numbers[3] where cp is current page number and step is +1 or -1"
+  },
+  "examples": [
+    {
+      "title": "Simple query parameter pagination",
+      "description": "Match URLs with ?page=N query parameter",
+      "code": "settings.pageUrlRegex = [/(.*)page=([0-9]+)(.*)/i]",
+      "matchesUrls": ["example.com?page=1", "example.com?page=2", "EXAMPLE.COM?PAGE=3"]
+    },
+    {
+      "title": "URL path based pagination",
+      "description": "Match URLs with /page/N/ in path",
+      "code": "settings.pageUrlRegex = [/(.*\\/page\\/)([0-9]+)(.*)/]",
+      "matchesUrls": ["example.com/article/page/2/", "example.com/article/page/3/"]
+    },
+    {
+      "title": "Multiple pagination formats",
+      "description": "Support multiple pagination patterns on different sites",
+      "code": "settings.pageUrlRegex = [/(.*)p=([0-9]+)(.*)/i, /(.*page)([0-9]+)(\\.html)/i, /(.*\\/)(page-)?([0-9]+)(\\/.*)?$/]",
+      "explanation": "First pattern: ?p=N format; Second: pageN.html format; Third: /N/ or /page-N/ path format"
+    },
+    {
+      "title": "Archive.org style pagination",
+      "description": "Match /web/YYYYMMDDHHMMSS/url format",
+      "code": "settings.pageUrlRegex = [/(https:\\/\\/web\\.archive\\.org\\/web\\/)([0-9]+)(\\/.*)]/]",
+      "matchesUrls": ["https://web.archive.org/web/20200101000000/example.com"]
+    }
+  ],
+  "notes": "pageUrlRegex is a configuration setting for automatic pagination navigation. It is particularly useful for older websites or search results that don't use semantic HTML pagination links. The regex-based approach is more fragile than link-based navigation and should be used as a last resort. When adding patterns, test them thoroughly with actual URLs from the target sites. Patterns are stored as strings in the configuration but are converted to RegExp objects at runtime when matched against URLs. An empty array means nextPage/previousPage will only work when explicit rel='next' and rel='prev' links are present on the page."
+}

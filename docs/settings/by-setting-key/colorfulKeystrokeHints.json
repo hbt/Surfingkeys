@@ -1,0 +1,53 @@
+{
+  "short": "Enable colorful keystroke hints display",
+  "unique_id": "setting_colorfulKeystrokeHints",
+  "category": "ui",
+  "description": "Controls whether keystroke hints in the rich hints display use colorized text or plain white text. When enabled, the first character of each keystroke is displayed in a color-coded style with larger font size and bold weight, while subsequent characters remain white. When disabled, all keystroke hints display as plain white text. This setting affects the visual appearance of keystroke suggestions in the omnibar and other hint displays.",
+  "tags": [
+    "ui",
+    "hints",
+    "keystroke",
+    "visual",
+    "styling",
+    "configuration"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean value indicating whether colorful keystroke hints are enabled (true) or disabled (false)",
+  "values": [
+    {
+      "value": "true",
+      "description": "Default value; keystroke hints display with colorized first character (larger, bold, color-coded) and white remaining characters",
+      "source": "src/content_scripts/common/runtime.js:84 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "false",
+      "description": "Keystroke hints display as plain white text without colorization or special formatting",
+      "source": "data/fixtures/cdp-command-metadata-config.js:7 - Test fixture setting override"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/ui/frontend.js",
+      "data/fixtures/cdp-command-metadata-config.js",
+      "tests/cdp/fixtures/cdp-command-metadata-config.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 84,
+        "function": "runtime.conf initialization",
+        "context": "Default configuration value set to true in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/frontend.js",
+        "line": 742,
+        "function": "colorizeNextKey",
+        "context": "Checked to determine whether to apply colorful formatting (firstCharColor) or plain white styling to keystroke hints"
+      }
+    ]
+  },
+  "notes": "This is a user-configurable setting that controls the visual presentation of keystroke hints. The color coding for individual characters is determined by a separate getCharColor function. This setting is typically used with richHintsForKeystroke (which controls the delay before showing hints) to provide visual feedback during keystroke input."
+}

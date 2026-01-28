@@ -1,0 +1,87 @@
+{
+  "short": "Maximum number of tabs to retrieve before limiting tab results",
+  "unique_id": "setting_tabsThreshold",
+  "category": "tabs",
+  "description": "Controls the maximum number of tabs that can be retrieved from the browser when listing tabs in the omnibar or other tab selection interfaces. When the number of tabs exceeds this threshold and tabsMRUOrder is enabled, tabs are sorted by most-recently-used (MRU) order with the current tab excluded. This setting helps optimize performance when dealing with large numbers of open tabs by limiting how many tabs are processed and displayed.",
+  "tags": [
+    "tabs",
+    "omnibar",
+    "performance",
+    "threshold",
+    "mru-order",
+    "ui-optimization"
+  ],
+  "valueType": "number",
+  "valueDescription": "A positive integer representing the maximum number of tabs to retrieve. Used as a threshold to determine when MRU-based sorting should be applied.",
+  "values": [
+    {
+      "value": "100",
+      "description": "Default value; standard threshold for tab retrieval before applying MRU sorting when tabsMRUOrder is enabled",
+      "source": "src/content_scripts/common/runtime.js:93 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "Math.min(runtime.conf.tabsThreshold, Math.ceil(window.innerWidth / 26))",
+      "description": "Dynamically calculated at runtime in the chooseTab action; adjusted based on available window width to ensure UI elements remain properly sized (approximately 26px per tab indicator)",
+      "source": "src/content_scripts/ui/frontend.js:299 - Calculated in chooseTab action"
+    },
+    {
+      "value": "Math.min(runtime.conf.tabsThreshold, Math.ceil(window.innerWidth / 26))",
+      "description": "Dynamically calculated in omnibar tab source; adjusted based on window width to constrain tab results for UI display",
+      "source": "src/content_scripts/ui/omnibar.js:1177 - Set in getTabsArgs for omnibar results"
+    },
+    {
+      "value": "message.tabsThreshold (runtime value)",
+      "description": "Passed to getTabs message handler in background service worker; used to compare against actual tab count for deciding whether to apply MRU sorting when tabsMRUOrder is enabled",
+      "source": "src/background/start.js:1081 - Checked in getTabs handler to determine MRU sorting"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/ui/frontend.js",
+      "src/content_scripts/ui/omnibar.js",
+      "src/background/start.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 93,
+        "context": "Initialized with default value of 100 in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/frontend.js",
+        "line": 299,
+        "function": "chooseTab action",
+        "context": "Read and used to calculate dynamic threshold based on window width; Math.min ensures UI constraint"
+      },
+      {
+        "type": "write",
+        "file": "src/content_scripts/ui/frontend.js",
+        "line": 300,
+        "function": "chooseTab action",
+        "context": "Passed to getTabs runtime call with calculated dynamic threshold"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/omnibar.js",
+        "line": 1177,
+        "function": "omnibar tab source getResults",
+        "context": "Read and used to calculate dynamic threshold; passed to getTabs for tab list retrieval"
+      },
+      {
+        "type": "read",
+        "file": "src/background/start.js",
+        "line": 1081,
+        "function": "getTabs",
+        "context": "Received from message; compared with actual tab count to determine when MRU sorting should be applied if tabsMRUOrder is enabled"
+      }
+    ]
+  },
+  "relatedSettings": [
+    "tabsMRUOrder",
+    "tabIndicesSeparator"
+  ],
+  "notes": "This setting works in conjunction with tabsMRUOrder: when the retrieved tab count exceeds tabsThreshold AND tabsMRUOrder is true, tabs are sorted by MRU with the current tab excluded. The setting has a dynamic adjustment mechanism in the UI layer (frontend.js and omnibar.js) that constrains the effective threshold to fit within the visible window width (approximately 26px per tab indicator). This prevents UI overflow while respecting the user's configured threshold value as an upper bound."
+}

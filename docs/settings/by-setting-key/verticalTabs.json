@@ -1,0 +1,65 @@
+{
+  "short": "Show tab pickers vertically aligned",
+  "unique_id": "setting_verticalTabs",
+  "category": "tab-management",
+  "description": "Controls the layout of the tab picker UI that appears when choosing between open tabs. When enabled (true), tabs are displayed in a vertical list with rocket emoji indicators (🚀) for non-active tabs. When disabled (false), tabs are displayed horizontally with constrained widths and inline rendering. This setting affects the presentation of tabs when the user invokes the tab selection command (e.g., pressing the key mapped to 'chooseTab'). The vertical layout is particularly useful for users with many open tabs, as it avoids horizontal overflow and provides a more scannable list format.",
+  "tags": [
+    "tab-management",
+    "ui",
+    "display",
+    "layout",
+    "tabs",
+    "configuration"
+  ],
+  "valueType": "boolean",
+  "valueDescription": "Boolean value indicating whether tabs are displayed vertically (true) or horizontally (false)",
+  "values": [
+    {
+      "value": "true",
+      "description": "Default value; tabs are displayed vertically with rocket emoji (🚀) indicators for non-active tabs. Container class set to 'vertical'. Enables vertical layout with full width display.",
+      "source": "src/content_scripts/common/runtime.js:94 - Initial declaration in runtime.conf"
+    },
+    {
+      "value": "false",
+      "description": "Tabs are displayed horizontally with constrained widths calculated based on window width divided by number of tabs. Container class set to 'horizontal'. Each tab width is adjusted to fit the viewport.",
+      "source": "src/content_scripts/ui/frontend.js:274 - Conditional rendering based on this setting value"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/content_scripts/common/runtime.js",
+      "src/content_scripts/ui/frontend.js"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/content_scripts/common/runtime.js",
+        "line": 94,
+        "function": "runtime.conf initialization",
+        "context": "Default configuration value set to true in runtime.conf object"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/frontend.js",
+        "line": 273,
+        "function": "renderTabs",
+        "context": "Retrieved from runtime.conf and assigned to local constant for use in tab rendering logic"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/frontend.js",
+        "line": 274,
+        "function": "renderTabs",
+        "context": "Used to set container CSS class name: 'vertical' if true, 'horizontal' if false"
+      },
+      {
+        "type": "read",
+        "file": "src/content_scripts/ui/frontend.js",
+        "line": 276,
+        "function": "renderTabs",
+        "context": "Conditional check to determine whether to add rocket emoji (🚀) to non-active tabs (vertical layout) or apply width constraints (horizontal layout)"
+      }
+    ]
+  },
+  "notes": "This is a user-configurable setting that directly affects the visual presentation and layout of the tab picker interface. The vertical layout (when true) provides better usability for users with many tabs, while the horizontal layout (when false) is more compact. The setting is primarily used in the renderTabs function within the frontend module to control both CSS class assignment and element rendering logic. When verticalTabs is true, rocket emojis are added as visual indicators; when false, width constraints are applied to each tab element to fit them horizontally within the available window width."
+}
