@@ -97,6 +97,42 @@ describe('cmd_tab_next', () => {
     });
 
     beforeEach(async () => {
+        // Reset to the fixture tab before each test
+        const resetTabId = tabIds[2];
+        const resetResult = await executeInTarget(bgWs, `
+            new Promise((resolve) => {
+                chrome.tabs.update(${resetTabId}, { active: true }, () => {
+                    resolve(true);
+                });
+            })
+        `);
+        console.log(`beforeEach: Reset tab ${resetTabId}, result: ${resetResult}`);
+
+        // Wait for tab switch to complete - use longer delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Verify the reset worked by checking which tab is active
+        const verifyTab = await getActiveTab(bgWs);
+        console.log(`beforeEach: After reset, active tab is index ${verifyTab.index}, id ${verifyTab.id}`);
+
+        // Always reconnect to the active tab to ensure fresh connection
+        // (necessary after tests that switch tabs or create new connections)
+        try {
+            await closeCDP(pageWs);
+        } catch (e) {
+            // Connection may already be closed
+        }
+        const pageWsUrl = await findContentPage('127.0.0.1:9873/scroll-test.html');
+        console.log(`beforeEach: Found content page WebSocket URL: ${pageWsUrl}`);
+        pageWs = await connectToCDP(pageWsUrl);
+        enableInputDomain(pageWs);
+        pageWs.send(JSON.stringify({
+            id: 999,
+            method: 'Runtime.enable'
+        }));
+        await waitForSurfingkeysReady(pageWs);
+        console.log(`beforeEach: Reconnected to content page and ready`);
+
         // Capture test name
         const state = expect.getState();
         currentTestName = state.currentTestName || 'unknown-test';
@@ -149,36 +185,118 @@ describe('cmd_tab_next', () => {
         expect(newTab.id).not.toBe(initialTab.id);
     });
 
-    test('pressing 2R switches to next tab twice', async () => {
-        // Get initial active tab and total tab count
+    test('pressing R twice switches tabs twice', async () => {
         const initialTab = await getActiveTab(bgWs);
-        const totalTabsResult = await executeInTarget(bgWs, `
-            new Promise((resolve) => {
-                chrome.tabs.query({ currentWindow: true }, (tabs) => {
-                    resolve(tabs.length);
-                });
-            })
-        `);
-        const totalTabs = totalTabsResult;
-        console.log(`Initial tab: index ${initialTab.index}, total tabs: ${totalTabs}`);
+        console.log(`Initial tab index: ${initialTab.index}`);
 
-        // Calculate expected index after 2 next operations
-        // Next means increment with wraparound
-        const expectedIndex = (initialTab.index + 2) % totalTabs;
-        console.log(`Expected after 2R: index ${expectedIndex}`);
-
-        // Press '2' then 'R' to trigger 2R command
-        await sendKey(pageWs, '2', 100);
+        // Send first 'R' and wait for tab change
         await sendKey(pageWs, 'R');
 
-        // Wait for tab switches to complete (longer wait for multiple switches)
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Poll for tab change after first R
+        let afterFirstR = null;
+        for (let i = 0; i < 20; i++) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            const currentTab = await getActiveTab(bgWs);
+            if (currentTab.id !== initialTab.id) {
+                afterFirstR = currentTab;
+                break;
+            }
+        }
 
-        // Check final active tab
-        const finalTab = await getActiveTab(bgWs);
-        console.log(`After 2R: index ${finalTab.index}`);
+        expect(afterFirstR).not.toBeNull();
+        console.log(`After first R: index ${afterFirstR.index} (moved from ${initialTab.index})`);
 
-        // Verify we moved 2 tabs forward
-        expect(finalTab.index).toBe(expectedIndex);
+        // Reconnect to the newly active tab
+        const newPageWsUrl = await findContentPage('127.0.0.1:9873/scroll-test.html');
+        const newPageWs = await connectToCDP(newPageWsUrl);
+        enableInputDomain(newPageWs);
+        await waitForSurfingkeysReady(newPageWs);
+
+        // Send second 'R' to the new active tab
+        await sendKey(newPageWs, 'R');
+
+        // Poll for tab change after second R
+        let afterSecondR = null;
+        for (let i = 0; i < 20; i++) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            const currentTab = await getActiveTab(bgWs);
+            if (currentTab.id !== afterFirstR.id) {
+                afterSecondR = currentTab;
+                break;
+            }
+        }
+
+        expect(afterSecondR).not.toBeNull();
+        console.log(`After second R: index ${afterSecondR.index} (moved from ${afterFirstR.index})`);
+
+        // Cleanup new connection
+        await closeCDP(newPageWs);
+
+        // Verify we moved twice (each move changed tabs)
+        expect(initialTab.id).not.toBe(afterFirstR.id);
+        expect(afterFirstR.id).not.toBe(afterSecondR.id);
+        // Note: afterSecondR might equal initialTab due to wraparound, that's OK
+    });
+
+    test('pressing 2R switches 2 tabs to the right', async () => {
+        // === SETUP VERIFICATION ===
+        console.log(`\n=== TEST SETUP STATE ===`);
+        console.log(`Total tabs created: ${tabIds.length}`);
+        console.log(`Tab IDs: ${tabIds.join(', ')}`);
+
+        // Assert we have 5 tabs as created in beforeAll
+        expect(tabIds.length).toBe(5);
+        console.log(`✓ Assertion: exactly 5 tabs exist`);
+
+        // Get initial active tab and verify it exists
+        const initialTab = await getActiveTab(bgWs);
+        console.log(`Current active tab: index ${initialTab.index}, id ${initialTab.id}`);
+        console.log(`Is it in our tabIds? ${tabIds.includes(initialTab.id)}`);
+
+        // Assert we have a valid starting state
+        expect(initialTab).not.toBeNull();
+        console.log(`✓ Assertion: active tab is not null`);
+
+        expect(initialTab.id).toBeDefined();
+        console.log(`✓ Assertion: active tab ID is defined`);
+
+        expect(tabIds).toContain(initialTab.id);
+        console.log(`✓ Assertion: current tab (id=${initialTab.id}) is in our created tabIds`);
+
+        // beforeEach resets to tabIds[2], verify that happened
+        expect(initialTab.id).toBe(tabIds[2]);
+        console.log(`✓ Assertion: we are at tabIds[2] (id=${tabIds[2]}), the middle/reset tab`);
+
+        // Find the expected final tab (2 tabs to the right means tabIds[4])
+        // tabIds is in creation order: [tab0, tab1, tab2(START), tab3, tab4]
+        // 2 tabs right from tab2 = tab4
+        const expectedFinalTabId = tabIds[4];
+        console.log(`✓ Expected final tab: tabIds[4] (id=${expectedFinalTabId})`);
+        console.log(`=== START TEST: will move from tabIds[2] to tabIds[4] (2 tabs right) ===\n`);
+
+        // Send '2' followed by 'R' to create 2R command
+        await sendKey(pageWs, '2', 50);
+        await sendKey(pageWs, 'R');
+
+        // Poll for tab change after 2R
+        let finalTab = null;
+        for (let i = 0; i < 50; i++) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            const currentTab = await getActiveTab(bgWs);
+            if (currentTab && currentTab.id !== initialTab.id) {
+                finalTab = currentTab;
+                break;
+            }
+        }
+
+        expect(finalTab).not.toBeNull();
+        console.log(`After 2R: tab id ${finalTab.id} at index ${finalTab.index}`);
+
+        // Verify we moved to the expected tab (tabIds[4])
+        expect(finalTab.id).toBe(expectedFinalTabId);
+        console.log(`✓ Assertion: moved to expectedTabId (tabIds[4])`);
+
+        expect(finalTab.id).not.toBe(initialTab.id);
+        console.log(`✓ Assertion: final tab is different from initial tab`);
     });
 });
