@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Test Page</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .inline-inputs {
+            display: flex;
+            gap: 10px;
+        }
+        .inline-inputs input {
+            width: auto;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Input Elements Test Page</h1>
+    <p>This page contains various input elements for testing vim editor integration.</p>
+
+    <div class="section">
+        <h2>Text Inputs</h2>
+        <div class="form-group">
+            <label for="text-input-1">Text Input 1:</label>
+            <input type="text" id="text-input-1" placeholder="Enter text here" value="Sample text">
+        </div>
+        <div class="form-group">
+            <label for="text-input-2">Text Input 2 (empty):</label>
+            <input type="text" id="text-input-2" placeholder="Empty input">
+        </div>
+        <div class="form-group">
+            <label for="email-input">Email Input:</label>
+            <input type="email" id="email-input" placeholder="user@example.com" value="test@example.com">
+        </div>
+        <div class="form-group">
+            <label for="search-input">Search Input:</label>
+            <input type="search" id="search-input" placeholder="Search..." value="search query">
+        </div>
+        <div class="form-group">
+            <label for="password-input">Password Input:</label>
+            <input type="password" id="password-input" placeholder="Password" value="secret123">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Textarea Elements</h2>
+        <div class="form-group">
+            <label for="textarea-1">Textarea 1:</label>
+            <textarea id="textarea-1">This is some sample text
+that spans multiple lines.
+Line 3 of sample content.</textarea>
+        </div>
+        <div class="form-group">
+            <label for="textarea-2">Textarea 2 (empty):</label>
+            <textarea id="textarea-2" placeholder="Enter long text here"></textarea>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Select Elements</h2>
+        <div class="form-group">
+            <label for="select-1">Select 1:</label>
+            <select id="select-1">
+                <option value="option1">Option 1</option>
+                <option value="option2" selected>Option 2</option>
+                <option value="option3">Option 3</option>
+                <option value="option4">Option 4</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="select-2">Select 2:</label>
+            <select id="select-2">
+                <option value="a">Choice A</option>
+                <option value="b">Choice B</option>
+                <option value="c">Choice C</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>ContentEditable Elements</h2>
+        <div class="form-group">
+            <label>ContentEditable Div:</label>
+            <div contenteditable="true" style="border: 1px solid #ccc; padding: 8px; min-height: 60px; border-radius: 4px;">
+                This is editable content in a div element.
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Inline Inputs</h2>
+        <div class="inline-inputs">
+            <input type="text" id="inline-1" placeholder="First" value="John">
+            <input type="text" id="inline-2" placeholder="Last" value="Doe">
+            <input type="text" id="inline-3" placeholder="Age" value="30">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Disabled/Readonly (Should not create hints)</h2>
+        <div class="form-group">
+            <label for="disabled-input">Disabled Input:</label>
+            <input type="text" id="disabled-input" disabled value="This is disabled">
+        </div>
+        <div class="form-group">
+            <label for="readonly-input">Readonly Input:</label>
+            <input type="text" id="readonly-input" readonly value="This is readonly">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Mixed Form</h2>
+        <form>
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" value="Test User">
+            </div>
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea id="message">Hello World!</textarea>
+            </div>
+            <div class="form-group">
+                <label for="category">Category:</label>
+                <select id="category">
+                    <option value="general">General</option>
+                    <option value="support">Support</option>
+                    <option value="feedback">Feedback</option>
+                </select>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

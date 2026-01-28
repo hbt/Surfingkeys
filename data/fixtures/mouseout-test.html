@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mouseout Test Page</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; }
+
+        /* Hover-sensitive elements */
+        .hover-box {
+            padding: 15px;
+            margin: 10px 0;
+            background: #e0e0e0;
+            border: 2px solid #999;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .hover-box:hover {
+            background: #ffeb3b;
+            border-color: #f57f17;
+            transform: scale(1.05);
+        }
+        .hover-box[data-hovered="true"] {
+            background: #ffeb3b;
+            border-color: #f57f17;
+        }
+        .hover-box[data-hovered="false"] {
+            background: #e0e0e0;
+            border-color: #999;
+        }
+
+        /* Links with hover states */
+        a {
+            color: #0066cc;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            display: inline-block;
+            margin: 5px;
+            background: #e3f2fd;
+            transition: all 0.2s;
+        }
+        a:hover {
+            background: #2196f3;
+            color: white;
+        }
+        a[data-hovered="true"] {
+            background: #2196f3;
+            color: white;
+        }
+        a[data-hovered="false"] {
+            background: #e3f2fd;
+            color: #0066cc;
+        }
+
+        /* Buttons */
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        button[data-hovered="true"] {
+            background: #45a049;
+        }
+        button[data-hovered="false"] {
+            background: #4caf50;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Track all hover-sensitive elements
+            const elements = document.querySelectorAll('.hover-box, a, button');
+
+            elements.forEach(el => {
+                el.setAttribute('data-hovered', 'false');
+
+                el.addEventListener('mouseover', function(e) {
+                    this.setAttribute('data-hovered', 'true');
+                    updateStatus(this, 'mouseover');
+                });
+
+                el.addEventListener('mouseout', function(e) {
+                    this.setAttribute('data-hovered', 'false');
+                    updateStatus(this, 'mouseout');
+                });
+            });
+
+            function updateStatus(element, eventType) {
+                const statusDiv = document.getElementById('event-status');
+                if (statusDiv) {
+                    const timestamp = new Date().toISOString();
+                    const elementInfo = element.id || element.className || element.tagName;
+                    statusDiv.textContent = `${eventType} on ${elementInfo} at ${timestamp}`;
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>Mouseout Test Page</h1>
+    <p>This page contains elements that respond to mouseover and mouseout events.</p>
+    <div id="event-status" class="status">No events yet</div>
+
+    <div class="section">
+        <h2>Hover Boxes</h2>
+        <div class="hover-box" id="box1" data-testid="hover-box-1">
+            Hover Box 1 - Changes color on hover
+        </div>
+        <div class="hover-box" id="box2" data-testid="hover-box-2">
+            Hover Box 2 - Changes color on hover
+        </div>
+        <div class="hover-box" id="box3" data-testid="hover-box-3">
+            Hover Box 3 - Changes color on hover
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Links</h2>
+        <a href="#" id="link1" data-testid="link-1">Link 1</a>
+        <a href="#" id="link2" data-testid="link-2">Link 2</a>
+        <a href="#" id="link3" data-testid="link-3">Link 3</a>
+        <a href="#" id="link4" data-testid="link-4">Link 4</a>
+        <a href="#" id="link5" data-testid="link-5">Link 5</a>
+    </div>
+
+    <div class="section">
+        <h2>Buttons</h2>
+        <button id="btn1" data-testid="button-1">Button 1</button>
+        <button id="btn2" data-testid="button-2">Button 2</button>
+        <button id="btn3" data-testid="button-3">Button 3</button>
+    </div>
+
+    <div class="section">
+        <h2>Mixed Elements</h2>
+        <p>
+            This section has <a href="#" id="inline-link1">inline link 1</a> and
+            <a href="#" id="inline-link2">inline link 2</a> mixed with text.
+        </p>
+        <div class="hover-box" id="box4" data-testid="hover-box-4">
+            Hover Box 4 with <a href="#" id="nested-link">nested link</a>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Element States</h2>
+        <p>Elements track their hover state using data-hovered attribute:</p>
+        <ul>
+            <li>data-hovered="true" when mouse is over</li>
+            <li>data-hovered="false" when mouse is out</li>
+        </ul>
+    </div>
+</body>
+</html>

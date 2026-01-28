@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Download Test</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        .image {
+            display: inline-block;
+            margin: 10px;
+        }
+        img {
+            display: block;
+            width: 150px;
+            height: 150px;
+            border: 2px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Download Test</h1>
+    <p>This page has several visible images for testing download hints.</p>
+
+    <div class="image">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='red'/%3E%3C/svg%3E" alt="Red image">
+    </div>
+
+    <div class="image">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='green'/%3E%3C/svg%3E" alt="Green image">
+    </div>
+
+    <div class="image">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='blue'/%3E%3C/svg%3E" alt="Blue image">
+    </div>
+
+    <div class="image">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Ccircle cx='75' cy='75' r='70' fill='yellow'/%3E%3C/svg%3E" alt="Yellow circle">
+    </div>
+
+    <div class="image">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Ccircle cx='75' cy='75' r='70' fill='purple'/%3E%3C/svg%3E" alt="Purple circle">
+    </div>
+</body>
+</html>

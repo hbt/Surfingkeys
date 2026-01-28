@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        .audio-container {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Audio Test Page</h1>
+    <div class="audio-container">
+        <h2>Audio Controls</h2>
+        <button id="playBtn">Play Audio</button>
+        <button id="stopBtn">Stop Audio</button>
+        <div id="status">Status: Not playing</div>
+    </div>
+
+    <!-- Silent audio element with a very short looping tone -->
+    <!-- Using a data URL for a minimal audio file to avoid network requests -->
+    <audio id="audio" loop>
+        <!-- This is a minimal silent WAV file (44 bytes header + minimal data) -->
+        <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQAAAAA=" type="audio/wav">
+    </audio>
+
+    <script>
+        const audio = document.getElementById('audio');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+
+        // Set volume to very low to minimize actual audio output
+        audio.volume = 0.01;
+
+        // Use Web Audio API to generate a continuous tone (makes tab audible)
+        let audioContext = null;
+        let oscillator = null;
+        let gainNode = null;
+
+        function startWebAudio() {
+            if (audioContext) {
+                console.log('Audio already started');
+                return Promise.resolve();
+            }
+
+            try {
+                // Create AudioContext
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Create oscillator (generates tone)
+                oscillator = audioContext.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 440; // A4 note
+
+                // Create gain node (volume control)
+                gainNode = audioContext.createGain();
+                gainNode.gain.value = 0.01; // Very low volume
+
+                // Connect: oscillator -> gain -> destination (speakers)
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                // Start the oscillator
+                oscillator.start();
+
+                console.log('Web Audio API: tone started, tab should be audible');
+                status.textContent = 'Status: Web Audio playing (tab is audible)';
+                return Promise.resolve();
+            } catch (err) {
+                console.error('Web Audio API error:', err);
+                return Promise.reject(err);
+            }
+        }
+
+        function stopWebAudio() {
+            if (oscillator) {
+                oscillator.stop();
+                oscillator.disconnect();
+                oscillator = null;
+            }
+            if (gainNode) {
+                gainNode.disconnect();
+                gainNode = null;
+            }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            console.log('Web Audio API: stopped');
+            status.textContent = 'Status: Not playing';
+        }
+
+        playBtn.addEventListener('click', () => {
+            startWebAudio()
+                .then(() => {
+                    status.textContent = 'Status: Playing (tab should be audible)';
+                    console.log('Audio started playing');
+                })
+                .catch(err => {
+                    status.textContent = 'Status: Error - ' + err.message;
+                    console.error('Error playing audio:', err);
+                });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            stopWebAudio();
+        });
+
+        // Make functions globally accessible for testing
+        window.audioTest = {
+            play: () => startWebAudio(),
+            stop: () => stopWebAudio(),
+            isPlaying: () => audioContext !== null && audioContext.state === 'running'
+        };
+    </script>
+</body>
+</html>

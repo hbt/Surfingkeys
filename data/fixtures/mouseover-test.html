@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mouseover Test Page</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; }
+
+        /* Hover effects for links */
+        a {
+            color: #0066cc;
+            text-decoration: none;
+            padding: 4px 8px;
+            transition: all 0.2s;
+        }
+        a:hover {
+            background: #ffeb3b;
+            color: #000;
+        }
+
+        /* Hover boxes */
+        .hover-box {
+            display: inline-block;
+            padding: 20px;
+            margin: 10px;
+            background: #fff;
+            border: 2px solid #ccc;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .hover-box:hover {
+            background: #e3f2fd;
+            border-color: #2196f3;
+            transform: scale(1.05);
+        }
+
+        /* Buttons with hover */
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        /* Image hover effects */
+        img {
+            margin: 10px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        img:hover {
+            border-color: #ff9800;
+            transform: rotate(5deg);
+        }
+
+        /* Dropdown simulation */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            min-width: 160px;
+            z-index: 1;
+            padding: 10px;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        /* Tooltip simulation */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            padding: 10px;
+            margin: 5px;
+            background: #2196f3;
+            color: white;
+            cursor: pointer;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            padding: 5px 10px;
+            border-radius: 6px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mouseover Test Page</h1>
+    <p>This page contains various elements with mouseover effects for testing Ctrl-h command.</p>
+
+    <div class="section">
+        <h2>Links with Hover Effects</h2>
+        <p>
+            <a href="#" id="link1" data-mouseover-count="0">Link 1</a>
+            <a href="#" id="link2" data-mouseover-count="0">Link 2</a>
+            <a href="#" id="link3" data-mouseover-count="0">Link 3</a>
+            <a href="#" id="link4" data-mouseover-count="0">Link 4</a>
+            <a href="#" id="link5" data-mouseover-count="0">Link 5</a>
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Hover Boxes</h2>
+        <div>
+            <div class="hover-box" id="box1" data-mouseover-count="0">Hover Box 1</div>
+            <div class="hover-box" id="box2" data-mouseover-count="0">Hover Box 2</div>
+            <div class="hover-box" id="box3" data-mouseover-count="0">Hover Box 3</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Buttons with Hover</h2>
+        <div>
+            <button id="btn1" data-mouseover-count="0">Button 1</button>
+            <button id="btn2" data-mouseover-count="0">Button 2</button>
+            <button id="btn3" data-mouseover-count="0">Button 3</button>
+            <button id="btn4" data-mouseover-count="0">Button 4</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Images with Hover Effects</h2>
+        <div>
+            <img id="img1" data-mouseover-count="0"
+                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ff6b6b' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3EImg 1%3C/text%3E%3C/svg%3E"
+                alt="Image 1">
+            <img id="img2" data-mouseover-count="0"
+                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%234ecdc4' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3EImg 2%3C/text%3E%3C/svg%3E"
+                alt="Image 2">
+            <img id="img3" data-mouseover-count="0"
+                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23f7b731' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3EImg 3%3C/text%3E%3C/svg%3E"
+                alt="Image 3">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Dropdown Simulation</h2>
+        <div class="dropdown" id="dropdown1" data-mouseover-count="0">
+            <span>Hover for Dropdown</span>
+            <div class="dropdown-content">
+                <p>Dropdown Content</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Tooltip Elements</h2>
+        <div>
+            <div class="tooltip" id="tooltip1" data-mouseover-count="0">
+                Tooltip 1
+                <span class="tooltiptext">Tooltip text 1</span>
+            </div>
+            <div class="tooltip" id="tooltip2" data-mouseover-count="0">
+                Tooltip 2
+                <span class="tooltiptext">Tooltip text 2</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Mixed Interactive Elements</h2>
+        <p>
+            Text with <a href="#" id="inline-link1" data-mouseover-count="0">inline link</a> and
+            <button id="inline-btn1" data-mouseover-count="0">inline button</button> elements.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Mouseover Event Tracking</h2>
+        <div id="event-log" style="background: #fff; padding: 10px; border-radius: 4px; font-family: monospace; min-height: 100px;">
+            No mouseover events detected yet.
+        </div>
+        <div id="event-counts" style="margin-top: 10px; background: #fff; padding: 10px; border-radius: 4px; font-family: monospace;">
+            Mouseover counts: None
+        </div>
+    </div>
+
+    <script>
+        // Track mouseover events
+        const eventLog = document.getElementById('event-log');
+        const eventCounts = document.getElementById('event-counts');
+        const events = [];
+
+        // Add mouseover listeners to all tracked elements
+        document.querySelectorAll('[data-mouseover-count]').forEach(element => {
+            element.addEventListener('mouseover', (e) => {
+                const currentCount = parseInt(element.getAttribute('data-mouseover-count') || '0');
+                element.setAttribute('data-mouseover-count', currentCount + 1);
+
+                const eventInfo = {
+                    id: element.id,
+                    tag: element.tagName.toLowerCase(),
+                    time: new Date().toISOString(),
+                    count: currentCount + 1
+                };
+
+                events.push(eventInfo);
+
+                // Update log
+                const logEntries = events.slice(-5).reverse().map(evt =>
+                    `${evt.time.split('T')[1].split('.')[0]} - ${evt.tag}#${evt.id} (count: ${evt.count})`
+                );
+                eventLog.textContent = logEntries.join('\n') || 'No events yet';
+
+                // Update counts
+                const counts = {};
+                document.querySelectorAll('[data-mouseover-count]').forEach(el => {
+                    const count = parseInt(el.getAttribute('data-mouseover-count') || '0');
+                    if (count > 0) {
+                        counts[el.id] = count;
+                    }
+                });
+
+                if (Object.keys(counts).length > 0) {
+                    eventCounts.textContent = 'Mouseover counts: ' +
+                        Object.entries(counts).map(([id, count]) => `${id}=${count}`).join(', ');
+                } else {
+                    eventCounts.textContent = 'Mouseover counts: None';
+                }
+            });
+        });
+
+        // Make counts available globally for testing
+        window.getMouseoverCount = function(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return 0;
+            return parseInt(element.getAttribute('data-mouseover-count') || '0');
+        };
+
+        window.getAllMouseoverCounts = function() {
+            const counts = {};
+            document.querySelectorAll('[data-mouseover-count]').forEach(el => {
+                counts[el.id] = parseInt(el.getAttribute('data-mouseover-count') || '0');
+            });
+            return counts;
+        };
+
+        window.resetMouseoverCounts = function() {
+            document.querySelectorAll('[data-mouseover-count]').forEach(el => {
+                el.setAttribute('data-mouseover-count', '0');
+            });
+            events.length = 0;
+            eventLog.textContent = 'No mouseover events detected yet.';
+            eventCounts.textContent = 'Mouseover counts: None';
+        };
+    </script>
+</body>
+</html>

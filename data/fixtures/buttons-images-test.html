@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buttons and Images Test Page</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+        }
+        button:hover {
+            background: #e0e0e0;
+        }
+        .clicked {
+            background: #90ee90 !important;
+            border-color: #008000;
+        }
+        img {
+            margin: 10px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        img:hover {
+            border-color: #0066cc;
+        }
+        .image-button {
+            display: inline-block;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .bg-image-div {
+            width: 100px;
+            height: 100px;
+            background-size: cover;
+            background-position: center;
+            display: inline-block;
+            margin: 10px;
+            border: 2px solid #ccc;
+            cursor: pointer;
+        }
+        .button-group {
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Buttons and Images Test Page</h1>
+    <p>This page contains various buttons and images for testing hint functionality (command 'q').</p>
+
+    <div class="section">
+        <h2>Standard Buttons</h2>
+        <div class="button-group">
+            <button id="btn1" onclick="this.classList.add('clicked'); this.textContent='Clicked!';">Button 1</button>
+            <button id="btn2" onclick="this.classList.add('clicked'); this.textContent='Clicked!';">Button 2</button>
+            <button id="btn3" onclick="this.classList.add('clicked'); this.textContent='Clicked!';">Button 3</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Different Button Types</h2>
+        <div class="button-group">
+            <button type="button" id="btn-type-button" onclick="window.btnTypeButtonClicked=true; this.classList.add('clicked');">Type Button</button>
+            <button type="submit" id="btn-type-submit" onclick="event.preventDefault(); window.btnTypeSubmitClicked=true; this.classList.add('clicked');">Type Submit</button>
+            <input type="button" id="input-type-button" value="Input Button" onclick="window.inputButtonClicked=true; this.classList.add('clicked');">
+            <input type="submit" id="input-type-submit" value="Input Submit" onclick="event.preventDefault(); window.inputSubmitClicked=true; this.classList.add('clicked');">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Clickable Images</h2>
+        <div>
+            <!-- Using data URIs for self-contained images (no external resources) -->
+            <img id="img1"
+                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ff6b6b' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3EImg 1%3C/text%3E%3C/svg%3E"
+                alt="Image 1"
+                onclick="window.img1Clicked=true; this.style.borderColor='green';">
+            <img id="img2"
+                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%234ecdc4' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3EImg 2%3C/text%3E%3C/svg%3E"
+                alt="Image 2"
+                onclick="window.img2Clicked=true; this.style.borderColor='green';">
+            <img id="img3"
+                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23f7b731' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3EImg 3%3C/text%3E%3C/svg%3E"
+                alt="Image 3"
+                onclick="window.img3Clicked=true; this.style.borderColor='green';">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Images as Links</h2>
+        <div>
+            <a href="#" onclick="window.imgLink1Clicked=true; return false;" class="image-button">
+                <img id="img-link1"
+                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%235f27cd' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='16'%3ELink 1%3C/text%3E%3C/svg%3E"
+                    alt="Linked Image 1">
+            </a>
+            <a href="#" onclick="window.imgLink2Clicked=true; return false;" class="image-button">
+                <img id="img-link2"
+                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ee5a6f' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='16'%3ELink 2%3C/text%3E%3C/svg%3E"
+                    alt="Linked Image 2">
+            </a>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Background Images (CSS)</h2>
+        <div>
+            <div class="bg-image-div" id="bg-img1"
+                style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23c44569%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E');"
+                onclick="window.bgImg1Clicked=true; this.style.borderColor='green';">
+            </div>
+            <div class="bg-image-div" id="bg-img2"
+                style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%231e3799%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E');"
+                onclick="window.bgImg2Clicked=true; this.style.borderColor='green';">
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Mixed Content</h2>
+        <p>This section has <button id="inline-btn1" onclick="window.inlineBtn1Clicked=true; this.classList.add('clicked');">inline button</button> mixed with text.</p>
+        <p>And an <img id="inline-img1"
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30'%3E%3Crect fill='%230abde3' width='30' height='30'/%3E%3C/svg%3E"
+            alt="Inline"
+            onclick="window.inlineImg1Clicked=true; this.style.borderColor='green';"> inline image.</p>
+    </div>
+
+    <div class="section">
+        <h2>Disabled Elements (Should NOT get hints)</h2>
+        <div class="button-group">
+            <button disabled id="disabled-btn">Disabled Button</button>
+            <input type="button" disabled value="Disabled Input" id="disabled-input">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Hidden Elements (Should NOT get hints)</h2>
+        <div style="display: none;">
+            <button id="hidden-btn">Hidden Button</button>
+            <img id="hidden-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='red' width='100' height='100'/%3E%3C/svg%3E" alt="Hidden">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Form Buttons</h2>
+        <form onsubmit="event.preventDefault(); window.formSubmitted=true; document.getElementById('form-feedback').textContent='Form submitted!';">
+            <div class="button-group">
+                <button type="button" id="form-btn-button" onclick="window.formBtnButtonClicked=true; this.classList.add('clicked');">Form Button</button>
+                <button type="submit" id="form-btn-submit">Form Submit</button>
+                <button type="reset" id="form-btn-reset" onclick="window.formBtnResetClicked=true;">Form Reset</button>
+            </div>
+            <p id="form-feedback"></p>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2>Aria Buttons</h2>
+        <div class="button-group">
+            <div role="button" id="aria-btn1" tabindex="0"
+                onclick="window.ariaBtn1Clicked=true; this.style.background='#90ee90';"
+                style="display: inline-block; padding: 10px 20px; background: #fff; border: 1px solid #ccc; cursor: pointer; border-radius: 4px;">
+                ARIA Button 1
+            </div>
+            <div role="button" id="aria-btn2" tabindex="0"
+                onclick="window.ariaBtn2Clicked=true; this.style.background='#90ee90';"
+                style="display: inline-block; padding: 10px 20px; background: #fff; border: 1px solid #ccc; cursor: pointer; border-radius: 4px;">
+                ARIA Button 2
+            </div>
+        </div>
+    </div>
+
+    <div class="section" id="click-counters">
+        <h2>Click Detection Status</h2>
+        <div id="status-display" style="font-family: monospace; background: #fff; padding: 10px; border-radius: 4px;">
+            No clicks detected yet. Try using 'q' to create hints and click elements!
+        </div>
+    </div>
+
+    <script>
+        // Monitor clicks and update status
+        setInterval(() => {
+            const clicks = [];
+            if (window.btnTypeButtonClicked) clicks.push('btnTypeButton');
+            if (window.btnTypeSubmitClicked) clicks.push('btnTypeSubmit');
+            if (window.inputButtonClicked) clicks.push('inputButton');
+            if (window.inputSubmitClicked) clicks.push('inputSubmit');
+            if (window.img1Clicked) clicks.push('img1');
+            if (window.img2Clicked) clicks.push('img2');
+            if (window.img3Clicked) clicks.push('img3');
+            if (window.imgLink1Clicked) clicks.push('imgLink1');
+            if (window.imgLink2Clicked) clicks.push('imgLink2');
+            if (window.bgImg1Clicked) clicks.push('bgImg1');
+            if (window.bgImg2Clicked) clicks.push('bgImg2');
+            if (window.inlineBtn1Clicked) clicks.push('inlineBtn1');
+            if (window.inlineImg1Clicked) clicks.push('inlineImg1');
+            if (window.formBtnButtonClicked) clicks.push('formBtnButton');
+            if (window.formSubmitted) clicks.push('formSubmitted');
+            if (window.formBtnResetClicked) clicks.push('formBtnReset');
+            if (window.ariaBtn1Clicked) clicks.push('ariaBtn1');
+            if (window.ariaBtn2Clicked) clicks.push('ariaBtn2');
+
+            const display = document.getElementById('status-display');
+            if (clicks.length > 0) {
+                display.textContent = 'Clicks detected: ' + clicks.join(', ');
+            }
+        }, 100);
+    </script>
+</body>
+</html>

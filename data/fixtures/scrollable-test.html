@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrollable Elements Test</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+        h1, h2 { color: #333; }
+
+        /* Scrollable div with overflow-y */
+        .scrollable-vertical {
+            width: 300px;
+            height: 200px;
+            overflow-y: scroll;
+            border: 2px solid #333;
+            padding: 10px;
+            margin: 20px 0;
+            background: #f0f0f0;
+        }
+
+        /* Scrollable div with overflow-x */
+        .scrollable-horizontal {
+            width: 300px;
+            height: 100px;
+            overflow-x: scroll;
+            border: 2px solid #666;
+            padding: 10px;
+            margin: 20px 0;
+            background: #e0e0e0;
+            white-space: nowrap;
+        }
+
+        /* Scrollable with both axes */
+        .scrollable-both {
+            width: 250px;
+            height: 150px;
+            overflow: scroll;
+            border: 2px solid #999;
+            padding: 10px;
+            margin: 20px 0;
+            background: #d0d0d0;
+        }
+
+        /* Auto overflow that creates scroll */
+        .scrollable-auto {
+            width: 200px;
+            height: 120px;
+            overflow: auto;
+            border: 2px solid #555;
+            padding: 10px;
+            margin: 20px 0;
+            background: #c0c0c0;
+        }
+
+        /* Not scrollable - no overflow */
+        .not-scrollable {
+            width: 300px;
+            height: 100px;
+            border: 2px dashed #aaa;
+            padding: 10px;
+            margin: 20px 0;
+            background: #fafafa;
+        }
+
+        /* Hidden element should not be hinted */
+        .hidden-scrollable {
+            width: 200px;
+            height: 100px;
+            overflow: scroll;
+            display: none;
+            border: 2px solid red;
+        }
+
+        /* Textarea is scrollable */
+        textarea {
+            width: 300px;
+            height: 100px;
+            margin: 20px 0;
+            padding: 10px;
+            border: 2px solid #4a90e2;
+        }
+
+        /* Nested scrollable */
+        .outer-scrollable {
+            width: 350px;
+            height: 250px;
+            overflow: scroll;
+            border: 3px solid #e67e22;
+            padding: 15px;
+            margin: 20px 0;
+            background: #ffe0cc;
+        }
+
+        .inner-scrollable {
+            width: 200px;
+            height: 150px;
+            overflow: scroll;
+            border: 2px solid #c0392b;
+            padding: 10px;
+            margin: 10px;
+            background: #ffcccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Scrollable Elements Test Page</h1>
+    <p>This page contains various scrollable elements for testing the <code>;fs</code> command.</p>
+
+    <h2>1. Vertical Scrollable Div</h2>
+    <div id="scrollable-1" class="scrollable-vertical">
+        <p>This div has vertical overflow. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        <p>More scrollable content here. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam.</p>
+    </div>
+
+    <h2>2. Horizontal Scrollable Div</h2>
+    <div id="scrollable-2" class="scrollable-horizontal">
+        <span>This div has horizontal overflow with very long content that extends far beyond the visible area of the container element, forcing horizontal scrolling to view all the text.</span>
+    </div>
+
+    <h2>3. Both Axes Scrollable</h2>
+    <div id="scrollable-3" class="scrollable-both">
+        <p>This div scrolls both horizontally and vertically. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+        <p style="width: 500px;">Wide content: This paragraph is intentionally wider than the container to force horizontal scrolling as well as vertical scrolling capabilities in both dimensions.</p>
+        <p>More vertical content to ensure scrolling in the Y axis as well.</p>
+    </div>
+
+    <h2>4. Auto Overflow (becomes scrollable)</h2>
+    <div id="scrollable-4" class="scrollable-auto">
+        <p>This div uses overflow: auto and has enough content to trigger scrolling. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
+        <p>Additional scrollable content here.</p>
+    </div>
+
+    <h2>5. Not Scrollable (should not be hinted)</h2>
+    <div id="not-scrollable-1" class="not-scrollable">
+        <p>This div has no overflow and should NOT get a hint.</p>
+    </div>
+
+    <h2>6. Hidden Scrollable (should not be hinted)</h2>
+    <div id="hidden-scrollable-1" class="hidden-scrollable">
+        <p>Hidden element with lots of content that would scroll if visible. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    </div>
+
+    <h2>7. Textarea (scrollable input)</h2>
+    <textarea id="textarea-1" placeholder="Type or paste lots of text here to make it scroll...">Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6
+Line 7
+Line 8
+Line 9
+Line 10
+Line 11
+Line 12</textarea>
+
+    <h2>8. Nested Scrollable Elements</h2>
+    <div id="outer-scrollable" class="outer-scrollable">
+        <p>Outer scrollable container with content. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+        <div id="inner-scrollable" class="inner-scrollable">
+            <p>Inner nested scrollable element. This should also get a hint. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.</p>
+            <p>More nested content to ensure scrolling capability.</p>
+        </div>
+        <p>More outer content. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis.</p>
+        <p>Final outer paragraph to ensure vertical scrolling.</p>
+    </div>
+
+    <h2>9. Multiple Similar Scrollables</h2>
+    <div id="scrollable-5" class="scrollable-vertical">
+        <p>First of multiple similar divs. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        <p>Additional content for scrolling.</p>
+    </div>
+
+    <div id="scrollable-6" class="scrollable-vertical">
+        <p>Second of multiple similar divs. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        <p>More scrollable text content here.</p>
+    </div>
+
+    <p style="margin-top: 50px;">End of test page. The page itself should be scrollable as well (document.scrollingElement).</p>
+
+    <!-- Add more content to make the page itself scrollable -->
+    <div style="height: 800px; background: linear-gradient(to bottom, #f5f5f5, #e5e5e5); padding: 20px; margin-top: 30px;">
+        <h3>Page Scroll Area</h3>
+        <p>This large area ensures the page itself is scrollable, so document.scrollingElement should be included in hints.</p>
+    </div>
+
+    <p style="padding: 30px; background: #ffffcc; font-weight: bold;">Bottom of page</p>
+</body>
+</html>
