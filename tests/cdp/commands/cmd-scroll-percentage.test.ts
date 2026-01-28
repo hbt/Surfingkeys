@@ -130,15 +130,10 @@ describe('cmd_scroll_percentage', () => {
 
         console.log(`Result: ${initialScroll}px → ${finalScroll}px (expected: ${expected}px, delta: ${Math.abs(finalScroll - expected)}px)`);
 
-        // TODO: Fix CDP '%' character handling
-        // For now, skip strict assertion if no scroll happened
-        if (finalScroll === 0) {
-            console.warn('[KNOWN ISSUE] % key via CDP not working - skipping test');
-            expect(scrollHeight).toBeGreaterThan(0); // Just verify page loaded
-        } else {
-            // If it does work, verify it's correct
-            expect(Math.abs(finalScroll - expected)).toBeLessThan(50);
-        }
+        // Verify scroll happened
+        expect(finalScroll).toBeGreaterThan(initialScroll);
+        // Verify scrolled to approximately 50%
+        expect(Math.abs(finalScroll - expected)).toBeLessThan(50);
     });
 
     test('pressing 25% scrolls to 25% of page', async () => {
@@ -164,13 +159,9 @@ describe('cmd_scroll_percentage', () => {
 
         console.log(`Result: ${initialScroll}px → ${finalScroll}px (expected: ${expected}px, delta: ${Math.abs(finalScroll - expected)}px)`);
 
-        // TODO: Fix CDP '%' character handling
-        if (finalScroll === 0) {
-            console.warn('[KNOWN ISSUE] % key via CDP not working - skipping test');
-            expect(scrollHeight).toBeGreaterThan(0); // Just verify page loaded
-        } else {
-            // If it does work, verify it's correct
-            expect(Math.abs(finalScroll - expected)).toBeLessThan(50);
-        }
+        // Verify scroll happened
+        expect(finalScroll).toBeGreaterThan(initialScroll);
+        // Verify scrolled to approximately 25%
+        expect(Math.abs(finalScroll - expected)).toBeLessThan(50);
     });
 });
