@@ -1,0 +1,40 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`cmd_hints_open_link 6.0 Hint Consistency 6.2 should have deterministic hint snapshot 1`] = `
+{
+  "count": 31,
+  "sortedHints": [
+    "AA",
+    "AB",
+    "AC",
+    "AD",
+    "AE",
+    "AF",
+    "AG",
+    "AQ",
+    "AR",
+    "AS",
+    "AT",
+    "AV",
+    "AW",
+    "AX",
+    "AZ",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "Q",
+    "R",
+    "SA",
+    "SD",
+    "SS",
+    "T",
+    "V",
+    "W",
+    "X",
+    "Z",
+  ],
+}
+`;

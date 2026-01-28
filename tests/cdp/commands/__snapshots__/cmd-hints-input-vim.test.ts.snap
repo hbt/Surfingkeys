@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`cmd_hints_input_vim 6.0 Hint Consistency 6.2 should have deterministic hint snapshot 1`] = `
+{
+  "count": 3,
+  "sortedHints": [
+    "A",
+    "D",
+    "S",
+  ],
+}
+`;

@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`cmd_hints_regional 9.0 Hint Consistency 9.2 should have deterministic hint snapshot 1`] = `
+{
+  "count": 9,
+  "sortedHints": [
+    "A",
+    "D",
+    "E",
+    "F",
+    "G",
+    "Q",
+    "R",
+    "S",
+    "W",
+  ],
+}
+`;
