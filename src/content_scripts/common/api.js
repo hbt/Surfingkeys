@@ -495,6 +495,9 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         "normal:passThrough": normal.passThrough,
         "normal:scroll": normal.scroll,
         "visual:style": visual.style,
+        log: (msg) => {
+            RUNTIME('userLog', { msg, fromUserScript: true });
+        },
         mapcmdkey: (keys, unique_id, options) => {
             window.__mapcmdkey_call_count = (window.__mapcmdkey_call_count || 0) + 1;
             mapcmdkey(keys, unique_id, options);

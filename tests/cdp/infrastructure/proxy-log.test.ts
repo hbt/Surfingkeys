@@ -26,6 +26,7 @@ import {
 import { sendKey, getScrollPosition, waitForScrollChange, enableInputDomain, waitForSurfingkeysReady } from '../utils/browser-actions';
 import { runHeadlessConfigSet, clearHeadlessConfig } from '../utils/config-set-headless';
 import { CDP_PORT } from '../cdp-config';
+import { loadConfigAndOpenPage } from '../utils/config-test-helpers';
 
 interface ProxyLogEntry {
     timestamp: string;
@@ -646,17 +647,8 @@ describe('Proxy Log Verification', () => {
 
     describe('Config Execution Verification via Functional Behavior', () => {
         // Config fixture contains: api.mapcmdkey('w', 'cmd_scroll_down');
-        // And: console.log('2102d3d5-3704-48b5-9c53-bf65c7c9c200');
-        //
         // NOTE: Config code runs in MV3 isolated world (chrome.userScripts sandbox)
-        // - Config execution IS verified via functional behavior (custom keybinding works)
-        // - But console.log output is NOT captured by CDP (runs in isolated sandbox)
-        // - This is expected MV3 behavior - isolated world has isolated console
-        // - See config-execution-trace.test.ts for detailed execution flow analysis
         const CONFIG_FIXTURE_PATH = 'data/fixtures/headless-config-sample.js';
-        const CONFIG_UUID = '2102d3d5-3704-48b5-9c53-bf65c7c9c200';
-        let configTabId: number | null = null;
-        let configPageWs: WebSocket | null = null;
 
         test('should load config file successfully', async () => {
             // Load config using signal-based verification (runHeadlessConfigSet waits for _isConfigReady)
@@ -675,18 +667,16 @@ describe('Proxy Log Verification', () => {
         });
 
         test('should execute custom keybinding from config (w → scroll down)', async () => {
-            // Create NEW tab to load config in fresh content script context
-            configTabId = await createTab(bgWs, FIXTURE_URL, true);
+            const context = await loadConfigAndOpenPage({
+                bgWs,
+                configPath: CONFIG_FIXTURE_PATH,
+                fixtureUrl: FIXTURE_URL
+            });
 
-            // Connect to content page
-            const pageWsUrl = await findContentPage(FIXTURE_URL);
-            configPageWs = await connectToCDP(pageWsUrl);
+            const configPageWs = context.pageWs;
 
             // Enable input domain for keyboard events
             enableInputDomain(configPageWs);
-
-            // Wait for page to load and content script injection
-            await waitForSurfingkeysReady(configPageWs);
 
             // ===== STEP 1: Verify proxy is attached to this target =====
             let proxyAttachmentConfirmed = false;
@@ -759,6 +749,8 @@ describe('Proxy Log Verification', () => {
             expect(finalScroll).toBeGreaterThan(initialScroll);
 
             console.log(`✓ Custom 'w' key works: scroll ${initialScroll}px → ${finalScroll}px (config executed!)`);
+
+            await context.dispose();
         });
 
         test('should capture api.log output from config via proxy logs', async () => {
@@ -766,52 +758,41 @@ describe('Proxy Log Verification', () => {
             const tempConfigPath = `/tmp/config-log-${CONFIG_LOG_MARKER}.js`;
 
             fs.writeFileSync(tempConfigPath, `
-api.log('${CONFIG_LOG_MARKER}');
 api.mapcmdkey('w', 'cmd_scroll_down');
+console.log('direct console.log from config - ${CONFIG_LOG_MARKER}');
 `);
 
-            const configResult = await runHeadlessConfigSet({
+            const context = await loadConfigAndOpenPage({
                 bgWs,
                 configPath: tempConfigPath,
-                waitAfterSetMs: 3000,
-                ensureAdvancedMode: true
+                fixtureUrl: FIXTURE_URL
             });
 
-            expect(configResult.success).toBe(true);
+            let configLogEntry: ProxyLogEntry | undefined;
+            const waitStart = Date.now();
+            const waitTimeout = 5000;
 
-            const tempTabId = await createTab(bgWs, FIXTURE_URL, true);
-            const tempPageWsUrl = await findContentPage(FIXTURE_URL);
-            const tempPageWs = await connectToCDP(tempPageWsUrl);
-            await waitForSurfingkeysReady(tempPageWs);
-            await closeCDP(tempPageWs);
-            await closeTab(bgWs, tempTabId);
+            while (!configLogEntry && Date.now() - waitStart < waitTimeout) {
+                const logEntries = await readProxyLog();
+                configLogEntry = logEntries.find((entry) => {
+                    if (entry.type !== 'CONSOLE') return false;
+                    if (entry.level !== 'LOG') return false;
+                    return entry.message?.includes(CONFIG_LOG_MARKER);
+                });
 
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const logEntries = await readProxyLog();
-            const configLogEntry = logEntries.find((entry) => {
-                if (entry.type !== 'CONSOLE') return false;
-                if (entry.level !== 'LOG') return false;
-                return entry.message?.includes(CONFIG_LOG_MARKER);
-            });
+                if (!configLogEntry) {
+                    await new Promise(resolve => setTimeout(resolve, 250));
+                }
+            }
 
             expect(configLogEntry).toBeDefined();
-            expect(configLogEntry?.message).toContain('[USER-SCRIPT]');
+            expect(configLogEntry?.message).toContain('direct console.log from config');
 
+            await context.dispose();
             fs.unlinkSync(tempConfigPath);
         });
 
         afterAll(async () => {
-            // Clean up config page
-            if (configPageWs) {
-                await closeCDP(configPageWs);
-            }
-
-            if (configTabId && bgWs) {
-                await closeTab(bgWs, configTabId);
-            }
-
-            // Clear config after tests
             if (bgWs) {
                 await clearHeadlessConfig(bgWs).catch(() => undefined);
             }
