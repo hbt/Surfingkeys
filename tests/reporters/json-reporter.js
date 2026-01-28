@@ -45,6 +45,9 @@ class JSONReporter {
         // Extract test file relative path
         const testPath = path.relative(this.globalConfig.rootDir, test.path);
 
+        // Get console logs from log files created by jest.setup.js
+        let consoleLogs = this.readConsoleLogFiles(test.path) || [];
+
         // Build test suite record
         const suite = {
             file: testPath,
@@ -73,7 +76,7 @@ class JSONReporter {
                 unchecked: testResult.snapshot.unchecked,
                 fileDeleted: testResult.snapshot.fileDeleted
             } : undefined,
-            console: this.extractConsoleOutput(testResult.console),
+            console: consoleLogs.length > 0 ? consoleLogs : undefined,
             tests: testResult.testResults.map(t => ({
                 id: t.fullName,
                 status: t.status,
@@ -99,7 +102,47 @@ class JSONReporter {
     }
 
     /**
-     * Extract console output from test result
+     * Read console log files created by jest.setup.js
+     * Returns array of log entries or null if no files found
+     */
+    readConsoleLogFiles(testPath) {
+        const logDir = '/tmp/cdp-test-console-logs';
+        if (!fs.existsSync(logDir)) {
+            return null;
+        }
+
+        try {
+            const files = fs.readdirSync(logDir);
+            const consoleLogs = [];
+
+            // Read all log files (from this test run)
+            files.forEach(file => {
+                const filePath = path.join(logDir, file);
+                try {
+                    const content = fs.readFileSync(filePath, 'utf-8');
+                    const lines = content.trim().split('\n').filter(l => l);
+
+                    lines.forEach(line => {
+                        try {
+                            const entry = JSON.parse(line);
+                            consoleLogs.push(entry);
+                        } catch (e) {
+                            // Skip invalid lines
+                        }
+                    });
+                } catch (e) {
+                    // Skip files we can't read
+                }
+            });
+
+            return consoleLogs.length > 0 ? consoleLogs : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    /**
+     * Extract console output from test result (fallback for Jest's testResult.console)
      */
     extractConsoleOutput(consoleBuffer) {
         if (!consoleBuffer || !Array.isArray(consoleBuffer)) {
