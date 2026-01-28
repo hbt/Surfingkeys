@@ -63,6 +63,56 @@ export async function sendKey(ws: WebSocket, key: string, delayMs: number = 50):
 }
 
 /**
+ * Send a key press with modifiers (e.g., Shift+5 for '%')
+ * modifiers: 1=Alt, 2=Ctrl, 4=Meta, 8=Shift
+ */
+export async function sendKeyWithModifiers(
+    ws: WebSocket,
+    baseKey: string,
+    shiftedChar: string,
+    modifiers: number = 8, // Default to Shift
+    delayMs: number = 50
+): Promise<void> {
+    // keyDown with modifiers
+    ws.send(JSON.stringify({
+        id: globalMessageId++,
+        method: 'Input.dispatchKeyEvent',
+        params: {
+            type: 'keyDown',
+            key: baseKey,
+            modifiers: modifiers
+        }
+    }));
+
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+
+    // char with shifted character
+    ws.send(JSON.stringify({
+        id: globalMessageId++,
+        method: 'Input.dispatchKeyEvent',
+        params: {
+            type: 'char',
+            text: shiftedChar
+        }
+    }));
+
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+
+    // keyUp with modifiers
+    ws.send(JSON.stringify({
+        id: globalMessageId++,
+        method: 'Input.dispatchKeyEvent',
+        params: {
+            type: 'keyUp',
+            key: baseKey,
+            modifiers: modifiers
+        }
+    }));
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+}
+
+/**
  * Click at a specific position on the page
  */
 export async function clickAt(ws: WebSocket, x: number, y: number): Promise<void> {
