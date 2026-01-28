@@ -1,6 +1,7 @@
 import WebSocket from 'ws';
 import { checkCDPAvailable, findExtensionBackground, findContentPage, connectToCDP, createTab, closeTab, closeCDP, executeInTarget } from '../utils/cdp-client';
-import { sendKey, getScrollPosition, enableInputDomain, waitForSurfingkeysReady, waitForScrollChange } from '../utils/browser-actions';
+import { getScrollPosition, enableInputDomain, waitForSurfingkeysReady } from '../utils/browser-actions';
+import { sendKeyAndWaitForScroll } from '../utils/event-driven-waits';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
@@ -50,22 +51,23 @@ describe('cmd_scroll_up', () => {
     test('pressing k key scrolls page up', async () => {
         const initialScroll = await getScrollPosition(pageWs);
         expect(initialScroll).toBeGreaterThan(0);
-        await sendKey(pageWs, 'k');
-        const finalScroll = await waitForScrollChange(pageWs, initialScroll, { direction: 'up', minDelta: 20 });
-        expect(finalScroll).toBeLessThan(initialScroll);
-        console.log(`Scroll: ${initialScroll}px → ${finalScroll}px (delta: ${initialScroll - finalScroll}px)`);
+
+        // Use atomic pattern: listener attached BEFORE key sent
+        const result = await sendKeyAndWaitForScroll(pageWs, 'k', { direction: 'up', minDelta: 20 });
+
+        expect(result.final).toBeLessThan(result.baseline);
+        console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
     });
 
     test('scroll up distance is consistent', async () => {
         const start = await getScrollPosition(pageWs);
         expect(start).toBeGreaterThan(0);
-        await sendKey(pageWs, 'k');
-        const after1 = await waitForScrollChange(pageWs, start, { direction: 'up', minDelta: 20 });
-        const distance1 = start - after1;
-        await sendKey(pageWs, 'k');
-        const after2 = await waitForScrollChange(pageWs, after1, { direction: 'up', minDelta: 20 });
-        const distance2 = after1 - after2;
-        console.log(`1st scroll: ${distance1}px, 2nd scroll: ${distance2}px, delta: ${Math.abs(distance1 - distance2)}px`);
-        expect(Math.abs(distance1 - distance2)).toBeLessThan(15);
+
+        // Use atomic pattern for both scrolls
+        const result1 = await sendKeyAndWaitForScroll(pageWs, 'k', { direction: 'up', minDelta: 20 });
+        const result2 = await sendKeyAndWaitForScroll(pageWs, 'k', { direction: 'up', minDelta: 20 });
+
+        console.log(`1st scroll: ${result1.delta}px, 2nd scroll: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`);
+        expect(Math.abs(result1.delta - result2.delta)).toBeLessThan(15);
     });
 });

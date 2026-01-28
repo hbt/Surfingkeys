@@ -6,7 +6,8 @@ import {
     closeCDP,
     executeInTarget
 } from '../utils/cdp-client';
-import { sendKey, getScrollPosition, waitForScrollChange, enableInputDomain } from '../utils/browser-actions';
+import { getScrollPosition, enableInputDomain } from '../utils/browser-actions';
+import { sendKeyAndWaitForScroll } from '../utils/event-driven-waits';
 import { clearHeadlessConfig } from '../utils/config-set-headless';
 import { loadConfigAndOpenPage, ConfigPageContext } from '../utils/config-test-helpers';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
@@ -19,7 +20,8 @@ import { CDP_PORT } from '../cdp-config';
 describe('cmd_scroll_down (custom scrollStepSize)', () => {
     const FIXTURE_URL = 'http://127.0.0.1:9873/scroll-test.html';
     const CONFIG_PATH = 'data/fixtures/cmd-scroll-down.scrollStepSize.js';
-    const EXPECTED_STEP = 75; // scroll-test.html CSS results in ~75px per step
+    // Config sets scrollStepSize=20, allow tolerance for browser rendering
+    const EXPECTED_STEP = 20;
 
     let bgWs: WebSocket;
     let configContext: ConfigPageContext | null = null;
@@ -89,16 +91,16 @@ describe('cmd_scroll_down (custom scrollStepSize)', () => {
         const start = await getScrollPosition(ws);
         expect(start).toBe(0);
 
-        await sendKey(ws, 'j');
-        const after = await waitForScrollChange(ws, start, {
+        // Use atomic scroll pattern: listener attached BEFORE key sent
+        const result = await sendKeyAndWaitForScroll(ws, 'j', {
             direction: 'down',
-            minDelta: 5
+            minDelta: 5,
+            timeoutMs: 5000
         });
 
-        const delta = after - start;
-        console.log(`Custom scroll delta: ${delta}px`);
+        console.log(`Custom scroll delta: ${result.delta}px (baseline: ${result.baseline}, final: ${result.final})`);
 
-        expect(delta).toBeGreaterThan(0);
-        expect(Math.abs(delta - EXPECTED_STEP)).toBeLessThanOrEqual(30);
+        expect(result.delta).toBeGreaterThan(0);
+        expect(Math.abs(result.delta - EXPECTED_STEP)).toBeLessThanOrEqual(30);
     });
 });

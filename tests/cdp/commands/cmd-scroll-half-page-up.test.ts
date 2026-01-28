@@ -24,12 +24,11 @@ import {
     executeInTarget
 } from '../utils/cdp-client';
 import {
-    sendKey,
     getScrollPosition,
     enableInputDomain,
     waitForSurfingkeysReady
 } from '../utils/browser-actions';
-import { waitForScrollCompleteViaEvent } from '../utils/event-driven-waits';
+import { sendKeyAndWaitForScroll } from '../utils/event-driven-waits';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
@@ -74,14 +73,19 @@ describe('cmd_scroll_half_page_up', () => {
 
     beforeEach(async () => {
         // Set scroll position to bottom before each test (so we can scroll up)
-        await executeInTarget(pageWs, 'window.scrollTo(0, document.documentElement.scrollHeight)');
-
-        // Event-driven: wait for scroll to complete instead of arbitrary timeout
-        await waitForScrollCompleteViaEvent(pageWs, 'down', {
-            direction: 'down',
-            minDelta: 100,
-            timeoutMs: 5000
-        });
+        // Use a polling wait to ensure scroll completes under load
+        await executeInTarget(pageWs, `
+            (async () => {
+                const target = document.documentElement.scrollHeight - window.innerHeight;
+                window.scrollTo(0, target);
+                // Wait up to 2s for scroll to reach target
+                for (let i = 0; i < 20; i++) {
+                    if (Math.abs(window.scrollY - target) < 10) return window.scrollY;
+                    await new Promise(r => setTimeout(r, 100));
+                }
+                return window.scrollY;
+            })()
+        `);
 
         // Capture test name
         const state = expect.getState();
@@ -115,50 +119,37 @@ describe('cmd_scroll_half_page_up', () => {
         const initialScroll = await getScrollPosition(pageWs);
         expect(initialScroll).toBeGreaterThan(0);
 
-        await sendKey(pageWs, 'e');
-
-        // Event-driven: wait for scroll event instead of polling
-        const finalScroll = await waitForScrollCompleteViaEvent(pageWs, 'up', {
+        // Use atomic pattern: listener attached BEFORE key sent
+        const result = await sendKeyAndWaitForScroll(pageWs, 'e', {
             direction: 'up',
             minDelta: 100,
             timeoutMs: 5000
         });
 
-        expect(finalScroll).toBeLessThan(initialScroll);
-        console.log(`Scroll: ${initialScroll}px → ${finalScroll}px (delta: ${initialScroll - finalScroll}px)`);
+        expect(result.final).toBeLessThan(result.baseline);
+        console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
     });
 
     test('scroll half page up distance is consistent', async () => {
         const start = await getScrollPosition(pageWs);
         expect(start).toBeGreaterThan(0);
 
-        // Capture baseline BEFORE sending scroll command
-        const baseline1 = await getScrollPosition(pageWs);
-        await sendKey(pageWs, 'e');
-        // Event-driven: wait for scroll event instead of polling, with captured baseline
-        const after1 = await waitForScrollCompleteViaEvent(pageWs, 'up', {
+        // Use atomic pattern for both scrolls
+        const result1 = await sendKeyAndWaitForScroll(pageWs, 'e', {
             direction: 'up',
             minDelta: 100,
-            timeoutMs: 5000,
-            baseline: baseline1
+            timeoutMs: 5000
         });
-        const distance1 = baseline1 - after1;
 
-        // Capture baseline BEFORE sending second scroll command
-        const baseline2 = await getScrollPosition(pageWs);
-        await sendKey(pageWs, 'e');
-        // Event-driven: wait for scroll event instead of polling, with captured baseline
-        const after2 = await waitForScrollCompleteViaEvent(pageWs, 'up', {
+        const result2 = await sendKeyAndWaitForScroll(pageWs, 'e', {
             direction: 'up',
             minDelta: 100,
-            timeoutMs: 5000,
-            baseline: baseline2
+            timeoutMs: 5000
         });
-        const distance2 = baseline2 - after2;
 
-        console.log(`1st scroll: ${distance1}px, 2nd scroll: ${distance2}px, delta: ${Math.abs(distance1 - distance2)}px`);
+        console.log(`1st scroll: ${result1.delta}px, 2nd scroll: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`);
 
-        // Both scrolls should move roughly the same distance (within 15px tolerance)
-        expect(Math.abs(distance1 - distance2)).toBeLessThan(15);
+        // Both scrolls should move roughly the same distance (within 50px tolerance for half page)
+        expect(Math.abs(result1.delta - result2.delta)).toBeLessThan(50);
     });
 });

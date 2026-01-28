@@ -24,12 +24,11 @@ import {
     executeInTarget
 } from '../utils/cdp-client';
 import {
-    sendKey,
     getScrollPositionX,
     enableInputDomain,
-    waitForSurfingkeysReady,
-    waitForScrollChangeX
+    waitForSurfingkeysReady
 } from '../utils/browser-actions';
+import { sendKeyAndWaitForScroll, scrollToTopAndWait } from '../utils/event-driven-waits';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
@@ -73,11 +72,8 @@ describe('cmd_scroll_rightmost', () => {
     });
 
     beforeEach(async () => {
-        // Set initial scroll to left side for rightmost test
-        await executeInTarget(pageWs, 'window.scrollTo(0, 0)');
-
-        // Wait a moment for scroll to settle
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Set initial scroll to left side for rightmost test (robust wait)
+        await scrollToTopAndWait(pageWs);
 
         // Capture test name
         const state = expect.getState();
@@ -111,11 +107,11 @@ describe('cmd_scroll_rightmost', () => {
         const initialScroll = await getScrollPositionX(pageWs);
         expect(initialScroll).toBe(0); // Should be scrolled to the left initially
 
-        await sendKey(pageWs, '$');
-
-        const finalScroll = await waitForScrollChangeX(pageWs, initialScroll, {
+        // Use atomic pattern: listener attached BEFORE key sent
+        const result = await sendKeyAndWaitForScroll(pageWs, '$', {
             direction: 'right',
-            minDelta: 100
+            minDelta: 100,
+            timeoutMs: 5000
         });
 
         // Calculate max horizontal scroll
@@ -123,10 +119,10 @@ describe('cmd_scroll_rightmost', () => {
             'document.documentElement.scrollWidth - window.innerWidth'
         );
 
-        expect(finalScroll).toBeGreaterThan(initialScroll);
+        expect(result.final).toBeGreaterThan(result.baseline);
         // Verify we're at the rightmost position (within 10px tolerance)
-        expect(Math.abs(finalScroll - maxScrollX)).toBeLessThan(10);
-        console.log(`Horizontal scroll: ${initialScroll}px → ${finalScroll}px (max: ${maxScrollX}px)`);
+        expect(Math.abs(result.final - maxScrollX)).toBeLessThan(10);
+        console.log(`Horizontal scroll: ${result.baseline}px → ${result.final}px (max: ${maxScrollX}px)`);
     });
 
     test('$ moves to exactly rightmost position', async () => {
@@ -139,16 +135,15 @@ describe('cmd_scroll_rightmost', () => {
             'document.documentElement.scrollWidth - window.innerWidth'
         );
 
-        // Press $ to scroll to rightmost
-        await sendKey(pageWs, '$');
-
-        const finalScrollX = await waitForScrollChangeX(pageWs, start, {
+        // Use atomic pattern: listener attached BEFORE key sent
+        const result = await sendKeyAndWaitForScroll(pageWs, '$', {
             direction: 'right',
-            minDelta: 100
+            minDelta: 100,
+            timeoutMs: 5000
         });
 
         // Verify final position equals max scroll (within 10px tolerance)
-        expect(Math.abs(finalScrollX - maxScrollX)).toBeLessThan(10);
-        console.log(`Rightmost positioning: ${finalScrollX}px / ${maxScrollX}px (delta: ${Math.abs(finalScrollX - maxScrollX)}px)`);
+        expect(Math.abs(result.final - maxScrollX)).toBeLessThan(10);
+        console.log(`Rightmost positioning: ${result.final}px / ${maxScrollX}px (delta: ${Math.abs(result.final - maxScrollX)}px)`);
     });
 });

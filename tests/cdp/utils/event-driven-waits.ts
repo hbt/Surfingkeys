@@ -335,3 +335,315 @@ export async function sendKeyWithEventWait(
     // Wait for keyup event to fire
     await keyupPromise;
 }
+
+/**
+ * Wait for scroll position to reach a target value.
+ * Used in beforeEach to ensure starting position is correct before tests run.
+ */
+export async function waitForScrollPosition(
+    ws: WebSocket,
+    targetX: number,
+    targetY: number,
+    options: { timeoutMs?: number; tolerancePx?: number } = {}
+): Promise<{ x: number; y: number }> {
+    const timeoutMs = options.timeoutMs ?? 3000;
+    const tolerance = options.tolerancePx ?? 5;
+
+    const result = await executeInTarget(ws, `
+        (async () => {
+            const targetX = ${targetX};
+            const targetY = ${targetY};
+            const tolerance = ${tolerance};
+            const timeout = ${timeoutMs};
+
+            // First scroll to target
+            window.scrollTo(targetX, targetY);
+
+            // Wait for position to be reached
+            const start = Date.now();
+            while (Date.now() - start < timeout) {
+                const x = window.scrollX;
+                const y = window.scrollY;
+                if (Math.abs(x - targetX) <= tolerance && Math.abs(y - targetY) <= tolerance) {
+                    return { x, y, success: true };
+                }
+                await new Promise(r => setTimeout(r, 50));
+            }
+
+            // Timeout - return current position
+            return { x: window.scrollX, y: window.scrollY, success: false };
+        })()
+    `, timeoutMs + 1000);
+
+    return { x: result.x, y: result.y };
+}
+
+/**
+ * Scroll to top (0,0) and wait for position to be reached.
+ * More robust than scrollTo(0,0) + arbitrary wait.
+ * Forces instant scroll (no animation) to avoid interference from previous animations.
+ */
+export async function scrollToTopAndWait(
+    ws: WebSocket,
+    options: { timeoutMs?: number } = {}
+): Promise<void> {
+    const timeoutMs = options.timeoutMs ?? 3000;
+
+    // Force instant scroll with scrollTo behavior: 'instant'
+    await executeInTarget(ws, `
+        (async () => {
+            // Cancel any ongoing smooth scroll by doing instant scroll
+            window.scrollTo({ left: 0, top: 0, behavior: 'instant' });
+
+            // Wait for position to stabilize
+            const timeout = ${timeoutMs};
+            const start = Date.now();
+            while (Date.now() - start < timeout) {
+                if (window.scrollX === 0 && window.scrollY === 0) {
+                    return { x: 0, y: 0, success: true };
+                }
+                // Force position again in case of lingering animation
+                window.scrollTo({ left: 0, top: 0, behavior: 'instant' });
+                await new Promise(r => setTimeout(r, 50));
+            }
+            return { x: window.scrollX, y: window.scrollY, success: false };
+        })()
+    `, timeoutMs + 1000);
+}
+
+/**
+ * Scroll to bottom and wait for position to be reached.
+ * Forces instant scroll to avoid animation issues.
+ */
+export async function scrollToBottomAndWait(
+    ws: WebSocket,
+    options: { timeoutMs?: number } = {}
+): Promise<number> {
+    const timeoutMs = options.timeoutMs ?? 3000;
+
+    const result = await executeInTarget(ws, `
+        (async () => {
+            const targetY = document.documentElement.scrollHeight - window.innerHeight;
+            // Force instant scroll
+            window.scrollTo({ left: 0, top: targetY, behavior: 'instant' });
+
+            // Wait for position
+            const timeout = ${timeoutMs};
+            const start = Date.now();
+            while (Date.now() - start < timeout) {
+                if (Math.abs(window.scrollY - targetY) <= 10) {
+                    return window.scrollY;
+                }
+                // Force position again
+                window.scrollTo({ left: 0, top: targetY, behavior: 'instant' });
+                await new Promise(r => setTimeout(r, 50));
+            }
+            return window.scrollY;
+        })()
+    `, timeoutMs + 1000);
+
+    return result;
+}
+
+/**
+ * Scroll to right edge and wait for position to be reached.
+ */
+export async function scrollToRightAndWait(
+    ws: WebSocket,
+    options: { timeoutMs?: number } = {}
+): Promise<number> {
+    const result = await executeInTarget(ws, `
+        (async () => {
+            const targetX = document.documentElement.scrollWidth - window.innerWidth;
+            window.scrollTo(targetX, 0);
+
+            // Wait for position
+            const timeout = ${options.timeoutMs ?? 3000};
+            const start = Date.now();
+            while (Date.now() - start < timeout) {
+                if (Math.abs(window.scrollX - targetX) <= 10) {
+                    return window.scrollX;
+                }
+                await new Promise(r => setTimeout(r, 50));
+            }
+            return window.scrollX;
+        })()
+    `, (options.timeoutMs ?? 3000) + 1000);
+
+    return result;
+}
+
+interface PreparedScrollWait {
+    /** Promise that resolves with final scroll position when scroll completes */
+    promise: Promise<number>;
+    /** The baseline scroll position captured when listener was attached */
+    baseline: number;
+}
+
+interface PrepareScrollOptions {
+    direction: 'up' | 'down' | 'left' | 'right';
+    minDelta?: number;
+    timeoutMs?: number;
+}
+
+/**
+ * Prepare a scroll listener BEFORE triggering an action.
+ *
+ * This is the correct pattern for reliable scroll detection under parallel load:
+ * 1. Call prepareScrollWait() - attaches listener and captures baseline
+ * 2. Trigger the scroll action (sendKey, etc.)
+ * 3. Await the returned promise
+ *
+ * This ensures the listener is in place BEFORE the scroll starts, eliminating
+ * race conditions where the scroll completes before listener attachment.
+ *
+ * Usage:
+ *   const { promise, baseline } = await prepareScrollWait(ws, { direction: 'down', minDelta: 20 });
+ *   await sendKey(ws, 'j');
+ *   const finalScroll = await promise;
+ */
+export async function prepareScrollWait(
+    ws: WebSocket,
+    options: PrepareScrollOptions
+): Promise<PreparedScrollWait> {
+    const minDelta = options.minDelta ?? 1;
+    const timeoutMs = options.timeoutMs ?? 5000;
+    const direction = options.direction;
+    const isHorizontal = direction === 'left' || direction === 'right';
+    const scrollProp = isHorizontal ? 'scrollX' : 'scrollY';
+
+    // Generate unique signal marker
+    const signalMarker = `__SCROLL_READY_${Date.now()}_${Math.random().toString(36).slice(2)}__`;
+
+    // Inject listener and get baseline in a single atomic operation
+    // The listener signals readiness immediately, then signals completion when scroll happens
+    const listenerCode = `
+        (function() {
+            const baseline = window.${scrollProp};
+            let resolved = false;
+
+            const listener = () => {
+                if (resolved) return;
+
+                const current = window.${scrollProp};
+                let delta;
+                if ('${direction}' === 'down' || '${direction}' === 'right') {
+                    delta = current - baseline;
+                } else {
+                    delta = baseline - current;
+                }
+
+                if (delta >= ${minDelta}) {
+                    resolved = true;
+                    window.removeEventListener('scroll', listener);
+                    console.log('${signalMarker}:DONE:' + current);
+                }
+            };
+
+            window.addEventListener('scroll', listener);
+
+            // Failsafe timeout
+            setTimeout(() => {
+                if (!resolved) {
+                    resolved = true;
+                    window.removeEventListener('scroll', listener);
+                    console.log('${signalMarker}:TIMEOUT:' + window.${scrollProp});
+                }
+            }, ${timeoutMs});
+
+            // Return baseline immediately so caller knows listener is attached
+            return baseline;
+        })()
+    `;
+
+    // Start listening for the completion signal BEFORE injecting the code
+    const completionPromise = waitForCDPEvent(
+        ws,
+        (msg) => {
+            if (msg.method !== 'Runtime.consoleAPICalled') return false;
+            const args = msg.params?.args;
+            if (!Array.isArray(args) || args.length === 0) return false;
+            const value = args[0]?.value;
+            return value && value.includes(signalMarker);
+        },
+        timeoutMs + 2000
+    );
+
+    // Inject the listener and get baseline synchronously
+    const baseline = await executeInTarget(ws, listenerCode, 5000);
+
+    // Create promise that resolves with final scroll position
+    const promise = completionPromise.then((signal) => {
+        const value = signal.params?.args?.[0]?.value || '';
+        const match = value.match(new RegExp(`${signalMarker}:(DONE|TIMEOUT):(\\d+)`));
+        if (match) {
+            return parseInt(match[2], 10);
+        }
+        throw new Error(`Failed to parse scroll completion signal: ${value}`);
+    });
+
+    return { promise, baseline };
+}
+
+/**
+ * Atomic scroll action: prepares listener, sends key, waits for scroll.
+ *
+ * This combines all steps into a single function for maximum reliability:
+ * 1. Attaches scroll listener and captures baseline
+ * 2. Sends the key press
+ * 3. Waits for scroll to complete
+ * 4. Returns { baseline, final, delta }
+ *
+ * Usage:
+ *   const result = await sendKeyAndWaitForScroll(ws, 'j', { direction: 'down', minDelta: 20 });
+ *   expect(result.delta).toBeGreaterThan(0);
+ */
+export async function sendKeyAndWaitForScroll(
+    ws: WebSocket,
+    key: string,
+    options: PrepareScrollOptions & { keyDelayMs?: number }
+): Promise<{ baseline: number; final: number; delta: number }> {
+    // 1. Prepare listener FIRST
+    const { promise, baseline } = await prepareScrollWait(ws, options);
+
+    // 2. Send key (minimal delay to reduce overhead)
+    const keyDelayMs = options.keyDelayMs ?? 30;
+    const messageId = Math.floor(Math.random() * 100000);
+    const needsShift = key.length === 1 && key >= 'A' && key <= 'Z';
+    const modifiers = needsShift ? 8 : 0;
+
+    ws.send(JSON.stringify({
+        id: messageId,
+        method: 'Input.dispatchKeyEvent',
+        params: { type: 'keyDown', key, ...(needsShift && { modifiers }) }
+    }));
+
+    await new Promise(r => setTimeout(r, keyDelayMs));
+
+    ws.send(JSON.stringify({
+        id: messageId + 1,
+        method: 'Input.dispatchKeyEvent',
+        params: { type: 'char', text: key, ...(needsShift && { modifiers }) }
+    }));
+
+    await new Promise(r => setTimeout(r, keyDelayMs));
+
+    ws.send(JSON.stringify({
+        id: messageId + 2,
+        method: 'Input.dispatchKeyEvent',
+        params: { type: 'keyUp', key, ...(needsShift && { modifiers }) }
+    }));
+
+    // 3. Wait for scroll to complete
+    const final = await promise;
+
+    // 4. Calculate delta based on direction
+    let delta: number;
+    if (options.direction === 'down' || options.direction === 'right') {
+        delta = final - baseline;
+    } else {
+        delta = baseline - final;
+    }
+
+    return { baseline, final, delta };
+}

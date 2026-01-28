@@ -27,9 +27,9 @@ import {
     sendKey,
     getScrollPosition,
     enableInputDomain,
-    waitForSurfingkeysReady,
-    waitForScrollChange
+    waitForSurfingkeysReady
 } from '../utils/browser-actions';
+import { sendKeyAndWaitForScroll, prepareScrollWait } from '../utils/event-driven-waits';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
@@ -108,72 +108,64 @@ describe('cmd_scroll_down', () => {
         const initialScroll = await getScrollPosition(pageWs);
         expect(initialScroll).toBe(0);
 
-        await sendKey(pageWs, 'j');
-
-        const finalScroll = await waitForScrollChange(pageWs, initialScroll, {
+        // Use atomic pattern: listener attached BEFORE key sent
+        const result = await sendKeyAndWaitForScroll(pageWs, 'j', {
             direction: 'down',
             minDelta: 20
         });
 
-        expect(finalScroll).toBeGreaterThan(initialScroll);
-        console.log(`Scroll: ${initialScroll}px → ${finalScroll}px (delta: ${finalScroll - initialScroll}px)`);
+        expect(result.final).toBeGreaterThan(result.baseline);
+        console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
     });
 
     test('scroll down distance is consistent', async () => {
         const start = await getScrollPosition(pageWs);
         expect(start).toBe(0);
 
-        await sendKey(pageWs, 'j');
-        const after1 = await waitForScrollChange(pageWs, start, {
+        // Use atomic pattern for both scrolls
+        const result1 = await sendKeyAndWaitForScroll(pageWs, 'j', {
             direction: 'down',
             minDelta: 20
         });
-        const distance1 = after1 - start;
 
-        await sendKey(pageWs, 'j');
-        const after2 = await waitForScrollChange(pageWs, after1, {
+        const result2 = await sendKeyAndWaitForScroll(pageWs, 'j', {
             direction: 'down',
             minDelta: 20
         });
-        const distance2 = after2 - after1;
 
-        console.log(`1st scroll: ${distance1}px, 2nd scroll: ${distance2}px, delta: ${Math.abs(distance1 - distance2)}px`);
+        console.log(`1st scroll: ${result1.delta}px, 2nd scroll: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`);
 
         // Both scrolls should move roughly the same distance (within 15px tolerance)
-        expect(Math.abs(distance1 - distance2)).toBeLessThan(15);
+        expect(Math.abs(result1.delta - result2.delta)).toBeLessThan(15);
     });
 
     test('pressing 5j scrolls 5 times the distance of j', async () => {
-        // First measure single j scroll distance
-        const start = await getScrollPosition(pageWs);
-        expect(start).toBe(0);
-
-        await sendKey(pageWs, 'j');
-        const afterSingle = await waitForScrollChange(pageWs, start, {
+        // First measure single j scroll distance using atomic pattern
+        const result1 = await sendKeyAndWaitForScroll(pageWs, 'j', {
             direction: 'down',
             minDelta: 20
         });
-        const singleDistance = afterSingle - start;
+        const singleDistance = result1.delta;
 
         // Reset scroll position
         await executeInTarget(pageWs, 'window.scrollTo(0, 0)');
         await new Promise(resolve => setTimeout(resolve, 100));
 
         // Now test 5j (below typical repeatThreshold of 9)
-        const start2 = await getScrollPosition(pageWs);
-        expect(start2).toBe(0);
+        // Use prepareScrollWait for multi-key sequence
+        const { promise, baseline } = await prepareScrollWait(pageWs, {
+            direction: 'down',
+            minDelta: singleDistance * 3,  // Expect at least 3x
+            timeoutMs: 5000
+        });
 
         // Send '5', 'j' to create 5j command
         await sendKey(pageWs, '5', 50);
         await sendKey(pageWs, 'j');
 
-        const afterRepeat = await waitForScrollChange(pageWs, start2, {
-            direction: 'down',
-            minDelta: singleDistance * 3  // Expect at least 3x
-        });
-        const repeatDistance = afterRepeat - start2;
+        const afterRepeat = await promise;
+        const repeatDistance = afterRepeat - baseline;
 
-        const expectedDistance = singleDistance * 5;
         const ratio = repeatDistance / singleDistance;
 
         console.log(`Single j: ${singleDistance}px, 5j: ${repeatDistance}px (ratio: ${ratio.toFixed(2)}x, expected: 5x)`);
