@@ -75,6 +75,12 @@ interface Summary {
             sample_values: any[];
         };
     };
+    // Test coverage tracking
+    tests?: {
+        total_with_tests: number;
+        total_without_tests: number;
+        invalid_test_names: string[];
+    };
 }
 
 interface SettingUsage {
@@ -129,6 +135,35 @@ interface Report {
         list: any[];
     };
 }
+
+// ============================================================================
+// FEATURE GROUP DESCRIPTIONS
+// ============================================================================
+
+/**
+ * Maps feature_group indices to their human-readable category names
+ * Used to categorize commands for display in the help menu
+ */
+const FEATURE_GROUP_DESCRIPTIONS: Record<number, string> = {
+    0: 'Help',
+    1: 'Mouse Click',
+    2: 'Scroll Page / Element',
+    3: 'Tabs',
+    4: 'Page Navigation',
+    5: 'Sessions',
+    6: 'Search selected with',
+    7: 'Clipboard',
+    8: 'Omnibar',
+    9: 'Visual Mode',
+    10: 'vim-like marks',
+    11: 'Settings',
+    12: 'Chrome URLs',
+    13: 'Proxy',
+    14: 'Misc',
+    15: 'Insert Mode',
+    16: 'Lurk Mode',
+    17: 'Regional Hints Mode'
+};
 
 // ============================================================================
 // EXCLUSION LIST
@@ -848,6 +883,81 @@ function scanDirectoryForSettings(dir: string, basePath: string, usages: Setting
 }
 
 // ============================================================================
+// TEST COVERAGE TRACKING
+// ============================================================================
+
+/**
+ * Scan the tests/cdp/commands directory for test files
+ * Returns a map of test names (without .test.ts extension) and their paths
+ */
+function scanTestFiles(projectRoot: string): Map<string, string> {
+    const testDir = path.join(projectRoot, 'tests', 'cdp', 'commands');
+    const testMap = new Map<string, string>();
+
+    if (!fs.existsSync(testDir)) {
+        return testMap;
+    }
+
+    const files = fs.readdirSync(testDir);
+    for (const file of files) {
+        if (file.endsWith('.test.ts')) {
+            // Extract test name without .test.ts extension
+            const testName = file.substring(0, file.length - 8); // Remove '.test.ts'
+            const testPath = path.join(testDir, file);
+            testMap.set(testName, testPath);
+        }
+    }
+
+    return testMap;
+}
+
+/**
+ * Match test files with mapping entries and generate test coverage stats
+ */
+function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string, string>): {
+    total_with_tests: number;
+    total_without_tests: number;
+    invalid_test_names: string[];
+} {
+    const mappingsWithTests = new Set<string>();
+    const mappingsByUniqueId = new Map<string, MappingEntry>();
+
+    // Build map of unique_ids
+    for (const mapping of mappings) {
+        if (typeof mapping.annotation === 'object' && mapping.annotation.unique_id) {
+            // Handle duplicate unique_ids (they should exist)
+            if (!mappingsByUniqueId.has(mapping.annotation.unique_id)) {
+                mappingsByUniqueId.set(mapping.annotation.unique_id, mapping);
+            }
+        }
+    }
+
+    // Check each test file against mappings
+    // Normalize test names: convert hyphens to underscores for matching
+    const invalidTestNames: string[] = [];
+    for (const testName of testMap.keys()) {
+        const normalizedTestName = testName.replace(/-/g, '_');
+        if (mappingsByUniqueId.has(normalizedTestName)) {
+            mappingsWithTests.add(normalizedTestName);
+        } else {
+            // Test file exists but doesn't match any mapping unique_id
+            invalidTestNames.push(testName);
+        }
+    }
+
+    // Count mappings without tests (only count migrated ones with valid unique_ids)
+    const totalMigratedWithValidIds = mappingsByUniqueId.size;
+    const totalWithTests = mappingsWithTests.size;
+    const totalWithoutTests = totalMigratedWithValidIds - totalWithTests;
+
+    return {
+        total_with_tests: totalWithTests,
+        total_without_tests: totalWithoutTests,
+        invalid_test_names: invalidTestNames.sort()
+    };
+}
+
+// ============================================================================
 // SUMMARY GENERATION
 // ============================================================================
 
@@ -953,17 +1063,33 @@ function generateConfigOptionsReport(mappings: MappingEntry[]): Record<string, a
     const total = mappings.length;
 
     for (const [key, stats] of Object.entries(configStats)) {
-        result[key] = {
+        const entry: any = {
             count: stats.count,
             percentage: ((stats.count / total) * 100).toFixed(1) + '%',
             sample_values: Array.from(stats.values)
         };
+
+        // Add value descriptions for feature_group
+        if (key === 'feature_group') {
+            const valueDescMap: Record<string, string> = {};
+            for (const value of stats.values) {
+                const numValue = Number(value);
+                if (!isNaN(numValue) && FEATURE_GROUP_DESCRIPTIONS[numValue]) {
+                    valueDescMap[String(numValue)] = FEATURE_GROUP_DESCRIPTIONS[numValue];
+                }
+            }
+            if (Object.keys(valueDescMap).length > 0) {
+                entry.value_descriptions = valueDescMap;
+            }
+        }
+
+        result[key] = entry;
     }
 
     return result;
 }
 
-function generateSummary(mappings: MappingEntry[]): Summary {
+function generateSummary(mappings: MappingEntry[], testMap?: Map<string, string>): Summary {
     const summary: Summary = {
         total: mappings.length,
         by_mode: {},
@@ -975,7 +1101,8 @@ function generateSummary(mappings: MappingEntry[]): Summary {
             invalid: 0,
             not_migrated: 0
         },
-        config_options: generateConfigOptionsReport(mappings)  // NEW: Add config options discovery
+        config_options: generateConfigOptionsReport(mappings),  // NEW: Add config options discovery
+        tests: testMap ? generateTestCoverageStats(mappings, testMap) : undefined
     };
 
     // Track unique_ids to detect duplicates
@@ -1109,8 +1236,12 @@ function main(): void {
         return a.key.localeCompare(b.key);
     });
 
+    // Scan for test files
+    const projectRoot = path.join(__dirname, '..');
+    const testMap = scanTestFiles(projectRoot);
+
     // Generate summary
-    const summary = generateSummary(mappings);
+    const summary = generateSummary(mappings, testMap);
 
     // Create report
     const report: Report = {
