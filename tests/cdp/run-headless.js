@@ -429,7 +429,15 @@ async function main() {
 
     const testProcess = spawn('npx', [command, ...args], {
         env: testEnv,
-        stdio: ['inherit', 'inherit', 'inherit']  // Explicitly inherit all streams
+        stdio: ['inherit', 'pipe', 'pipe']  // Pipe stdout/stderr to capture output
+    });
+
+    // Forward Jest output to parent stdout/stderr
+    testProcess.stdout.on('data', (data) => {
+        process.stdout.write(data);
+    });
+    testProcess.stderr.on('data', (data) => {
+        process.stderr.write(data);
     });
 
     // Handle test completion
@@ -438,6 +446,9 @@ async function main() {
             resolve(code);
         });
     });
+
+    // Small delay to ensure all output buffers are flushed
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     log('\n' + '='.repeat(60));
     log('Test completed with exit code: ' + testExitCode);
