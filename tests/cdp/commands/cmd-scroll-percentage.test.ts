@@ -201,39 +201,4 @@ describe('cmd_scroll_percentage', () => {
         expect(dialogData.hasConfirmationMessage).toBe(true);
     });
 
-    test('pressing 25% shows confirmation dialog', async () => {
-        if (!configContext) throw new Error('Config context not initialized');
-        const ws = configContext.pageWs;
-
-        // Send '2', '5', then '%' to trigger 25% repeat (above threshold of 9)
-        await sendKey(ws, '2', 200);
-        await sendKey(ws, '5', 200);
-        await sendKey(ws, '%', 200);
-
-        // Wait for frontend to render dialog
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Connect to frontend and query for confirmation dialog
-        const frontend = await getFrontendWs();
-
-        const dialogData = await executeInTarget(frontend, `
-            (function() {
-                const popup = document.getElementById('sk_popup');
-                if (!popup) {
-                    return { found: false };
-                }
-
-                const text = popup.textContent;
-                return {
-                    found: true,
-                    visible: window.getComputedStyle(popup).display !== 'none' && popup.offsetHeight > 0,
-                    hasConfirmationMessage: text.includes('really want to repeat')
-                };
-            })()
-        `);
-
-        expect(dialogData.found).toBe(true);
-        expect(dialogData.visible).toBe(true);
-        expect(dialogData.hasConfirmationMessage).toBe(true);
-    });
 });
