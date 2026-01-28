@@ -142,4 +142,45 @@ describe('cmd_scroll_down', () => {
         // Both scrolls should move roughly the same distance (within 15px tolerance)
         expect(Math.abs(distance1 - distance2)).toBeLessThan(15);
     });
+
+    test('pressing 5j scrolls 5 times the distance of j', async () => {
+        // First measure single j scroll distance
+        const start = await getScrollPosition(pageWs);
+        expect(start).toBe(0);
+
+        await sendKey(pageWs, 'j');
+        const afterSingle = await waitForScrollChange(pageWs, start, {
+            direction: 'down',
+            minDelta: 20
+        });
+        const singleDistance = afterSingle - start;
+
+        // Reset scroll position
+        await executeInTarget(pageWs, 'window.scrollTo(0, 0)');
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Now test 5j (below typical repeatThreshold of 9)
+        const start2 = await getScrollPosition(pageWs);
+        expect(start2).toBe(0);
+
+        // Send '5', 'j' to create 5j command
+        await sendKey(pageWs, '5', 50);
+        await sendKey(pageWs, 'j');
+
+        const afterRepeat = await waitForScrollChange(pageWs, start2, {
+            direction: 'down',
+            minDelta: singleDistance * 3  // Expect at least 3x
+        });
+        const repeatDistance = afterRepeat - start2;
+
+        const expectedDistance = singleDistance * 5;
+        const ratio = repeatDistance / singleDistance;
+
+        console.log(`Single j: ${singleDistance}px, 5j: ${repeatDistance}px (ratio: ${ratio.toFixed(2)}x, expected: 5x)`);
+
+        // Verify it scrolled approximately 5 times the distance
+        // Allow tolerance of ±1.5x (between 3.5x and 6.5x)
+        expect(ratio).toBeGreaterThanOrEqual(3.5);
+        expect(ratio).toBeLessThanOrEqual(6.5);
+    });
 });

@@ -325,19 +325,7 @@ Mode.handleMapKey = function(event, onNoMatched) {
                     RUNTIME.repeats = parseInt(this.repeats) || 1;
                     event.sk_stopPropagation = (!this.map_node.meta.stopPropagation
                         || this.map_node.meta.stopPropagation(key));
-
-                    // For commands with repeatIgnore, the repeat count is a parameter, not a repeat count
-                    // Show confirmation for large values but execute only once
-                    if (this.map_node.meta.repeatIgnore) {
-                        if (RUNTIME.repeats > runtime.conf.repeatThreshold) {
-                            const annotationStr = getAnnotationString(this.map_node.meta.annotation);
-                            dispatchSKEvent("front", ['showDialog', `Do you really want to repeat this action (${annotationStr}) ${RUNTIME.repeats} times?`, () => {
-                                code();  // Execute once, not in a loop
-                            }]);
-                        } else {
-                            code();
-                        }
-                    } else if (RUNTIME.repeats > runtime.conf.repeatThreshold) {
+                    if (RUNTIME.repeats > runtime.conf.repeatThreshold) {
                         const annotationStr = getAnnotationString(this.map_node.meta.annotation);
                         dispatchSKEvent("front", ['showDialog', `Do you really want to repeat this action (${annotationStr}) ${RUNTIME.repeats} times?`, () => {
                             while(RUNTIME.repeats > 0) {
