@@ -761,42 +761,44 @@ describe('Proxy Log Verification', () => {
             console.log(`✓ Custom 'w' key works: scroll ${initialScroll}px → ${finalScroll}px (config executed!)`);
         });
 
-        test.skip('should find config console.log UUID in proxy logs', async () => {
-            // SKIPPED: MV3 user scripts run in isolated world where:
-            // 1. api.log() is NOT accessible from isolated context
-            // 2. console.log() is NOT captured by CDP
-            // 3. No communication bridge exists for logging from config context
-            //
-            // Config execution IS verified by:
-            // - Previous test: custom keybinding works (w → scroll down)
-            // - That proves config code actually executed and was processed
-            //
-            // For proper logging from config, we would need:
-            // - A messaging bridge from user script to background (currently not implemented)
-            // - Or changes to how config runs (breaks MV3 isolation)
-            //
-            // See https://github.com/anthropics/surfingkeys/issues/XXX for discussion
+        test('should capture api.log output from config via proxy logs', async () => {
+            const CONFIG_LOG_MARKER = `CONFIG-LOG-${Date.now()}`;
+            const tempConfigPath = `/tmp/config-log-${CONFIG_LOG_MARKER}.js`;
 
-            if (!configPageWs) throw new Error('Config page not connected');
+            fs.writeFileSync(tempConfigPath, `
+api.log('${CONFIG_LOG_MARKER}');
+api.mapcmdkey('w', 'cmd_scroll_down');
+`);
 
-            // Wait for proxy log to flush
+            const configResult = await runHeadlessConfigSet({
+                bgWs,
+                configPath: tempConfigPath,
+                waitAfterSetMs: 3000,
+                ensureAdvancedMode: true
+            });
+
+            expect(configResult.success).toBe(true);
+
+            const tempTabId = await createTab(bgWs, FIXTURE_URL, true);
+            const tempPageWsUrl = await findContentPage(FIXTURE_URL);
+            const tempPageWs = await connectToCDP(tempPageWsUrl);
+            await waitForSurfingkeysReady(tempPageWs);
+            await closeCDP(tempPageWs);
+            await closeTab(bgWs, tempTabId);
+
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Read proxy log that's been accumulating
             const logEntries = await readProxyLog();
-
-            // Find UUID from config's console.log
             const configLogEntry = logEntries.find((entry) => {
                 if (entry.type !== 'CONSOLE') return false;
                 if (entry.level !== 'LOG') return false;
-                return entry.message?.includes(CONFIG_UUID);
+                return entry.message?.includes(CONFIG_LOG_MARKER);
             });
 
-            // Assert that config console.log was captured in proxy logs
             expect(configLogEntry).toBeDefined();
-            expect(configLogEntry?.message).toContain(CONFIG_UUID);
-            expect(configLogEntry?.type).toBe('CONSOLE');
-            expect(configLogEntry?.level).toBe('LOG');
+            expect(configLogEntry?.message).toContain('[USER-SCRIPT]');
+
+            fs.unlinkSync(tempConfigPath);
         });
 
         afterAll(async () => {
