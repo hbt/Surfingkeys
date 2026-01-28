@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Parent Expansion Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            line-height: 1.8;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .container {
+            border: 2px solid blue;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .nested {
+            border: 2px solid green;
+            padding: 10px;
+            margin: 5px 0;
+        }
+        .deeply-nested {
+            border: 2px solid red;
+            padding: 5px;
+            margin: 3px 0;
+        }
+        .inline-container {
+            display: inline-block;
+            border: 1px dashed purple;
+            padding: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Parent Expansion Test</h1>
+
+    <!-- Simple single level nesting -->
+    <div id="simple-container" class="container">
+        <p id="simple-para">Simple paragraph inside container.</p>
+    </div>
+
+    <!-- Two level nesting -->
+    <div id="two-level-outer" class="container">
+        <div id="two-level-inner" class="nested">
+            <p id="two-level-text">Text in nested div.</p>
+        </div>
+    </div>
+
+    <!-- Three level nesting -->
+    <div id="three-level-outer" class="container">
+        <div id="three-level-middle" class="nested">
+            <div id="three-level-inner" class="deeply-nested">
+                <p id="three-level-text">Deeply nested text content.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multiple siblings -->
+    <div id="siblings-container" class="container">
+        <p id="sibling1">First sibling paragraph.</p>
+        <p id="sibling2">Second sibling paragraph.</p>
+        <p id="sibling3">Third sibling paragraph.</p>
+    </div>
+
+    <!-- Inline elements -->
+    <p id="inline-para">
+        This is a <span id="inline-span" class="inline-container"><strong id="inline-strong">bold text</strong> inside span</span> with more text after.
+    </p>
+
+    <!-- Complex nesting with multiple text nodes -->
+    <article id="article-complex" class="container">
+        <header id="article-header" class="nested">
+            <h2 id="article-title">Article Title</h2>
+            <p id="article-subtitle">Article subtitle with <em id="article-em">emphasis</em> text.</p>
+        </header>
+        <section id="article-body" class="nested">
+            <p id="article-p1">First paragraph of article.</p>
+            <p id="article-p2">Second paragraph with <a href="#link" id="article-link">a link</a> inside.</p>
+        </section>
+    </article>
+
+    <!-- Table structure -->
+    <table id="test-table" style="border-collapse: collapse; margin: 20px 0;">
+        <thead id="table-head">
+            <tr id="header-row">
+                <th id="th1" style="border: 1px solid #ccc; padding: 8px;">Header 1</th>
+                <th id="th2" style="border: 1px solid #ccc; padding: 8px;">Header 2</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+            <tr id="row1">
+                <td id="cell1" style="border: 1px solid #ccc; padding: 8px;">Cell 1</td>
+                <td id="cell2" style="border: 1px solid #ccc; padding: 8px;">Cell 2</td>
+            </tr>
+            <tr id="row2">
+                <td id="cell3" style="border: 1px solid #ccc; padding: 8px;">Cell 3</td>
+                <td id="cell4" style="border: 1px solid #ccc; padding: 8px;">Cell 4</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- List structure -->
+    <ul id="test-list" class="container">
+        <li id="li1">First list item</li>
+        <li id="li2">Second list item with <span id="li2-span">nested span</span></li>
+        <li id="li3">Third list item</li>
+    </ul>
+
+    <!-- Edge case: direct body child -->
+    <div id="direct-body-child" class="container">
+        <p id="direct-para">This is a direct child of body (via container).</p>
+    </div>
+
+    <!-- Spacer for scrolling if needed -->
+    <div style="height: 500px;"></div>
+</body>
+</html>
