@@ -3,18 +3,17 @@
  * Test All Parallel Action
  *
  * Discovers all CDP tests and runs them in parallel via bin/dbg test-run.
- * Respects configurable concurrency limit (default: 12 concurrent tests).
+ * Respects configurable concurrency limit (default: 6 concurrent tests).
  * Aggregates all JSON output and provides summary statistics.
  *
  * Output: Concise JSON to stdout with reference to verbose aggregate report file
  * Logs: Verbose aggregate report written to /tmp/cdp-test-reports/
  *
  * Usage:
- *   bin/dbg test-allp                                       (default: tests/cdp, 12 concurrent)
+ *   bin/dbg test-allp                                       (default: tests/cdp, 6 concurrent)
  *   bin/dbg test-allp tests/cdp/commands                    (run only commands tests)
- *   bin/dbg test-allp tests/cdp/commands --max-parallel 4   (specify concurrency with directory)
- *   bin/dbg test-allp --max-parallel 8                      (default dir, 8 concurrent)
- *   bin/dbg test-allp --concurrency 16                      (default dir, 16 concurrent)
+ *   bin/dbg test-allp tests/cdp/commands --limit 4          (specify concurrency with directory)
+ *   bin/dbg test-allp --limit 8                             (default dir, 8 concurrent)
  *   bin/dbg test-allp | jq .
  *   cat $(bin/dbg test-allp | jq -r .aggregateReportFile)
  */
@@ -37,11 +36,11 @@ if (!fs.existsSync(REPORTS_DIR)) {
  */
 function parseArgs(args) {
     let testDir = path.join(PROJECT_ROOT, 'tests/cdp'); // default
-    let limit = 12; // default concurrency
+    let limit = 6; // default concurrency
 
     for (let i = 0; i < args.length; i++) {
         // Skip flag pairs
-        if (args[i] === '--max-parallel' || args[i] === '--concurrency') {
+        if (args[i] === '--limit') {
             if (args[i + 1]) i++; // skip next arg
             continue;
         }
@@ -60,17 +59,10 @@ function parseArgs(args) {
 
     // Parse concurrency limit
     for (let i = 0; i < args.length; i++) {
-        if (args[i] === '--max-parallel' && args[i + 1]) {
+        if (args[i] === '--limit' && args[i + 1]) {
             limit = parseInt(args[i + 1], 10);
             if (isNaN(limit) || limit < 1) {
-                limit = 12;
-            }
-            break;
-        }
-        if (args[i] === '--concurrency' && args[i + 1]) {
-            limit = parseInt(args[i + 1], 10);
-            if (isNaN(limit) || limit < 1) {
-                limit = 12;
+                limit = 6;
             }
             break;
         }
@@ -158,10 +150,11 @@ async function runTestsInParallel(testFiles, concurrencyLimit) {
     const running = [];
 
     /**
-     * Launch next test from queue, maintain concurrency limit
+     * Launch next test from queue, maintain concurrency limit.
+     * Returns the promise representing this test and all chained recursive tests.
      */
-    async function launchNext() {
-        if (queue.length === 0) return;
+    function launchNext() {
+        if (queue.length === 0) return Promise.resolve();
 
         const testFile = queue.shift();
         const promise = runTestViaDbg(testFile).then(result => {
@@ -171,20 +164,23 @@ async function runTestsInParallel(testFiles, concurrencyLimit) {
             if (idx > -1) {
                 running.splice(idx, 1);
             }
-            // Launch next test from queue
+            // Launch next test from queue and chain to it
             return launchNext();
         });
 
         running.push(promise);
+        return promise;  // Return promise so initial batch properly chains
     }
 
     // Launch initial batch of tests (up to concurrencyLimit)
+    // and collect the promises - they chain through recursive calls
+    const initialBatch = [];
     for (let i = 0; i < Math.min(concurrencyLimit, testFiles.length); i++) {
-        await launchNext();
+        initialBatch.push(launchNext());
     }
 
-    // Wait for all remaining tests to complete
-    await Promise.all(running);
+    // Wait for all initial batch promises (they chain to all recursive calls)
+    await Promise.all(initialBatch);
 
     // Sort results by test file name for deterministic output
     results.sort((a, b) => a.testFile.localeCompare(b.testFile));

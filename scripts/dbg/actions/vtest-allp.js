@@ -5,14 +5,14 @@
  * Runs all CDP tests via bin/dbg test-allp with configurable parallelism.
  * Aggregates the JSON results into a visual markdown report.
  *
- * Accepts --max-parallel and --concurrency arguments to control test concurrency.
+ * Accepts --limit argument to control test concurrency.
  *
  * Output: Markdown report to stdout with reference to full report file
  * Logs: Verbose aggregate report written to /tmp/cdp-test-reports/
  *
  * Usage:
  *   bin/dbg vtest-allp
- *   bin/dbg vtest-allp --max-parallel 8
+ *   bin/dbg vtest-allp --limit 8
  *   bin/dbg vtest-allp | less
  */
 
@@ -51,7 +51,7 @@ function runTestAllParallel(args) {
             // So we use spawnSync to capture output without throwing
             const cmdArgs = ['test-allp'];
 
-            // Pass through any command line arguments (e.g., --max-parallel, --concurrency)
+            // Pass through any command line arguments (e.g., --limit)
             if (args && args.length > 0) {
                 cmdArgs.push(...args);
                 log(`Command args: ${args.join(' ')}`);
