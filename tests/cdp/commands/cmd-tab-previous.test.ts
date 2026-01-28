@@ -273,12 +273,21 @@ describe('cmd_tab_previous', () => {
         expect(initialTab.id).toBe(tabIds[2]);
         console.log(`✓ Assertion: we are at tabIds[2] (id=${tabIds[2]}), the middle/reset tab`);
 
-        // Find the expected final tab (2 tabs to the left means tabIds[0])
+        // Log initial tab index for debugging (note: may vary due to other browser tabs)
+        console.log(`Initial tab index: ${initialTab.index}`);
+
+        // The key assertion: 2E should move us exactly 2 tabs to the left
+        // Calculate what the expected final tab should be (2 tabs left in our sequence)
         // tabIds is in creation order: [tab0, tab1, tab2(START), tab3, tab4]
-        // 2 tabs left from tab2 = tab0
+        // 2E from tab2 should go to tab0
         const expectedFinalTabId = tabIds[0];
+        const expectedDistance = 2;
+        const expectedFinalIndex = initialTab.index - expectedDistance;
+
         console.log(`✓ Expected final tab: tabIds[0] (id=${expectedFinalTabId})`);
-        console.log(`=== START TEST: will move from tabIds[2] to tabIds[0] (2 tabs left) ===\n`);
+        console.log(`✓ Expected distance: ${expectedDistance} tabs to the left`);
+        console.log(`✓ Expected final index: ${expectedFinalIndex} (current index ${initialTab.index} minus ${expectedDistance})`);
+        console.log(`=== START TEST: will move from index ${initialTab.index} (tabIds[2]) exactly ${expectedDistance} tabs left ===\n`);
 
         // Send '2' followed by 'E' to create 2E command
         await sendKey(pageWs, '2', 50);
@@ -296,11 +305,23 @@ describe('cmd_tab_previous', () => {
         }
 
         expect(finalTab).not.toBeNull();
-        console.log(`After 2E: tab id ${finalTab.id} at index ${finalTab.index}`);
+        console.log(`\nAfter 2E: tab id ${finalTab.id} at index ${finalTab.index}`);
 
         // Verify we moved to the expected tab (tabIds[0])
         expect(finalTab.id).toBe(expectedFinalTabId);
         console.log(`✓ Assertion: moved to expectedTabId (tabIds[0])`);
+
+        // Verify final tab index is correct
+        expect(finalTab.index).toBe(expectedFinalIndex);
+        console.log(`✓ Assertion: final tab index is ${expectedFinalIndex}`);
+
+        // Calculate actual distance moved
+        const actualDistance = initialTab.index - finalTab.index;
+        console.log(`Actual distance moved: ${actualDistance} tabs to the left`);
+
+        // Verify we moved exactly the expected distance
+        expect(actualDistance).toBe(expectedDistance);
+        console.log(`✓ Assertion: moved exactly ${expectedDistance} tabs to the left`);
 
         expect(finalTab.id).not.toBe(initialTab.id);
         console.log(`✓ Assertion: final tab is different from initial tab`);
