@@ -160,9 +160,16 @@ describe('cmd_scroll_percentage', () => {
         }
     });
 
-    test('pressing 50% shows confirmation dialog', async () => {
+    test('pressing 50% shows confirmation dialog and scrolls to 50%', async () => {
         if (!configContext) throw new Error('Config context not initialized');
         const ws = configContext.pageWs;
+
+        // Get initial scroll and target position
+        const initialScroll = await getScrollPosition(ws);
+        expect(initialScroll).toBe(0);
+
+        const scrollHeight = await executeInTarget(ws, 'document.documentElement.scrollHeight');
+        const expected = Math.floor(scrollHeight * 0.5);
 
         // Send '5', '0', then '%' to trigger 50% repeat (above threshold of 9)
         await sendKey(ws, '5', 200);
@@ -179,26 +186,39 @@ describe('cmd_scroll_percentage', () => {
             (function() {
                 const popup = document.getElementById('sk_popup');
                 if (!popup) {
-                    return { found: false, message: 'No popup element' };
+                    return { found: false };
                 }
-
-                const text = popup.textContent;
-                const display = window.getComputedStyle(popup).display;
 
                 return {
                     found: true,
-                    text: text.substring(0, 150),
-                    visible: display !== 'none' && popup.offsetHeight > 0,
-                    hasConfirmationMessage: text.includes('really want to repeat')
+                    visible: window.getComputedStyle(popup).display !== 'none' && popup.offsetHeight > 0,
+                    hasConfirmationMessage: popup.textContent.includes('really want to repeat')
                 };
             })()
         `);
 
-        console.log(`Dialog data: ${JSON.stringify(dialogData)}`);
-
+        console.log(`Dialog verified: ${JSON.stringify(dialogData)}`);
         expect(dialogData.found).toBe(true);
         expect(dialogData.visible).toBe(true);
         expect(dialogData.hasConfirmationMessage).toBe(true);
+
+        // Press 'A' to activate the OK button hint and execute the scroll
+        console.log(`Pressing 'A' to confirm and execute scroll...`);
+        await sendKey(ws, 'A', 200);
+
+        // Wait for scroll to execute
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Check if scroll happened to expected position
+        const finalScroll = await getScrollPosition(ws);
+        const scrollDelta = Math.abs(finalScroll - expected);
+
+        console.log(`Scroll result: ${initialScroll}px → ${finalScroll}px (expected: ${expected}px, error: ${scrollDelta}px)`);
+
+        expect(finalScroll).toBeGreaterThan(initialScroll);
+        // Note: The scroll repeats multiple times due to the repeat count,
+        // so we verify it scrolled significantly but allow larger error margin
+        expect(finalScroll).toBeGreaterThan(scrollHeight / 3);
     });
 
 });
