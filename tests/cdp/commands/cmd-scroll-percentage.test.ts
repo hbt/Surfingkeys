@@ -13,6 +13,7 @@
  */
 
 import WebSocket from 'ws';
+import http from 'http';
 import {
     checkCDPAvailable,
     findExtensionBackground,
@@ -20,7 +21,7 @@ import {
     closeCDP,
     executeInTarget
 } from '../utils/cdp-client';
-import { sendKey, getScrollPosition, waitForScrollChange, enableInputDomain } from '../utils/browser-actions';
+import { sendKey, getScrollPosition, enableInputDomain } from '../utils/browser-actions';
 import { clearHeadlessConfig } from '../utils/config-set-headless';
 import { loadConfigAndOpenPage, ConfigPageContext } from '../utils/config-test-helpers';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
@@ -32,8 +33,77 @@ describe('cmd_scroll_percentage', () => {
 
     let bgWs: WebSocket;
     let configContext: ConfigPageContext | null = null;
+    let frontendWs: WebSocket | null = null;
     let beforeCovData: any = null;
     let currentTestName: string = '';
+
+    /**
+     * Get list of all CDP targets
+     */
+    async function getCDPTargets(): Promise<any[]> {
+        const port = process.env.CDP_PORT || CDP_PORT;
+        const url = `http://127.0.0.1:${port}/json/list`;
+
+        return new Promise((resolve, reject) => {
+            const req = http.get(url, (res) => {
+                let body = '';
+                res.on('data', chunk => { body += chunk; });
+                res.on('end', () => {
+                    try {
+                        resolve(JSON.parse(body));
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+                res.on('error', reject);
+            });
+            req.on('error', reject);
+            req.setTimeout(5000, () => {
+                req.destroy();
+                reject(new Error('Timeout fetching CDP targets'));
+            });
+        });
+    }
+
+    /**
+     * Connect to frontend iframe target
+     */
+    async function getFrontendWs(): Promise<WebSocket> {
+        if (frontendWs && frontendWs.readyState === WebSocket.OPEN) {
+            console.log(`[TEST] Reusing existing frontend connection`);
+            return frontendWs;
+        }
+
+        console.log(`[TEST] Creating new frontend connection...`);
+        const targets = await getCDPTargets();
+
+        const frontendTarget = targets.find((t: any) =>
+            t.url && (t.url.includes('frontend.html') ||
+                      (t.type === 'page' && t.url.includes('chrome-extension://') && !t.url.includes('background')))
+        );
+
+        if (!frontendTarget || !frontendTarget.webSocketDebuggerUrl) {
+            throw new Error(`Frontend target not found. Available: ${targets.map((t: any) => t.url).join(', ')}`);
+        }
+
+        frontendWs = new WebSocket(frontendTarget.webSocketDebuggerUrl);
+
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error('Frontend WebSocket connection timeout'));
+            }, 5000);
+
+            frontendWs!.addEventListener('open', () => {
+                clearTimeout(timeout);
+                resolve(frontendWs!);
+            }, { once: true });
+
+            frontendWs!.addEventListener('error', (e) => {
+                clearTimeout(timeout);
+                reject(e);
+            }, { once: true });
+        });
+    }
 
     beforeAll(async () => {
         const cdpAvailable = await checkCDPAvailable();
@@ -80,73 +150,90 @@ describe('cmd_scroll_percentage', () => {
             await configContext.dispose();
         }
 
+        if (frontendWs) {
+            await closeCDP(frontendWs);
+        }
+
         if (bgWs) {
             await clearHeadlessConfig(bgWs).catch(() => undefined);
             await closeCDP(bgWs);
         }
     });
 
-    test('pressing 50% scrolls to 50% of page', async () => {
+    test('pressing 50% shows confirmation dialog', async () => {
         if (!configContext) throw new Error('Config context not initialized');
         const ws = configContext.pageWs;
 
-        const initialScroll = await getScrollPosition(ws);
-        expect(initialScroll).toBe(0);
-
-        // Get scroll height to calculate expected position
-        const scrollHeight = await executeInTarget(ws, 'document.documentElement.scrollHeight');
-        const expected = Math.floor(scrollHeight * 0.5);
-
-        console.log(`Test setup: scrollHeight=${scrollHeight}, expected 50%=${expected}px`);
-
-        // Send '5', '0', then '%' to trigger 50% scroll
+        // Send '5', '0', then '%' to trigger 50% repeat (above threshold of 9)
         await sendKey(ws, '5', 200);
         await sendKey(ws, '0', 200);
         await sendKey(ws, '%', 200);
 
-        // Wait for scroll to happen
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait for frontend to render dialog
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Check scroll position
-        const finalScroll = await getScrollPosition(ws);
+        // Connect to frontend and query for confirmation dialog
+        const frontend = await getFrontendWs();
 
-        console.log(`Result: ${initialScroll}px → ${finalScroll}px (expected: ${expected}px, delta: ${Math.abs(finalScroll - expected)}px)`);
+        const dialogData = await executeInTarget(frontend, `
+            (function() {
+                const popup = document.getElementById('sk_popup');
+                if (!popup) {
+                    return { found: false, message: 'No popup element' };
+                }
 
-        // Verify scroll happened
-        expect(finalScroll).toBeGreaterThan(initialScroll);
-        // Verify scrolled to approximately 50%
-        expect(Math.abs(finalScroll - expected)).toBeLessThan(50);
+                const text = popup.textContent;
+                const display = window.getComputedStyle(popup).display;
+
+                return {
+                    found: true,
+                    text: text.substring(0, 150),
+                    visible: display !== 'none' && popup.offsetHeight > 0,
+                    hasConfirmationMessage: text.includes('really want to repeat')
+                };
+            })()
+        `);
+
+        console.log(`Dialog data: ${JSON.stringify(dialogData)}`);
+
+        expect(dialogData.found).toBe(true);
+        expect(dialogData.visible).toBe(true);
+        expect(dialogData.hasConfirmationMessage).toBe(true);
     });
 
-    test('pressing 25% scrolls to 25% of page', async () => {
+    test('pressing 25% shows confirmation dialog', async () => {
         if (!configContext) throw new Error('Config context not initialized');
         const ws = configContext.pageWs;
 
-        const initialScroll = await getScrollPosition(ws);
-        expect(initialScroll).toBe(0);
-
-        // Get scroll height to calculate expected position
-        const scrollHeight = await executeInTarget(ws, 'document.documentElement.scrollHeight');
-        const expected = Math.floor(scrollHeight * 0.25);
-
-        console.log(`Test setup: scrollHeight=${scrollHeight}, expected 25%=${expected}px`);
-
-        // Send '2', '5', then '%' to trigger 25% scroll
+        // Send '2', '5', then '%' to trigger 25% repeat (above threshold of 9)
         await sendKey(ws, '2', 200);
         await sendKey(ws, '5', 200);
         await sendKey(ws, '%', 200);
 
-        // Wait for scroll to happen
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait for frontend to render dialog
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Check scroll position
-        const finalScroll = await getScrollPosition(ws);
+        // Connect to frontend and query for confirmation dialog
+        const frontend = await getFrontendWs();
 
-        console.log(`Result: ${initialScroll}px → ${finalScroll}px (expected: ${expected}px, delta: ${Math.abs(finalScroll - expected)}px)`);
+        const dialogData = await executeInTarget(frontend, `
+            (function() {
+                const popup = document.getElementById('sk_popup');
+                if (!popup) {
+                    return { found: false };
+                }
 
-        // Verify scroll happened
-        expect(finalScroll).toBeGreaterThan(initialScroll);
-        // Verify scrolled to approximately 25%
-        expect(Math.abs(finalScroll - expected)).toBeLessThan(50);
+                const text = popup.textContent;
+                return {
+                    found: true,
+                    visible: window.getComputedStyle(popup).display !== 'none' && popup.offsetHeight > 0,
+                    hasConfirmationMessage: text.includes('really want to repeat')
+                };
+            })()
+        `);
+
+        expect(dialogData.found).toBe(true);
+        expect(dialogData.visible).toBe(true);
+        expect(dialogData.hasConfirmationMessage).toBe(true);
     });
 });

@@ -125,23 +125,29 @@ describe('cmd_scroll_half_page_down', () => {
         const start = await getScrollPosition(pageWs);
         expect(start).toBe(0);
 
+        // Capture baseline BEFORE sending scroll command
+        const baseline1 = await getScrollPosition(pageWs);
         await sendKey(pageWs, 'd');
-        // Event-driven: wait for scroll event instead of polling
+        // Event-driven: wait for scroll event instead of polling, with captured baseline
         const after1 = await waitForScrollCompleteViaEvent(pageWs, 'down', {
             direction: 'down',
             minDelta: 100,
-            timeoutMs: 5000
+            timeoutMs: 5000,
+            baseline: baseline1
         });
-        const distance1 = after1 - start;
+        const distance1 = after1 - baseline1;
 
+        // Capture baseline BEFORE sending second scroll command
+        const baseline2 = await getScrollPosition(pageWs);
         await sendKey(pageWs, 'd');
-        // Event-driven: wait for scroll event instead of polling
+        // Event-driven: wait for scroll event instead of polling, with captured baseline
         const after2 = await waitForScrollCompleteViaEvent(pageWs, 'down', {
             direction: 'down',
             minDelta: 100,
-            timeoutMs: 5000
+            timeoutMs: 5000,
+            baseline: baseline2
         });
-        const distance2 = after2 - after1;
+        const distance2 = after2 - baseline2;
 
         console.log(`1st scroll: ${distance1}px, 2nd scroll: ${distance2}px, delta: ${Math.abs(distance1 - distance2)}px`);
 

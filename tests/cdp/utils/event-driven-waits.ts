@@ -73,12 +73,17 @@ interface ScrollListenerOptions {
     minDelta?: number;
     timeoutMs?: number;
     direction: 'up' | 'down' | 'left' | 'right';
+    baseline?: number;  // Optional: captured scroll position before scroll started
 }
 
 /**
  * Wait for scroll event to fire on page
  * Injects an event listener that waits for actual scroll event (not polling)
  * Returns the final scroll position
+ *
+ * NOTE: Baseline is captured at listener attachment time. If called after scroll
+ * has started, baseline will be the current position, not the pre-scroll position.
+ * To avoid this, ensure listener is set up BEFORE triggering scroll.
  */
 export async function waitForScrollCompleteViaEvent(
     ws: WebSocket,
@@ -93,31 +98,47 @@ export async function waitForScrollCompleteViaEvent(
     // Generate unique signal marker for this scroll
     const signalMarker = `__SCROLL_COMPLETE_${Date.now()}_${Math.random()}__`;
 
+    // If baseline not provided, it will be captured when listener code executes
+    // (which may be inaccurate under high CPU load)
+    const capturedBaseline = options.baseline;
+
     // Inject scroll listener that waits for actual scroll event
+    // Use provided baseline if available, otherwise capture when listener attaches
+    const baselineCode = capturedBaseline !== undefined
+        ? `${capturedBaseline}`
+        : `window.${scrollProp}`;
+
     const listenerCode = `
         (async () => {
             return new Promise((resolve) => {
-                const baseline = window.${scrollProp};
+                // Baseline: either passed in (accurate) or captured now (may be inaccurate under load)
+                const baseline = ${baselineCode};
                 let resolved = false;
+                let firstEventPos = null;
+                let lastEventPos = null;
 
                 const listener = () => {
                     if (resolved) return;
 
                     const current = window.${scrollProp};
-                    const delta = Math.abs(current - baseline);
+                    if (firstEventPos === null) firstEventPos = current;
+                    lastEventPos = current;
 
-                    let shouldResolve = false;
+                    // Calculate delta from baseline
+                    let delta;
                     if ('${direction}' === 'down' || '${direction}' === 'right') {
-                        shouldResolve = current > baseline + ${minDelta};
+                        delta = current - baseline;
                     } else {
-                        shouldResolve = baseline - current > ${minDelta};
+                        delta = baseline - current;
                     }
 
-                    if (shouldResolve) {
+                    // Resolve if we've moved enough
+                    if (delta >= ${minDelta}) {
                         resolved = true;
                         window.removeEventListener('scroll', listener);
-                        console.log('${signalMarker}:' + current);
-                        resolve(current);
+                        // Use the last scroll position we saw
+                        console.log('${signalMarker}:' + lastEventPos);
+                        resolve(lastEventPos);
                     }
                 };
 
