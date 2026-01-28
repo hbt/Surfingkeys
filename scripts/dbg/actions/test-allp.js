@@ -184,7 +184,6 @@ function generateAggregateStats(testResults) {
 
     testResults.forEach(tr => {
         if (tr.success) {
-            stats.successCount++;
             const result = tr.result;
             stats.totalTests += result.tests || 0;
             stats.totalPassed += result.passed || 0;
@@ -193,6 +192,13 @@ function generateAggregateStats(testResults) {
             stats.totalSlow += result.slow || 0;
             stats.totalAssertions += result.assertions || 0;
             stats.totalDuration += result.duration || 0;
+
+            // Count as successful only if all tests passed
+            if ((result.failed || 0) === 0) {
+                stats.successCount++;
+            } else {
+                stats.failureCount++;
+            }
         } else {
             stats.failureCount++;
         }
@@ -224,7 +230,7 @@ function createConciseSummary(testResults, stats, aggregateReportFile, aggregate
         },
         testSummaries: testResults.map(tr => ({
             file: tr.testFile,
-            success: tr.success,
+            success: tr.success && (tr.result?.failed === 0),
             ...(tr.success ? {
                 tests: tr.result.tests,
                 passed: tr.result.passed,
