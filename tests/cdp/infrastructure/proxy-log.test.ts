@@ -755,14 +755,20 @@ describe('Proxy Log Verification', () => {
             // Log call count after key press (to proxy logs for visibility)
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            console.log('[TEST] About to check call counter after scroll...');
-            const afterCounter = await executeInTarget(configPageWs, `
-                console.log('[CHECK-AFTER] Entry point');
-                const after = window.__mapcmdkey_call_count || 0;
-                console.log('[CHECK-AFTER] Value: ' + after);
-                after;
+            // ===== STEP 4: Verify keybinding was actually registered =====
+            console.log(`[CONFIG-VERIFY] Checking if keybinding was registered...`);
+            const registeredCommands = await executeInTarget(configPageWs, `
+                if (typeof api !== 'undefined' && typeof api.listCommands === 'function') {
+                    const cmds = api.listCommands();
+                    console.log('[CONFIG-VERIFY] Total commands registered: ' + cmds.length);
+                    console.log('[CONFIG-VERIFY] Contains cmd_scroll_down: ' + cmds.includes('cmd_scroll_down'));
+                    cmds.includes('cmd_scroll_down');
+                } else {
+                    console.log('[CONFIG-VERIFY] api or listCommands not available');
+                    false;
+                }
             `);
-            console.log('[TEST] Counter value after keypress:', afterCounter);
+            console.log(`[CONFIG-VERIFY] Keybinding registered: ${registeredCommands ? 'YES' : 'NO'}`);
 
             // Assert scroll happened (proves custom config was executed)
             expect(finalScroll).toBeGreaterThan(initialScroll);

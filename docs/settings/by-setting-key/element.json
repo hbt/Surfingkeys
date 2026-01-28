@@ -1,0 +1,71 @@
+{
+  "short": "Optional HTMLDivElement container for Neovim renderer",
+  "unique_id": "setting_element",
+  "category": "neovim",
+  "description": "Optional HTMLDivElement that serves as a custom DOM container for the Neovim browser renderer. When provided, the renderer uses this element as the screen container instead of creating a new full-screen div. This allows for embedding the Neovim UI within a specific part of the page. The element becomes the parent container for all renderer components including the canvas, cursor, and text layers. If not provided, the renderer creates its own full-screen container with id 'nvimScreenContainer'. This is primarily used for integrating the Neovim renderer into custom web applications.",
+  "tags": [
+    "neovim",
+    "renderer",
+    "ui",
+    "container",
+    "dom",
+    "optional",
+    "advanced"
+  ],
+  "valueType": "HTMLDivElement | undefined",
+  "valueDescription": "An HTMLDivElement instance that will be used as the container for the Neovim renderer, or undefined to use the default full-screen container. The element should be properly sized and positioned before being passed to the renderer.",
+  "values": [
+    {
+      "value": "undefined",
+      "description": "Default value; renderer creates and uses its own full-screen container with id 'nvimScreenContainer'",
+      "source": "src/nvim/renderer.ts:10-20 - Default settings in getDefaultSettings() function"
+    },
+    {
+      "value": "HTMLDivElement",
+      "description": "Custom DOM element provided at renderer initialization; the element is used as the screen container with box-shadow styling applied",
+      "source": "src/nvim/renderer.ts:30-34 - Passed to renderer function parameter and assigned to settings"
+    },
+    {
+      "value": "element (when provided)",
+      "description": "Used in screen initialization to determine container parent; if element exists, it becomes screenContainer; if undefined, createScreenContainer() creates a new full-screen div",
+      "source": "src/nvim/screen.ts:173-178 - Checked and conditionally used in initScreen function"
+    }
+  ],
+  "usageContext": {
+    "files": [
+      "src/nvim/types.ts",
+      "src/nvim/renderer.ts",
+      "src/nvim/screen.ts"
+    ],
+    "operations": [
+      {
+        "type": "declaration",
+        "file": "src/nvim/types.ts",
+        "line": 141,
+        "context": "Optional field in Settings interface: element?: HTMLDivElement"
+      },
+      {
+        "type": "initialization",
+        "file": "src/nvim/renderer.ts",
+        "line": 34,
+        "function": "renderer",
+        "context": "Settings object populated with element parameter: settings.element = element"
+      },
+      {
+        "type": "read",
+        "file": "src/nvim/screen.ts",
+        "line": 173,
+        "function": "initScreen",
+        "context": "Conditional check: if (settings.element) { screenContainer = settings.element }"
+      },
+      {
+        "type": "read",
+        "file": "src/nvim/screen.ts",
+        "line": 175,
+        "function": "initScreen",
+        "context": "When element is provided, applies box-shadow styling to screenEl"
+      }
+    ]
+  },
+  "notes": "This is an optional initialization-time setting specific to the Neovim renderer module. It is not part of the global runtime settings and is only used when creating a Neovim renderer instance via the renderer() function. The element parameter must be an HTMLDivElement and should be ready to receive child elements (the screenEl div containing the WebGL canvas). If provided, any existing styles on the element will be preserved, and the renderer will add positioning and overflow styling to screenEl. This is an advanced setting primarily for custom integrations of the Neovim renderer into web applications."
+}
