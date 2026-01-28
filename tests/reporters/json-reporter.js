@@ -651,7 +651,7 @@ class JSONReporter {
 
         try {
             const files = fs.readdirSync(coverageDir)
-                .filter(f => f.startsWith('page-hints-coverage-') && f.endsWith('.json'))
+                .filter(f => f.startsWith('page-') && f.includes('-coverage-') && !f.includes('-per-test-coverage-') && f.endsWith('.json'))
                 .map(f => ({
                     name: f,
                     path: path.join(coverageDir, f),
