@@ -100,6 +100,18 @@ interface ExcludedSetting {
     reason: string;
 }
 
+interface SettingsAnnotation {
+    short: string;
+    unique_id: string;
+    category: string;
+    description: string;
+    tags: string[];
+    valueType: string;
+    valueDescription?: string;
+    values?: any[];
+    default?: any;
+}
+
 interface Report {
     mappings: MappingEntry[];
     summary: Summary;
@@ -840,7 +852,7 @@ function scanDirectoryForSettings(dir: string, basePath: string, usages: Setting
 /**
  * Generate settings statistics from usages
  */
-function generateSettingsStatistics(usages: SettingUsage[]): any {
+function generateSettingsStatistics(usages: SettingUsage[], annotationsMap: Map<string, SettingsAnnotation>): any {
     const excludedNames = new Set(EXCLUDED_SETTINGS.map(e => e.name));
 
     // Filter out excluded settings
@@ -881,19 +893,26 @@ function generateSettingsStatistics(usages: SettingUsage[]): any {
             excluded_count: EXCLUDED_SETTINGS.length
         },
         excluded: EXCLUDED_SETTINGS,
-        list: settingsList.map(stat => ({
-            setting: stat.setting,
-            type: stat.type,
-            frequency: stat.count,
-            files: Array.from(stat.files).sort(),
-            functions: Array.from(stat.functions).sort(),
-            usages: stat.usages.map(u => ({
-                file: u.file,
-                line: u.line,
-                function: u.functionName,
-                context: u.context
-            }))
-        }))
+        list: settingsList.map(stat => {
+            // Try to find annotation for this setting
+            const annotation = annotationsMap.get(`setting_${stat.setting}`) ||
+                              annotationsMap.get(stat.setting);
+
+            return {
+                setting: stat.setting,
+                type: stat.type,
+                frequency: stat.count,
+                files: Array.from(stat.files).sort(),
+                functions: Array.from(stat.functions).sort(),
+                usages: stat.usages.map(u => ({
+                    file: u.file,
+                    line: u.line,
+                    function: u.functionName,
+                    context: u.context
+                })),
+                ...(annotation && { annotation })
+            };
+        })
     };
 }
 
@@ -1032,6 +1051,38 @@ function generateSummary(mappings: MappingEntry[]): Summary {
 }
 
 // ============================================================================
+// SETTINGS ANNOTATIONS LOADER
+// ============================================================================
+
+/**
+ * Load all settings annotations from docs/settings/all.json
+ */
+function loadSettingsAnnotations(): Map<string, SettingsAnnotation> {
+    const annotationsPath = path.join(__dirname, '..', 'docs', 'settings', 'all.json');
+
+    try {
+        const content = fs.readFileSync(annotationsPath, 'utf-8');
+        const data = JSON.parse(content);
+
+        const annotationsMap = new Map<string, SettingsAnnotation>();
+
+        if (data.settings && Array.isArray(data.settings)) {
+            for (const setting of data.settings) {
+                // Map by both unique_id and setting name
+                if (setting.unique_id) {
+                    annotationsMap.set(setting.unique_id, setting);
+                }
+            }
+        }
+
+        return annotationsMap;
+    } catch (e) {
+        // If annotations file doesn't exist, return empty map
+        return new Map();
+    }
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -1039,13 +1090,16 @@ function main(): void {
     const srcDir = path.join(__dirname, '..', 'src');
     const mappings: MappingEntry[] = [];
 
+    // Load settings annotations
+    const annotationsMap = loadSettingsAnnotations();
+
     // Scan all source files
     scanDirectory(srcDir, srcDir, mappings);
 
     // Scan for settings usage
     const settingsUsages: SettingUsage[] = [];
     scanDirectoryForSettings(srcDir, srcDir, settingsUsages);
-    const settingsStats = generateSettingsStatistics(settingsUsages);
+    const settingsStats = generateSettingsStatistics(settingsUsages, annotationsMap);
 
     // Sort by mode, then by key
     mappings.sort((a, b) => {

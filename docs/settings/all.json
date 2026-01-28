@@ -1,0 +1,1962 @@
+{
+  "summary": {
+    "total_settings": 56,
+    "schema_version": "1.0",
+    "last_updated": "2026-01-28T00:51:42.835Z"
+  },
+  "settings": [
+    {
+      "short": "ACE editor keybindings",
+      "unique_id": "aceKeybindings",
+      "category": "editor",
+      "description": "Set keybindings for the ACE editor. Choose between Vim and Emacs style keybindings. In Emacs mode, use Ctrl+X Ctrl+S to save input.",
+      "tags": [
+        "editor",
+        "keybindings",
+        "ace",
+        "vim",
+        "emacs"
+      ],
+      "valueType": "string",
+      "valueDescription": "Keybinding style identifier",
+      "values": [
+        {
+          "value": "vim",
+          "description": "Use Vim-style keybindings in ACE editor (default)"
+        },
+        {
+          "value": "emacs",
+          "description": "Use Emacs-style keybindings in ACE editor. Save with Ctrl+X Ctrl+S."
+        }
+      ],
+      "default": "vim"
+    },
+    {
+      "short": "Alignment of hints on target elements",
+      "unique_id": "setting_hintAlign",
+      "category": "hints",
+      "description": "Controls the horizontal alignment of hint labels relative to their target elements. This setting determines where hint badges appear when you activate hints mode - they can be aligned to the left edge, right edge, or center of clickable elements. The alignment affects the visual positioning of hint labels on the page, helping to avoid overlaps and improve readability depending on page layout.",
+      "tags": [
+        "hints",
+        "ui",
+        "alignment",
+        "positioning",
+        "layout"
+      ],
+      "valueType": "string",
+      "valueDescription": "Hint alignment direction: one of 'left', 'center', or 'right'",
+      "values": [
+        {
+          "value": "\"center\"",
+          "description": "Default value; hints are centered horizontally on target elements"
+        },
+        {
+          "value": "\"left\"",
+          "description": "Hints are aligned to the left edge of target elements"
+        },
+        {
+          "value": "\"right\"",
+          "description": "Hints are aligned to the right edge of target elements"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "short": "Array of hostnames to exclude from frame looping with 'w'",
+      "unique_id": "setting_ignoredFrameHosts",
+      "category": "frame-navigation",
+      "description": "An array of URL origins (hostname patterns) that should be excluded from frame switching when using the 'w' command to loop through frames on a page. When Surfingkeys initializes frames and scripts in iframes, it checks if the iframe's origin matches any of these patterns. If a match is found, the frame is skipped from normal Surfingkeys functionality. This is particularly useful for excluding advertisement frames, tracking frames, or other embedded content that should not receive keyboard input from Surfingkeys. By default, Google's ad syndication frame is excluded to prevent interfering with ad networks.",
+      "tags": [
+        "frame-navigation",
+        "frame-switching",
+        "iframe",
+        "ads",
+        "filtering",
+        "blocking",
+        "advanced"
+      ],
+      "valueType": "array of strings",
+      "valueDescription": "An array of full URL origins (protocol + hostname) as strings. Each entry should be a complete origin like 'https://example.com' or 'https://tpc.googlesyndication.com'. Frames whose window.origin matches any entry in this array will be excluded from Surfingkeys frame initialization and keyboard handling.",
+      "values": [
+        {
+          "value": "[\"https://tpc.googlesyndication.com\"]",
+          "description": "Default value; excludes Google's ad syndication frame which is commonly embedded for advertisements",
+          "source": "src/content_scripts/common/runtime.js:96 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "[]",
+          "description": "Empty array; all frames (subject to size and visibility checks) will be initialized for Surfingkeys",
+          "source": "User configuration example"
+        },
+        {
+          "value": "[\"https://tpc.googlesyndication.com\", \"https://pagead2.googlesyndication.com\"]",
+          "description": "Multiple Google ad services excluded",
+          "source": "User configuration example"
+        },
+        {
+          "value": "[\"https://ads.example.com\", \"https://tracker.example.com\"]",
+          "description": "Custom ad and tracking frames excluded for a specific site",
+          "source": "User configuration example"
+        }
+      ]
+    },
+    {
+      "short": "Array of regex patterns for extracting and incrementing page numbers from URLs",
+      "unique_id": "setting_pageUrlRegex",
+      "category": "navigation",
+      "description": "An array of regular expression patterns used to extract page numbers from the current URL and navigate to the next/previous page. Each regex should contain exactly 3 capturing groups: (1) the URL prefix up to and including the page number, (2) the page number itself, and (3) the URL suffix after the page number. When nextPage or previousPage commands are invoked and no explicit next/previous page links are found, these patterns are tested in sequence against the current URL to identify the page number, increment or decrement it, and construct a new URL. This enables automatic pagination navigation even on sites without standard rel='next' or rel='prev' links.",
+      "tags": [
+        "navigation",
+        "pagination",
+        "regex",
+        "url-manipulation",
+        "page-traversal",
+        "advanced"
+      ],
+      "valueType": "array of regex-string",
+      "valueDescription": "An array of JavaScript regular expression patterns (as strings). Each pattern should match URLs containing page numbers with 3 capture groups: group 1 = URL prefix, group 2 = page number, group 3 = URL suffix. The pattern is matched against window.location.href. Empty array (default) means no automatic page number navigation is attempted.",
+      "values": [
+        {
+          "value": "[]",
+          "description": "Default value; empty array means no automatic page number extraction is attempted. Next/previous navigation falls back to finding rel='next' and rel='prev' links.",
+          "source": "src/content_scripts/common/runtime.js:80 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "[/(.*?)(?:page|p)=?(\\d+)(.*)/i]",
+          "description": "Single pattern to match URLs with 'page' or 'p' query parameter. Extracts page number from URLs like example.com?page=2 or example.com?p=3",
+          "source": "User configuration example"
+        },
+        {
+          "value": "[/(.*?)(\\d+)(?:/|$)/]",
+          "description": "Pattern to match numeric page segments in URL path. Matches URLs like example.com/articles/page/2/",
+          "source": "User configuration example"
+        },
+        {
+          "value": "[/(.*?)([\\d]+)(/.*)?$/]",
+          "description": "Matches page number at end of URL path with optional trailing segments. Works with URLs like site.com/blog/2/",
+          "source": "User configuration example"
+        },
+        {
+          "value": "[/(.*page)(\\d+)(.*)/i, /(.*?)(\\d+)(\\.html)/]",
+          "description": "Multiple patterns for matching different URL formats: 'page2', 'page3' style and numbered HTML files like article2.html, article3.html",
+          "source": "User configuration example"
+        }
+      ]
+    },
+    {
+      "short": "Automatically focus the first candidate in omnibar results",
+      "unique_id": "setting_focusFirstCandidate",
+      "category": "omnibar",
+      "description": "Controls whether the first search result in the omnibar should be automatically focused when results are displayed. When enabled, the first candidate in omnibar search results (bookmarks, open tabs, VI marks, user URLs, etc.) will have visual focus applied, making it ready for selection with Enter. Individual omnibar handlers can override this setting with their own focusFirstCandidate property.",
+      "tags": [
+        "omnibar",
+        "search",
+        "focus",
+        "ui",
+        "interaction",
+        "default-behavior"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "true to automatically focus the first candidate in omnibar results; false to not focus any result by default",
+      "values": [
+        {
+          "value": "false",
+          "description": "Default value; no result is automatically focused when omnibar results are displayed",
+          "source": "src/content_scripts/common/runtime.js:63 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true",
+          "description": "First candidate in omnibar results is automatically focused; used by most omnibar handlers (bookmarks, tabs, marks, user URLs)",
+          "source": "src/content_scripts/ui/omnibar.js:1026, 1171, 1288, 1634 - Handler-specific overrides in AddBookmark, OpenTabs, OpenVIMarks, OpenUserURLs"
+        },
+        {
+          "value": "false",
+          "description": "Specific override for Commands handler which does not auto-focus results",
+          "source": "src/content_scripts/ui/omnibar.js:1471 - Handler-specific override in Commands handler"
+        }
+      ]
+    },
+    {
+      "short": "Automatically speak query string with TTS on inline query",
+      "unique_id": "setting_autoSpeakOnInlineQuery",
+      "category": "tts",
+      "description": "Controls whether the query string is automatically spoken aloud using text-to-speech (TTS) when performing an inline query. When enabled (true), the query text is read using the voice specified in the defaultVoice setting. When disabled (false, default), inline queries produce no audio output. This feature is useful for accessibility and hands-free query input, particularly in dictionary lookups or other inline query operations.",
+      "tags": [
+        "tts",
+        "text-to-speech",
+        "inline-query",
+        "accessibility",
+        "audio",
+        "feature-toggle",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to enable/disable automatic text-to-speech on inline query operations",
+      "values": [
+        {
+          "value": "false",
+          "description": "Default value; inline queries produce no audio output, query text is not spoken",
+          "source": "src/content_scripts/common/runtime.js:44 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true",
+          "description": "When enabled, triggers browser.readText() to speak the query string when an inline query is performed",
+          "source": "src/content_scripts/front.js:382 - Checked before calling browser.readText(query) for inline query operations"
+        }
+      ],
+      "default": false
+    },
+    {
+      "short": "Characters needed after colon to show emoji suggestion",
+      "unique_id": "setting_startToShowEmoji",
+      "category": "editing",
+      "description": "Controls the minimum number of characters required after the ':' prefix to trigger emoji suggestions in the emoji picker. When a user starts typing ':' followed by emoji name characters in an input field, the emoji picker will only display suggestions once this threshold is reached. For example, with a value of 2, typing ':a' shows no suggestions, but ':ab' triggers the picker to display matching emoji. This setting works in conjunction with enableEmojiInsertion, which must be enabled for emoji picking to work at all.",
+      "tags": [
+        "editing",
+        "emoji",
+        "insertion",
+        "input",
+        "threshold",
+        "character-count",
+        "runtime"
+      ],
+      "valueType": "number",
+      "valueDescription": "Minimum number of characters after ':' required to trigger emoji suggestions",
+      "values": [
+        {
+          "value": "2",
+          "description": "Default value; emoji suggestions appear after typing 2 characters following the ':' prefix (e.g., ':sm' for 'smile')",
+          "source": "src/content_scripts/common/runtime.js:90 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "1",
+          "description": "Show emoji suggestions after typing just 1 character following ':' (e.g., ':s' shows all emoji starting with 's'). More suggestions appear immediately but may be slower to render.",
+          "source": "User customizable via settings"
+        },
+        {
+          "value": "3",
+          "description": "Require 3 characters after ':' before showing suggestions (e.g., ':smi' for 'smile'). Results in fewer matches but faster filtering.",
+          "source": "User customizable via settings"
+        },
+        {
+          "value": "0",
+          "description": "Show all emoji immediately when ':' is pressed with no character requirement. Shows full emoji list on activation.",
+          "source": "User customizable via settings"
+        }
+      ],
+      "default": 2
+    },
+    {
+      "short": "CSS selector pattern to auto-disable extension on matching active elements",
+      "unique_id": "setting_disabledOnActiveElementPattern",
+      "category": "extension-control",
+      "description": "A CSS selector pattern used to automatically disable Surfingkeys when the currently focused element (document.activeElement) matches this pattern. When the active element matches the pattern, the extension is automatically disabled, allowing the web page's native keyboard handling to take precedence. This is useful for interactive components like dropdown lists where users need to type to filter or navigate options. The extension automatically re-enables when the active element changes to a non-matching element.",
+      "tags": [
+        "css-selector",
+        "element-control",
+        "disable",
+        "active-element",
+        "interactive-elements",
+        "runtime"
+      ],
+      "valueType": "css-selector",
+      "valueDescription": "A valid CSS selector string that will be tested against document.activeElement using Element.matches(). If undefined or empty string, no element-based disabling occurs. Examples: 'ul.dropdown-list', 'input[type=text]', '[contenteditable=true]'",
+      "values": [
+        {
+          "value": "undefined",
+          "description": "Default value; no active element pattern-based disabling is applied",
+          "source": "src/content_scripts/common/runtime.js:49 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "\"ul.select-dropdown-options\"",
+          "description": "Disable extension when active element is a dropdown list, allowing users to type to navigate options",
+          "source": "README.md - Documented example for dropdown navigation"
+        },
+        {
+          "value": "\"input[type=text]\"",
+          "description": "Disable extension when active element is a text input field",
+          "source": "User configuration example"
+        },
+        {
+          "value": "\"[contenteditable=true]\"",
+          "description": "Disable extension when active element is a contenteditable element (rich text editors)",
+          "source": "User configuration example"
+        },
+        {
+          "value": "\"textarea, input[type=text], [contenteditable=true]\"",
+          "description": "Disable extension when active element is any form of text input (multiple selectors)",
+          "source": "User configuration example"
+        }
+      ]
+    },
+    {
+      "short": "Default LLM provider for AI features",
+      "unique_id": "setting_defaultLLMProvider",
+      "category": "ai",
+      "description": "Sets the default Large Language Model (LLM) provider used for AI-powered features such as LLM chat functionality. This setting specifies which LLM backend service will be used when initiating AI interactions. The available providers depend on the system configuration and which providers have been set up with appropriate credentials and endpoints. Users can override the default provider when opening an LLM chat session by explicitly specifying a provider. The provider must be one of the installed and configured LLM clients available in the extension.",
+      "tags": [
+        "ai",
+        "llm",
+        "chat",
+        "language-model",
+        "provider",
+        "configuration",
+        "ai-features"
+      ],
+      "valueType": "string",
+      "valueDescription": "Name of an available LLM provider. Must match one of the configured LLM client names exported from the llm module.",
+      "values": [
+        {
+          "value": "\"ollama\"",
+          "description": "Default value; local Ollama instance running on http://localhost:11434. Provides free, open-source LLM inference with models like qwen2.5-coder:32b",
+          "source": "src/content_scripts/common/runtime.js:56 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "\"bedrock\"",
+          "description": "AWS Bedrock provider for enterprise-grade LLM services. Requires AWS credentials (accessKeyId, secretAccessKey, sessionToken) and model configuration",
+          "source": "src/background/llm.js:160-284 - Bedrock implementation with EventStream parsing"
+        },
+        {
+          "value": "\"deepseek\"",
+          "description": "DeepSeek API provider. Requires API key configuration and model specification (defaults to 'deepseek-chat')",
+          "source": "src/background/llm.js:343-413 - DeepSeek implementation"
+        },
+        {
+          "value": "\"gemini\"",
+          "description": "Google Gemini API provider. Requires API key configuration and model specification (defaults to 'gemini-2.0-flash')",
+          "source": "src/background/llm.js:415-499 - Gemini implementation"
+        },
+        {
+          "value": "\"custom\"",
+          "description": "Custom OpenAI-compatible LLM service endpoint. Requires service URL, API key, and model configuration for any custom LLM server",
+          "source": "src/background/llm.js:501-590 - Custom provider implementation"
+        }
+      ],
+      "default": "ollama"
+    },
+    {
+      "short": "Default search engine alias used in omnibar",
+      "unique_id": "setting_defaultSearchEngine",
+      "category": "search-behavior",
+      "description": "Specifies the default search engine to use when performing searches through the omnibar. The value is a single character alias that corresponds to a registered search alias (e.g., 'g' for Google, 'd' for DuckDuckGo). When a user enters a non-URL query in the omnibar without specifying a search engine, the URL template of this default engine is used to construct the search URL.",
+      "tags": [
+        "search",
+        "omnibar",
+        "search-engine",
+        "default",
+        "configuration"
+      ],
+      "valueType": "string",
+      "valueDescription": "A single character string representing a search engine alias. Built-in aliases include: 'g' (Google), 'd' (DuckDuckGo), 'b' (Baidu), 'e' (Wikipedia), 'w' (Bing), 's' (Stack Overflow), 'h' (GitHub), 'y' (YouTube), and custom aliases defined by the user via 'addSearchAlias'.",
+      "values": [
+        {
+          "value": "\"g\"",
+          "description": "Default value; Google search engine",
+          "source": "src/content_scripts/common/runtime.js:57 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "\"d\"",
+          "description": "DuckDuckGo search engine",
+          "source": "src/content_scripts/common/default.js:1481 - addSearchAlias definition"
+        },
+        {
+          "value": "\"b\"",
+          "description": "Baidu search engine",
+          "source": "src/content_scripts/common/default.js:1487 - addSearchAlias definition"
+        },
+        {
+          "value": "\"e\"",
+          "description": "Wikipedia search engine",
+          "source": "src/content_scripts/common/default.js:1492 - addSearchAlias definition"
+        },
+        {
+          "value": "\"w\"",
+          "description": "Bing search engine",
+          "source": "src/content_scripts/common/default.js:1495 - addSearchAlias definition"
+        },
+        {
+          "value": "\"s\"",
+          "description": "Stack Overflow search engine",
+          "source": "src/content_scripts/common/default.js:1499 - addSearchAlias definition"
+        },
+        {
+          "value": "\"h\"",
+          "description": "GitHub search engine",
+          "source": "src/content_scripts/common/default.js:1500 - addSearchAlias definition"
+        },
+        {
+          "value": "\"y\"",
+          "description": "YouTube search engine",
+          "source": "src/content_scripts/common/default.js:1509 - addSearchAlias definition"
+        },
+        {
+          "value": "<custom_alias>",
+          "description": "Any user-defined custom search alias registered via addSearchAlias command",
+          "source": "src/content_scripts/ui/omnibar.js:1426 - Custom aliases added via addSearchAlias"
+        }
+      ]
+    },
+    {
+      "short": "Default text-to-speech voice",
+      "unique_id": "setting_defaultVoice",
+      "category": "tts",
+      "description": "Sets the default text-to-speech voice used for reading text aloud. This voice is applied when using the readText function or autoSpeakOnInlineQuery feature. The available voices depend on the system and browser, and can be listed using the listVoices command. The voice name must match exactly one of the system's available voices.",
+      "tags": [
+        "tts",
+        "text-to-speech",
+        "voice",
+        "audio",
+        "accessibility",
+        "speech"
+      ],
+      "valueType": "string",
+      "valueDescription": "Voice name string matching a system-available TTS voice",
+      "values": [
+        {
+          "value": "\"Daniel\"",
+          "description": "Default value; standard macOS/system voice used for text-to-speech synthesis"
+        },
+        {
+          "value": "<any valid voice name>",
+          "description": "Any voice name available on the system. Use listVoices command to see available voices with their languages, genders, and remote status. Examples: 'Victoria' (macOS), 'David' (macOS), or system-specific voices"
+        }
+      ],
+      "default": "Daniel"
+    },
+    {
+      "short": "Default zoom factor for browser tabs",
+      "unique_id": "defaultZoomFactor",
+      "category": "zoom",
+      "description": "The default zoom level applied to tabs. This is a read-only property obtained from the Chrome Tabs API (chrome.tabs.getZoomSettings). It represents the default zoom factor that the browser applies when a tab's zoom is reset to defaults. The value is retrieved dynamically from the browser's zoom settings and is used as a fallback when resetting zoom levels to their default state. This setting is part of the ZoomSettings type in the Chrome extension API (Chrome 43+).",
+      "tags": [
+        "zoom",
+        "tabs",
+        "chrome-api",
+        "read-only",
+        "zoom-settings",
+        "browser-property"
+      ],
+      "valueType": "number",
+      "valueDescription": "Decimal number representing the default zoom factor (e.g., 1.0 for 100%, 1.5 for 150%). The default fallback value if not provided by the browser is 1 (100% zoom).",
+      "values": [
+        {
+          "value": 1,
+          "description": "Standard 100% zoom level (fallback default when browser value is undefined)",
+          "source": "src/background/start.js:1987 - Fallback value used in setZoom function"
+        },
+        {
+          "value": "settings.defaultZoomFactor (from chrome.tabs.getZoomSettings)",
+          "description": "Value retrieved from Chrome Tabs API ZoomSettings, represents the browser's configured default zoom for the tab",
+          "source": "src/background/start.js:1986 - Retrieved via chrome.tabs.getZoomSettings(tabId, callback)"
+        }
+      ],
+      "default": 1
+    },
+    {
+      "short": "Delay before fetching omnibar suggestions",
+      "unique_id": "set_omnibar_suggestion_timeout",
+      "category": "omnibar",
+      "description": "The delay in milliseconds before sending a request to fetch search suggestions from the suggestion URL. This timeout helps prevent rate-limiting when typing a long query by allowing the user to type multiple characters before the suggestion request is sent. This is particularly useful for search engines with strict rate limits, such as GitHub's API.",
+      "tags": [
+        "omnibar",
+        "search",
+        "suggestions",
+        "timeout",
+        "debounce",
+        "rate-limiting",
+        "performance"
+      ],
+      "valueType": "integer",
+      "valueDescription": "Delay in milliseconds before fetching suggestions (must be non-negative integer)",
+      "values": [
+        {
+          "value": 200,
+          "description": "Default - 200ms delay before fetching suggestions"
+        },
+        {
+          "value": 0,
+          "description": "Immediate - fetch suggestions without delay (may trigger rate limits)"
+        },
+        {
+          "value": 500,
+          "description": "Conservative - 500ms delay for slower typing or API with strict rate limits"
+        },
+        {
+          "value": 1000,
+          "description": "Very conservative - 1 second delay, suitable for heavily rate-limited APIs"
+        }
+      ]
+    },
+    {
+      "short": "Don't auto-activate Insert mode when document.body is editable",
+      "unique_id": "setting_editableBodyCare",
+      "category": "editing",
+      "description": "Controls whether SurfingKeys automatically enters Insert mode when the document.body element is editable. When enabled (true), SurfingKeys protects the document.body from automatic Insert mode activation, which is important for web-based editors and rich text environments where the entire page may be editable. When this setting is active and the user interacts with an editable body element, it shows a helpful prompt 'Press i to enter Insert mode' instead of automatically switching modes. This prevents accidental mode switches in WYSIWYG editors and similar applications where the body element itself is the editable region.",
+      "tags": [
+        "editing",
+        "insert-mode",
+        "body-element",
+        "editable",
+        "editor",
+        "mode-control",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to enable/disable automatic Insert mode protection for editable body elements",
+      "values": [
+        {
+          "value": "true",
+          "description": "Default value; when the document.body is editable, SurfingKeys does NOT automatically enter Insert mode, and instead shows a prompt 'Press i to enter Insert mode'. This protects WYSIWYG editors and other web-based applications where the body itself is the main editing area.",
+          "source": "src/content_scripts/common/runtime.js:59 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true (checked)",
+          "description": "Checked in normal mode's keydown handler to determine whether to show the 'Press i' prompt when the user presses a key while document.body is editable",
+          "source": "src/content_scripts/common/normal.js:198 - Conditionally prompts user when editableBodyCare is enabled and body is editable"
+        },
+        {
+          "value": "true (used for stopPropagation)",
+          "description": "Used to control whether the 'i' key is intercepted when document.body is editable. When this setting is true and the user presses 'i' on an editable body, the event propagation is stopped and the extension enters Insert mode instead of passing the keypress to the page.",
+          "source": "src/content_scripts/common/normal.js:205 - Determines whether to suppress 'i' key and pass focus to body element"
+        }
+      ],
+      "default": true
+    },
+    {
+      "short": "Enable auto focus on input elements after mouse click",
+      "unique_id": "setting_enableAutoFocus",
+      "category": "focus-management",
+      "description": "Controls whether input elements should automatically receive focus when they become available through mouse clicks or dynamic page modifications. When enabled (true), clicking on a link that focuses an input element will allow the element to receive focus normally. When disabled (false), input elements that would receive focus through mouse interaction are prevented from getting focus, allowing continued use of Surfingkeys keyboard commands without needing to press Esc first. This setting works in conjunction with stealFocusOnLoad, which controls initial page load focus behavior. Disabling enableAutoFocus requires explicit user action (Escape key) to exit input focus and return to normal keyboard navigation mode.",
+      "tags": [
+        "focus-management",
+        "input",
+        "mouse-interaction",
+        "keyboard",
+        "user-experience",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to enable/disable auto focus on input elements after mouse click",
+      "values": [
+        {
+          "value": "true",
+          "description": "Default value; input elements receive focus automatically when clicked or made available through dynamic page changes",
+          "source": "src/content_scripts/common/runtime.js:60 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true",
+          "description": "Used in focus event handler to allow focus to pass to editable elements when enableAutoFocus is enabled",
+          "source": "src/content_scripts/common/normal.js:262 - Read in window focus event handler to determine if focus should be allowed"
+        },
+        {
+          "value": "true",
+          "description": "Used in mousedown event handler to enable focus passing on mouse clicks when enableAutoFocus is enabled",
+          "source": "src/content_scripts/common/normal.js:284 - Read in mousedown event handler to control passFocus behavior"
+        },
+        {
+          "value": "false",
+          "description": "When disabled, input elements do not receive focus on click or dynamic availability; user must use Escape to exit focused inputs before keyboard commands work",
+          "source": "src/content_scripts/common/normal.js:262-264 - Prevents focus passing when enableAutoFocus is false"
+        }
+      ],
+      "default": true
+    },
+    {
+      "short": "Enable colorful keystroke hints display",
+      "unique_id": "setting_colorfulKeystrokeHints",
+      "category": "ui",
+      "description": "Controls whether keystroke hints in the rich hints display use colorized text or plain white text. When enabled, the first character of each keystroke is displayed in a color-coded style with larger font size and bold weight, while subsequent characters remain white. When disabled, all keystroke hints display as plain white text. This setting affects the visual appearance of keystroke suggestions in the omnibar and other hint displays.",
+      "tags": [
+        "ui",
+        "hints",
+        "keystroke",
+        "visual",
+        "styling",
+        "configuration"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean value indicating whether colorful keystroke hints are enabled (true) or disabled (false)",
+      "values": [
+        {
+          "value": "true",
+          "description": "Default value; keystroke hints display with colorized first character (larger, bold, color-coded) and white remaining characters",
+          "source": "src/content_scripts/common/runtime.js:84 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "false",
+          "description": "Keystroke hints display as plain white text without colorization or special formatting",
+          "source": "data/fixtures/cdp-command-metadata-config.js:7 - Test fixture setting override"
+        }
+      ]
+    },
+    {
+      "short": "Enable emoji insertion via ':' key in input fields",
+      "unique_id": "setting_enableEmojiInsertion",
+      "category": "editing",
+      "description": "Controls whether the emoji insertion feature is available in SurfingKeys. When enabled (true), pressing ':' in text input fields will open an emoji picker dialog that allows users to search and insert emoji characters. When disabled (false, default), the ':' key has no special behavior in input fields. The emoji picker displays emoji suggestions based on input characters and can be controlled by the startToShowEmoji setting, which determines the minimum number of characters required before suggestions appear.",
+      "tags": [
+        "editing",
+        "input",
+        "emoji",
+        "insertion",
+        "feature-toggle",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to enable/disable emoji insertion feature with ':' key",
+      "values": [
+        {
+          "value": "false",
+          "description": "Default value; emoji insertion feature is disabled, ':' key has no special behavior in input fields",
+          "source": "src/content_scripts/common/runtime.js:61 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true",
+          "description": "When enabled, triggers registration of the ':' key mapping that opens the emoji picker dialog when pressed in input fields",
+          "source": "src/content_scripts/front.js:484 - Conditionally calls insert.enableEmojiInsertion() when this setting is true"
+        },
+        {
+          "value": "true (active)",
+          "description": "When the emoji insertion feature is enabled, the ':' key is mapped to open the emoji picker with suggestions controlled by startToShowEmoji setting",
+          "source": "src/content_scripts/common/insert.js:234-252 - Defines the enableEmojiInsertion() function that registers the ':' mapping"
+        }
+      ],
+      "default": false
+    },
+    {
+      "short": "Enable smooth scrolling animations",
+      "unique_id": "smoothScroll",
+      "category": "movement",
+      "description": "Controls whether scrolling movements (triggered by j, k, h, l and related commands) should animate smoothly to their destination or jump instantly. When enabled, scroll animations are calculated with a duration proportional to the scroll distance. When disabled, scrolling uses instant 'behavior' for immediate position changes. This setting affects the visual user experience of all scroll operations.",
+      "tags": [
+        "scroll",
+        "movement",
+        "animation",
+        "keyboard",
+        "smoothing",
+        "behavior",
+        "j",
+        "k",
+        "h",
+        "l"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "true enables smooth animated scrolling, false disables animation and scrolls instantly",
+      "values": [
+        {
+          "value": true,
+          "description": "Default value; smooth scrolling is enabled with animation duration calculated as Math.max(100, 20 * Math.log(Math.abs(distance)))",
+          "source": "src/content_scripts/common/runtime.js:89 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": false,
+          "description": "Smooth scrolling is disabled; scrollBy uses instant behavior for immediate scrolling without animation",
+          "source": "data/fixtures/cdp-scrollstepsize-20-config.js:4 - Test fixture override for CDP tests"
+        },
+        {
+          "value": false,
+          "description": "Smooth scrolling disabled in command metadata test configuration",
+          "source": "data/fixtures/cdp-command-metadata-config.js:8 - Test fixture override"
+        }
+      ],
+      "default": true
+    },
+    {
+      "short": "Extra CSS selector for editable elements",
+      "unique_id": "setting_editableSelector",
+      "category": "input-handling",
+      "description": "An extra CSS selector to match additional HTML elements that should be treated as editable/focusable in the extension. This is useful for web applications that use custom rich text editors or contenteditable containers that Surfingkeys doesn't recognize by default as editable.",
+      "tags": [
+        "css-selector",
+        "input-handling",
+        "customization",
+        "editable-elements",
+        "rich-text-editors"
+      ],
+      "valueType": "string",
+      "valueDescription": "A valid CSS selector string, or empty string to disable custom selectors",
+      "values": [
+        {
+          "value": "\"div.CodeMirror-scroll,div.ace_content\"",
+          "description": "Default value; matches CodeMirror and ACE editor containers for syntax highlighting editors",
+          "source": "src/content_scripts/common/runtime.js:54 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "\"\"",
+          "description": "Empty selector; disables custom editable element detection, only built-in elements (textarea, input, contenteditable) are recognized",
+          "source": "Potential user configuration"
+        },
+        {
+          "value": "<any_css_selector>",
+          "description": "Any valid CSS selector pattern to match custom editable elements (e.g., '.editor-container', '[contenteditable]', '.Monaco-editor', '.tiptap-editor')",
+          "source": "src/content_scripts/common/utils.js:363 - Used in isEditable() function to check if element matches custom selectors"
+        }
+      ],
+      "default": "\"div.CodeMirror-scroll,div.ace_content\""
+    },
+    {
+      "short": "Extra CSS selector for hints mode",
+      "unique_id": "clickableSelector",
+      "category": "hints",
+      "description": "An extra CSS selector to match additional HTML elements that should be treated as clickable/focusable in hints mode. This is useful for web applications that use custom components or non-standard HTML elements that Surfingkeys doesn't recognize by default.",
+      "tags": [
+        "css-selector",
+        "hints-mode",
+        "customization"
+      ],
+      "valueType": "string",
+      "valueDescription": "A valid CSS selector string, or empty string to disable custom selectors",
+      "values": [
+        {
+          "value": "\"\"",
+          "description": "Default value; no custom selectors are applied, only built-in clickable elements are recognized",
+          "source": "src/content_scripts/common/runtime.js:53 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "\"*.jfk-button, *.goog-flat-menu-button\"",
+          "description": "Example for Google applications; matches Google's custom button components",
+          "source": "README.md:559 - Documented example"
+        },
+        {
+          "value": "<any_css_selector>",
+          "description": "Any valid CSS selector pattern to match custom clickable elements (e.g., '[data-clickable]', '.interactive-element', '.custom-link')",
+          "source": "src/content_scripts/common/utils.js:246, 247 - Appended to CSS selector list in isElementClickable()"
+        }
+      ],
+      "default": ""
+    },
+    {
+      "short": "Focus text input after quitting from vim editor",
+      "unique_id": "setting_focusOnSaved",
+      "category": "vim-editor",
+      "description": "Controls whether to automatically focus a text input element after exiting the vim editor mode (Ace editor). When enabled (true), after saving and closing the vim editor, the extension automatically focuses the text input element that was being edited and enters insert mode. When disabled (false), the focus is not automatically restored to the text input element; the user must manually focus it or use Surfingkeys commands to navigate to it. This setting provides a seamless editing experience by restoring focus to the original input element immediately after vim editing is complete.",
+      "tags": [
+        "vim-editor",
+        "focus-management",
+        "input",
+        "user-experience",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to enable/disable automatic focus on text input after exiting vim editor",
+      "values": [
+        {
+          "value": "true",
+          "description": "Default value; text input element automatically receives focus after exiting vim editor and enters insert mode",
+          "source": "src/content_scripts/common/runtime.js:64 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true",
+          "description": "Used in ace_editor_saved action handler to automatically focus the element behind the editor and enter insert mode",
+          "source": "src/content_scripts/front.js:600 - Read in ace_editor_saved action handler to control focus restoration after vim editor saves"
+        },
+        {
+          "value": "false",
+          "description": "When disabled, focus is not automatically restored to the text input after vim editor exits; user must manually focus the element",
+          "source": "src/content_scripts/front.js:600-604 - When false, the focus and insert mode entry are skipped after vim editor save"
+        }
+      ],
+      "default": true
+    },
+    {
+      "short": "Force threshold for continuous scrolling",
+      "unique_id": "setting_scrollFriction",
+      "category": "movement",
+      "description": "Controls the force (in milliseconds of key hold duration) required to transition from a single scroll step to continuous scrolling. When a scroll key (j/k/h/l) is held down, the initial scroll step is executed immediately. After the initial step completes, if the key is still held and the hold duration exceeds scrollFriction, continuous scrolling begins. A higher value requires longer key hold before continuous scrolling starts, which helps maintain precision for the first scroll step but may feel less responsive. A value of 0 (default) means continuous scrolling begins immediately after the initial step completes.",
+      "tags": [
+        "scroll",
+        "movement",
+        "keyboard",
+        "continuous-scroll",
+        "friction",
+        "smoothness",
+        "j",
+        "k",
+        "h",
+        "l",
+        "delay",
+        "runtime"
+      ],
+      "valueType": "number",
+      "valueDescription": "Non-negative integer representing milliseconds of key hold time required to enable continuous scrolling after the initial scroll step",
+      "values": [
+        {
+          "value": 0,
+          "description": "Default value; continuous scrolling begins immediately after first step with no delay",
+          "source": "src/content_scripts/common/runtime.js:97 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "<positive integer>",
+          "description": "User-configurable value in milliseconds that adds a delay before continuous scrolling activates",
+          "source": "User settings configuration"
+        }
+      ],
+      "default": 0
+    },
+    {
+      "short": "Hosts with enabled mouse selection to query feature",
+      "unique_id": "setting_mouseSelectToQuery",
+      "category": "input-interaction",
+      "description": "Controls which origins/hosts have the mouse selection to query feature enabled. When mouse text selection occurs on a page that is in this list, the selected text is automatically used as an inline query (opening the query UI with the selected text). This setting maintains a list of origins where this auto-query behavior should be active. The feature can be toggled on a per-origin basis through the toggleMouseQuery method in the background service worker.",
+      "tags": [
+        "mouse-interaction",
+        "query",
+        "selection",
+        "inline-query",
+        "host-specific",
+        "runtime"
+      ],
+      "valueType": "array",
+      "valueDescription": "Array of origin/host strings where mouse selection to query is enabled. Origins are typically in the format 'http://example.com' or 'https://example.com'",
+      "values": [
+        {
+          "value": "[]",
+          "description": "Default value; no hosts have mouse selection to query enabled",
+          "source": "src/content_scripts/common/runtime.js:100 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "[\"http://localhost\", \"https://example.com\", ...]",
+          "description": "Array of origin strings where the feature is enabled. Origins are added or removed by the toggleMouseQuery function when the user toggles the feature",
+          "source": "src/background/start.js:880-893 - Written by toggleMouseQuery function when user enables/disables feature for a specific origin"
+        },
+        {
+          "value": "Check: indexOf(window.origin) !== -1",
+          "description": "Read in _onMouseUp event handler to determine if mouse selection should trigger inline query for the current origin",
+          "source": "src/content_scripts/common/normal.js:1102 - Checked when mouse up event fires to decide whether to trigger querySelectedWord"
+        }
+      ],
+      "default": []
+    },
+    {
+      "short": "Last find-in-page query string for visual mode",
+      "unique_id": "setting_lastQuery",
+      "category": "visual-mode",
+      "description": "Stores the most recent find-in-page query string used in visual mode. This setting enables the visual mode to remember and reuse the last search query when navigating through matches with 'n' or 'N' commands, or when the page is resized. The setting is automatically populated from the browser's find history.",
+      "tags": [
+        "visual-mode",
+        "find",
+        "search",
+        "query",
+        "state",
+        "runtime"
+      ],
+      "valueType": "string",
+      "valueDescription": "A regular expression pattern string representing the last find-in-page query. Empty string indicates no previous query.",
+      "values": [
+        {
+          "value": "\"\"",
+          "description": "Default value; no previous find query has been performed",
+          "source": "src/content_scripts/common/runtime.js:70 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "rs.findHistory[0] or \"\"",
+          "description": "Set from browser's find history when settings are applied; populated with the most recent find query if history exists, otherwise empty string",
+          "source": "src/content_scripts/content.js:115 - Written in applySettings function"
+        },
+        {
+          "value": "<regex_pattern_string>",
+          "description": "Any valid JavaScript regex pattern used for highlighting matches in visual mode",
+          "source": "src/content_scripts/common/visual.js:100, 101, 842, 843, 844 - Read in createVisual and next functions for highlighting and navigation"
+        }
+      ]
+    },
+    {
+      "short": "Last pressed keys (internal state)",
+      "unique_id": "setting_lastKeys",
+      "category": "repeat-action",
+      "description": "Stores the last executed keyboard action as an array of keystroke strings. The first element is the keys pressed in normal mode, and subsequent elements contain mode name and keys in tab-separated format (e.g., 'ModeName\\tkeys'). This setting enables the repeat action functionality (use the '.' key to repeat) and the show-last-action functionality (use the '`' key). The setting is automatically populated whenever a user executes a keyboard action.",
+      "tags": [
+        "repeat",
+        "action",
+        "keyboard",
+        "state",
+        "runtime",
+        "internal"
+      ],
+      "valueType": "array",
+      "valueDescription": "An array of keystroke strings where the first element is the last normal mode keystroke, and optional subsequent elements are mode-specific keystrokes in 'ModeName\\tkeys' format. Empty array indicates no previous action has been recorded.",
+      "values": [
+        {
+          "value": "[]",
+          "description": "Default value; no keyboard action has been recorded yet",
+          "source": "src/content_scripts/common/runtime.js:45 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "[\"se\"]",
+          "description": "Simple keystroke without mode switching; represents the last action in normal mode only",
+          "source": "src/content_scripts/common/normal.js:651 - Set when a keystroke is executed via setLastKeys function"
+        },
+        {
+          "value": "[\"f\", \"Hints\\tBA\"]",
+          "description": "Keystroke with mode switching; first element is the initial normal mode keystroke, subsequent elements contain mode name and keys for that mode",
+          "source": "src/content_scripts/common/normal.js:667 - Built via appendKeysForRepeat function when mode transitions occur"
+        }
+      ]
+    },
+    {
+      "short": "Limit hints generation on v in format [top, left, bottom, right]",
+      "unique_id": "setting_caretViewport",
+      "category": "visual-mode",
+      "description": "Defines a rectangular viewport region within which hints are generated when entering visual mode with the 'v' command. This allows users to restrict hint generation to a specific area of the page, such as the center of the viewport or a particular section. The setting is useful for focusing text selection on specific regions of the page while using caret browsing in visual mode.",
+      "tags": [
+        "visual-mode",
+        "caret",
+        "hints",
+        "viewport",
+        "text-selection",
+        "positioning"
+      ],
+      "valueType": "array",
+      "valueDescription": "An array of four integers representing [top, left, bottom, right] pixel coordinates relative to the viewport. Each value defines the boundary of the rectangular region within which hints will be generated. If the array is not exactly 4 elements or the setting is null, the entire viewport is used as the hint generation region.",
+      "values": [
+        {
+          "value": "null",
+          "description": "Default value; hints are generated across the entire viewport (from 0 to window.innerHeight for vertical, 0 to window.innerWidth for horizontal)",
+          "source": "src/content_scripts/common/runtime.js:99 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "[0, 0, window.innerHeight, window.innerWidth]",
+          "description": "Equivalent to null; generates hints for the entire window. This is the default fallback used when caretViewport is not set or is invalid.",
+          "source": "src/content_scripts/common/hints.js:882 - Default initialization in createHintsForTextNode function"
+        },
+        {
+          "value": "[top, left, bottom, right]",
+          "description": "Custom viewport region where top/bottom are Y-axis coordinates (0 at window top), and left/right are X-axis coordinates (0 at window left). For example, [window.innerHeight / 2 - 10, 0, window.innerHeight / 2 + 10, window.innerWidth] limits hints to a horizontal band in the middle of the window.",
+          "source": "src/content_scripts/common/hints.js:883-884 - Read and validated in createHintsForTextNode function"
+        }
+      ]
+    },
+    {
+      "short": "Maximum number of history items to cache in omnibar",
+      "unique_id": "setting_omnibarHistoryCacheSize",
+      "category": "omnibar",
+      "description": "Specifies the maximum number of history items that the omnibar will request and cache when displaying history search results. This setting controls the size of the result set retrieved from the browser's history database. Higher values allow more history items to be searched through, but may impact performance. The omnibar displays this cache size indicator with a '+' suffix when the total number of results equals this limit, indicating that more items exist but are not loaded.",
+      "tags": [
+        "omnibar",
+        "history",
+        "cache",
+        "performance",
+        "search"
+      ],
+      "valueType": "number",
+      "valueDescription": "A positive integer representing the maximum number of history items to retrieve and cache. Must be greater than 0.",
+      "values": [
+        {
+          "value": "100",
+          "description": "Default value; caches up to 100 history items for omnibar search",
+          "source": "src/content_scripts/common/runtime.js:75 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "<custom_number>",
+          "description": "Any positive integer value can be set by users to control the history cache size. Higher values (e.g., 500) allow searching through more history items but may be slower. Lower values (e.g., 50) reduce performance overhead.",
+          "source": "src/content_scripts/ui/omnibar.js:583, 607, 812, 831 - Read in getHistoryCacheSize and used in history queries"
+        }
+      ]
+    },
+    {
+      "short": "Maximum number of tabs to retrieve before limiting tab results",
+      "unique_id": "setting_tabsThreshold",
+      "category": "tabs",
+      "description": "Controls the maximum number of tabs that can be retrieved from the browser when listing tabs in the omnibar or other tab selection interfaces. When the number of tabs exceeds this threshold and tabsMRUOrder is enabled, tabs are sorted by most-recently-used (MRU) order with the current tab excluded. This setting helps optimize performance when dealing with large numbers of open tabs by limiting how many tabs are processed and displayed.",
+      "tags": [
+        "tabs",
+        "omnibar",
+        "performance",
+        "threshold",
+        "mru-order",
+        "ui-optimization"
+      ],
+      "valueType": "number",
+      "valueDescription": "A positive integer representing the maximum number of tabs to retrieve. Used as a threshold to determine when MRU-based sorting should be applied.",
+      "values": [
+        {
+          "value": "100",
+          "description": "Default value; standard threshold for tab retrieval before applying MRU sorting when tabsMRUOrder is enabled",
+          "source": "src/content_scripts/common/runtime.js:93 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "Math.min(runtime.conf.tabsThreshold, Math.ceil(window.innerWidth / 26))",
+          "description": "Dynamically calculated at runtime in the chooseTab action; adjusted based on available window width to ensure UI elements remain properly sized (approximately 26px per tab indicator)",
+          "source": "src/content_scripts/ui/frontend.js:299 - Calculated in chooseTab action"
+        },
+        {
+          "value": "Math.min(runtime.conf.tabsThreshold, Math.ceil(window.innerWidth / 26))",
+          "description": "Dynamically calculated in omnibar tab source; adjusted based on window width to constrain tab results for UI display",
+          "source": "src/content_scripts/ui/omnibar.js:1177 - Set in getTabsArgs for omnibar results"
+        },
+        {
+          "value": "message.tabsThreshold (runtime value)",
+          "description": "Passed to getTabs message handler in background service worker; used to compare against actual tab count for deciding whether to apply MRU sorting when tabsMRUOrder is enabled",
+          "source": "src/background/start.js:1081 - Checked in getTabs handler to determine MRU sorting"
+        }
+      ]
+    },
+    {
+      "short": "Mode to enter after yanking text in visual mode",
+      "unique_id": "setting_modeAfterYank",
+      "category": "visual-mode",
+      "description": "Controls which mode the extension enters after yanking (copying) text in visual mode. This setting allows users to automatically transition to Caret mode for cursor positioning, Normal mode to exit visual mode, or remain in visual mode (empty string). This is useful for workflows where users want to quickly navigate to where they just copied from, or return to normal keyboard navigation.",
+      "tags": [
+        "visual-mode",
+        "yank",
+        "copy",
+        "mode-transition",
+        "behavior",
+        "state"
+      ],
+      "valueType": "string",
+      "valueDescription": "A string representing the target mode after yanking: 'Caret' for caret mode, 'Normal' for normal mode, or empty string to stay in visual mode",
+      "values": [
+        {
+          "value": "\"\"",
+          "description": "Default value; remain in visual mode after yanking, allowing continued text selection and copying operations"
+        },
+        {
+          "value": "\"Caret\"",
+          "description": "Enter Caret mode after yanking, positioning cursor at the end of the yanked selection for fine-grained text navigation"
+        },
+        {
+          "value": "\"Normal\"",
+          "description": "Enter Normal mode after yanking, exiting visual mode and returning to normal keyboard navigation and command execution"
+        }
+      ],
+      "default": "\"\""
+    },
+    {
+      "short": "Move cursor to end of input when entering insert mode",
+      "unique_id": "setting_cursorAtEndOfInput",
+      "category": "editing",
+      "description": "Controls whether the cursor is automatically moved to the end of input or textarea elements when SurfingKeys enters Insert mode. When enabled (true), entering Insert mode on an input element will position the cursor at the end of the text content, which is useful when you want to append text to existing input values. When disabled (false), the cursor position is left unchanged, allowing you to edit at the current cursor position or at the beginning of the input. This setting does not apply to SELECT elements, which have their own focus behavior.",
+      "tags": [
+        "editing",
+        "insert-mode",
+        "input",
+        "cursor",
+        "text-editing",
+        "user-experience",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to control whether cursor is moved to the end of input elements when entering insert mode",
+      "values": [
+        {
+          "value": "true",
+          "description": "Default value; when entering insert mode on an input or textarea element, the cursor is automatically positioned at the end of the text content",
+          "source": "src/content_scripts/common/runtime.js:55 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true (conditional check)",
+          "description": "Checked in the Insert mode enter function to determine if moveCursorEOL() should be called to position the cursor at the end of the input",
+          "source": "src/content_scripts/common/insert.js:355 - Read in enter function to control cursor positioning behavior"
+        },
+        {
+          "value": "false",
+          "description": "When disabled, the cursor position is not automatically adjusted when entering Insert mode; the cursor remains at its current position or at the beginning of the element",
+          "source": "src/content_scripts/common/insert.js:355 - Prevents automatic cursor movement to end when cursorAtEndOfInput is false"
+        }
+      ],
+      "default": true
+    },
+    {
+      "short": "Omnibar position on screen",
+      "unique_id": "omnibarPosition",
+      "category": "ui",
+      "description": "Controls where the Omnibar search box appears on the page. Can be positioned in the middle of the screen (default) or at the bottom. The LLM Chat feature forces this to 'bottom' position, and on Safari iOS it is automatically set to 'bottom'.",
+      "tags": [
+        "omnibar",
+        "ui",
+        "position",
+        "layout",
+        "search"
+      ],
+      "valueType": "string",
+      "valueDescription": "Omnibar position identifier",
+      "values": [
+        {
+          "value": "middle",
+          "description": "Display Omnibar in the middle of the screen (default)"
+        },
+        {
+          "value": "bottom",
+          "description": "Display Omnibar at the bottom of the screen"
+        }
+      ],
+      "default": "middle"
+    },
+    {
+      "short": "Omnibar results per page",
+      "unique_id": "set_omnibar_max_results",
+      "category": "omnibar",
+      "description": "Maximum number of results displayed per page in the Omnibar search results. This value controls pagination when search results exceed the page size limit.",
+      "tags": [
+        "omnibar",
+        "pagination",
+        "search",
+        "results"
+      ],
+      "valueType": "integer",
+      "valueDescription": "Number of search results to display per page (must be positive integer)",
+      "values": [
+        {
+          "value": 10,
+          "description": "Default - 10 results per page"
+        },
+        {
+          "value": 5,
+          "description": "Compact view with fewer results"
+        },
+        {
+          "value": 20,
+          "description": "Expanded view with more results per page"
+        },
+        {
+          "value": 50,
+          "description": "Large view for displaying many results"
+        }
+      ]
+    },
+    {
+      "short": "Optional HTMLDivElement container for Neovim renderer",
+      "unique_id": "setting_element",
+      "category": "neovim",
+      "description": "Optional HTMLDivElement that serves as a custom DOM container for the Neovim browser renderer. When provided, the renderer uses this element as the screen container instead of creating a new full-screen div. This allows for embedding the Neovim UI within a specific part of the page. The element becomes the parent container for all renderer components including the canvas, cursor, and text layers. If not provided, the renderer creates its own full-screen container with id 'nvimScreenContainer'. This is primarily used for integrating the Neovim renderer into custom web applications.",
+      "tags": [
+        "neovim",
+        "renderer",
+        "ui",
+        "container",
+        "dom",
+        "optional",
+        "advanced"
+      ],
+      "valueType": "HTMLDivElement | undefined",
+      "valueDescription": "An HTMLDivElement instance that will be used as the container for the Neovim renderer, or undefined to use the default full-screen container. The element should be properly sized and positioned before being passed to the renderer.",
+      "values": [
+        {
+          "value": "undefined",
+          "description": "Default value; renderer creates and uses its own full-screen container with id 'nvimScreenContainer'",
+          "source": "src/nvim/renderer.ts:10-20 - Default settings in getDefaultSettings() function"
+        },
+        {
+          "value": "HTMLDivElement",
+          "description": "Custom DOM element provided at renderer initialization; the element is used as the screen container with box-shadow styling applied",
+          "source": "src/nvim/renderer.ts:30-34 - Passed to renderer function parameter and assigned to settings"
+        },
+        {
+          "value": "element (when provided)",
+          "description": "Used in screen initialization to determine container parent; if element exists, it becomes screenContainer; if undefined, createScreenContainer() creates a new full-screen div",
+          "source": "src/nvim/screen.ts:173-178 - Checked and conditionally used in initScreen function"
+        }
+      ]
+    },
+    {
+      "short": "Prevent focus on input elements when page loads",
+      "unique_id": "setting_stealFocusOnLoad",
+      "category": "focus-management",
+      "description": "Controls whether to steal focus away from input elements when the page finishes loading. When enabled (true), any input element that would automatically receive focus during page load is blurred, allowing the user to immediately use Surfingkeys keyboard commands without first pressing Esc to exit the input. When disabled (false), the browser's default focus behavior is preserved, and the user must press Esc to exit an input element before using Surfingkeys commands. This setting works in conjunction with enableAutoFocus, which controls whether dynamically-shown input elements (e.g., those revealed by clicking a link) automatically receive focus.",
+      "tags": [
+        "focus-management",
+        "input",
+        "page-load",
+        "keyboard",
+        "user-experience",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to enable/disable focus stealing from input elements on page load",
+      "values": [
+        {
+          "value": "true",
+          "description": "Default value; input elements are prevented from receiving focus on page load, allowing immediate use of Surfingkeys commands",
+          "source": "src/content_scripts/common/runtime.js:91 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true",
+          "description": "Applied during content script initialization to blur any automatically-focused input element",
+          "source": "src/content_scripts/content.js:230 - Applied in initialization when stealFocusOnLoad is enabled and document is ready"
+        },
+        {
+          "value": "true",
+          "description": "Applied on window focus event to blur editable elements (unless enableAutoFocus overrides)",
+          "source": "src/content_scripts/common/normal.js:258 - Applied in focus event handler to blur elements when window regains focus"
+        }
+      ],
+      "default": true
+    },
+    {
+      "short": "Query filter for tabs in Omnibar search",
+      "unique_id": "setting_omnibarTabsQuery",
+      "category": "omnibar",
+      "description": "A query filter object that controls which tabs are included when searching in the Omnibar. This object is passed directly to the Chrome Tabs API query() method to filter tabs based on properties like window ID, active state, muted status, and more. Allows users to customize which tabs appear in Omnibar search results.",
+      "tags": [
+        "omnibar",
+        "tabs",
+        "search",
+        "filter",
+        "query",
+        "chrome-api",
+        "runtime"
+      ],
+      "valueType": "object",
+      "valueDescription": "A Chrome Tabs API queryInfo object with optional properties for filtering tabs (active, audible, autoDiscardable, currentWindow, discarded, frozen, groupId, highlighted, index, lastFocusedWindow, muted, pinned, status, title, url, windowId, windowType)",
+      "values": [
+        {
+          "value": "{}",
+          "description": "Default value - empty object returns all available tabs across all windows",
+          "source": "src/content_scripts/common/runtime.js:79 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "{\"currentWindow\": true}",
+          "description": "Filter to return only tabs in the current (active) window",
+          "source": "src/background/start.js:1189 - Used as default fallback in getTabs handler"
+        },
+        {
+          "value": "{\"active\": true}",
+          "description": "Filter to return only the currently active tab in each window"
+        },
+        {
+          "value": "{\"currentWindow\": true, \"active\": true}",
+          "description": "Filter to return only the active tab in the current window"
+        },
+        {
+          "value": "{\"muted\": false}",
+          "description": "Filter to exclude muted tabs from search results"
+        },
+        {
+          "value": "{\"pinned\": false}",
+          "description": "Filter to exclude pinned tabs from search results"
+        }
+      ]
+    },
+    {
+      "short": "Regex pattern to detect clickable links from text",
+      "unique_id": "setting_clickablePat",
+      "category": "hints",
+      "description": "A regular expression pattern used to detect clickable links (URLs and other resource identifiers) within plain text content on web pages. When the 'O' command is executed, Surfingkeys uses this pattern to find all matching links in the text and presents them as hints for the user to select and open. This enables efficient navigation to links that are embedded in text rather than HTML anchor tags.",
+      "tags": [
+        "regex",
+        "hints-mode",
+        "link-detection",
+        "text-parsing",
+        "customization",
+        "resource-identifiers"
+      ],
+      "valueType": "regex-string",
+      "valueDescription": "A JavaScript regular expression pattern as a string that matches URLs and resource identifiers. The pattern is tested against page text content to find clickable links. The regex is converted to a RegExp object with source and flags for matching.",
+      "values": [
+        {
+          "value": "/(https?:\\/\\/|thunder:\\/\\/|magnet:)\\S+/ig",
+          "description": "Default value; matches HTTP/HTTPS URLs, Thunder protocol links, and magnet links. Case-insensitive global matching of non-whitespace characters after the protocol prefix",
+          "source": "src/content_scripts/common/runtime.js:52 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "/(https?:\\/\\/|ftp:\\/\\/|ftps:\\/\\/)\\S+/ig",
+          "description": "Example to detect HTTP, HTTPS, and FTP URLs only (excludes Thunder and magnet protocols)",
+          "source": "User configuration"
+        },
+        {
+          "value": "/(https?:\\/\\/\\S+|www\\.\\S+|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})/ig",
+          "description": "Extended example to also detect email addresses and www URLs without explicit protocol",
+          "source": "User configuration"
+        },
+        {
+          "value": "<any_regex_pattern>",
+          "description": "Any valid JavaScript regex pattern to match custom URL schemes or resource identifiers (e.g., '/(https?:\\/\\/|bitcoin:)\\S+/ig' for cryptocurrency protocols)",
+          "source": "src/content_scripts/content.js:66 - Validated via ensureRegex() before use"
+        }
+      ],
+      "default": "/(https?:\\/\\/|thunder:\\/\\/|magnet:)\\S+/ig"
+    },
+    {
+      "short": "Regex pattern to disable Surfingkeys on matching sites",
+      "unique_id": "setting_blocklistPattern",
+      "category": "extension-control",
+      "description": "A regular expression pattern used to automatically disable Surfingkeys on websites matching the pattern. When a page's URL matches this regex, Surfingkeys will be in a disabled state, allowing the website's native keyboard shortcuts to work without interference. This provides site-wide disabling without manually adding each URL via the Alt-s toggle command.",
+      "tags": [
+        "regex",
+        "site-control",
+        "disable",
+        "url-matching",
+        "extension-state"
+      ],
+      "valueType": "regex-string",
+      "valueDescription": "A JavaScript regular expression pattern as a string. The pattern is tested against the full URL (href) of the current page. If undefined or empty string, no URL-based disabling occurs.",
+      "values": [
+        {
+          "value": "undefined",
+          "description": "Default value; no URL pattern-based disabling is applied",
+          "source": "src/content_scripts/common/runtime.js:47 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "\"example\\\\.com\"",
+          "description": "Disable Surfingkeys on example.com and all subdomains",
+          "source": "User configuration"
+        },
+        {
+          "value": "\".*\\\\.github\\\\.com/.*\"",
+          "description": "Disable Surfingkeys on all GitHub URLs and subdomains",
+          "source": "User configuration"
+        },
+        {
+          "value": "\"https?://.*\\\\.wikipedia\\\\.org/.*\"",
+          "description": "Disable Surfingkeys on Wikipedia (both http and https)",
+          "source": "User configuration"
+        },
+        {
+          "value": "\"^https://mail\\\\.google\\\\.com/.*\"",
+          "description": "Disable Surfingkeys only on Gmail HTTPS URLs",
+          "source": "User configuration"
+        }
+      ]
+    },
+    {
+      "short": "Regex pattern to enable lurking mode on matching sites",
+      "unique_id": "setting_lurkingPattern",
+      "category": "extension-control",
+      "description": "A regular expression pattern used to automatically enable 'lurking mode' on websites matching the pattern. When a page's URL matches this regex, Surfingkeys enters lurking mode where keyboard commands are disabled but can be temporarily re-enabled with a specific keystroke. This provides a soft disable for sites where you want Surfingkeys available but not actively interfering with the page's native keyboard shortcuts.",
+      "tags": [
+        "regex",
+        "site-control",
+        "lurking-mode",
+        "url-matching",
+        "extension-state",
+        "soft-disable"
+      ],
+      "valueType": "regex-string",
+      "valueDescription": "A JavaScript regular expression pattern as a string. The pattern is tested against the full URL (href) of the current page. If undefined or empty string, no URL-based lurking mode is applied.",
+      "values": [
+        {
+          "value": "undefined",
+          "description": "Default value; no URL pattern-based lurking mode is applied",
+          "source": "src/content_scripts/common/runtime.js:48 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "\"example\\\\.com\"",
+          "description": "Enable lurking mode on example.com and all subdomains",
+          "source": "User configuration"
+        },
+        {
+          "value": "\".*\\\\.github\\\\.com/.*\"",
+          "description": "Enable lurking mode on all GitHub URLs and subdomains",
+          "source": "User configuration"
+        },
+        {
+          "value": "\"https?://.*\\\\.wikipedia\\\\.org/.*\"",
+          "description": "Enable lurking mode on Wikipedia (both http and https)",
+          "source": "User configuration"
+        },
+        {
+          "value": "\"^https://mail\\\\.google\\\\.com/.*\"",
+          "description": "Enable lurking mode only on Gmail HTTPS URLs",
+          "source": "User configuration"
+        }
+      ]
+    },
+    {
+      "short": "Regex pattern to match links that indicate the previous page",
+      "unique_id": "setting_prevLinkRegex",
+      "category": "navigation",
+      "description": "A regular expression pattern used to match and identify HTML links that indicate navigation to the previous page. This setting is essential for the previousPage command to locate previous page links when rel='prev' attributes are not available. The pattern is tested against both the element's textContent and aria-label attributes to match clickable elements (those with cursor:pointer). When the previousPage command is invoked, it first looks for elements with rel='prev' attribute that match this pattern; if none are found, it falls back to the pageUrlRegex setting for URL-based pagination extraction.",
+      "tags": [
+        "navigation",
+        "pagination",
+        "regex",
+        "link-detection",
+        "page-traversal",
+        "accessibility"
+      ],
+      "valueType": "regex",
+      "valueDescription": "A JavaScript regular expression pattern (case-insensitive flag 'i' recommended) that matches text indicating a previous/backward page link. The pattern is tested against clickable element text content and aria-label attributes using the regex.test() method.",
+      "values": [
+        {
+          "value": "/^(\\b(prev|previous)\\b)|上页|上一页|前页|上頁|上一頁|前頁|<<|«$/i",
+          "description": "Default value; matches common previous page indicators in English and Chinese/Japanese. Includes: 'prev', 'previous', Chinese/Japanese characters for previous page, and arrow symbols << and «",
+          "source": "src/content_scripts/common/runtime.js:81 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "/back|previous|prev/i",
+          "description": "Simple pattern matching common English text for previous page links",
+          "source": "User configuration example"
+        },
+        {
+          "value": "/(back|prev|previous|\\u00ab|<<)/i",
+          "description": "Pattern including Unicode « (left-pointing double angle quotation mark, U+00AB) for international sites",
+          "source": "User configuration example"
+        },
+        {
+          "value": "/(anterior|previous|prev|\\d+\\s*<)/i",
+          "description": "Extended pattern supporting 'anterior' (Spanish) and numeric pagination indicators",
+          "source": "User configuration example"
+        }
+      ]
+    },
+    {
+      "short": "Regular expression pattern for text anchor detection in hints mode",
+      "unique_id": "setting_textAnchorPat",
+      "category": "hints",
+      "description": "Regular expression pattern used to identify text segments in the DOM for hint generation and selection. This pattern is used when creating hints for text-based operations like yanking text content, querying words for translation, and selecting text in visual mode. The pattern matches text nodes that form meaningful anchors for user interaction.",
+      "tags": [
+        "hints",
+        "text-selection",
+        "regex",
+        "dom-traversal",
+        "yank",
+        "visual-mode",
+        "advanced"
+      ],
+      "valueType": "regex",
+      "valueDescription": "A JavaScript RegExp pattern (as string) that matches text segments eligible for hints. Pattern should include the global flag (g) to match all occurrences. The regex is applied against DOM text node content. Default pattern matches text segments that are either: (1) 3+ non-whitespace characters at line start after optional whitespace, OR (2) 4+ non-whitespace characters at word boundaries.",
+      "values": [
+        {
+          "value": "/(^[\\n\\r\\s]*\\S{3,}|\\b\\S{4,})/g",
+          "description": "Default pattern; matches text segments of 3+ chars at line boundaries or 4+ chars at word boundaries. This balanced pattern avoids creating excessive hints while capturing most meaningful text elements.",
+          "source": "src/content_scripts/common/runtime.js:95 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "/(\\S{2,})/g",
+          "description": "Minimal pattern; matches any 2+ character text segments. Creates more hints but may impact performance on content-heavy pages.",
+          "source": "Alternative pattern example"
+        },
+        {
+          "value": "/(\\b\\w{3,}\\b)/g",
+          "description": "Words only pattern; matches word characters (letters, digits, underscore) only, ignoring punctuation and special characters.",
+          "source": "Alternative pattern example"
+        }
+      ]
+    },
+    {
+      "short": "Regular expression pattern to match links indicating the next page",
+      "unique_id": "setting_nextLinkRegex",
+      "category": "navigation",
+      "description": "A regular expression pattern used to identify and match clickable elements (links or buttons) that indicate navigation to the next page. When the nextPage command (]]) is executed, the extension first looks for links with rel='next' attribute. If none are found, it searches for clickable elements whose text content or aria-label matches this pattern. The default pattern matches common 'next' link text in English and Chinese, as well as common pagination symbols. This setting enables automatic pagination navigation on websites that don't use semantic HTML pagination links.",
+      "tags": [
+        "navigation",
+        "pagination",
+        "regex",
+        "link-matching",
+        "page-traversal",
+        "i18n",
+        "common"
+      ],
+      "valueType": "regex",
+      "valueDescription": "A JavaScript regular expression pattern (stored as an object with 'source' and 'flags' properties) that matches text content or aria-label attributes of clickable elements. The pattern is tested against element.textContent and element.getAttribute('aria-label'). Case-insensitive matching is recommended for reliability. An empty pattern will only match elements with rel='next' attribute.",
+      "values": [
+        {
+          "value": "/(\b(next)\b)|下页|下一页|后页|下頁|下一頁|後頁|>>|»/i",
+          "description": "Default value; matches 'next' word boundary, Chinese pagination text (simplified and traditional), and common pagination symbols (>> and »). Case-insensitive.",
+          "source": "src/content_scripts/common/runtime.js:72 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "/(\b(next)\b)|下页|下一页|后页|下頁|下一頁|後頁|>>|»/i (after ensureRegex)",
+          "description": "At runtime, if the setting is a string with source and flags properties, it is converted to a RegExp object via ensureRegex before use",
+          "source": "src/content_scripts/content.js:65 - Converted via ensureRegex in applyRuntimeConf function"
+        },
+        {
+          "value": "/(\b(next)\b)/i",
+          "description": "Simplified pattern matching only English 'next' word. Useful for English-only sites.",
+          "source": "User configuration example"
+        },
+        {
+          "value": "/next|following|continue|more/i",
+          "description": "Extended English pattern matching multiple synonyms for next navigation: 'next', 'following', 'continue', 'more'",
+          "source": "User configuration example"
+        },
+        {
+          "value": "/next|next page|page suivante|siguiente/i",
+          "description": "Multilingual pattern supporting English, French, and Spanish next page indicators",
+          "source": "User configuration example"
+        }
+      ]
+    },
+    {
+      "short": "Repeat action confirmation threshold",
+      "unique_id": "setting_repeatThreshold",
+      "category": "misc",
+      "description": "Controls the number of repetitions at which Surfingkeys will prompt for confirmation before executing an action. When a user presses a digit prefix (e.g., '30j' to scroll down 30 times) and the repeat count exceeds this threshold, a confirmation dialog is displayed asking if the user really wants to repeat the action that many times. This prevents accidental execution of actions due to unintended key presses. The default value of 9 means that any action repeated 10 or more times will require confirmation.",
+      "tags": [
+        "action-repeat",
+        "confirmation",
+        "safety",
+        "user-interaction",
+        "numeric-prefix",
+        "runtime"
+      ],
+      "valueType": "integer",
+      "valueDescription": "A positive integer representing the maximum number of action repetitions allowed without confirmation. Any repeat count greater than this value triggers a confirmation dialog.",
+      "values": [
+        {
+          "value": "9",
+          "description": "Default value; actions repeated 10 or more times will prompt for confirmation",
+          "source": "src/content_scripts/common/runtime.js:82 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "<any positive integer>",
+          "description": "User-configurable threshold value that can be set in extension settings to control the confirmation prompt behavior",
+          "source": "User settings configuration"
+        }
+      ]
+    },
+    {
+      "short": "Rich hints timeout for keystroke",
+      "unique_id": "richHintsForKeystroke",
+      "category": "ui",
+      "description": "Timeout in milliseconds to display rich hints showing available commands after a keystroke is pressed. Rich hints display next possible keystroke options and their associated commands in an expandable popup. Set to 0 to completely disable rich hints, or use values between 1-10000 ms for the delay before hints appear.",
+      "tags": [
+        "ui",
+        "hints",
+        "keystroke",
+        "timeout",
+        "display",
+        "help"
+      ],
+      "valueType": "number",
+      "valueDescription": "Timeout in milliseconds (0 disables, valid range 0-10000)",
+      "values": [
+        {
+          "value": 0,
+          "description": "Disable rich hints completely - no keystroke hints will be shown"
+        },
+        {
+          "value": 500,
+          "description": "Show rich hints after 500ms (quick response)"
+        },
+        {
+          "value": 1000,
+          "description": "Show rich hints after 1000ms (default, one second delay)"
+        },
+        {
+          "value": 2000,
+          "description": "Show rich hints after 2000ms (slower response for less distraction)"
+        }
+      ],
+      "default": 1000
+    },
+    {
+      "short": "Show proxy info in status bar",
+      "unique_id": "setting_showProxyInStatusBar",
+      "category": "statusBar",
+      "description": "Controls whether to display the current proxy mode and address in the extension's status bar. When enabled, the status bar will show the proxy mode (e.g., 'byhost', 'always', 'clear') and the associated proxy address when the extension is active and a proxy is configured. This helps users quickly identify what proxy is currently active.",
+      "tags": [
+        "statusBar",
+        "proxy",
+        "configuration",
+        "display",
+        "user-interface"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "A boolean flag that enables or disables proxy information display in the status bar. When true, proxy details are shown; when false, no proxy information is displayed.",
+      "values": [
+        {
+          "value": "false",
+          "description": "Default value; proxy information is not displayed in the status bar",
+          "source": "src/content_scripts/common/runtime.js:87 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true",
+          "description": "Proxy information (mode and address) is displayed in the status bar when the extension is enabled and a proxy is configured",
+          "source": "src/content_scripts/content.js:91-97 - Read and used to conditionally populate the status bar with proxy mode and address information"
+        }
+      ]
+    },
+    {
+      "short": "Show tab pickers vertically aligned",
+      "unique_id": "setting_verticalTabs",
+      "category": "tab-management",
+      "description": "Controls the layout of the tab picker UI that appears when choosing between open tabs. When enabled (true), tabs are displayed in a vertical list with rocket emoji indicators (🚀) for non-active tabs. When disabled (false), tabs are displayed horizontally with constrained widths and inline rendering. This setting affects the presentation of tabs when the user invokes the tab selection command (e.g., pressing the key mapped to 'chooseTab'). The vertical layout is particularly useful for users with many open tabs, as it avoids horizontal overflow and provides a more scannable list format.",
+      "tags": [
+        "tab-management",
+        "ui",
+        "display",
+        "layout",
+        "tabs",
+        "configuration"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean value indicating whether tabs are displayed vertically (true) or horizontally (false)",
+      "values": [
+        {
+          "value": "true",
+          "description": "Default value; tabs are displayed vertically with rocket emoji (🚀) indicators for non-active tabs. Container class set to 'vertical'. Enables vertical layout with full width display.",
+          "source": "src/content_scripts/common/runtime.js:94 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "false",
+          "description": "Tabs are displayed horizontally with constrained widths calculated based on window width divided by number of tabs. Container class set to 'horizontal'. Each tab width is adjusted to fit the viewport.",
+          "source": "src/content_scripts/ui/frontend.js:274 - Conditional rendering based on this setting value"
+        }
+      ]
+    },
+    {
+      "short": "Smart boundary detection for page scrolling",
+      "unique_id": "setting_smartPageBoundary",
+      "category": "scrolling",
+      "description": "When enabled, detects when the page has reached the top or bottom boundary during scrolling operations. Fires 'topBoundaryHit' or 'bottomBoundaryHit' events when the user attempts to scroll past the page boundary. This allows the extension to provide feedback or trigger alternative actions when page boundaries are reached.",
+      "tags": [
+        "scrolling",
+        "boundary",
+        "page-navigation",
+        "hints",
+        "events",
+        "ui-feedback"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag indicating whether smart page boundary detection is enabled. When true, scroll operations will detect and signal boundary hits. When false, no boundary detection occurs.",
+      "values": [
+        {
+          "value": "false",
+          "description": "Default value; smart page boundary detection is disabled. Scrolling does not trigger boundary events.",
+          "source": "src/content_scripts/common/runtime.js:88 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true",
+          "description": "Smart page boundary detection is enabled. When scrolling attempts to move past the top (scrollTop === 0 and y < 0) or bottom (scrollHeight - scrollTop <= clientHeight + 1 and y > 0) boundary, topBoundaryHit or bottomBoundaryHit events are dispatched.",
+          "source": "src/content_scripts/common/normal.js:377 - Read in skScrollBy function to conditionally dispatch boundary hit events"
+        }
+      ]
+    },
+    {
+      "short": "Sort history by most-used order in Omnibar",
+      "unique_id": "historyMUOrder",
+      "category": "omnibar",
+      "description": "Controls the sorting order of history items displayed in the Omnibar search results. When enabled (true), history items are sorted by visit count (most used first). When disabled (false), history items are sorted by last visit time (most recent first). This setting affects the order of suggestions when opening the Omnibar with history mode, allowing users to choose between accessing frequently-visited sites or recently-visited sites.",
+      "tags": [
+        "omnibar",
+        "history",
+        "sorting",
+        "mru",
+        "ui",
+        "search"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to control history sorting order: true for most-used (visitCount), false for most-recent (lastVisitTime)",
+      "values": [
+        {
+          "value": "true",
+          "description": "Default value; sort history by most-used (visitCount descending) - frequently visited sites appear first",
+          "source": "src/content_scripts/common/runtime.js:68 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "false",
+          "description": "Sort history by most-recent (lastVisitTime descending) - recently visited sites appear first",
+          "source": "src/content_scripts/ui/omnibar.js:1152 - Written when toggling history sort order"
+        }
+      ],
+      "default": true
+    },
+    {
+      "short": "Step size for scroll movements",
+      "unique_id": "scrollStepSize",
+      "category": "movement",
+      "description": "Controls the step size in pixels for each scrolling movement by j/k (vertical scroll) and h/l (horizontal scroll) keys. Also affects the continuous scroll behavior in combination with scrollFriction setting. Used for fine-tuning scroll speed and sensitivity.",
+      "tags": [
+        "scroll",
+        "movement",
+        "keyboard",
+        "j",
+        "k",
+        "h",
+        "l",
+        "step",
+        "pixels"
+      ],
+      "valueType": "number",
+      "valueDescription": "Number of pixels to scroll per keystroke",
+      "values": [
+        {
+          "value": 70,
+          "description": "Default step size in pixels (default)",
+          "source": "src/content_scripts/common/runtime.js (line 85)"
+        },
+        {
+          "value": 20,
+          "description": "Smaller step size for fine-grained scrolling",
+          "source": "data/fixtures/cdp-scrollstepsize-20-config.js (line 3)"
+        },
+        {
+          "value": 25,
+          "description": "Medium-small step size used in command metadata tests",
+          "source": "data/fixtures/cdp-command-metadata-config.js (line 9)"
+        },
+        {
+          "value": 140,
+          "description": "Larger step size for faster scrolling (example in README)",
+          "source": "README.md (line 353)"
+        }
+      ],
+      "default": 70
+    },
+    {
+      "short": "UI language for localization",
+      "unique_id": "setting_language",
+      "category": "localization",
+      "description": "Override the default browser language for Surfingkeys UI localization. When set, this value takes precedence over the browser's navigator.language property. Used by the initL10n function to load translated text strings from l10n.json. If not set (undefined), the browser's navigator.language is used as fallback. Supports language tags like 'en-US', 'zh-CN', 'ru-RU', 'ko-Kr' as defined in src/pages/l10n.json.",
+      "tags": [
+        "localization",
+        "l10n",
+        "language",
+        "browser-api",
+        "internationalization",
+        "ui",
+        "settings"
+      ],
+      "valueType": "string|undefined",
+      "valueDescription": "Language code in format 'language-COUNTRY' (e.g., 'en-US', 'zh-CN', 'ru-RU', 'ko-Kr'). The value should match keys in src/pages/l10n.json to load correct translations. Undefined (default) means the browser's navigator.language will be used.",
+      "values": [
+        {
+          "value": "undefined",
+          "description": "Default value; use browser's navigator.language for localization",
+          "source": "src/content_scripts/common/runtime.js:69 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "\"en-US\"",
+          "description": "English (US) - no translation applied, strings are returned as-is",
+          "source": "src/content_scripts/common/utils.js:773 - Special case in initL10n function"
+        },
+        {
+          "value": "\"zh-CN\"",
+          "description": "Chinese (Simplified) - loads translations from l10n.json[zh-CN]",
+          "source": "src/pages/l10n.json:2 - Available translation language"
+        },
+        {
+          "value": "\"ru-RU\"",
+          "description": "Russian (Russia) - loads translations from l10n.json[ru-RU]",
+          "source": "src/pages/l10n.json:255 - Available translation language"
+        },
+        {
+          "value": "\"ko-Kr\"",
+          "description": "Korean (Korea) - loads translations from l10n.json[ko-Kr]",
+          "source": "src/pages/l10n.json:506 - Available translation language"
+        },
+        {
+          "value": "<other_language_code>",
+          "description": "Any other language code defined in l10n.json will be loaded if available, otherwise no translations are applied",
+          "source": "src/content_scripts/common/utils.js:778 - fetch l10n.json to load translations"
+        }
+      ],
+      "default": "undefined"
+    },
+    {
+      "short": "Use local Markdown rendering API instead of GitHub's API",
+      "unique_id": "useLocalMarkdownAPI",
+      "category": "markdown",
+      "description": "Controls whether Markdown rendering uses the local marked.js library or GitHub's remote API. When enabled, Markdown is rendered locally using the marked.js library without requiring network access. When disabled, Markdown is sent to GitHub's API endpoint (https://api.github.com/markdown/raw) for rendering. The local option is faster and works offline, while the GitHub API option provides GitHub-flavored markdown rendering.",
+      "tags": [
+        "markdown",
+        "rendering",
+        "api",
+        "performance",
+        "offline",
+        "github"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to enable/disable local markdown rendering",
+      "values": [
+        {
+          "value": "true",
+          "description": "Default value; use local marked.js library for Markdown rendering (offline, faster)",
+          "source": "src/content_scripts/common/runtime.js:102 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "false",
+          "description": "Use GitHub's remote API (https://api.github.com/markdown/raw) for Markdown rendering (requires network)",
+          "source": "src/content_scripts/markdown.js:76 - Toggle via ;s keybinding"
+        }
+      ],
+      "default": true
+    },
+    {
+      "short": "Use neovim for external editor instead of built-in vim",
+      "unique_id": "setting_useNeovim",
+      "category": "editing",
+      "description": "Controls whether to use an external neovim instance for text editing instead of the built-in JavaScript-based vim editor. When enabled (true), the extension communicates with a native neovim instance through native messaging (Chrome only). This requires neovim version 0.5 or above to be installed and properly configured for native messaging. When disabled (false), the built-in vim editor implementation is used. The setting is automatically managed by the extension based on whether a neovim server instance is successfully connected.",
+      "tags": [
+        "editing",
+        "vim",
+        "neovim",
+        "external-editor",
+        "input",
+        "chrome-only"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag indicating whether an external neovim instance is available and should be used for text editing",
+      "values": [
+        {
+          "value": "false",
+          "description": "Default value; built-in JavaScript vim editor is used for all text editing operations",
+          "source": "src/content_scripts/common/runtime.js:101 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true or false (dynamically set)",
+          "description": "Automatically set based on native messaging connection status. Set to true if neovim server instance is successfully connected, false if connection fails or is unavailable",
+          "source": "src/background/start.js:1565 - Written in onFullSettingsRequested: data.useNeovim = browser.nvimServer && browser.nvimServer.instance"
+        },
+        {
+          "value": "true (when user explicitly requests neovim)",
+          "description": "User can explicitly request neovim editor via Ctrl-Alt-i keybinding in insert mode (Chrome only)",
+          "source": "src/content_scripts/common/default.js:121 - openVim(true) passed to front.showEditor"
+        },
+        {
+          "value": "false (fallback to vim)",
+          "description": "User can use standard Ctrl-i keybinding in insert mode to use the built-in vim editor",
+          "source": "src/content_scripts/common/default.js:109 - openVim(false) passed to front.showEditor"
+        }
+      ],
+      "default": false
+    },
+    {
+      "short": "Whether digits are reserved for repeats",
+      "unique_id": "setting_digitForRepeat",
+      "category": "keyboard-mapping",
+      "description": "Controls whether numeric digits (0-9) are reserved for specifying repeat counts for commands or whether they can be freely mapped as regular key bindings. When enabled (true), digits are intercepted and used to build a repeat count prefix (e.g., '3j' scrolls down 3 times, '10w' moves forward 10 words). When disabled (false), digits are treated as normal keys and can be mapped to custom commands, allowing users to bind numeric keys to arbitrary actions. This setting affects all modes that support command repetition, including Normal mode.",
+      "tags": [
+        "keyboard-mapping",
+        "repeat",
+        "command-execution",
+        "digit-keys",
+        "mode-control",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to enable/disable digit reservation for repeat counts",
+      "values": [
+        {
+          "value": "true",
+          "description": "Default value; digits are reserved for repeat counts. When user presses a digit key at the start of mapping (e.g., 3), it is accumulated into a repeat count rather than being treated as a command key. Enables keyboard shortcuts like '5j' to repeat the 'j' command 5 times.",
+          "source": "src/content_scripts/common/runtime.js:73 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "false",
+          "description": "Digits are treated as regular key bindings and can be freely mapped to custom commands. Users can bind '1', '2', ... '9' to arbitrary actions without digit values being consumed for repeat counts.",
+          "source": "docs/settings-reference.md, README.md - Documented behavior when disabled"
+        },
+        {
+          "value": "true (checked in mode handling)",
+          "description": "Checked in Normal mode's keydown handler when a digit key is pressed at the top-level mappings to determine whether to accumulate the digit into this.repeats or treat it as a command key lookup. When true and conditions are met, digit is appended to this.repeats.",
+          "source": "src/content_scripts/common/mode.js:294 - Conditional check in _handleMapKey for digit accumulation"
+        }
+      ],
+      "default": true
+    },
+    {
+      "short": "Whether new tab is active after entering hint while holding Shift",
+      "unique_id": "setting_hintShiftNonActive",
+      "category": "hints",
+      "description": "Controls whether a new tab opened via hint activation with Shift modifier key will be the active (focused) tab. When enabled (true), holding Shift while activating a hint opens the target link in a new background (non-active) tab, allowing you to continue using the current tab without focus switching. When disabled (false, default), holding Shift opens the link in a new active tab that immediately receives focus.",
+      "tags": [
+        "hints",
+        "tabs",
+        "shift-modifier",
+        "tab-focus",
+        "user-experience",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to control whether hint activation with Shift opens new tab as non-active (true) or active (false)",
+      "values": [
+        {
+          "value": "false",
+          "description": "Default value; holding Shift while activating a hint opens link in new active (focused) tab",
+          "source": "src/content_scripts/common/runtime.js:67 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true",
+          "description": "When enabled, holding Shift while activating a hint opens link in new non-active (background) tab; mouseEventModifiers.shiftKey is set to false to prevent active tab switching",
+          "source": "src/content_scripts/common/hints.js:389-391 - Read in hint activation handler to control tab focus behavior on Shift+hint activation"
+        }
+      ],
+      "default": false
+    },
+    {
+      "short": "Whether to always show hints explicitly, even for single matches",
+      "unique_id": "setting_hintExplicit",
+      "category": "hints",
+      "description": "Controls whether hints mode will always show hint labels even when only a single element matches the hint selector. When enabled (true), the hints mode enters an explicit interaction state where hints are always displayed and require explicit keystroke selection, even if only one matching element is found. When disabled (false, default), single matching elements are automatically activated without showing the hints interface, providing a faster interaction pattern for cases where hint selection is unambiguous.",
+      "tags": [
+        "hints",
+        "user-experience",
+        "interaction-mode",
+        "keyboard",
+        "single-match",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to control whether hints are displayed for single matches (true) or auto-activated (false)",
+      "values": [
+        {
+          "value": "false",
+          "description": "Default value; when a hint selector matches only one element, that element is automatically activated without showing the hints interface. This is called implicit mode because the user action is implicit - the single match is executed automatically.",
+          "source": "src/content_scripts/common/runtime.js:66 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true",
+          "description": "When enabled, the hints interface always displays even when only one element matches the selector. The user must explicitly press a key to activate the matched element. This provides consistent visual feedback and explicit user confirmation regardless of match count.",
+          "source": "src/content_scripts/common/hints.js:1023 - Read in Hints.create function to control whether hints mode is entered"
+        }
+      ],
+      "default": false
+    },
+    {
+      "short": "Whether to always show mode status",
+      "unique_id": "setting_showModeStatus",
+      "category": "ui",
+      "description": "Controls whether the current mode name is always displayed in the status line. When enabled, the mode status (e.g., 'Normal', 'Insert', 'Visual') is always shown at the bottom of the page. When disabled, the mode status is only shown when explicitly set via a custom statusLine property. This is useful for users who want constant visual feedback about the current mode they're in, or for those who prefer a minimal UI.",
+      "tags": [
+        "ui",
+        "mode",
+        "status",
+        "display",
+        "visual-feedback",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to enable/disable mode status display",
+      "values": [
+        {
+          "value": "false",
+          "description": "Default value; mode status is only shown when a custom statusLine is explicitly set",
+          "source": "src/content_scripts/common/runtime.js:86 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "true",
+          "description": "Mode status is always displayed, showing the current mode name (Normal, Insert, Visual, etc.) in the status line",
+          "source": "src/content_scripts/common/normal.js:200 - Set to true when editableBodyCare mode detects editable body element"
+        },
+        {
+          "value": "false",
+          "description": "Set to false when entering Insert mode on a specific input element (not the document body)",
+          "source": "src/content_scripts/common/insert.js:348 - Reset in insert mode enter function"
+        }
+      ],
+      "default": false
+    },
+    {
+      "short": "Whether to show search suggestions in the omnibar",
+      "unique_id": "setting_omnibarSuggestion",
+      "category": "omnibar",
+      "description": "Controls whether search suggestions are displayed while typing in the omnibar. When enabled, the omnibar will fetch and display search suggestions from the configured search alias's suggestion API. This requires a valid suggestionURL to be configured for the search alias. The suggestions are fetched after a configurable delay (omnibarSuggestionTimeout) to avoid excessive API requests while the user is still typing.",
+      "tags": [
+        "omnibar",
+        "search",
+        "suggestions",
+        "ui",
+        "feature",
+        "runtime"
+      ],
+      "valueType": "boolean",
+      "valueDescription": "Boolean flag to enable/disable search suggestions in the omnibar",
+      "values": [
+        {
+          "value": "true",
+          "description": "Default value; search suggestions are fetched and displayed as the user types in the omnibar",
+          "source": "src/content_scripts/common/runtime.js:77 - Initial declaration in runtime.conf"
+        },
+        {
+          "value": "false",
+          "description": "Search suggestions are disabled; the omnibar will not fetch or display suggestions regardless of configuration",
+          "source": "src/content_scripts/ui/omnibar.js:1394 - When showSuggestions is false, empty suggestions list is passed to listSuggestions"
+        }
+      ],
+      "default": true
+    }
+  ]
+}
