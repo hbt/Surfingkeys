@@ -27,16 +27,18 @@ import {
     sendKey,
     getScrollPosition,
     enableInputDomain,
-    waitForScrollChange,
-    waitForSurfingkeysReady
+    waitForSurfingkeysReady,
+    waitForScrollChange
 } from '../utils/browser-actions';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('cmd_scroll_percentage', () => {
     const FIXTURE_URL = 'http://127.0.0.1:9873/scroll-test.html';
+
     let bgWs: WebSocket;
     let pageWs: WebSocket;
+    let extensionId: string;
     let tabId: number;
     let beforeCovData: any = null;
     let currentTestName: string = '';
@@ -48,16 +50,19 @@ describe('cmd_scroll_percentage', () => {
             throw new Error(`Chrome DevTools Protocol not available on port ${CDP_PORT}`);
         }
 
+        // Connect to background
         const bgInfo = await findExtensionBackground();
+        extensionId = bgInfo.extensionId;
         bgWs = await connectToCDP(bgInfo.wsUrl);
 
         // Create fixture tab
         tabId = await createTab(bgWs, FIXTURE_URL, true);
 
         // Find and connect to content page
-        const pageWsUrl = await findContentPage(FIXTURE_URL);
+        const pageWsUrl = await findContentPage('127.0.0.1:9873/scroll-test.html');
         pageWs = await connectToCDP(pageWsUrl);
 
+        // Enable Input domain for keyboard events
         enableInputDomain(pageWs);
 
         // Wait for page to load and Surfingkeys to inject
@@ -99,85 +104,31 @@ describe('cmd_scroll_percentage', () => {
         }
     });
 
-    /**
-     * Helper: Check for confirmation message in shadow DOM
-     * Looks for "Do you really want to repeat this action" message
-     */
-    async function fetchConfirmationMessage() {
-        return executeInTarget(pageWs, `
-            (function() {
-                // Check main DOM first
-                const mainMsg = document.body.innerText;
-
-                // Check shadow DOM elements
-                const allElements = document.querySelectorAll('*');
-                for (const el of allElements) {
-                    if (el.shadowRoot) {
-                        const shadowText = el.shadowRoot.textContent || '';
-                        if (shadowText.includes('really want to repeat')) {
-                            return {
-                                found: true,
-                                location: 'shadowRoot',
-                                text: shadowText.substring(0, 100)
-                            };
-                        }
-                    }
-                }
-
-                if (mainMsg.includes('really want to repeat')) {
-                    return {
-                        found: true,
-                        location: 'mainDOM',
-                        text: mainMsg.substring(0, 100)
-                    };
-                }
-
-                return { found: false };
-            })()
-        `);
-    }
-
     test('pressing 50% scrolls to 50% of page', async () => {
-        const ws = pageWs;
-
-        const initialScroll = await getScrollPosition(ws);
+        const initialScroll = await getScrollPosition(pageWs);
         expect(initialScroll).toBe(0);
 
         // Get scroll height to calculate expected position
-        const scrollHeight = await executeInTarget(ws, 'document.documentElement.scrollHeight');
+        const scrollHeight = await executeInTarget(pageWs, 'document.documentElement.scrollHeight');
         const expected = Math.floor(scrollHeight * 0.5);
 
-        console.log(`[cmd_scroll_percentage 50%] Setup: scrollHeight=${scrollHeight}px, expected position=${expected}px`);
+        console.log(`Test setup: scrollHeight=${scrollHeight}, expected 50%=${expected}px`);
 
         // Send '5', '0', then '%' to trigger 50% scroll
-        await sendKey(ws, '5', 200);
-        console.log(`[cmd_scroll_percentage 50%] Sent key: '5'`);
+        // Note: Numeric prefix + '%' command via CDP is currently not working
+        // This appears to be a limitation with how CDP Input.dispatchKeyEvent
+        // handles the '%' character or how Surfingkeys processes it from CDP events
+        await sendKey(pageWs, '5', 200);
+        await sendKey(pageWs, '0', 200);
+        await sendKey(pageWs, '%', 200);
 
-        await sendKey(ws, '0', 200);
-        console.log(`[cmd_scroll_percentage 50%] Sent key: '0'`);
+        // Wait for scroll to happen
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        await sendKey(ws, '%', 200);
-        console.log(`[cmd_scroll_percentage 50%] Sent key: '%'`);
+        // Check scroll position
+        const finalScroll = await getScrollPosition(pageWs);
 
-        // Wait a moment for command processing
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Check for confirmation message
-        const confirmMsg = await fetchConfirmationMessage();
-        console.log(`[cmd_scroll_percentage 50%] Confirmation message: ${JSON.stringify(confirmMsg)}`);
-
-        // Wait for scroll to happen with timeout
-        const finalScroll = await waitForScrollChange(ws, initialScroll, {
-            direction: 'down',
-            minDelta: 5,
-            timeout: 3000
-        }).catch(() => {
-            console.log(`[cmd_scroll_percentage 50%] WARNING: No scroll change detected after 3s`);
-            return initialScroll;
-        });
-
-        const delta = finalScroll - initialScroll;
-        console.log(`[cmd_scroll_percentage 50%] Result: ${initialScroll}px → ${finalScroll}px (delta=${delta}px, expected=${expected}px, error=${Math.abs(finalScroll - expected)}px)`);
+        console.log(`Result: ${initialScroll}px → ${finalScroll}px (expected: ${expected}px, delta: ${Math.abs(finalScroll - expected)}px)`);
 
         // Verify scroll happened
         expect(finalScroll).toBeGreaterThan(initialScroll);
@@ -186,46 +137,27 @@ describe('cmd_scroll_percentage', () => {
     });
 
     test('pressing 25% scrolls to 25% of page', async () => {
-        const ws = pageWs;
-
-        const initialScroll = await getScrollPosition(ws);
+        const initialScroll = await getScrollPosition(pageWs);
         expect(initialScroll).toBe(0);
 
         // Get scroll height to calculate expected position
-        const scrollHeight = await executeInTarget(ws, 'document.documentElement.scrollHeight');
+        const scrollHeight = await executeInTarget(pageWs, 'document.documentElement.scrollHeight');
         const expected = Math.floor(scrollHeight * 0.25);
 
-        console.log(`[cmd_scroll_percentage 25%] Setup: scrollHeight=${scrollHeight}px, expected position=${expected}px`);
+        console.log(`Test setup: scrollHeight=${scrollHeight}, expected 25%=${expected}px`);
 
         // Send '2', '5', then '%' to trigger 25% scroll
-        await sendKey(ws, '2', 200);
-        console.log(`[cmd_scroll_percentage 25%] Sent key: '2'`);
+        await sendKey(pageWs, '2', 200);
+        await sendKey(pageWs, '5', 200);
+        await sendKey(pageWs, '%', 200);
 
-        await sendKey(ws, '5', 200);
-        console.log(`[cmd_scroll_percentage 25%] Sent key: '5'`);
+        // Wait for scroll to happen
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        await sendKey(ws, '%', 200);
-        console.log(`[cmd_scroll_percentage 25%] Sent key: '%'`);
+        // Check scroll position
+        const finalScroll = await getScrollPosition(pageWs);
 
-        // Wait a moment for command processing
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Check for confirmation message
-        const confirmMsg = await fetchConfirmationMessage();
-        console.log(`[cmd_scroll_percentage 25%] Confirmation message: ${JSON.stringify(confirmMsg)}`);
-
-        // Wait for scroll to happen with timeout
-        const finalScroll = await waitForScrollChange(ws, initialScroll, {
-            direction: 'down',
-            minDelta: 5,
-            timeout: 3000
-        }).catch(() => {
-            console.log(`[cmd_scroll_percentage 25%] WARNING: No scroll change detected after 3s`);
-            return initialScroll;
-        });
-
-        const delta = finalScroll - initialScroll;
-        console.log(`[cmd_scroll_percentage 25%] Result: ${initialScroll}px → ${finalScroll}px (delta=${delta}px, expected=${expected}px, error=${Math.abs(finalScroll - expected)}px)`);
+        console.log(`Result: ${initialScroll}px → ${finalScroll}px (expected: ${expected}px, delta: ${Math.abs(finalScroll - expected)}px)`);
 
         // Verify scroll happened
         expect(finalScroll).toBeGreaterThan(initialScroll);
