@@ -136,6 +136,10 @@ const EXCLUDED_SETTINGS: ExcludedSetting[] = [
     {
         name: 'error',
         reason: 'Transient error message property for UI communication, not a user-configurable runtime setting'
+    },
+    {
+        name: 'regexName',
+        reason: 'Function parameter in ensureRegex() helper, not a configuration setting'
     }
 ];
 
