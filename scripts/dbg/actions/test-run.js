@@ -146,7 +146,21 @@ function extractJSON(output) {
     // Remove ANSI color codes
     const clean = output.replace(/\u001b\[[0-9;]*m/g, '');
 
-    // Try to find JSON object starting with { and ending with }
+    // Look specifically for test-summary JSON (starts with {"type":"test-summary")
+    // This avoids confusion with other JSON objects in console.log output
+    const summaryPattern = /\{"type":"test-summary"[^]*?\}(?=\s*$|[\r\n])/;
+    const match = clean.match(summaryPattern);
+
+    if (match) {
+        try {
+            return JSON.parse(match[0]);
+        } catch (err) {
+            log(`JSON parse error for test-summary: ${err.message}`);
+            log(`Attempted to parse: ${match[0].substring(0, 200)}...`);
+        }
+    }
+
+    // Fallback: try to find any JSON object starting with { and ending with }
     // Find the first { and the last }
     const firstBrace = clean.indexOf('{');
     if (firstBrace === -1) {
