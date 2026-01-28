@@ -2,6 +2,7 @@ import Trie from './trie';
 import { RUNTIME, dispatchSKEvent, runtime } from './runtime.js';
 import Mode from './mode';
 import KeyboardUtils from './keyboardUtils';
+import { getAnnotationString } from '../../common/commandMetadata.js';
 import {
     actionWithSelectionPreserved,
     dispatchMouseEvent,
@@ -126,7 +127,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_forward_char",
             category: "visual",
             description: "Move the cursor forward by one character in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "forward character"
         },
         feature_group: 9,
         code: modifySelection
@@ -137,7 +139,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_backward_char",
             category: "visual",
             description: "Move the cursor backward by one character in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "backward character"
         },
         feature_group: 9,
         code: modifySelection
@@ -148,7 +151,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_forward_line",
             category: "visual",
             description: "Move the cursor forward by one line in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "forward line"
         },
         feature_group: 9,
         code: modifySelection
@@ -159,7 +163,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_backward_line",
             category: "visual",
             description: "Move the cursor backward by one line in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "backward line"
         },
         feature_group: 9,
         code: modifySelection
@@ -170,7 +175,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_forward_word",
             category: "visual",
             description: "Move the cursor forward by one word in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "forward word"
         },
         feature_group: 9,
         code: modifySelection
@@ -181,7 +187,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_word_end",
             category: "visual",
             description: "Move the cursor to the end of the current word in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "forward word"
         },
         feature_group: 9,
         code: modifySelection
@@ -192,7 +199,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_backward_word",
             category: "visual",
             description: "Move the cursor backward by one word in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "backward word"
         },
         feature_group: 9,
         code: modifySelection
@@ -203,7 +211,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_forward_sentence",
             category: "visual",
             description: "Move the cursor forward by one sentence in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "forward sentence"
         },
         feature_group: 9,
         code: modifySelection
@@ -214,7 +223,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_backward_sentence",
             category: "visual",
             description: "Move the cursor backward by one sentence in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "backward sentence"
         },
         feature_group: 9,
         code: modifySelection
@@ -225,7 +235,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_forward_paragraph",
             category: "visual",
             description: "Move the cursor forward to the next paragraph boundary in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "forward paragraphboundary"
         },
         feature_group: 9,
         code: modifySelection
@@ -236,7 +247,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_backward_paragraph",
             category: "visual",
             description: "Move the cursor backward to the previous paragraph boundary in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "backward paragraphboundary"
         },
         feature_group: 9,
         code: modifySelection
@@ -247,7 +259,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_line_start",
             category: "visual",
             description: "Move the cursor to the beginning of the current line in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "backward lineboundary"
         },
         feature_group: 9,
         code: modifySelection
@@ -258,7 +271,8 @@ function createVisual(clipboard, hints) {
             unique_id: "cmd_visual_line_end",
             category: "visual",
             description: "Move the cursor to the end of the current line in visual mode.",
-            tags: ["visual", "movement", "vim"]
+            tags: ["visual", "movement", "vim"],
+            selectionModify: "forward lineboundary"
         },
         feature_group: 9,
         code: modifySelection
@@ -667,7 +681,10 @@ function createVisual(clipboard, hints) {
     }
 
     function modifySelection() {
-        var sel = self.map_node.meta.annotation.split(" ");
+        // Get selectionModify params from annotation (supports both old string format and new object format)
+        var selModify = self.map_node.meta.annotation?.selectionModify
+            || getAnnotationString(self.map_node.meta.annotation);
+        var sel = selModify.split(" ");
         var alter = (state === 2) ? "extend" : "move";
         self.hideCursor();
         var prevPos = [selection.focusNode, selection.focusOffset];

@@ -29,5 +29,66 @@
     <p id="line8">Numbers: 1234567890</p>
     <p id="line9">Mixed: abc123 def456 ghi789</p>
     <p id="line10">Final line for testing</p>
+
+    <h2>Clickable Elements</h2>
+    <p id="link-line"><a href="#clicked-link" id="test-link">Click this link</a> with surrounding text</p>
+    <p id="button-line"><button id="test-button" onclick="window.buttonClicked = true; this.textContent = 'Clicked!';">Click this button</button> and more text</p>
+    <p id="nested-line"><span><a href="#nested-link" id="nested-link">Nested link</a></span> outside span</p>
+    <p id="multi-link-line"><a href="#link1" id="link1">First</a> and <a href="#link2" id="link2">Second</a> link</p>
+
+    <!-- Add enough content to make the page scrollable -->
+    <h2>Additional Content for Scrolling</h2>
+    <p id="line11">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+    <p id="line12">Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    <p id="line13">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
+    <p id="line14">Nisi ut aliquip ex ea commodo consequat.</p>
+    <p id="line15">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.</p>
+    <p id="line16">Dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident.</p>
+    <p id="line17">Sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    <p id="line18">Curabitur pretium tincidunt lacus nulla gravida orci a odio.</p>
+    <p id="line19">Cum sociis natoque penatibus et magnis dis parturient montes.</p>
+    <p id="line20">Nascetur ridiculus mus mauris vitae ultricies leo integer malesuada.</p>
+    <p id="line21">Nunc sed velit dignissim sodales ut eu sem integer vitae.</p>
+    <p id="line22">Justo nec ultrices dui sapien eget mi proin sed libero.</p>
+    <p id="line23">Enim ut sem viverra aliquet eget sit amet tellus cras.</p>
+    <p id="line24">Adipiscing elit duis tristique sollicitudin nibh sit amet commodo nulla.</p>
+    <p id="line25">Facilisis magna etiam tempor orci eu lobortis elementum nibh tellus.</p>
+    <p id="line26">Molestie ac feugiat sed lectus vestibulum mattis ullamcorper velit.</p>
+    <p id="line27">Sed odio morbi quis commodo odio aenean sed adipiscing diam.</p>
+    <p id="line28">Donec ultrices tincidunt arcu non sodales neque sodales ut etiam.</p>
+    <p id="line29">Sit amet mauris commodo quis imperdiet massa tincidunt nunc pulvinar.</p>
+    <p id="line30">Sapien pellentesque habitant morbi tristique senectus et netus et malesuada.</p>
+    <p id="line31">Fames ac turpis egestas sed tempus urna et pharetra pharetra.</p>
+    <p id="line32">Massa tincidunt dui ut ornare lectus sit amet est placerat.</p>
+    <p id="line33">In hac habitasse platea dictumst vestibulum rhoncus est pellentesque.</p>
+    <p id="line34">Elit at imperdiet dui accumsan sit amet nulla facilisi morbi.</p>
+    <p id="line35">Tempus iaculis urna id volutpat lacus laoreet non curabitur gravida.</p>
+    <p id="line36">Arcu non sodales neque sodales ut etiam sit amet nisl.</p>
+    <p id="line37">Purus gravida quis blandit turpis cursus in hac habitasse platea.</p>
+    <p id="line38">Dictumst quisque sagittis purus sit amet volutpat consequat mauris nunc.</p>
+    <p id="line39">Congue mauris rhoncus aenean vel elit scelerisque mauris pellentesque pulvinar.</p>
+    <p id="line40">Pellentesque id nibh tortor id aliquet lectus proin nibh nisl.</p>
+    <p id="line41">Condimentum vitae sapien pellentesque habitant morbi tristique senectus et netus.</p>
+    <p id="line42">Et malesuada fames ac turpis egestas maecenas pharetra convallis posuere.</p>
+    <p id="line43">Morbi leo urna molestie at elementum eu facilisis sed odio.</p>
+    <p id="line44">Morbi tempus iaculis urna id volutpat lacus laoreet non curabitur.</p>
+    <p id="line45">Gravida arcu ac tortor dignissim convallis aenean et tortor at.</p>
+    <p id="line46">Risus feugiat in ante metus dictum at tempor commodo ullamcorper.</p>
+    <p id="line47">A diam sollicitudin tempor id eu nisl nunc mi ipsum faucibus.</p>
+    <p id="line48">Vitae suscipit tellus mauris a diam maecenas sed enim ut.</p>
+    <p id="line49">Sem integer vitae justo eget magna fermentum iaculis eu non.</p>
+    <p id="line50">This is the final line at the end of the document for testing document end navigation.</p>
+
+    <div id="click-target" style="padding: 10px; border: 1px solid gray; cursor: pointer; margin-bottom: 50px;" onclick="window.divClicked = true; this.style.backgroundColor = 'lightgreen';">
+        Clickable div with text at the very end
+    </div>
+
+    <!-- Spacer to force scrollable height -->
+    <div style="height: 1500px; background: linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 100%); display: flex; align-items: center; justify-content: center;">
+        <p style="font-size: 24px; color: #666;">Scroll space for testing G command</p>
+    </div>
+    <p id="absolute-end" style="padding: 20px; background: #ffeb3b; text-align: center; font-weight: bold;">
+        THIS IS THE ABSOLUTE END OF THE DOCUMENT
+    </p>
 </body>
 </html>
