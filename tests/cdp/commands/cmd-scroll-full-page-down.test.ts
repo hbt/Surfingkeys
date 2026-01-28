@@ -27,9 +27,9 @@ import {
     sendKey,
     getScrollPosition,
     enableInputDomain,
-    waitForSurfingkeysReady,
-    waitForScrollChange
+    waitForSurfingkeysReady
 } from '../utils/browser-actions';
+import { waitForScrollCompleteViaEvent } from '../utils/event-driven-waits';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
@@ -110,9 +110,11 @@ describe('cmd_scroll_full_page_down', () => {
 
         await sendKey(pageWs, 'P');
 
-        const finalScroll = await waitForScrollChange(pageWs, initialScroll, {
+        // Event-driven: wait for scroll event instead of polling
+        const finalScroll = await waitForScrollCompleteViaEvent(pageWs, 'down', {
             direction: 'down',
-            minDelta: 300
+            minDelta: 300,
+            timeoutMs: 5000
         });
 
         expect(finalScroll).toBeGreaterThan(initialScroll);
@@ -124,16 +126,20 @@ describe('cmd_scroll_full_page_down', () => {
         expect(start).toBe(0);
 
         await sendKey(pageWs, 'P');
-        const after1 = await waitForScrollChange(pageWs, start, {
+        // Event-driven: wait for scroll event instead of polling
+        const after1 = await waitForScrollCompleteViaEvent(pageWs, 'down', {
             direction: 'down',
-            minDelta: 300
+            minDelta: 300,
+            timeoutMs: 5000
         });
         const distance1 = after1 - start;
 
         await sendKey(pageWs, 'P');
-        const after2 = await waitForScrollChange(pageWs, after1, {
+        // Event-driven: wait for scroll event instead of polling
+        const after2 = await waitForScrollCompleteViaEvent(pageWs, 'down', {
             direction: 'down',
-            minDelta: 300
+            minDelta: 300,
+            timeoutMs: 5000
         });
         const distance2 = after2 - after1;
 

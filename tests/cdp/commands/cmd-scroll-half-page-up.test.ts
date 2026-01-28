@@ -27,9 +27,9 @@ import {
     sendKey,
     getScrollPosition,
     enableInputDomain,
-    waitForSurfingkeysReady,
-    waitForScrollChange
+    waitForSurfingkeysReady
 } from '../utils/browser-actions';
+import { waitForScrollCompleteViaEvent } from '../utils/event-driven-waits';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
@@ -76,6 +76,13 @@ describe('cmd_scroll_half_page_up', () => {
         // Set scroll position to bottom before each test (so we can scroll up)
         await executeInTarget(pageWs, 'window.scrollTo(0, document.documentElement.scrollHeight)');
 
+        // Event-driven: wait for scroll to complete instead of arbitrary timeout
+        await waitForScrollCompleteViaEvent(pageWs, 'down', {
+            direction: 'down',
+            minDelta: 100,
+            timeoutMs: 5000
+        });
+
         // Capture test name
         const state = expect.getState();
         currentTestName = state.currentTestName || 'unknown-test';
@@ -110,9 +117,11 @@ describe('cmd_scroll_half_page_up', () => {
 
         await sendKey(pageWs, 'e');
 
-        const finalScroll = await waitForScrollChange(pageWs, initialScroll, {
+        // Event-driven: wait for scroll event instead of polling
+        const finalScroll = await waitForScrollCompleteViaEvent(pageWs, 'up', {
             direction: 'up',
-            minDelta: 100
+            minDelta: 100,
+            timeoutMs: 5000
         });
 
         expect(finalScroll).toBeLessThan(initialScroll);
@@ -124,16 +133,20 @@ describe('cmd_scroll_half_page_up', () => {
         expect(start).toBeGreaterThan(0);
 
         await sendKey(pageWs, 'e');
-        const after1 = await waitForScrollChange(pageWs, start, {
+        // Event-driven: wait for scroll event instead of polling
+        const after1 = await waitForScrollCompleteViaEvent(pageWs, 'up', {
             direction: 'up',
-            minDelta: 100
+            minDelta: 100,
+            timeoutMs: 5000
         });
         const distance1 = start - after1;
 
         await sendKey(pageWs, 'e');
-        const after2 = await waitForScrollChange(pageWs, after1, {
+        // Event-driven: wait for scroll event instead of polling
+        const after2 = await waitForScrollCompleteViaEvent(pageWs, 'up', {
             direction: 'up',
-            minDelta: 100
+            minDelta: 100,
+            timeoutMs: 5000
         });
         const distance2 = after1 - after2;
 

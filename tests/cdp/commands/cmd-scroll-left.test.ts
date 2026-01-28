@@ -26,9 +26,9 @@ import {
 import {
     sendKey,
     enableInputDomain,
-    waitForSurfingkeysReady,
-    waitFor
+    waitForSurfingkeysReady
 } from '../utils/browser-actions';
+import { waitForScrollCompleteViaEvent } from '../utils/event-driven-waits';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
@@ -41,31 +41,23 @@ async function getScrollX(ws: WebSocket): Promise<number> {
 
 /**
  * Wait until horizontal scroll position changes by at least minDelta in the specified direction.
+ * Event-driven: waits for actual scroll event instead of polling.
  * Returns the new scroll position once the condition is met.
  */
 async function waitForHorizontalScrollChange(
     ws: WebSocket,
-    baseline: number,
+    _baseline: number,
     options: {
         direction: 'left' | 'right';
         minDelta?: number;
         timeoutMs?: number;
-        intervalMs?: number;
     }
 ): Promise<number> {
-    const timeout = options.timeoutMs ?? 4000;
-    const interval = options.intervalMs ?? 100;
-    const minDelta = options.minDelta ?? 1;
-
-    await waitFor(async () => {
-        const current = await getScrollX(ws);
-        if (options.direction === 'right') {
-            return current - baseline >= minDelta;
-        }
-        return baseline - current >= minDelta;
-    }, timeout, interval);
-
-    return getScrollX(ws);
+    return waitForScrollCompleteViaEvent(ws, options.direction as 'left' | 'right', {
+        direction: options.direction as 'left' | 'right',
+        minDelta: options.minDelta ?? 1,
+        timeoutMs: options.timeoutMs ?? 5000
+    });
 }
 
 describe('cmd_scroll_left', () => {
@@ -112,8 +104,12 @@ describe('cmd_scroll_left', () => {
         // Scroll to far right so we can test scrolling left
         await executeInTarget(pageWs, 'window.scrollTo(10000, 0)');
 
-        // Wait a moment for scroll to settle
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Wait for scroll event to complete (event-driven, not arbitrary timeout)
+        await waitForScrollCompleteViaEvent(pageWs, 'right', {
+            direction: 'right',
+            minDelta: 100,
+            timeoutMs: 5000
+        });
 
         // Capture test name
         const state = expect.getState();
