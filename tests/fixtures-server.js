@@ -19,6 +19,13 @@ const server = http.createServer((req, res) => {
     // Remove query string and decode URL
     let urlPath = decodeURIComponent(req.url.split('?')[0]);
 
+    // Health check endpoint (lightweight, fast response)
+    if (urlPath === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok' }));
+        return;
+    }
+
     // Serve index.html for root path
     if (urlPath === '/') {
         urlPath = '/index.html';
