@@ -148,4 +148,37 @@ describe('cmd_tab_next', () => {
         expect(newTab.index).not.toBe(initialTab.index);
         expect(newTab.id).not.toBe(initialTab.id);
     });
+
+    test('pressing 2R switches to next tab twice', async () => {
+        // Get initial active tab and total tab count
+        const initialTab = await getActiveTab(bgWs);
+        const totalTabsResult = await executeInTarget(bgWs, `
+            new Promise((resolve) => {
+                chrome.tabs.query({ currentWindow: true }, (tabs) => {
+                    resolve(tabs.length);
+                });
+            })
+        `);
+        const totalTabs = totalTabsResult;
+        console.log(`Initial tab: index ${initialTab.index}, total tabs: ${totalTabs}`);
+
+        // Calculate expected index after 2 next operations
+        // Next means increment with wraparound
+        const expectedIndex = (initialTab.index + 2) % totalTabs;
+        console.log(`Expected after 2R: index ${expectedIndex}`);
+
+        // Press '2' then 'R' to trigger 2R command
+        await sendKey(pageWs, '2', 100);
+        await sendKey(pageWs, 'R');
+
+        // Wait for tab switches to complete (longer wait for multiple switches)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Check final active tab
+        const finalTab = await getActiveTab(bgWs);
+        console.log(`After 2R: index ${finalTab.index}`);
+
+        // Verify we moved 2 tabs forward
+        expect(finalTab.index).toBe(expectedIndex);
+    });
 });

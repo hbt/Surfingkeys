@@ -89,6 +89,12 @@ describe('cmd_tab_previous', () => {
         // Enable Input domain for keyboard events
         enableInputDomain(pageWs);
 
+        // Enable Runtime domain for console logging
+        pageWs.send(JSON.stringify({
+            id: 999,
+            method: 'Runtime.enable'
+        }));
+
         // Wait for page to load and Surfingkeys to inject
         await waitForSurfingkeysReady(pageWs);
 
@@ -97,6 +103,18 @@ describe('cmd_tab_previous', () => {
     });
 
     beforeEach(async () => {
+        // Reset to the fixture tab before each test
+        await executeInTarget(bgWs, `
+            new Promise((resolve) => {
+                chrome.tabs.update(${tabIds[2]}, { active: true }, () => {
+                    resolve(true);
+                });
+            })
+        `);
+
+        // Wait for tab switch to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         // Capture test name
         const state = expect.getState();
         currentTestName = state.currentTestName || 'unknown-test';
@@ -147,5 +165,58 @@ describe('cmd_tab_previous', () => {
         // Should have moved to a different tab
         expect(newTab.index).not.toBe(initialTab.index);
         expect(newTab.id).not.toBe(initialTab.id);
+    });
+
+    test('pressing E twice switches tabs twice', async () => {
+        const initialTab = await getActiveTab(bgWs);
+        console.log(`Initial tab index: ${initialTab.index}`);
+
+        // Send first 'E' and wait for tab change
+        await sendKey(pageWs, 'E');
+
+        // Poll for tab change after first E
+        let afterFirstE = null;
+        for (let i = 0; i < 20; i++) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            const currentTab = await getActiveTab(bgWs);
+            if (currentTab.id !== initialTab.id) {
+                afterFirstE = currentTab;
+                break;
+            }
+        }
+
+        expect(afterFirstE).not.toBeNull();
+        console.log(`After first E: index ${afterFirstE.index} (moved from ${initialTab.index})`);
+
+        // Reconnect to the newly active tab
+        const newPageWsUrl = await findContentPage('127.0.0.1:9873/scroll-test.html');
+        const newPageWs = await connectToCDP(newPageWsUrl);
+        enableInputDomain(newPageWs);
+        await waitForSurfingkeysReady(newPageWs);
+
+        // Send second 'E' to the new active tab
+        await sendKey(newPageWs, 'E');
+
+        // Poll for tab change after second E
+        let afterSecondE = null;
+        for (let i = 0; i < 20; i++) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            const currentTab = await getActiveTab(bgWs);
+            if (currentTab.id !== afterFirstE.id) {
+                afterSecondE = currentTab;
+                break;
+            }
+        }
+
+        expect(afterSecondE).not.toBeNull();
+        console.log(`After second E: index ${afterSecondE.index} (moved from ${afterFirstE.index})`);
+
+        // Cleanup new connection
+        await closeCDP(newPageWs);
+
+        // Verify we moved twice (each move changed tabs)
+        expect(initialTab.id).not.toBe(afterFirstE.id);
+        expect(afterFirstE.id).not.toBe(afterSecondE.id);
+        // Note: afterSecondE might equal initialTab due to wraparound, that's OK
     });
 });

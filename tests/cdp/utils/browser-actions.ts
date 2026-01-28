@@ -25,13 +25,18 @@ interface ScrollWaitOptions extends WaitOptions {
  * Send a key press to the page
  */
 export async function sendKey(ws: WebSocket, key: string, delayMs: number = 50): Promise<void> {
+    // Check if uppercase letter that needs Shift modifier
+    const needsShift = key.length === 1 && key >= 'A' && key <= 'Z';
+    const modifiers = needsShift ? 8 : 0; // Shift modifier = 8
+
     // keyDown
     ws.send(JSON.stringify({
         id: globalMessageId++,
         method: 'Input.dispatchKeyEvent',
         params: {
             type: 'keyDown',
-            key: key
+            key: key,
+            ...(needsShift && { modifiers })
         }
     }));
 
@@ -43,7 +48,8 @@ export async function sendKey(ws: WebSocket, key: string, delayMs: number = 50):
         method: 'Input.dispatchKeyEvent',
         params: {
             type: 'char',
-            text: key
+            text: key,
+            ...(needsShift && { modifiers })
         }
     }));
 
@@ -55,7 +61,8 @@ export async function sendKey(ws: WebSocket, key: string, delayMs: number = 50):
         method: 'Input.dispatchKeyEvent',
         params: {
             type: 'keyUp',
-            key: key
+            key: key,
+            ...(needsShift && { modifiers })
         }
     }));
 
