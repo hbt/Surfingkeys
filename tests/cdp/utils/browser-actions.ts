@@ -23,11 +23,35 @@ interface ScrollWaitOptions extends WaitOptions {
 
 /**
  * Send a key press to the page
+ * Supports modifier key notation: "Control+d", "Alt+x", "Shift+Enter", etc.
  */
 export async function sendKey(ws: WebSocket, key: string, delayMs: number = 50): Promise<void> {
-    // Check if uppercase letter that needs Shift modifier
-    const needsShift = key.length === 1 && key >= 'A' && key <= 'Z';
-    const modifiers = needsShift ? 8 : 0; // Shift modifier = 8
+    // Parse modifier keys (e.g., "Control+d", "Alt+x")
+    let modifiers = 0;
+    let actualKey = key;
+
+    if (key.includes('+')) {
+        const parts = key.split('+');
+        const modifierPart = parts[0];
+        actualKey = parts[1];
+
+        // CDP modifier values: Alt=1, Control=2, Meta=4, Shift=8
+        if (modifierPart === 'Control' || modifierPart === 'Ctrl') {
+            modifiers = 2;
+        } else if (modifierPart === 'Alt') {
+            modifiers = 1;
+        } else if (modifierPart === 'Meta' || modifierPart === 'Cmd') {
+            modifiers = 4;
+        } else if (modifierPart === 'Shift') {
+            modifiers = 8;
+        }
+    }
+
+    // Check if uppercase letter that needs Shift modifier (if not already set)
+    const needsShift = modifiers === 0 && actualKey.length === 1 && actualKey >= 'A' && actualKey <= 'Z';
+    if (needsShift) {
+        modifiers = 8; // Shift modifier = 8
+    }
 
     // keyDown
     ws.send(JSON.stringify({
@@ -35,25 +59,28 @@ export async function sendKey(ws: WebSocket, key: string, delayMs: number = 50):
         method: 'Input.dispatchKeyEvent',
         params: {
             type: 'keyDown',
-            key: key,
-            ...(needsShift && { modifiers })
+            key: actualKey,
+            ...(modifiers && { modifiers })
         }
     }));
 
     await new Promise(resolve => setTimeout(resolve, delayMs));
 
-    // char
-    ws.send(JSON.stringify({
-        id: globalMessageId++,
-        method: 'Input.dispatchKeyEvent',
-        params: {
-            type: 'char',
-            text: key,
-            ...(needsShift && { modifiers })
-        }
-    }));
+    // For modifier key combinations, skip the 'char' event
+    if (modifiers === 0 || needsShift) {
+        // char
+        ws.send(JSON.stringify({
+            id: globalMessageId++,
+            method: 'Input.dispatchKeyEvent',
+            params: {
+                type: 'char',
+                text: actualKey,
+                ...(modifiers && { modifiers })
+            }
+        }));
 
-    await new Promise(resolve => setTimeout(resolve, delayMs));
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
 
     // keyUp
     ws.send(JSON.stringify({
@@ -61,8 +88,8 @@ export async function sendKey(ws: WebSocket, key: string, delayMs: number = 50):
         method: 'Input.dispatchKeyEvent',
         params: {
             type: 'keyUp',
-            key: key,
-            ...(needsShift && { modifiers })
+            key: actualKey,
+            ...(modifiers && { modifiers })
         }
     }));
 
