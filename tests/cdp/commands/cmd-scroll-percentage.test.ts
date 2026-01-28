@@ -16,117 +16,99 @@ import WebSocket from 'ws';
 import {
     checkCDPAvailable,
     findExtensionBackground,
-    findContentPage,
     connectToCDP,
-    createTab,
-    closeTab,
     closeCDP,
     executeInTarget
 } from '../utils/cdp-client';
-import {
-    sendKey,
-    getScrollPosition,
-    enableInputDomain,
-    waitForSurfingkeysReady,
-    waitForScrollChange
-} from '../utils/browser-actions';
+import { sendKey, getScrollPosition, waitForScrollChange, enableInputDomain } from '../utils/browser-actions';
+import { clearHeadlessConfig } from '../utils/config-set-headless';
+import { loadConfigAndOpenPage, ConfigPageContext } from '../utils/config-test-helpers';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 describe('cmd_scroll_percentage', () => {
     const FIXTURE_URL = 'http://127.0.0.1:9873/scroll-test.html';
+    const CONFIG_PATH = 'data/fixtures/cmd-scroll-percentage.js';
 
     let bgWs: WebSocket;
-    let pageWs: WebSocket;
-    let extensionId: string;
-    let tabId: number;
+    let configContext: ConfigPageContext | null = null;
     let beforeCovData: any = null;
     let currentTestName: string = '';
 
     beforeAll(async () => {
-        // Check CDP is available
         const cdpAvailable = await checkCDPAvailable();
         if (!cdpAvailable) {
             throw new Error(`Chrome DevTools Protocol not available on port ${CDP_PORT}`);
         }
 
-        // Connect to background
         const bgInfo = await findExtensionBackground();
-        extensionId = bgInfo.extensionId;
         bgWs = await connectToCDP(bgInfo.wsUrl);
 
-        // Create fixture tab
-        tabId = await createTab(bgWs, FIXTURE_URL, true);
+        configContext = await loadConfigAndOpenPage({
+            bgWs,
+            configPath: CONFIG_PATH,
+            fixtureUrl: FIXTURE_URL
+        });
 
-        // Find and connect to content page
-        const pageWsUrl = await findContentPage('127.0.0.1:9873/scroll-test.html');
-        pageWs = await connectToCDP(pageWsUrl);
-
-        // Enable Input domain for keyboard events
-        enableInputDomain(pageWs);
-
-        // Wait for page to load and Surfingkeys to inject
-        await waitForSurfingkeysReady(pageWs);
+        enableInputDomain(configContext.pageWs);
 
         // Start V8 coverage collection for page
-        await startCoverage(pageWs, 'content-page');
+        await startCoverage(configContext.pageWs, 'content-page');
     });
 
     beforeEach(async () => {
-        // Reset scroll position before each test
-        await executeInTarget(pageWs, 'window.scrollTo(0, 0)');
+        if (!configContext) throw new Error('Config context not initialized');
+        await executeInTarget(configContext.pageWs, 'window.scrollTo(0, 0)');
 
         // Capture test name
         const state = expect.getState();
         currentTestName = state.currentTestName || 'unknown-test';
 
         // Capture coverage snapshot before test
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        beforeCovData = await captureBeforeCoverage(configContext.pageWs);
     });
 
     afterEach(async () => {
         // Capture coverage snapshot after test and calculate delta
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (configContext) {
+            await captureAfterCoverage(configContext.pageWs, currentTestName, beforeCovData);
+        }
     });
 
     afterAll(async () => {
-        // Cleanup
-        if (tabId && bgWs) {
-            await closeTab(bgWs, tabId);
-        }
-
-        if (pageWs) {
-            await closeCDP(pageWs);
+        if (configContext) {
+            await configContext.dispose();
         }
 
         if (bgWs) {
+            await clearHeadlessConfig(bgWs).catch(() => undefined);
             await closeCDP(bgWs);
         }
     });
 
     test('pressing 50% scrolls to 50% of page', async () => {
-        const initialScroll = await getScrollPosition(pageWs);
+        if (!configContext) throw new Error('Config context not initialized');
+        const ws = configContext.pageWs;
+
+        const initialScroll = await getScrollPosition(ws);
         expect(initialScroll).toBe(0);
 
         // Get scroll height to calculate expected position
-        const scrollHeight = await executeInTarget(pageWs, 'document.documentElement.scrollHeight');
+        const scrollHeight = await executeInTarget(ws, 'document.documentElement.scrollHeight');
         const expected = Math.floor(scrollHeight * 0.5);
 
         console.log(`Test setup: scrollHeight=${scrollHeight}, expected 50%=${expected}px`);
 
         // Send '5', '0', then '%' to trigger 50% scroll
-        // Note: Numeric prefix + '%' command via CDP is currently not working
-        // This appears to be a limitation with how CDP Input.dispatchKeyEvent
-        // handles the '%' character or how Surfingkeys processes it from CDP events
-        await sendKey(pageWs, '5', 200);
-        await sendKey(pageWs, '0', 200);
-        await sendKey(pageWs, '%', 200);
+        await sendKey(ws, '5', 200);
+        await sendKey(ws, '0', 200);
+        await sendKey(ws, '%', 200);
 
         // Wait for scroll to happen
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Check scroll position
-        const finalScroll = await getScrollPosition(pageWs);
+        const finalScroll = await getScrollPosition(ws);
 
         console.log(`Result: ${initialScroll}px → ${finalScroll}px (expected: ${expected}px, delta: ${Math.abs(finalScroll - expected)}px)`);
 
@@ -137,25 +119,28 @@ describe('cmd_scroll_percentage', () => {
     });
 
     test('pressing 25% scrolls to 25% of page', async () => {
-        const initialScroll = await getScrollPosition(pageWs);
+        if (!configContext) throw new Error('Config context not initialized');
+        const ws = configContext.pageWs;
+
+        const initialScroll = await getScrollPosition(ws);
         expect(initialScroll).toBe(0);
 
         // Get scroll height to calculate expected position
-        const scrollHeight = await executeInTarget(pageWs, 'document.documentElement.scrollHeight');
+        const scrollHeight = await executeInTarget(ws, 'document.documentElement.scrollHeight');
         const expected = Math.floor(scrollHeight * 0.25);
 
         console.log(`Test setup: scrollHeight=${scrollHeight}, expected 25%=${expected}px`);
 
         // Send '2', '5', then '%' to trigger 25% scroll
-        await sendKey(pageWs, '2', 200);
-        await sendKey(pageWs, '5', 200);
-        await sendKey(pageWs, '%', 200);
+        await sendKey(ws, '2', 200);
+        await sendKey(ws, '5', 200);
+        await sendKey(ws, '%', 200);
 
         // Wait for scroll to happen
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Check scroll position
-        const finalScroll = await getScrollPosition(pageWs);
+        const finalScroll = await getScrollPosition(ws);
 
         console.log(`Result: ${initialScroll}px → ${finalScroll}px (expected: ${expected}px, delta: ${Math.abs(finalScroll - expected)}px)`);
 
