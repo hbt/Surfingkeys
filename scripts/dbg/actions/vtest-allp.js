@@ -111,19 +111,21 @@ function generateTestAllSummary(testAllJson) {
     // Build Test Files table
     md += '## Test Files\n\n';
     const testFilesRows = [
-        ['File', 'Status', 'Tests', 'Passed', 'Failed', 'Duration'],
-        ['---', '---', '---', '---', '---', '---']
+        ['File', 'Status', 'Tests', 'Passed', 'Failed', 'Retried', 'Duration'],
+        ['---', '---', '---', '---', '---', '---', '---']
     ];
 
     testSummaries.forEach(ts => {
         const displayPath = ts.file.replace('tests/cdp/', '');
         const status = ts.success ? '✅' : '❌';
+        const retriedInfo = ts.retries ? `(${ts.retries.length} attempts)` : '-';
         testFilesRows.push([
             displayPath,
             status,
             String(ts.tests || 0),
             String(ts.passed || 0),
             String(ts.failed || 0),
+            retriedInfo,
             `${ts.duration || 0}ms`
         ]);
     });
@@ -150,6 +152,20 @@ function generateTestAllSummary(testAllJson) {
 
     md += formatMarkdownTable(overviewRows);
     md += '\n\n';
+
+    // Build Retries table if there are retried tests
+    if (summary.retries && (summary.retries.retriedTestsCount > 0)) {
+        md += '## Retry Statistics\n\n';
+        const retriesRows = [
+            ['Metric', 'Count'],
+            ['---', '---'],
+            ['Tests Retried', String(summary.retries.retriedTestsCount || 0)],
+            ['Fixed After Retry', String(summary.retries.retriedPassedCount || 0)],
+            ['Still Failing', String(summary.retries.retriedStillFailingCount || 0)]
+        ];
+        md += formatMarkdownTable(retriesRows);
+        md += '\n\n';
+    }
 
     // Add status emoji
     const statusEmoji = testAllJson.success ? '✅ PASSED' : '❌ FAILED';

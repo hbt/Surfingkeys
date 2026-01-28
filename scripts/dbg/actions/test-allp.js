@@ -96,7 +96,7 @@ function discoverTestFiles(testDir) {
  * Returns Promise that resolves with test result
  * Uses async exec() instead of sync execSync() for true parallelization
  */
-function runTestViaDbg(testFile) {
+function runTestViaDbg(testFile, attempt = 1) {
     // Convert absolute path to relative path from PROJECT_ROOT
     let relativePath = testFile;
     if (path.isAbsolute(testFile)) {
@@ -123,13 +123,15 @@ function runTestViaDbg(testFile) {
                 resolve({
                     success: true,
                     testFile: relativePath,
-                    result: json
+                    result: json,
+                    attempt: attempt
                 });
             } catch (parseError) {
                 resolve({
                     success: false,
                     testFile: relativePath,
-                    error: parseError.message
+                    error: parseError.message,
+                    attempt: attempt
                 });
             }
         });
@@ -189,6 +191,89 @@ async function runTestsInParallel(testFiles, concurrencyLimit) {
 }
 
 /**
+ * Retry failed tests
+ * Returns updated results with retry information
+ */
+async function retryFailedTests(testResults, concurrencyLimit, maxRetries = 1) {
+    // Find tests that failed
+    const failedTests = testResults.filter(tr => {
+        if (!tr.success) return true;
+        if (tr.result && tr.result.failed > 0) return true;
+        return false;
+    });
+
+    if (failedTests.length === 0) {
+        return testResults;
+    }
+
+    // Retry each failed test
+    const retryResults = [];
+    const queue = failedTests.map(ft => ft.testFile);
+    const running = [];
+
+    /**
+     * Launch next retry from queue, maintain concurrency limit.
+     */
+    function launchNextRetry(attempt) {
+        if (queue.length === 0) return Promise.resolve();
+
+        const testFile = queue.shift();
+        const promise = runTestViaDbg(testFile, attempt).then(result => {
+            retryResults.push(result);
+            // Remove from running pool
+            const idx = running.indexOf(promise);
+            if (idx > -1) {
+                running.splice(idx, 1);
+            }
+            // Launch next retry from queue and chain to it
+            return launchNextRetry(attempt);
+        });
+
+        running.push(promise);
+        return promise;
+    }
+
+    // Launch initial batch of retries
+    const initialRetryBatch = [];
+    for (let i = 0; i < Math.min(concurrencyLimit, failedTests.length); i++) {
+        initialRetryBatch.push(launchNextRetry(2)); // Attempt 2
+    }
+
+    // Wait for all retries to complete
+    await Promise.all(initialRetryBatch);
+
+    // Merge retry results back into original results
+    const mergedResults = testResults.map(originalResult => {
+        const retryResult = retryResults.find(rr => rr.testFile === originalResult.testFile);
+        if (retryResult) {
+            return {
+                ...originalResult,
+                retries: [
+                    {
+                        attempt: 1,
+                        success: originalResult.success,
+                        failed: originalResult.result?.failed || 0
+                    },
+                    {
+                        attempt: 2,
+                        success: retryResult.success,
+                        failed: retryResult.result?.failed || 0
+                    }
+                ],
+                // Use the result from the retry if it passed
+                ...(retryResult.success && !retryResult.result?.failed ?
+                    { result: retryResult.result, success: true } :
+                    {})
+            };
+        }
+        // Tests that passed on first try don't need retry info
+        return originalResult;
+    });
+
+    return mergedResults;
+}
+
+/**
  * Generate aggregate statistics
  */
 function generateAggregateStats(testResults) {
@@ -201,7 +286,10 @@ function generateAggregateStats(testResults) {
         totalAssertions: 0,
         totalDuration: 0,
         successCount: 0,
-        failureCount: 0
+        failureCount: 0,
+        retriedTestsCount: 0,
+        retriedPassedCount: 0,
+        retriedStillFailingCount: 0
     };
 
     testResults.forEach(tr => {
@@ -223,6 +311,18 @@ function generateAggregateStats(testResults) {
             }
         } else {
             stats.failureCount++;
+        }
+
+        // Track retry statistics
+        if (tr.retries) {
+            stats.retriedTestsCount++;
+            // Check if test passed after retry (attempt 2 was successful)
+            const retryAttempt = tr.retries.find(r => r.attempt === 2);
+            if (retryAttempt && retryAttempt.success && retryAttempt.failed === 0) {
+                stats.retriedPassedCount++;
+            } else {
+                stats.retriedStillFailingCount++;
+            }
         }
     });
 
@@ -248,7 +348,12 @@ function createConciseSummary(testResults, stats, aggregateReportFile, aggregate
             totalSkipped: stats.totalSkipped,
             totalSlow: stats.totalSlow,
             totalAssertions: stats.totalAssertions,
-            totalDuration: stats.totalDuration
+            totalDuration: stats.totalDuration,
+            retries: {
+                retriedTestsCount: stats.retriedTestsCount,
+                retriedPassedCount: stats.retriedPassedCount,
+                retriedStillFailingCount: stats.retriedStillFailingCount
+            }
         },
         testSummaries: testResults.map(tr => ({
             file: tr.testFile,
@@ -262,9 +367,11 @@ function createConciseSummary(testResults, stats, aggregateReportFile, aggregate
                 duration: tr.result.duration,
                 reportFile: tr.result.reportFile,
                 diagnosticsFile: tr.result.diagnosticsFile,
-                ...(tr.result.headlessLogFile ? { headlessLogFile: tr.result.headlessLogFile } : {})
+                ...(tr.result.headlessLogFile ? { headlessLogFile: tr.result.headlessLogFile } : {}),
+                ...(tr.retries ? { retries: tr.retries } : {})
             } : {
-                error: tr.error
+                error: tr.error,
+                ...(tr.retries ? { retries: tr.retries } : {})
             })
         })),
         aggregateReportFile,
@@ -292,7 +399,12 @@ function createAggregateReport(testResults, stats, timestamp) {
             totalSkipped: stats.totalSkipped,
             totalSlow: stats.totalSlow,
             totalAssertions: stats.totalAssertions,
-            totalDuration: stats.totalDuration
+            totalDuration: stats.totalDuration,
+            retries: {
+                retriedTestsCount: stats.retriedTestsCount,
+                retriedPassedCount: stats.retriedPassedCount,
+                retriedStillFailingCount: stats.retriedStillFailingCount
+            }
         },
         details: {
             overallSuccess: stats.failureCount === 0 && stats.totalFailed === 0,
@@ -302,7 +414,8 @@ function createAggregateReport(testResults, stats, timestamp) {
             file: tr.testFile,
             success: tr.success,
             result: tr.result,
-            error: tr.error || null
+            error: tr.error || null,
+            ...(tr.retries ? { retries: tr.retries } : {})
         })),
         timestamp
     };
@@ -333,7 +446,10 @@ async function run(args) {
         }
 
         // Run tests in parallel
-        const testResults = await runTestsInParallel(testFiles, concurrencyLimit);
+        let testResults = await runTestsInParallel(testFiles, concurrencyLimit);
+
+        // Retry failed tests
+        testResults = await retryFailedTests(testResults, concurrencyLimit);
 
         // Generate statistics
         const stats = generateAggregateStats(testResults);
