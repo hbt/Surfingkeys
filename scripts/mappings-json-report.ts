@@ -913,8 +913,11 @@ function scanTestFiles(projectRoot: string): Map<string, string> {
 
 /**
  * Match test files with mapping entries and generate test coverage stats
+ * Supports two test naming patterns:
+ * 1. Direct mapping: cmd-scroll-down -> cmd_scroll_down (exact unique_id match)
+ * 2. With setting: cmd-scroll-down.scrollStepSize -> tests cmd_scroll_down with scrollStepSize setting
  */
-function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string, string>): {
+function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string, string>, settingsUsages: SettingUsage[]): {
     total_with_tests: number;
     total_without_tests: number;
     invalid_test_names: string[];
@@ -932,15 +935,42 @@ function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string
         }
     }
 
+    // Build set of valid setting names
+    const validSettings = new Set<string>();
+    for (const usage of settingsUsages) {
+        validSettings.add(usage.setting);
+    }
+
     // Check each test file against mappings
     // Normalize test names: convert hyphens to underscores for matching
     const invalidTestNames: string[] = [];
     for (const testName of testMap.keys()) {
+        let isValid = false;
+
+        // Try exact match first
         const normalizedTestName = testName.replace(/-/g, '_');
         if (mappingsByUniqueId.has(normalizedTestName)) {
             mappingsWithTests.add(normalizedTestName);
+            isValid = true;
         } else {
-            // Test file exists but doesn't match any mapping unique_id
+            // Try pattern: cmd-scroll-down.scrollStepSize
+            // Split on the last dot to separate command from setting
+            const lastDotIndex = testName.lastIndexOf('.');
+            if (lastDotIndex !== -1) {
+                const commandPart = testName.substring(0, lastDotIndex);
+                const settingPart = testName.substring(lastDotIndex + 1);
+                const normalizedCommandPart = commandPart.replace(/-/g, '_');
+
+                // Check if both the command and setting are valid
+                if (mappingsByUniqueId.has(normalizedCommandPart) && validSettings.has(settingPart)) {
+                    mappingsWithTests.add(normalizedCommandPart);
+                    isValid = true;
+                }
+            }
+        }
+
+        if (!isValid) {
+            // Test file exists but doesn't match any known pattern
             invalidTestNames.push(testName);
         }
     }
@@ -1089,7 +1119,7 @@ function generateConfigOptionsReport(mappings: MappingEntry[]): Record<string, a
     return result;
 }
 
-function generateSummary(mappings: MappingEntry[], testMap?: Map<string, string>): Summary {
+function generateSummary(mappings: MappingEntry[], testMap?: Map<string, string>, settingsUsages?: SettingUsage[]): Summary {
     const summary: Summary = {
         total: mappings.length,
         by_mode: {},
@@ -1102,7 +1132,7 @@ function generateSummary(mappings: MappingEntry[], testMap?: Map<string, string>
             not_migrated: 0
         },
         config_options: generateConfigOptionsReport(mappings),  // NEW: Add config options discovery
-        tests: testMap ? generateTestCoverageStats(mappings, testMap) : undefined
+        tests: (testMap && settingsUsages) ? generateTestCoverageStats(mappings, testMap, settingsUsages) : undefined
     };
 
     // Track unique_ids to detect duplicates
@@ -1241,7 +1271,7 @@ function main(): void {
     const testMap = scanTestFiles(projectRoot);
 
     // Generate summary
-    const summary = generateSummary(mappings, testMap);
+    const summary = generateSummary(mappings, testMap, settingsUsages);
 
     // Create report
     const report: Report = {
