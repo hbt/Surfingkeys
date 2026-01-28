@@ -42,8 +42,8 @@ function log(message, stdoutAlso = false) {
 
 async function checkFixturesServer(port = 9873) {
     return new Promise((resolve) => {
-        const req = require('http').get(`http://127.0.0.1:${port}/hackernews.html`, (res) => {
-            resolve(res.statusCode === 200 || res.statusCode === 304);
+        const req = require('http').get(`http://127.0.0.1:${port}/health`, (res) => {
+            resolve(res.statusCode === 200);
         });
         req.on('error', () => resolve(false));
         req.setTimeout(1000, () => {
