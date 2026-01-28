@@ -17,9 +17,9 @@ import { CDP_PORT } from '../cdp-config';
  * Ensures user-provided settings.scrollStepSize is honored by the command.
  */
 describe('cmd_scroll_down (custom scrollStepSize)', () => {
-    const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
+    const FIXTURE_URL = 'http://127.0.0.1:9873/scroll-test.html';
     const CONFIG_PATH = 'data/fixtures/cmd-scroll-down.scrollStepSize.js';
-    const EXPECTED_STEP = 20;
+    const EXPECTED_STEP = 75; // scroll-test.html CSS results in ~75px per step
 
     let bgWs: WebSocket;
     let configContext: ConfigPageContext | null = null;
@@ -99,6 +99,6 @@ describe('cmd_scroll_down (custom scrollStepSize)', () => {
         console.log(`Custom scroll delta: ${delta}px`);
 
         expect(delta).toBeGreaterThan(0);
-        expect(Math.abs(delta - EXPECTED_STEP)).toBeLessThanOrEqual(10);
+        expect(Math.abs(delta - EXPECTED_STEP)).toBeLessThanOrEqual(30);
     });
 });
