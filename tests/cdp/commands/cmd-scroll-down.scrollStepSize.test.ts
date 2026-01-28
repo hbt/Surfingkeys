@@ -9,6 +9,7 @@ import {
 import { sendKey, getScrollPosition, waitForScrollChange, enableInputDomain } from '../utils/browser-actions';
 import { clearHeadlessConfig } from '../utils/config-set-headless';
 import { loadConfigAndOpenPage, ConfigPageContext } from '../utils/config-test-helpers';
+import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
 /**
@@ -22,6 +23,8 @@ describe('cmd_scroll_down (custom scrollStepSize)', () => {
 
     let bgWs: WebSocket;
     let configContext: ConfigPageContext | null = null;
+    let beforeCovData: any = null;
+    let currentTestName: string = '';
 
     beforeAll(async () => {
         const cdpAvailable = await checkCDPAvailable();
@@ -39,11 +42,28 @@ describe('cmd_scroll_down (custom scrollStepSize)', () => {
         });
 
         enableInputDomain(configContext.pageWs);
+
+        // Start V8 coverage collection for page
+        await startCoverage(configContext.pageWs, 'content-page');
     });
 
     beforeEach(async () => {
         if (!configContext) throw new Error('Config context not initialized');
         await executeInTarget(configContext.pageWs, 'window.scrollTo(0, 0)');
+
+        // Capture test name
+        const state = expect.getState();
+        currentTestName = state.currentTestName || 'unknown-test';
+
+        // Capture coverage snapshot before test
+        beforeCovData = await captureBeforeCoverage(configContext.pageWs);
+    });
+
+    afterEach(async () => {
+        // Capture coverage snapshot after test and calculate delta
+        if (configContext) {
+            await captureAfterCoverage(configContext.pageWs, currentTestName, beforeCovData);
+        }
     });
 
     afterAll(async () => {
