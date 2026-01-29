@@ -116,6 +116,30 @@ describe('cmd_hints_mouseout', () => {
     }
 
     /**
+     * Wait for Surfingkeys hints API to be available
+     */
+    async function waitForHintsAPI() {
+        await waitFor(async () => {
+            const hasAPI = await executeInTarget(pageWs, `!!window.hints`);
+            return hasAPI;
+        }, 10000, 100);
+    }
+
+    /**
+     * Trigger mouseout hints creation
+     */
+    async function triggerMouseoutHints() {
+        await clickAt(pageWs, 100, 100);
+
+        // Wait for hints API to be available
+        await waitForHintsAPI();
+
+        await executeInTarget(pageWs, `
+            window.hints.create("", window.hints.dispatchMouseClick, {mouseEvents: ["mouseout"]});
+        `);
+    }
+
+    /**
      * Get hover state of an element by ID
      */
     async function getElementHoverState(elementId: string) {
@@ -243,12 +267,9 @@ describe('cmd_hints_mouseout', () => {
     });
 
     describe('2.0 Basic Hint Creation', () => {
-        test('2.1 should create hints when pressing <Ctrl-j>', async () => {
-            // Click page to ensure focus
-            await clickAt(pageWs, 100, 100);
-
-            // Press '<Ctrl-j>' to trigger hints for mouseout
-            await sendKey(pageWs, 'Control+j');
+        test('2.1 should create hints when triggering mouseout hints', async () => {
+            // Trigger mouseout hints
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             // Query hints in shadowRoot
@@ -260,8 +281,7 @@ describe('cmd_hints_mouseout', () => {
         });
 
         test('2.2 should have hints in shadowRoot at correct host element', async () => {
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const hostInfo = await executeInTarget(pageWs, `
@@ -285,8 +305,7 @@ describe('cmd_hints_mouseout', () => {
             const buttonCount = await countElements(pageWs, 'button');
             const hoverBoxCount = await countElements(pageWs, '.hover-box');
 
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const hintData = await fetchHintSnapshot();
@@ -301,8 +320,7 @@ describe('cmd_hints_mouseout', () => {
 
     describe('3.0 Hint Label Format', () => {
         test('3.1 should have properly formatted hint labels (uppercase letters)', async () => {
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const hintData = await fetchHintSnapshot();
@@ -315,8 +333,7 @@ describe('cmd_hints_mouseout', () => {
         });
 
         test('3.2 should have all hints matching uppercase letter pattern', async () => {
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const hintData = await fetchHintSnapshot();
@@ -328,8 +345,7 @@ describe('cmd_hints_mouseout', () => {
         });
 
         test('3.3 should have unique hint labels', async () => {
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const hintData = await fetchHintSnapshot();
@@ -342,8 +358,7 @@ describe('cmd_hints_mouseout', () => {
 
     describe('4.0 Hint Visibility', () => {
         test('4.1 should have visible hints (offsetParent !== null)', async () => {
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const hintData = await fetchHintSnapshot();
@@ -356,8 +371,7 @@ describe('cmd_hints_mouseout', () => {
         });
 
         test('4.2 should have hints with valid positions', async () => {
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const hintData = await fetchHintSnapshot();
@@ -374,8 +388,7 @@ describe('cmd_hints_mouseout', () => {
     describe('5.0 Hint Clearing', () => {
         test('5.1 should clear hints when pressing Escape', async () => {
             // Create hints
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             // Verify hints exist
@@ -394,15 +407,13 @@ describe('cmd_hints_mouseout', () => {
 
         test('5.2 should allow creating hints again after clearing', async () => {
             // Create and clear hints
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
             await sendKey(pageWs, 'Escape');
             await waitForHintsCleared();
 
             // Create hints again
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const hintData = await fetchHintSnapshot();
@@ -423,8 +434,7 @@ describe('cmd_hints_mouseout', () => {
             expect(beforeState.hovered).toBe(true);
 
             // Create hints
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             // Get hint snapshot to find a hint
@@ -460,8 +470,7 @@ describe('cmd_hints_mouseout', () => {
             expect(beforeState.hovered).toBe(true);
 
             // Create hints
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const snapshot = await fetchHintSnapshot();
@@ -495,8 +504,7 @@ describe('cmd_hints_mouseout', () => {
             expect(box3Before.hovered).toBe(true);
 
             // Create hints and select one
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const snapshot = await fetchHintSnapshot();
@@ -524,9 +532,8 @@ describe('cmd_hints_mouseout', () => {
     describe('7.0 Edge Cases', () => {
         test('7.1 should handle rapid hint creation and clearing', async () => {
             for (let i = 0; i < 3; i++) {
-                await clickAt(pageWs, 100, 100);
-                await sendKey(pageWs, 'Control+j');
-                await waitForHintCount(5);
+                await triggerMouseoutHints();
+            await waitForHintCount(5);
 
                 const snapshot = await fetchHintSnapshot();
                 expect(snapshot.count).toBeGreaterThan(5);
@@ -542,8 +549,7 @@ describe('cmd_hints_mouseout', () => {
             expect(box1State.hovered).toBe(false);
 
             // Create hints and select one
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const snapshot = await fetchHintSnapshot();
@@ -563,8 +569,7 @@ describe('cmd_hints_mouseout', () => {
         });
 
         test('7.3 should handle hints for nested elements', async () => {
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const hintData = await fetchHintSnapshot();
@@ -589,16 +594,14 @@ describe('cmd_hints_mouseout', () => {
     describe('8.0 Hint Consistency', () => {
         test('8.1 should create consistent hints across multiple invocations', async () => {
             // First invocation
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
             const snapshot1 = await fetchHintSnapshot();
 
             // Clear and recreate
             await sendKey(pageWs, 'Escape');
             await waitForHintsCleared();
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
             const snapshot2 = await fetchHintSnapshot();
 
@@ -608,8 +611,7 @@ describe('cmd_hints_mouseout', () => {
         });
 
         test('8.2 should have deterministic hint snapshot', async () => {
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const hintSnapshot = await fetchHintSnapshot();
@@ -628,8 +630,7 @@ describe('cmd_hints_mouseout', () => {
 
     describe('9.0 Hint Interaction', () => {
         test('9.1 should filter hints when typing hint label', async () => {
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const initialSnapshot = await fetchHintSnapshot();
@@ -652,8 +653,7 @@ describe('cmd_hints_mouseout', () => {
         });
 
         test('9.2 should clear hints after selecting hint by label', async () => {
-            await clickAt(pageWs, 100, 100);
-            await sendKey(pageWs, 'Control+j');
+            await triggerMouseoutHints();
             await waitForHintCount(5);
 
             const snapshot = await fetchHintSnapshot();

@@ -609,13 +609,89 @@ export async function sendKeyAndWaitForScroll(
     // 2. Send key (minimal delay to reduce overhead)
     const keyDelayMs = options.keyDelayMs ?? 30;
     const messageId = Math.floor(Math.random() * 100000);
-    const needsShift = key.length === 1 && key >= 'A' && key <= 'Z';
-    const modifiers = needsShift ? 8 : 0;
+
+    // Map special shifted characters to their physical keys and codes
+    const specialCharMap: { [key: string]: { baseKey: string; code: string } } = {
+        '!': { baseKey: '1', code: 'Digit1' },
+        '@': { baseKey: '2', code: 'Digit2' },
+        '#': { baseKey: '3', code: 'Digit3' },
+        '$': { baseKey: '4', code: 'Digit4' },
+        '%': { baseKey: '5', code: 'Digit5' },
+        '^': { baseKey: '6', code: 'Digit6' },
+        '&': { baseKey: '7', code: 'Digit7' },
+        '*': { baseKey: '8', code: 'Digit8' },
+        '(': { baseKey: '9', code: 'Digit9' },
+        ')': { baseKey: '0', code: 'Digit0' },
+        '_': { baseKey: '-', code: 'Minus' },
+        '+': { baseKey: '=', code: 'Equal' },
+        '{': { baseKey: '[', code: 'BracketLeft' },
+        '}': { baseKey: ']', code: 'BracketRight' },
+        '|': { baseKey: '\\', code: 'Backslash' },
+        ':': { baseKey: ';', code: 'Semicolon' },
+        '"': { baseKey: "'", code: 'Quote' },
+        '<': { baseKey: ',', code: 'Comma' },
+        '>': { baseKey: '.', code: 'Period' },
+        '?': { baseKey: '/', code: 'Slash' },
+        '~': { baseKey: '`', code: 'Backquote' }
+    };
+
+    // Parse modifier keys (e.g., "Shift+4", "Control+d")
+    let modifiers = 0;
+    let actualKey = key;
+    let charText = key;
+    let code: string | undefined;
+
+    if (key.includes('+')) {
+        const parts = key.split('+');
+        const modifierPart = parts[0];
+        actualKey = parts[1];
+
+        // CDP modifier values: Alt=1, Control=2, Meta=4, Shift=8
+        if (modifierPart === 'Control' || modifierPart === 'Ctrl') {
+            modifiers = 2;
+        } else if (modifierPart === 'Alt') {
+            modifiers = 1;
+        } else if (modifierPart === 'Meta' || modifierPart === 'Cmd') {
+            modifiers = 4;
+        } else if (modifierPart === 'Shift') {
+            modifiers = 8;
+        }
+    } else {
+        // Check if this is a special character that needs shift
+        const specialChar = specialCharMap[key];
+        if (specialChar) {
+            modifiers = 8;
+            actualKey = key;  // Use the shifted character as the key
+            code = specialChar.code;  // Set the physical key code
+        } else if (key.length === 1 && key >= 'A' && key <= 'Z') {
+            // Uppercase letters need shift
+            modifiers = 8;
+        }
+    }
+
+    // For special characters, we need to set windowsVirtualKeyCode
+    // This helps Chrome properly synthesize the key event
+    let windowsVirtualKeyCode: number | undefined;
+    if (specialCharMap[key]) {
+        // For shifted digits, use the digit's virtual key code (0x30 + digit)
+        const baseKey = specialCharMap[key].baseKey;
+        if (baseKey >= '0' && baseKey <= '9') {
+            windowsVirtualKeyCode = 0x30 + parseInt(baseKey, 10);
+        }
+    }
+
+    const keyDownParams: any = {
+        type: 'keyDown',
+        key: actualKey,
+        ...(modifiers && { modifiers }),
+        ...(code && { code }),
+        ...(windowsVirtualKeyCode && { windowsVirtualKeyCode })
+    };
 
     ws.send(JSON.stringify({
         id: messageId,
         method: 'Input.dispatchKeyEvent',
-        params: { type: 'keyDown', key, ...(needsShift && { modifiers }) }
+        params: keyDownParams
     }));
 
     await new Promise(r => setTimeout(r, keyDelayMs));
@@ -623,7 +699,13 @@ export async function sendKeyAndWaitForScroll(
     ws.send(JSON.stringify({
         id: messageId + 1,
         method: 'Input.dispatchKeyEvent',
-        params: { type: 'char', text: key, ...(needsShift && { modifiers }) }
+        params: {
+            type: 'char',
+            text: charText,
+            ...(modifiers && { modifiers }),
+            ...(code && { code }),
+            ...(windowsVirtualKeyCode && { windowsVirtualKeyCode })
+        }
     }));
 
     await new Promise(r => setTimeout(r, keyDelayMs));
@@ -631,7 +713,13 @@ export async function sendKeyAndWaitForScroll(
     ws.send(JSON.stringify({
         id: messageId + 2,
         method: 'Input.dispatchKeyEvent',
-        params: { type: 'keyUp', key, ...(needsShift && { modifiers }) }
+        params: {
+            type: 'keyUp',
+            key: actualKey,
+            ...(modifiers && { modifiers }),
+            ...(code && { code }),
+            ...(windowsVirtualKeyCode && { windowsVirtualKeyCode })
+        }
     }));
 
     // 3. Wait for scroll to complete

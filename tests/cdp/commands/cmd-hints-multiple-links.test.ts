@@ -13,6 +13,11 @@
  * - All selected links open in new tabs
  * - Hints refresh after each selection
  *
+ * Important test patterns:
+ * - Uses hackernews.html fixture (like cmd-hints-open-link.test.ts)
+ * - afterEach reconnects to original tab (critical for multi-tab tests)
+ * - Tab cleanup ensures fixture tab stays active between tests
+ *
  * Usage:
  *   Headless:    ./bin/dbg test-run tests/cdp/commands/cmd-hints-multiple-links.test.ts
  *   Live:        npm run test:cdp:live tests/cdp/commands/cmd-hints-multiple-links.test.ts
@@ -54,7 +59,7 @@ describe('cmd_hints_multiple_links', () => {
     let beforeCovData: any = null;
     let currentTestName: string = '';
 
-    const FIXTURE_URL = 'http://127.0.0.1:9873/hints-test.html';
+    const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
 
     /**
      * Fetch snapshot of hints in shadowRoot
@@ -154,7 +159,7 @@ describe('cmd_hints_multiple_links', () => {
         tabId = await createTab(bgWs, FIXTURE_URL, true);
 
         // Find and connect to content page
-        const pageWsUrl = await findContentPage('127.0.0.1:9873/hints-test.html');
+        const pageWsUrl = await findContentPage('127.0.0.1:9873/hackernews.html');
         pageWs = await connectToCDP(pageWsUrl);
 
         // Enable Input domain
@@ -177,6 +182,27 @@ describe('cmd_hints_multiple_links', () => {
     });
 
     afterEach(async () => {
+        // Ensure we're back on the original fixture tab
+        await executeInTarget(bgWs, `
+            new Promise((resolve) => {
+                chrome.tabs.update(${tabId}, { active: true }, () => {
+                    resolve(true);
+                });
+            })
+        `);
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Reconnect to the fixture tab's page (in case we switched tabs)
+        try {
+            await closeCDP(pageWs);
+        } catch (e) {
+            // Connection may already be closed
+        }
+        const pageWsUrl = await findContentPage('127.0.0.1:9873/hackernews.html');
+        pageWs = await connectToCDP(pageWsUrl);
+        enableInputDomain(pageWs);
+        await waitForSurfingkeysReady(pageWs);
+
         // Clear any hints left over from test
         await sendKey(pageWs, 'Escape');
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -187,18 +213,20 @@ describe('cmd_hints_multiple_links', () => {
             await executeInTarget(bgWs, `
                 new Promise((resolve) => {
                     chrome.tabs.query({}, (tabs) => {
-                        // Close all tabs except the first one (fixture tab)
+                        // Close all tabs except the fixture tab
+                        const tabsToClose = tabs.filter(t => t.id !== ${tabId});
+                        if (tabsToClose.length === 0) {
+                            resolve(true);
+                            return;
+                        }
                         let closeCount = 0;
-                        for (let i = 1; i < tabs.length; i++) {
-                            chrome.tabs.remove(tabs[i].id, () => {
+                        for (const tab of tabsToClose) {
+                            chrome.tabs.remove(tab.id, () => {
                                 closeCount++;
-                                if (closeCount === tabs.length - 1) {
+                                if (closeCount === tabsToClose.length) {
                                     resolve(true);
                                 }
                             });
-                        }
-                        if (tabs.length <= 1) {
-                            resolve(true);
                         }
                     });
                 })

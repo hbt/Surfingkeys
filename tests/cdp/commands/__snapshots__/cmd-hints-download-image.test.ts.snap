@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`cmd_hints_download_image 7.0 Hint Consistency 7.2 should have deterministic hint snapshot 1`] = `
+{
+  "count": 5,
+  "sortedHints": [
+    "A",
+    "D",
+    "F",
+    "G",
+    "S",
+  ],
+}
+`;

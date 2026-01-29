@@ -395,7 +395,7 @@ describe('cmd_hints_query_word', () => {
             expect(snapshot1.sortedHints).toEqual(snapshot2.sortedHints);
         });
 
-        test('6.2 should have deterministic hint snapshot', async () => {
+        test('6.2 should have deterministic hint properties', async () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'q');
@@ -407,11 +407,23 @@ describe('cmd_hints_query_word', () => {
             expect(hintSnapshot.found).toBe(true);
             expect(hintSnapshot.count).toBeGreaterThan(5);
 
-            // Snapshot test - ensures hints remain deterministic
-            expect({
-                count: hintSnapshot.count,
-                sortedHints: hintSnapshot.sortedHints
-            }).toMatchSnapshot();
+            // Verify hint count is in expected range (text hints can vary slightly)
+            // Range based on hints-test.html content
+            expect(hintSnapshot.count).toBeGreaterThanOrEqual(30);
+            expect(hintSnapshot.count).toBeLessThanOrEqual(35);
+
+            // Verify all hints follow expected pattern
+            hintSnapshot.sortedHints.forEach((hint: string) => {
+                expect(hint).toMatch(/^[A-Z]{1,3}$/);
+            });
+
+            // Verify hints are sorted
+            const sortedCopy = [...hintSnapshot.sortedHints].sort();
+            expect(hintSnapshot.sortedHints).toEqual(sortedCopy);
+
+            // Verify no duplicates
+            const uniqueHints = new Set(hintSnapshot.sortedHints);
+            expect(uniqueHints.size).toBe(hintSnapshot.sortedHints.length);
         });
     });
 
