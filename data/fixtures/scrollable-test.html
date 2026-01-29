@@ -181,6 +181,32 @@ Line 12</textarea>
         <p>More scrollable text content here.</p>
     </div>
 
+    <h2>10. Shadow DOM Scrollable Element</h2>
+    <div id="shadow-host"></div>
+    <script>
+        // Create a shadow DOM with a scrollable element
+        const shadowHost = document.getElementById('shadow-host');
+        const shadowRoot = shadowHost.attachShadow({ mode: 'open' });
+
+        shadowRoot.innerHTML = `
+            <style>
+                .shadow-scrollable {
+                    width: 300px;
+                    height: 200px;
+                    overflow-y: scroll;
+                    border: 2px solid #9b59b6;
+                    padding: 10px;
+                    background: #f3e5f5;
+                }
+            </style>
+            <div id="shadow-scrollable-1" class="shadow-scrollable">
+                <p>This is a scrollable element inside a Shadow DOM. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+                <p>More shadow DOM content to ensure scrolling. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                <p>Additional paragraph for vertical overflow testing inside shadow root.</p>
+            </div>
+        `;
+    </script>
+
     <p style="margin-top: 50px;">End of test page. The page itself should be scrollable as well (document.scrollingElement).</p>
 
     <!-- Add more content to make the page itself scrollable -->

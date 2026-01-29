@@ -134,11 +134,11 @@
     <div class="section">
         <h2>Links with Hover Effects</h2>
         <p>
-            <a href="#" id="link1" data-mouseover-count="0">Link 1</a>
-            <a href="#" id="link2" data-mouseover-count="0">Link 2</a>
-            <a href="#" id="link3" data-mouseover-count="0">Link 3</a>
-            <a href="#" id="link4" data-mouseover-count="0">Link 4</a>
-            <a href="#" id="link5" data-mouseover-count="0">Link 5</a>
+            <a href="#" id="link1" data-mouseover-count="0" data-mouseout-count="0">Link 1</a>
+            <a href="#" id="link2" data-mouseover-count="0" data-mouseout-count="0">Link 2</a>
+            <a href="#" id="link3" data-mouseover-count="0" data-mouseout-count="0">Link 3</a>
+            <a href="#" id="link4" data-mouseover-count="0" data-mouseout-count="0">Link 4</a>
+            <a href="#" id="link5" data-mouseover-count="0" data-mouseout-count="0">Link 5</a>
         </p>
     </div>
 
@@ -233,6 +233,7 @@
                 const eventInfo = {
                     id: element.id,
                     tag: element.tagName.toLowerCase(),
+                    type: 'mouseover',
                     time: new Date().toISOString(),
                     count: currentCount + 1
                 };
@@ -241,7 +242,7 @@
 
                 // Update log
                 const logEntries = events.slice(-5).reverse().map(evt =>
-                    `${evt.time.split('T')[1].split('.')[0]} - ${evt.tag}#${evt.id} (count: ${evt.count})`
+                    `${evt.time.split('T')[1].split('.')[0]} - ${evt.type} ${evt.tag}#${evt.id} (count: ${evt.count})`
                 );
                 eventLog.textContent = logEntries.join('\n') || 'No events yet';
 
@@ -261,6 +262,28 @@
                     eventCounts.textContent = 'Mouseover counts: None';
                 }
             });
+
+            // Add mouseout listener
+            element.addEventListener('mouseout', (e) => {
+                const currentCount = parseInt(element.getAttribute('data-mouseout-count') || '0');
+                element.setAttribute('data-mouseout-count', currentCount + 1);
+
+                const eventInfo = {
+                    id: element.id,
+                    tag: element.tagName.toLowerCase(),
+                    type: 'mouseout',
+                    time: new Date().toISOString(),
+                    count: currentCount + 1
+                };
+
+                events.push(eventInfo);
+
+                // Update log
+                const logEntries = events.slice(-5).reverse().map(evt =>
+                    `${evt.time.split('T')[1].split('.')[0]} - ${evt.type} ${evt.tag}#${evt.id} (count: ${evt.count})`
+                );
+                eventLog.textContent = logEntries.join('\n') || 'No events yet';
+            });
         });
 
         // Make counts available globally for testing
@@ -268,6 +291,12 @@
             const element = document.getElementById(elementId);
             if (!element) return 0;
             return parseInt(element.getAttribute('data-mouseover-count') || '0');
+        };
+
+        window.getMouseoutCount = function(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return 0;
+            return parseInt(element.getAttribute('data-mouseout-count') || '0');
         };
 
         window.getAllMouseoverCounts = function() {
@@ -278,9 +307,22 @@
             return counts;
         };
 
+        window.getAllMouseoutCounts = function() {
+            const counts = {};
+            document.querySelectorAll('[data-mouseover-count]').forEach(el => {
+                counts[el.id] = parseInt(el.getAttribute('data-mouseout-count') || '0');
+            });
+            return counts;
+        };
+
+        window.getEventHistory = function() {
+            return events.slice();
+        };
+
         window.resetMouseoverCounts = function() {
             document.querySelectorAll('[data-mouseover-count]').forEach(el => {
                 el.setAttribute('data-mouseover-count', '0');
+                el.setAttribute('data-mouseout-count', '0');
             });
             events.length = 0;
             eventLog.textContent = 'No mouseover events detected yet.';
