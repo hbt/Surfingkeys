@@ -126,9 +126,9 @@ describe('cmd_create_tab_group', () => {
     const FIXTURE_URLS = [
         'http://127.0.0.1:9873/scroll-test.html',
         'http://127.0.0.1:9873/hints-test.html',
-        'http://127.0.0.1:9874/scroll-test.html',
-        'http://127.0.0.1:9875/scroll-test.html',
-        'http://127.0.0.1:9876/scroll-test.html'
+        'http://127.0.0.1:9873/visual-test.html',
+        'http://127.0.0.1:9873/table-test.html',
+        'http://127.0.0.1:9873/buttons-images-test.html'
     ];
 
     let bgWs: WebSocket;
@@ -150,8 +150,8 @@ describe('cmd_create_tab_group', () => {
         extensionId = bgInfo.extensionId;
         bgWs = await connectToCDP(bgInfo.wsUrl);
 
-        // Create 5 tabs with different domains for testing
-        // Note: Using different ports as pseudo-domains for testing grouping behavior
+        // Create 5 tabs with different fixture URLs for testing
+        // All use port 9873 (the only running fixtures server)
         for (let i = 0; i < 5; i++) {
             const tabId = await createTab(bgWs, FIXTURE_URLS[i], i === 0); // Make first tab active
             tabIds.push(tabId);

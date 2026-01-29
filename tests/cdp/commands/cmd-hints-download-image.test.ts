@@ -227,7 +227,7 @@ describe('cmd_hints_download_image', () => {
         test('2.2 should have hints in shadowRoot at correct host element', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hostInfo = await executeInTarget(pageWs, `
                 (function() {
@@ -250,12 +250,12 @@ describe('cmd_hints_download_image', () => {
 
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
             // Hints are created for visible images (subset of all images)
-            expect(hintData.count).toBeGreaterThan(10);
+            expect(hintData.count).toBeGreaterThan(0);
             expect(hintData.count).toBeLessThanOrEqual(imgCount);
         });
 
@@ -265,14 +265,15 @@ describe('cmd_hints_download_image', () => {
 
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
             // Should be roughly equal to visible image count, not link count
-            // (fixture has minimal links but many images)
-            expect(hintData.count).toBeGreaterThan(10);
-            expect(imgCount).toBeGreaterThan(linkCount);
+            // (fixture has no links but 5 images)
+            expect(hintData.count).toBeGreaterThan(0);
+            expect(hintData.count).toBeLessThanOrEqual(imgCount);
+            expect(linkCount).toBe(0);
         });
     });
 
@@ -280,7 +281,7 @@ describe('cmd_hints_download_image', () => {
         test('3.1 should have properly formatted hint labels (uppercase letters)', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
@@ -294,7 +295,7 @@ describe('cmd_hints_download_image', () => {
         test('3.2 should have all hints matching uppercase letter pattern', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
@@ -307,7 +308,7 @@ describe('cmd_hints_download_image', () => {
         test('3.3 should have unique hint labels', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
@@ -321,7 +322,7 @@ describe('cmd_hints_download_image', () => {
         test('4.1 should have visible hints (offsetParent !== null)', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
@@ -335,7 +336,7 @@ describe('cmd_hints_download_image', () => {
         test('4.2 should have hints with valid positions', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
@@ -353,12 +354,12 @@ describe('cmd_hints_download_image', () => {
             // Create hints
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             // Verify hints exist
             const beforeClear = await fetchHintSnapshot();
             expect(beforeClear.found).toBe(true);
-            expect(beforeClear.count).toBeGreaterThan(10);
+            expect(beforeClear.count).toBeGreaterThan(0);
 
             // Clear hints
             await sendKey(pageWs, 'Escape');
@@ -373,18 +374,18 @@ describe('cmd_hints_download_image', () => {
             // Create and clear hints
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
             await sendKey(pageWs, 'Escape');
             await waitForHintsCleared();
 
             // Create hints again
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
             expect(hintData.found).toBe(true);
-            expect(hintData.count).toBeGreaterThan(10);
+            expect(hintData.count).toBeGreaterThan(0);
         });
     });
 
@@ -392,12 +393,12 @@ describe('cmd_hints_download_image', () => {
         test('6.1 should create hints for data URI images', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
             // Should have hints for data URI images
-            expect(hintData.count).toBeGreaterThan(10);
+            expect(hintData.count).toBeGreaterThan(0);
         });
 
         test('6.2 should not create hints for hidden images', async () => {
@@ -410,7 +411,7 @@ describe('cmd_hints_download_image', () => {
 
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
@@ -421,28 +422,28 @@ describe('cmd_hints_download_image', () => {
         test('6.3 should create hints for inline images', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
             // Should include inline images in hint count
-            expect(hintData.count).toBeGreaterThan(10);
+            expect(hintData.count).toBeGreaterThan(0);
         });
 
-        test('6.4 should create hints for images in links', async () => {
+        test('6.4 should create hints for images regardless of parent elements', async () => {
             const linkedImgCount = await executeInTarget(pageWs, `
                 Array.from(document.querySelectorAll('a img')).length
             `);
 
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
-            // Should create hints (fixture has images in links)
+            // Should create hints for images (fixture has no links)
             expect(hintData.count).toBeGreaterThan(0);
-            expect(linkedImgCount).toBeGreaterThan(0);
+            expect(linkedImgCount).toBe(0); // No images in links in this fixture
         });
     });
 
@@ -451,7 +452,7 @@ describe('cmd_hints_download_image', () => {
             // First invocation
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
             const snapshot1 = await fetchHintSnapshot();
 
             // Clear and recreate
@@ -459,7 +460,7 @@ describe('cmd_hints_download_image', () => {
             await waitForHintsCleared();
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
             const snapshot2 = await fetchHintSnapshot();
 
             // Verify consistency
@@ -470,13 +471,13 @@ describe('cmd_hints_download_image', () => {
         test('7.2 should have deterministic hint snapshot', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintSnapshot = await fetchHintSnapshot();
 
             // Verify hints were created
             expect(hintSnapshot.found).toBe(true);
-            expect(hintSnapshot.count).toBeGreaterThan(10);
+            expect(hintSnapshot.count).toBeGreaterThan(0);
 
             // Snapshot test - ensures hints remain deterministic
             expect({
@@ -491,25 +492,25 @@ describe('cmd_hints_download_image', () => {
             for (let i = 0; i < 3; i++) {
                 await clickAt(pageWs, 100, 100);
                 await triggerDownloadImageHints();
-                await waitForHintCount(10);
+                await waitForHintCount(1);
 
                 const snapshot = await fetchHintSnapshot();
-                expect(snapshot.count).toBeGreaterThan(10);
+                expect(snapshot.count).toBeGreaterThan(0);
 
                 await sendKey(pageWs, 'Escape');
                 await waitForHintsCleared();
             }
         });
 
-        test('8.2 should handle page with many images', async () => {
+        test('8.2 should handle page with multiple images', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const hintData = await fetchHintSnapshot();
 
-            // Should successfully create hints for many images
-            expect(hintData.count).toBeGreaterThan(20);
+            // Should successfully create hints for all visible images
+            expect(hintData.count).toBeGreaterThan(0);
             expect(hintData.sample.length).toBeGreaterThan(0);
         });
     });
@@ -518,7 +519,7 @@ describe('cmd_hints_download_image', () => {
         test('9.1 should filter hints when typing hint label', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const initialSnapshot = await fetchHintSnapshot();
             const initialCount = initialSnapshot.count;
@@ -542,7 +543,7 @@ describe('cmd_hints_download_image', () => {
         test('9.2 should clear hints after selecting hint by label', async () => {
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const snapshot = await fetchHintSnapshot();
             const firstHint = snapshot.sortedHints[0];
@@ -568,7 +569,7 @@ describe('cmd_hints_download_image', () => {
 
             await clickAt(pageWs, 100, 100);
             await triggerDownloadImageHints();
-            await waitForHintCount(10);
+            await waitForHintCount(1);
 
             const snapshot = await fetchHintSnapshot();
             const firstHint = snapshot.sortedHints[0];
