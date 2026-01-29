@@ -153,60 +153,39 @@ describe('cmd_tab_close_all_left', () => {
     });
 
     beforeEach(async () => {
-        // Reset: ensure we have all 5 tabs and position at middle tab
-        const currentTabCount = await countTabsInWindow(bgWs);
-        const expectedTabCount = initialTabCount + 5;
-
-        console.log(`beforeEach: Current tab count: ${currentTabCount}, expected: ${expectedTabCount}`);
-
-        if (currentTabCount < expectedTabCount) {
-            console.log(`beforeEach: Missing tabs, recreating...`);
-            // Close all test tabs
-            for (const tabId of tabIds) {
-                try {
-                    await closeTab(bgWs, tabId);
-                } catch (e) {
-                    // Tab might already be closed
-                }
+        // Close all existing test tabs to ensure clean state
+        for (const tabId of tabIds) {
+            try {
+                await closeTab(bgWs, tabId);
+            } catch (e) {
+                // Tab might already be closed, that's OK
             }
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            // Recreate 5 tabs
-            tabIds = [];
-            for (let i = 0; i < 5; i++) {
-                const tabId = await createTab(bgWs, FIXTURE_URL, i === 2);
-                tabIds.push(tabId);
-                await new Promise(resolve => setTimeout(resolve, 200));
-            }
-            console.log(`beforeEach: Recreated ${tabIds.length} tabs`);
         }
 
-        // Reset to middle tab (tabIds[2])
-        const resetTabId = tabIds[2];
-        const resetResult = await executeInTarget(bgWs, `
-            new Promise((resolve) => {
-                chrome.tabs.update(${resetTabId}, { active: true }, () => {
-                    resolve(true);
-                });
-            })
-        `);
-        console.log(`beforeEach: Reset to tab ${resetTabId}, result: ${resetResult}`);
+        // Wait for tabs to close
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Wait for tab switch to complete
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Recreate 5 fresh tabs for the test
+        tabIds = [];
+        for (let i = 0; i < 5; i++) {
+            const tabId = await createTab(bgWs, FIXTURE_URL, i === 2); // Make tab 2 active (middle tab)
+            tabIds.push(tabId);
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
 
-        // Verify the reset worked
+        console.log(`beforeEach: Recreated 5 test tabs with IDs: ${tabIds.join(', ')}`);
+
+        // Verify the active tab
         const verifyTab = await getActiveTab(bgWs);
-        console.log(`beforeEach: After reset, active tab is index ${verifyTab.index}, id ${verifyTab.id}`);
+        console.log(`beforeEach: Active tab is index ${verifyTab.index}, id ${verifyTab.id} (should be tabIds[2]=${tabIds[2]})`);
 
-        // Always reconnect to the active tab to ensure fresh connection
+        // Connect to the active tab's content page
         try {
             await closeCDP(pageWs);
         } catch (e) {
             // Connection may already be closed
         }
         const pageWsUrl = await findContentPage('127.0.0.1:9873/scroll-test.html');
-        console.log(`beforeEach: Found content page WebSocket URL: ${pageWsUrl}`);
         pageWs = await connectToCDP(pageWsUrl);
         enableInputDomain(pageWs);
         pageWs.send(JSON.stringify({
@@ -260,23 +239,27 @@ describe('cmd_tab_close_all_left', () => {
         console.log(`✓ Assertion: active tab is tabIds[2] (${tabIds[2]})`);
 
         // Calculate expected values
-        // We're at tabIds[2], so tabs to left are tabIds[0] and tabIds[1]
-        const currentTabIndexInArray = 2;
-        const tabsToLeft = currentTabIndexInArray; // 0 and 1
-        console.log(`Tabs to the left of current: ${tabsToLeft} (tabIds[0] and tabIds[1])`);
-        console.log(`Expected tabs after command: ${tabIds.length - tabsToLeft} in our test set`);
+        // The command closes ALL tabs to the left in the window, not just from our test set
+        // If current tab is at index 5, it will close tabs at indices 0-4 (5 tabs total)
+        const tabsToLeftInWindow = initialTab.index; // All tabs with index < initialTab.index
+        console.log(`Tabs to the left of current tab in window: ${tabsToLeftInWindow} (all tabs at indices 0-${initialTab.index-1})`);
 
         const initialTabCount = await countTabsInWindow(bgWs);
         console.log(`Initial total tab count in window: ${initialTabCount}`);
 
         // Press 'gx0' to close all tabs to the left
-        await sendKey(pageWs, 'g', 50);
-        await sendKey(pageWs, 'x', 50);
+        console.log(`Sending keys: 'g', 'x', '0'...`);
+        await sendKey(pageWs, 'g');
+        await sendKey(pageWs, 'x');
         await sendKey(pageWs, '0');
+        console.log(`Keys sent, waiting for tab closure...`);
+
+        // Wait a moment for the command to process
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Poll for tab count to decrease
-        const expectedTabCount = initialTabCount - tabsToLeft;
-        console.log(`Polling for tab count to reach ${expectedTabCount}...`);
+        const expectedTabCount = initialTabCount - tabsToLeftInWindow;
+        console.log(`Polling for tab count to reach ${expectedTabCount} (initial ${initialTabCount} minus ${tabsToLeftInWindow} tabs to left)...`);
         const tabCountReached = await pollForTabCount(bgWs, expectedTabCount, 5000);
 
         expect(tabCountReached).toBe(true);
@@ -343,24 +326,28 @@ describe('cmd_tab_close_all_left', () => {
 
         const activeTab = await getActiveTab(bgWs);
         expect(activeTab.id).toBe(rightmostTabId);
-        console.log(`✓ Switched to rightmost tab: id ${activeTab.id} (tabIds[4])`);
+        console.log(`✓ Switched to rightmost tab: id ${activeTab.id} (tabIds[4]) at window index ${activeTab.index}`);
 
-        // Calculate expected values
-        const currentTabIndexInArray = 4;
-        const tabsToLeft = currentTabIndexInArray; // 0, 1, 2, 3
-        console.log(`Tabs to the left of current: ${tabsToLeft} (all other test tabs)`);
+        // Calculate expected values - close all tabs to the left in the window
+        const tabsToLeftInWindow = activeTab.index; // All tabs with index < activeTab.index
+        console.log(`Tabs to the left of current: ${tabsToLeftInWindow} (all tabs at indices 0-${activeTab.index-1})`);
 
         const initialTabCount = await countTabsInWindow(bgWs);
         console.log(`Initial total tab count in window: ${initialTabCount}`);
 
         // Press 'gx0' to close all tabs to the left
-        await sendKey(pageWs, 'g', 50);
-        await sendKey(pageWs, 'x', 50);
+        console.log(`Sending keys: 'g', 'x', '0'...`);
+        await sendKey(pageWs, 'g');
+        await sendKey(pageWs, 'x');
         await sendKey(pageWs, '0');
+        console.log(`Keys sent, waiting for tab closure...`);
+
+        // Wait a moment for the command to process
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Poll for tab count to decrease
-        const expectedTabCount = initialTabCount - tabsToLeft;
-        console.log(`Polling for tab count to reach ${expectedTabCount}...`);
+        const expectedTabCount = initialTabCount - tabsToLeftInWindow;
+        console.log(`Polling for tab count to reach ${expectedTabCount} (initial ${initialTabCount} minus ${tabsToLeftInWindow} tabs to left)...`);
         const tabCountReached = await pollForTabCount(bgWs, expectedTabCount, 5000);
 
         expect(tabCountReached).toBe(true);
@@ -369,9 +356,14 @@ describe('cmd_tab_close_all_left', () => {
         // Verify the final state
         const tabsAfterCommand = await getTabsInWindow(bgWs);
         console.log(`Final tab count: ${tabsAfterCommand.length}`);
+        console.log(`Final tabs: ${tabsAfterCommand.map(t => `id=${t.id},idx=${t.index}`).join(', ')}`);
 
-        // Verify only rightmost tab remains from our test tabs
+        // Verify only tabs that were to the right of the active tab remain
+        // All test tabs except the rightmost one should be closed
         const remainingTestTabs = tabsAfterCommand.filter(t => tabIds.includes(t.id));
+        console.log(`Remaining test tabs: ${remainingTestTabs.map(t => `id=${t.id}`).join(', ')}`);
+
+        // Only the rightmost test tab should remain
         expect(remainingTestTabs.length).toBe(1);
         expect(remainingTestTabs[0].id).toBe(tabIds[4]);
         console.log(`✓ Assertion: only tabIds[4] remains from test tabs`);
@@ -474,24 +466,28 @@ describe('cmd_tab_close_all_left', () => {
 
         const activeTab = await getActiveTab(bgWs);
         expect(activeTab.id).toBe(secondTabId);
-        console.log(`✓ Switched to second tab: id ${activeTab.id} (tabIds[1])`);
+        console.log(`✓ Switched to second tab: id ${activeTab.id} (tabIds[1]) at window index ${activeTab.index}`);
 
-        // Calculate expected values
-        const currentTabIndexInArray = 1;
-        const tabsToLeft = currentTabIndexInArray; // only tabIds[0]
-        console.log(`Tabs to the left of current: ${tabsToLeft} (tabIds[0])`);
+        // Calculate expected values - close all tabs to the left in the window
+        const tabsToLeftInWindow = activeTab.index; // All tabs with index < activeTab.index
+        console.log(`Tabs to the left of current: ${tabsToLeftInWindow} (all tabs at indices 0-${activeTab.index-1})`);
 
         const initialTabCount = await countTabsInWindow(bgWs);
         console.log(`Initial total tab count in window: ${initialTabCount}`);
 
         // Press 'gx0' to close all tabs to the left
-        await sendKey(pageWs, 'g', 50);
-        await sendKey(pageWs, 'x', 50);
+        console.log(`Sending keys: 'g', 'x', '0'...`);
+        await sendKey(pageWs, 'g');
+        await sendKey(pageWs, 'x');
         await sendKey(pageWs, '0');
+        console.log(`Keys sent, waiting for tab closure...`);
+
+        // Wait a moment for the command to process
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Poll for tab count to decrease
-        const expectedTabCount = initialTabCount - tabsToLeft;
-        console.log(`Polling for tab count to reach ${expectedTabCount}...`);
+        const expectedTabCount = initialTabCount - tabsToLeftInWindow;
+        console.log(`Polling for tab count to reach ${expectedTabCount} (initial ${initialTabCount} minus ${tabsToLeftInWindow} tabs to left)...`);
         const tabCountReached = await pollForTabCount(bgWs, expectedTabCount, 5000);
 
         expect(tabCountReached).toBe(true);
@@ -500,9 +496,13 @@ describe('cmd_tab_close_all_left', () => {
         // Verify the final state
         const tabsAfterCommand = await getTabsInWindow(bgWs);
         console.log(`Final tab count: ${tabsAfterCommand.length}`);
+        console.log(`Final tabs: ${tabsAfterCommand.map(t => `id=${t.id},idx=${t.index}`).join(', ')}`);
 
-        // Verify that only tabIds[0] was closed
+        // Verify that tabs to the left were closed
         const remainingTestTabs = tabsAfterCommand.filter(t => tabIds.includes(t.id));
+        console.log(`Remaining test tabs: ${remainingTestTabs.map(t => `id=${t.id}`).join(', ')}`);
+
+        // Should have 4 test tabs remaining (all except tabIds[0])
         expect(remainingTestTabs.length).toBe(4);
         console.log(`✓ Assertion: 4 test tabs remain`);
 

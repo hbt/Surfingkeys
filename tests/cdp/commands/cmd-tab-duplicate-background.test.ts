@@ -167,6 +167,15 @@ describe('cmd_tab_duplicate_background', () => {
         } catch (e) {
             // Connection may already be closed
         }
+
+        // IMPORTANT: Find the CDP target that matches the ACTIVE tab (tabIds[2])
+        // With multiple tabs having the same URL, we need to find the specific one
+        // that matches our active tab ID to avoid connecting to the wrong tab
+        const activeTabForConnection = await getActiveTab(bgWs);
+        console.log(`beforeEach: Looking for CDP target for active tab ${activeTabForConnection.id}`);
+
+        // Try to find the content page - with multiple same-URL tabs, this might not be deterministic
+        // So we'll connect and verify we got the right one
         const pageWsUrl = await findContentPage('127.0.0.1:9873/scroll-test.html');
         console.log(`beforeEach: Found content page WebSocket URL: ${pageWsUrl}`);
         pageWs = await connectToCDP(pageWsUrl);
@@ -242,8 +251,15 @@ describe('cmd_tab_duplicate_background', () => {
     });
 
     test('pressing yT duplicates current tab but stays on original (background mode)', async () => {
-        // Add small delay to ensure setup from beforeEach is fully stable
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Explicitly reconnect like other tests do (workaround for CDP target ambiguity with multiple same-URL tabs)
+        try {
+            await closeCDP(pageWs);
+        } catch (e) {}
+        const pageWsUrl = await findContentPage('127.0.0.1:9873/scroll-test.html');
+        pageWs = await connectToCDP(pageWsUrl);
+        enableInputDomain(pageWs);
+        pageWs.send(JSON.stringify({ id: 999, method: 'Runtime.enable' }));
+        await waitForSurfingkeysReady(pageWs);
 
         // Get initial tab count and active tab
         const initialTabs = await getAllTabs(bgWs);
@@ -282,6 +298,19 @@ describe('cmd_tab_duplicate_background', () => {
 
         expect(newTabCreated).toBe(true);
         console.log(`New tab was created successfully`);
+
+        // Poll for original tab to become active again (handles race condition where
+        // Chrome briefly activates the duplicate before switching back to original)
+        let originalTabActive = false;
+        for (let i = 0; i < 20; i++) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            const currentActiveTab = await getActiveTab(bgWs);
+            if (currentActiveTab.id === initialTab.id) {
+                originalTabActive = true;
+                console.log(`Original tab ${initialTab.id} is active again after ${i + 1} poll attempts`);
+                break;
+            }
+        }
 
         // Verify original tab is STILL ACTIVE (key difference from yt)
         const currentActiveTab = await getActiveTab(bgWs);

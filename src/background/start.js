@@ -1317,7 +1317,7 @@ function start(browser) {
     self.closeTabsToLeft = function(message, sender, senderResponse) { _closeTab(sender, -sender.tab.index); };
     self.closeTabsToRight = function(message, sender, senderResponse) {
         chrome.tabs.query({currentWindow: true},
-                          function(tabs) { _closeTab(sender, tabs.length - sender.tab.index); });
+                          function(tabs) { _closeTab(sender, tabs.length - sender.tab.index - 1); });
     };
     self.tabOnly = function(message, sender, sendResponse) {
         chrome.tabs.query({currentWindow: true}, function(tabs) {
@@ -1351,11 +1351,18 @@ function start(browser) {
         }
     };
     self.duplicateTab = function(message, sender, sendResponse) {
-        chrome.tabs.duplicate(sender.tab.id, function() {
-            if (message.active === false) {
+        if (message.active === false) {
+            // For background duplication: create duplicate then immediately reactivate original
+            // Note: Chrome's tabs.duplicate() always activates the new tab, so we must
+            // switch back to the original tab after duplication completes
+            chrome.tabs.duplicate(sender.tab.id, function(duplicatedTab) {
+                // Immediately reactivate the original tab
                 chrome.tabs.update(sender.tab.id, { active: true });
-            }
-        });
+            });
+        } else {
+            // For foreground duplication: default behavior (duplicate becomes active)
+            chrome.tabs.duplicate(sender.tab.id);
+        }
     };
     let previousWindowChoice = -1;
     self.getWindows = function (message, sender, sendResponse) {

@@ -26,14 +26,43 @@ interface ScrollWaitOptions extends WaitOptions {
  * Supports modifier key notation: "Control+d", "Alt+x", "Shift+Enter", etc.
  */
 export async function sendKey(ws: WebSocket, key: string, delayMs: number = 50): Promise<void> {
+    // Map of special characters that require Shift modifier
+    const specialCharMap: { [key: string]: { baseKey: string; code: string } } = {
+        '!': { baseKey: '1', code: 'Digit1' },
+        '@': { baseKey: '2', code: 'Digit2' },
+        '#': { baseKey: '3', code: 'Digit3' },
+        '$': { baseKey: '4', code: 'Digit4' },
+        '%': { baseKey: '5', code: 'Digit5' },
+        '^': { baseKey: '6', code: 'Digit6' },
+        '&': { baseKey: '7', code: 'Digit7' },
+        '*': { baseKey: '8', code: 'Digit8' },
+        '(': { baseKey: '9', code: 'Digit9' },
+        ')': { baseKey: '0', code: 'Digit0' },
+        '_': { baseKey: '-', code: 'Minus' },
+        '+': { baseKey: '=', code: 'Equal' },
+        '{': { baseKey: '[', code: 'BracketLeft' },
+        '}': { baseKey: ']', code: 'BracketRight' },
+        '|': { baseKey: '\\', code: 'Backslash' },
+        ':': { baseKey: ';', code: 'Semicolon' },
+        '"': { baseKey: "'", code: 'Quote' },
+        '<': { baseKey: ',', code: 'Comma' },
+        '>': { baseKey: '.', code: 'Period' },
+        '?': { baseKey: '/', code: 'Slash' },
+        '~': { baseKey: '`', code: 'Backquote' }
+    };
+
     // Parse modifier keys (e.g., "Control+d", "Alt+x")
     let modifiers = 0;
     let actualKey = key;
+    let charText = key; // The character to send in 'char' event
+    let code: string | undefined;
+    let windowsVirtualKeyCode: number | undefined;
 
     if (key.includes('+')) {
         const parts = key.split('+');
         const modifierPart = parts[0];
         actualKey = parts[1];
+        charText = actualKey;
 
         // CDP modifier values: Alt=1, Control=2, Meta=4, Shift=8
         if (modifierPart === 'Control' || modifierPart === 'Ctrl') {
@@ -44,6 +73,22 @@ export async function sendKey(ws: WebSocket, key: string, delayMs: number = 50):
             modifiers = 4;
         } else if (modifierPart === 'Shift') {
             modifiers = 8;
+        }
+    }
+
+    // Check if it's a special character that needs Shift modifier
+    const specialChar = specialCharMap[actualKey];
+    const isSpecialChar = modifiers === 0 && specialChar;
+    if (isSpecialChar && specialChar) {
+        charText = actualKey; // Keep original special character for 'char' event
+        actualKey = actualKey; // Use shifted character as key
+        code = specialChar.code; // Set the physical key code
+        modifiers = 8; // Shift modifier
+
+        // For shifted digits, use the digit's virtual key code (0x30 + digit)
+        const baseKey = specialChar.baseKey;
+        if (baseKey >= '0' && baseKey <= '9') {
+            windowsVirtualKeyCode = 0x30 + parseInt(baseKey, 10);
         }
     }
 
@@ -60,22 +105,26 @@ export async function sendKey(ws: WebSocket, key: string, delayMs: number = 50):
         params: {
             type: 'keyDown',
             key: actualKey,
-            ...(modifiers && { modifiers })
+            ...(modifiers && { modifiers }),
+            ...(code && { code }),
+            ...(windowsVirtualKeyCode && { windowsVirtualKeyCode })
         }
     }));
 
     await new Promise(resolve => setTimeout(resolve, delayMs));
 
     // For modifier key combinations, skip the 'char' event
-    if (modifiers === 0 || needsShift) {
+    if (modifiers === 0 || needsShift || isSpecialChar) {
         // char
         ws.send(JSON.stringify({
             id: globalMessageId++,
             method: 'Input.dispatchKeyEvent',
             params: {
                 type: 'char',
-                text: actualKey,
-                ...(modifiers && { modifiers })
+                text: charText,
+                ...(modifiers && { modifiers }),
+                ...(code && { code }),
+                ...(windowsVirtualKeyCode && { windowsVirtualKeyCode })
             }
         }));
 
@@ -89,7 +138,9 @@ export async function sendKey(ws: WebSocket, key: string, delayMs: number = 50):
         params: {
             type: 'keyUp',
             key: actualKey,
-            ...(modifiers && { modifiers })
+            ...(modifiers && { modifiers }),
+            ...(code && { code }),
+            ...(windowsVirtualKeyCode && { windowsVirtualKeyCode })
         }
     }));
 

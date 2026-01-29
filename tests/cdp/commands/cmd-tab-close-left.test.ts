@@ -6,9 +6,7 @@
  * - Implementation: closeTabLeft background action
  * - Single behavior: close the tab to the left of current tab
  * - Focus: verify command execution and tab closure
- *
- * Note: This test directly invokes the background closeTabLeft action via chrome.runtime.sendMessage
- * rather than relying on the 'gxt' key mapping, as key mappings may be filtered by feature groups.
+ * - Key mapping: 'gxt'
  *
  * Usage:
  *   Headless mode:   ./bin/dbg test-run tests/cdp/commands/cmd-tab-close-left.test.ts
@@ -27,6 +25,7 @@ import {
     executeInTarget
 } from '../utils/cdp-client';
 import {
+    sendKey,
     enableInputDomain,
     waitForSurfingkeysReady
 } from '../utils/browser-actions';
@@ -74,19 +73,17 @@ async function getAllTabs(bgWs: WebSocket): Promise<Array<{ id: number; index: n
 }
 
 /**
- * Invoke closeTabLeft action from content script context
+ * Invoke closeTabLeft action via key mapping
+ * Uses 'gxt' key sequence which maps to closeTabLeft command
  */
 async function invokeCloseTabLeft(pageWs: WebSocket, repeats: number = 1): Promise<void> {
-    await executeInTarget(pageWs, `
-        new Promise((resolve) => {
-            chrome.runtime.sendMessage({
-                action: 'closeTabLeft',
-                repeats: ${repeats}
-            }, () => {
-                resolve(true);
-            });
-        })
-    `);
+    if (repeats > 1) {
+        // Send repeat count followed by command keys
+        await sendKey(pageWs, String(repeats), 50);
+    }
+    await sendKey(pageWs, 'g', 50);
+    await sendKey(pageWs, 'x', 50);
+    await sendKey(pageWs, 't');
 }
 
 /**
