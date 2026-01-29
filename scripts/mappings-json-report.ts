@@ -54,6 +54,10 @@ interface MappingEntry {
     };
     validationStatus?: 'valid' | 'invalid' | 'not_migrated';
     validationErrors?: string[];
+    test_coverage?: {
+        hasTest: boolean;
+        testFiles?: string[];
+    };
 }
 
 interface Summary {
@@ -931,13 +935,14 @@ function scanTestFiles(projectRoot: string): Map<string, string> {
  * Supports two test naming patterns:
  * 1. Direct mapping: cmd-scroll-down -> cmd_scroll_down (exact unique_id match)
  * 2. With setting: cmd-scroll-down.scrollStepSize -> tests cmd_scroll_down with scrollStepSize setting
+ *
+ * This function mutates the mappings array by adding test_coverage field to each mapping
  */
 function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string, string>, settingsUsages: SettingUsage[]): {
     total_with_tests: number;
     total_without_tests: number;
     invalid_test_names: string[];
 } {
-    const mappingsWithTests = new Set<string>();
     const mappingsByUniqueId = new Map<string, MappingEntry>();
 
     // Build map of unique_ids
@@ -956,16 +961,20 @@ function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string
         validSettings.add(usage.setting);
     }
 
-    // Check each test file against mappings
-    // Normalize test names: convert hyphens to underscores for matching
+    // Build reverse map: unique_id -> test file names
+    const uniqueIdToTests = new Map<string, string[]>();
     const invalidTestNames: string[] = [];
+
     for (const testName of testMap.keys()) {
         let isValid = false;
 
         // Try exact match first
         const normalizedTestName = testName.replace(/-/g, '_');
         if (mappingsByUniqueId.has(normalizedTestName)) {
-            mappingsWithTests.add(normalizedTestName);
+            if (!uniqueIdToTests.has(normalizedTestName)) {
+                uniqueIdToTests.set(normalizedTestName, []);
+            }
+            uniqueIdToTests.get(normalizedTestName)!.push(testName + '.test.ts');
             isValid = true;
         } else {
             // Try pattern: cmd-scroll-down.scrollStepSize
@@ -978,7 +987,10 @@ function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string
 
                 // Check if both the command and setting are valid
                 if (mappingsByUniqueId.has(normalizedCommandPart) && validSettings.has(settingPart)) {
-                    mappingsWithTests.add(normalizedCommandPart);
+                    if (!uniqueIdToTests.has(normalizedCommandPart)) {
+                        uniqueIdToTests.set(normalizedCommandPart, []);
+                    }
+                    uniqueIdToTests.get(normalizedCommandPart)!.push(testName + '.test.ts');
                     isValid = true;
                 }
             }
@@ -990,9 +1002,29 @@ function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string
         }
     }
 
-    // Count mappings without tests (only count migrated ones with valid unique_ids)
+    // Add test_coverage field to each mapping
+    for (const mapping of mappings) {
+        if (typeof mapping.annotation === 'object' && mapping.annotation.unique_id) {
+            const uid = mapping.annotation.unique_id;
+            const testFiles = uniqueIdToTests.get(uid);
+
+            if (testFiles && testFiles.length > 0) {
+                mapping.test_coverage = {
+                    hasTest: true,
+                    testFiles: testFiles.sort()
+                };
+            } else {
+                mapping.test_coverage = {
+                    hasTest: false
+                };
+            }
+        }
+        // No test_coverage field for non-migrated or invalid mappings
+    }
+
+    // Count mappings with and without tests
     const totalMigratedWithValidIds = mappingsByUniqueId.size;
-    const totalWithTests = mappingsWithTests.size;
+    const totalWithTests = uniqueIdToTests.size;
     const totalWithoutTests = totalMigratedWithValidIds - totalWithTests;
 
     return {
