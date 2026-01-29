@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Test Page</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; }
+    </style>
+</head>
+<body>
+    <h1>Table Column Copy Test</h1>
+    <p>This page contains tables for testing the ymc (yank multiple columns) command.</p>
+
+    <h2>Employee Data Table</h2>
+    <table id="employees">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Department</th>
+                <th>Position</th>
+                <th>Salary</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>101</td>
+                <td>Alice Smith</td>
+                <td>Engineering</td>
+                <td>Senior Developer</td>
+                <td>95000</td>
+            </tr>
+            <tr>
+                <td>102</td>
+                <td>Bob Johnson</td>
+                <td>Marketing</td>
+                <td>Marketing Manager</td>
+                <td>85000</td>
+            </tr>
+            <tr>
+                <td>103</td>
+                <td>Carol Williams</td>
+                <td>Engineering</td>
+                <td>DevOps Engineer</td>
+                <td>90000</td>
+            </tr>
+            <tr>
+                <td>104</td>
+                <td>David Brown</td>
+                <td>Sales</td>
+                <td>Sales Director</td>
+                <td>100000</td>
+            </tr>
+            <tr>
+                <td>105</td>
+                <td>Eve Davis</td>
+                <td>HR</td>
+                <td>HR Specialist</td>
+                <td>70000</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Product Inventory Table</h2>
+    <table id="products">
+        <thead>
+            <tr>
+                <th>SKU</th>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Stock</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>A001</td>
+                <td>Laptop Pro</td>
+                <td>Electronics</td>
+                <td>45</td>
+            </tr>
+            <tr>
+                <td>A002</td>
+                <td>Wireless Mouse</td>
+                <td>Accessories</td>
+                <td>120</td>
+            </tr>
+            <tr>
+                <td>A003</td>
+                <td>Monitor 27"</td>
+                <td>Electronics</td>
+                <td>30</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Simple 3-Column Table</h2>
+    <table id="simple">
+        <thead>
+            <tr>
+                <th>Column A</th>
+                <th>Column B</th>
+                <th>Column C</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>A1</td>
+                <td>B1</td>
+                <td>C1</td>
+            </tr>
+            <tr>
+                <td>A2</td>
+                <td>B2</td>
+                <td>C2</td>
+            </tr>
+            <tr>
+                <td>A3</td>
+                <td>B3</td>
+                <td>C3</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
