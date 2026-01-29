@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`cmd_hints_scrollable 9.0 Hint Consistency 9.2 should have deterministic hint snapshot 1`] = `
+exports[`cmd_hints_scrollable 10.0 Hint Consistency 10.2 should have deterministic hint snapshot 1`] = `
 {
   "count": 3,
   "sortedHints": [

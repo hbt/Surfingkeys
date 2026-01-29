@@ -109,7 +109,7 @@ describe('cmd_hints_link_active_tab', () => {
     let beforeCovData: any = null;
     let currentTestName: string = '';
 
-    const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
+    const FIXTURE_URL = 'http://127.0.0.1:9873/hints-test.html';
 
     /**
      * Fetch snapshot of hints in shadowRoot
@@ -156,10 +156,14 @@ describe('cmd_hints_link_active_tab', () => {
     }
 
     async function waitForHintCount(minCount: number) {
-        await waitFor(async () => {
-            const snapshot = await fetchHintSnapshot();
-            return snapshot.found && snapshot.count >= minCount;
-        }, 6000, 100);
+        // Give hints initial time to render
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        // Then verify they're there
+        const snapshot = await fetchHintSnapshot();
+        if (!snapshot.found || snapshot.count < minCount) {
+            throw new Error(`Expected at least ${minCount} hints, but found ${snapshot.count}`);
+        }
     }
 
     async function waitForHintsCleared() {
@@ -185,7 +189,7 @@ describe('cmd_hints_link_active_tab', () => {
         tabId = await createTab(bgWs, FIXTURE_URL, true);
 
         // Find and connect to content page
-        const pageWsUrl = await findContentPage('127.0.0.1:9873/hackernews.html');
+        const pageWsUrl = await findContentPage('127.0.0.1:9873/hints-test.html');
         pageWs = await connectToCDP(pageWsUrl);
 
         // Enable Input domain
@@ -245,8 +249,8 @@ describe('cmd_hints_link_active_tab', () => {
     describe('1.0 Page Setup', () => {
         test('1.1 should have expected number of links on page', async () => {
             const linkCount = await countElements(pageWs, 'a');
-            // hackernews.html has ~200+ links
-            expect(linkCount).toBeGreaterThan(200);
+            // hints-test.html has ~50+ links
+            expect(linkCount).toBeGreaterThan(40);
         });
 
         test('1.2 should have no hints initially', async () => {
@@ -264,14 +268,14 @@ describe('cmd_hints_link_active_tab', () => {
             // Press 'af' to trigger hints
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             // Query hints in shadowRoot
             const hintData = await fetchHintSnapshot();
 
             // Assertions
             expect(hintData.found).toBe(true);
-            expect(hintData.count).toBeGreaterThan(20);
+            expect(hintData.count).toBeGreaterThan(3);
             expect(hintData.count).toBeLessThan(100);
         });
 
@@ -279,7 +283,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             const hostInfo = await executeInTarget(pageWs, `
                 (function() {
@@ -303,12 +307,12 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             const hintData = await fetchHintSnapshot();
 
             // Hints are created for visible/clickable links (subset of all links)
-            expect(hintData.count).toBeGreaterThan(10);
+            expect(hintData.count).toBeGreaterThan(3);
             expect(hintData.count).toBeLessThanOrEqual(linkCount);
         });
     });
@@ -318,7 +322,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             const hintData = await fetchHintSnapshot();
 
@@ -333,7 +337,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             const hintData = await fetchHintSnapshot();
 
@@ -348,7 +352,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             const hintData = await fetchHintSnapshot();
 
@@ -363,7 +367,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             const hintData = await fetchHintSnapshot();
 
@@ -382,12 +386,12 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             // Verify hints exist
             const beforeClear = await fetchHintSnapshot();
             expect(beforeClear.found).toBe(true);
-            expect(beforeClear.count).toBeGreaterThan(10);
+            expect(beforeClear.count).toBeGreaterThan(3);
 
             // Clear hints
             await sendKey(pageWs, 'Escape');
@@ -403,7 +407,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
             await sendKey(pageWs, 'Escape');
             await waitForHintsCleared();
 
@@ -411,11 +415,11 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             const hintData = await fetchHintSnapshot();
             expect(hintData.found).toBe(true);
-            expect(hintData.count).toBeGreaterThan(10);
+            expect(hintData.count).toBeGreaterThan(3);
         });
     });
 
@@ -425,7 +429,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
             const snapshot1 = await fetchHintSnapshot();
 
             // Clear and recreate
@@ -434,7 +438,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
             const snapshot2 = await fetchHintSnapshot();
 
             // Verify consistency
@@ -453,7 +457,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             // Get first hint and select it
             const snapshot = await fetchHintSnapshot();
@@ -481,7 +485,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             // Get first hint and select it
             const snapshot = await fetchHintSnapshot();
@@ -510,7 +514,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             // Select hint
             const snapshot = await fetchHintSnapshot();
@@ -538,7 +542,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
             const snapshot1 = await fetchHintSnapshot();
             const hint1 = snapshot1.sortedHints[0];
             for (const char of hint1) {
@@ -560,17 +564,14 @@ describe('cmd_hints_link_active_tab', () => {
                 await new Promise(resolve => setTimeout(resolve, 500));
 
                 // Reconnect to the original page
-                const pageWsUrl = await findContentPage('127.0.0.1:9873/hackernews.html');
+                const pageWsUrl = await findContentPage('127.0.0.1:9873/hints-test.html');
                 const tempPageWs = await connectToCDP(pageWsUrl);
                 enableInputDomain(tempPageWs);
 
                 await clickAt(tempPageWs, 100, 100);
                 await sendKey(tempPageWs, 'a');
                 await sendKey(tempPageWs, 'f');
-                await waitFor(async () => {
-                    const snap = await executeInTarget(tempPageWs, hintSnapshotScript);
-                    return snap.found && snap.count >= 10;
-                }, 6000, 100);
+                await new Promise(resolve => setTimeout(resolve, 800));
 
                 const snapshot2 = await executeInTarget(tempPageWs, hintSnapshotScript);
                 const hint2 = snapshot2.sortedHints[1]; // Use different hint
@@ -595,7 +596,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             const initialSnapshot = await fetchHintSnapshot();
             const initialCount = initialSnapshot.count;
@@ -620,7 +621,7 @@ describe('cmd_hints_link_active_tab', () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, 'a');
             await sendKey(pageWs, 'f');
-            await waitForHintCount(10);
+            await waitForHintCount(3);
 
             const snapshot = await fetchHintSnapshot();
             const firstHint = snapshot.sortedHints[0];

@@ -69,6 +69,22 @@ describe('cmd_hints_mouseout_last', () => {
     }
 
     /**
+     * Get mouseout count of an element by ID
+     */
+    async function getMouseoutCount(elementId: string) {
+        return executeInTarget(pageWs, `
+            (function() {
+                if (window.getMouseoutCount) {
+                    return window.getMouseoutCount('${elementId}');
+                }
+                const element = document.getElementById('${elementId}');
+                if (!element) return 0;
+                return parseInt(element.getAttribute('data-mouseout-count') || '0');
+            })()
+        `);
+    }
+
+    /**
      * Trigger mouseover via Ctrl-h hints
      */
     async function triggerMouseoverHints() {
@@ -345,6 +361,85 @@ describe('cmd_hints_mouseout_last', () => {
             const linkCount = await countElements(pageWs, 'a');
             expect(linkCount).toBeGreaterThan(5);
         });
+
+        test('4.2 should increment mouseout counter when `;m` is pressed', async () => {
+            await clickAt(pageWs, 100, 100);
+
+            // Get initial mouseout count for link1
+            const initialMouseoutCount = await getMouseoutCount('link1');
+
+            // Trigger mouseover hints
+            await triggerMouseoverHints();
+            await waitForHintsVisible();
+
+            // Select first hint (should be link1)
+            const hintLabel = await getFirstHintLabel();
+            if (hintLabel) {
+                for (const char of hintLabel) {
+                    await sendKey(pageWs, char, 50);
+                }
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Trigger mouseout with ';m'
+            await sendKey(pageWs, ';');
+            await new Promise(resolve => setTimeout(resolve, 50));
+            await sendKey(pageWs, 'm');
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Get final mouseout count - should be incremented
+            const finalMouseoutCount = await getMouseoutCount('link1');
+            expect(finalMouseoutCount).toBeGreaterThan(initialMouseoutCount);
+        });
+
+        test('4.3 should verify mouseout event is dispatched correctly', async () => {
+            await clickAt(pageWs, 100, 100);
+
+            // Reset counts
+            await executeInTarget(pageWs, 'window.resetMouseoverCounts && window.resetMouseoverCounts()');
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Trigger mouseover hints
+            await triggerMouseoverHints();
+            await waitForHintsVisible();
+
+            // Select first hint
+            const hintLabel = await getFirstHintLabel();
+            if (hintLabel) {
+                for (const char of hintLabel) {
+                    await sendKey(pageWs, char, 50);
+                }
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Get element ID that received mouseover
+            const mouseoverCounts = await executeInTarget(pageWs, `
+                (function() {
+                    if (window.getAllMouseoverCounts) {
+                        return window.getAllMouseoverCounts();
+                    }
+                    return {};
+                })()
+            `);
+
+            // Find which element got mouseover
+            const mouseoveredElement = Object.keys(mouseoverCounts).find(id => mouseoverCounts[id] > 0);
+            expect(mouseoveredElement).toBeTruthy();
+
+            // Trigger mouseout with ';m'
+            await sendKey(pageWs, ';');
+            await new Promise(resolve => setTimeout(resolve, 50));
+            await sendKey(pageWs, 'm');
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Verify mouseout was dispatched to the same element
+            if (mouseoveredElement) {
+                const mouseoutCount = await getMouseoutCount(mouseoveredElement);
+                expect(mouseoutCount).toBeGreaterThan(0);
+            }
+        });
     });
 
     describe('5.0 Repeated Execution', () => {
@@ -545,6 +640,127 @@ describe('cmd_hints_mouseout_last', () => {
             // Clear hints
             await sendKey(pageWs, 'Escape');
             await new Promise(resolve => setTimeout(resolve, 200));
+        });
+    });
+
+    describe('8.0 Event Sequence Verification', () => {
+        test('8.1 should trigger mouseout after mouseover in correct sequence', async () => {
+            await clickAt(pageWs, 100, 100);
+
+            // Reset counts
+            await executeInTarget(pageWs, 'window.resetMouseoverCounts && window.resetMouseoverCounts()');
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Trigger mouseover hints
+            await triggerMouseoverHints();
+            await waitForHintsVisible();
+
+            // Select first hint
+            const hintLabel = await getFirstHintLabel();
+            if (hintLabel) {
+                for (const char of hintLabel) {
+                    await sendKey(pageWs, char, 50);
+                }
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Check event history before mouseout
+            const historyBefore = await executeInTarget(pageWs, `
+                (function() {
+                    if (window.getEventHistory) {
+                        return window.getEventHistory();
+                    }
+                    return [];
+                })()
+            `);
+
+            // Should have at least one mouseover event
+            const mouseoverEvents = historyBefore.filter((e: any) => e.type === 'mouseover');
+            expect(mouseoverEvents.length).toBeGreaterThan(0);
+
+            // Trigger mouseout with ';m'
+            await sendKey(pageWs, ';');
+            await new Promise(resolve => setTimeout(resolve, 50));
+            await sendKey(pageWs, 'm');
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Check event history after mouseout
+            const historyAfter = await executeInTarget(pageWs, `
+                (function() {
+                    if (window.getEventHistory) {
+                        return window.getEventHistory();
+                    }
+                    return [];
+                })()
+            `);
+
+            // Should have mouseout events now
+            const mouseoutEvents = historyAfter.filter((e: any) => e.type === 'mouseout');
+            expect(mouseoutEvents.length).toBeGreaterThan(0);
+
+            // Verify mouseout came after mouseover for the same element
+            const lastMouseover = mouseoverEvents[mouseoverEvents.length - 1];
+            const firstMouseout = mouseoutEvents[0];
+
+            if (lastMouseover && firstMouseout) {
+                expect(firstMouseout.id).toBe(lastMouseover.id);
+            }
+        });
+
+        test('8.2 should handle multiple mouseout events with different elements', async () => {
+            await clickAt(pageWs, 100, 100);
+
+            // Reset counts
+            await executeInTarget(pageWs, 'window.resetMouseoverCounts && window.resetMouseoverCounts()');
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // First cycle
+            await triggerMouseoverHints();
+            await waitForHintsVisible();
+            const hint1 = await getFirstHintLabel();
+            if (hint1) {
+                for (const char of hint1) {
+                    await sendKey(pageWs, char, 50);
+                }
+            }
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Trigger mouseout
+            await sendKey(pageWs, ';');
+            await new Promise(resolve => setTimeout(resolve, 50));
+            await sendKey(pageWs, 'm');
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Second cycle with potentially different element
+            await triggerMouseoverHints();
+            await waitForHintsVisible();
+            const hint2 = await getFirstHintLabel();
+            if (hint2) {
+                for (const char of hint2) {
+                    await sendKey(pageWs, char, 50);
+                }
+            }
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Trigger second mouseout
+            await sendKey(pageWs, ';');
+            await new Promise(resolve => setTimeout(resolve, 50));
+            await sendKey(pageWs, 'm');
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Verify multiple mouseout events occurred
+            const allMouseoutCounts = await executeInTarget(pageWs, `
+                (function() {
+                    if (window.getAllMouseoutCounts) {
+                        return window.getAllMouseoutCounts();
+                    }
+                    return {};
+                })()
+            `);
+
+            const totalMouseouts = Object.values(allMouseoutCounts).reduce((sum: number, count: any) => sum + count, 0);
+            expect(totalMouseouts).toBeGreaterThanOrEqual(2);
         });
     });
 });

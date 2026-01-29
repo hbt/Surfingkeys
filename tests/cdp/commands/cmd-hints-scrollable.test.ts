@@ -619,8 +619,52 @@ describe('cmd_hints_scrollable', () => {
         });
     });
 
-    describe('8.0 Edge Cases', () => {
-        test('8.1 should handle rapid hint creation and clearing', async () => {
+    describe('8.0 Shadow DOM Support', () => {
+        test('8.1 should detect scrollable elements inside shadow DOM', async () => {
+            await clickAt(pageWs, 100, 100);
+            await sendKey(pageWs, ';');
+            await sendKey(pageWs, 'f');
+            await sendKey(pageWs, 's');
+            await waitForHintCount(3);
+
+            // Check if shadow DOM scrollable element is detected
+            const shadowScrollableInfo = await executeInTarget(pageWs, `
+                (function() {
+                    const shadowHost = document.getElementById('shadow-host');
+                    if (!shadowHost || !shadowHost.shadowRoot) {
+                        return { exists: false, hasScrollableAttr: false };
+                    }
+                    const shadowScrollable = shadowHost.shadowRoot.getElementById('shadow-scrollable-1');
+                    return {
+                        exists: !!shadowScrollable,
+                        hasScrollableAttr: shadowScrollable?.dataset.hint_scrollable === 'true',
+                        hasScroll: shadowScrollable ? (shadowScrollable.scrollHeight > shadowScrollable.clientHeight) : false
+                    };
+                })()
+            `);
+
+            expect(shadowScrollableInfo.exists).toBe(true);
+            expect(shadowScrollableInfo.hasScroll).toBe(true);
+            expect(shadowScrollableInfo.hasScrollableAttr).toBe(true);
+        });
+
+        test('8.2 should create hints for shadow DOM scrollable elements', async () => {
+            await clickAt(pageWs, 100, 100);
+            await sendKey(pageWs, ';');
+            await sendKey(pageWs, 'f');
+            await sendKey(pageWs, 's');
+            await waitForHintCount(3);
+
+            const hintData = await fetchHintSnapshot();
+
+            // Should have hints (including shadow DOM scrollable)
+            // Note: Exact count may vary but should be at least 3
+            expect(hintData.count).toBeGreaterThanOrEqual(3);
+        });
+    });
+
+    describe('9.0 Edge Cases', () => {
+        test('9.1 should handle rapid hint creation and clearing', async () => {
             for (let i = 0; i < 3; i++) {
                 await clickAt(pageWs, 100, 100);
                 await sendKey(pageWs, ';');
@@ -636,7 +680,7 @@ describe('cmd_hints_scrollable', () => {
             }
         });
 
-        test('8.2 should handle page with document.scrollingElement', async () => {
+        test('9.2 should handle page with document.scrollingElement', async () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, ';');
             await sendKey(pageWs, 'f');
@@ -659,8 +703,8 @@ describe('cmd_hints_scrollable', () => {
         });
     });
 
-    describe('9.0 Hint Consistency', () => {
-        test('9.1 should create consistent hints across multiple invocations', async () => {
+    describe('10.0 Hint Consistency', () => {
+        test('10.1 should create consistent hints across multiple invocations', async () => {
             // First invocation
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, ';');
@@ -684,7 +728,7 @@ describe('cmd_hints_scrollable', () => {
             expect(snapshot1.sortedHints).toEqual(snapshot2.sortedHints);
         });
 
-        test('9.2 should have deterministic hint snapshot', async () => {
+        test('10.2 should have deterministic hint snapshot', async () => {
             await clickAt(pageWs, 100, 100);
             await sendKey(pageWs, ';');
             await sendKey(pageWs, 'f');
