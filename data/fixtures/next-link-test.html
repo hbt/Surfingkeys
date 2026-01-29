@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next Link Test Page</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .content {
+            margin-bottom: 50px;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            margin: 40px 0;
+            padding: 20px;
+            background: #e0e0e0;
+            border-radius: 5px;
+        }
+        a {
+            cursor: pointer;
+            color: #0066cc;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid #0066cc;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+        a:hover {
+            background-color: #0066cc;
+            color: white;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; }
+    </style>
+</head>
+<body>
+    <h1>Next Link Test - Page 1</h1>
+    <p>This page tests the ]] (next link) command. It contains various "next" link patterns.</p>
+
+    <div class="content">
+        <h2>Article Content</h2>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+    </div>
+
+    <!-- Test 1: Standard text "next" link -->
+    <div class="pagination">
+        <a href="javascript:void(0)" id="prev-link">Previous</a>
+        <a href="page2.html" id="next-link">next</a>
+    </div>
+
+    <div class="content">
+        <h2>More Content</h2>
+        <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.</p>
+    </div>
+</body>
+</html>

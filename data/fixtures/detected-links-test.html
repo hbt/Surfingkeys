@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detected Links Test Page</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+        h1 { color: #333; }
+        h2 { color: #555; margin-top: 0; }
+        p { margin: 10px 0; }
+        code {
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Detected Links Test Page</h1>
+    <p>This page tests the 'O' command for detecting and opening links from text content.</p>
+
+    <!-- Test 1: HTTP URL in plain text -->
+    <div class="section">
+        <h2>Section 1: HTTP URL</h2>
+        <p id="section-http">Check out this website: http://example.com/page1 for more information.</p>
+    </div>
+
+    <!-- Test 2: HTTPS URL in plain text -->
+    <div class="section">
+        <h2>Section 2: HTTPS URL</h2>
+        <p id="section-https">Secure site available at https://secure.example.com/api/v1/data for API access.</p>
+    </div>
+
+    <!-- Test 3: Multiple URLs in same paragraph -->
+    <div class="section">
+        <h2>Section 3: Multiple URLs</h2>
+        <p id="section-multiple">Visit http://site1.example.com or https://site2.example.com for resources. Also check http://site3.example.com/docs</p>
+    </div>
+
+    <!-- Test 4: URL in code block -->
+    <div class="section">
+        <h2>Section 4: URL in Code</h2>
+        <p id="section-code">API endpoint: <code>https://api.example.com/v2/users</code></p>
+    </div>
+
+    <!-- Test 5: Thunder protocol (supported by default) -->
+    <div class="section">
+        <h2>Section 5: Thunder Protocol</h2>
+        <p id="section-thunder">Download link: thunder://QUFodHRwOi8vZXhhbXBsZS5jb20vZmlsZS56aXBaWg== (encoded)</p>
+    </div>
+
+    <!-- Test 6: Magnet link (supported by default) -->
+    <div class="section">
+        <h2>Section 6: Magnet Link</h2>
+        <p id="section-magnet">Torrent available: magnet:?xt=urn:btih:ABCDEF1234567890&dn=example.torrent</p>
+    </div>
+
+    <!-- Test 7: URL with query parameters -->
+    <div class="section">
+        <h2>Section 7: URL with Query</h2>
+        <p id="section-query">Search results: https://search.example.com/results?q=test&page=1&sort=relevance</p>
+    </div>
+
+    <!-- Test 8: URL with hash fragment -->
+    <div class="section">
+        <h2>Section 8: URL with Hash</h2>
+        <p id="section-hash">Documentation section: http://docs.example.com/guide#installation-steps</p>
+    </div>
+
+    <!-- Test 9: Mixed content with actual anchor tags (should NOT be detected) -->
+    <div class="section">
+        <h2>Section 9: Regular Link (Not Detected)</h2>
+        <p id="section-anchor">This is a <a href="http://regular-link.com">regular HTML link</a> which should NOT be detected by the 'O' command.</p>
+    </div>
+
+    <!-- Test 10: URL in comment-like text -->
+    <div class="section">
+        <h2>Section 10: URL in Comment</h2>
+        <p id="section-comment">// TODO: Update endpoint to https://new-api.example.com/v3/endpoints before deployment</p>
+    </div>
+
+    <!-- Test 11: No detectable links -->
+    <div class="section">
+        <h2>Section 11: No Links</h2>
+        <p id="section-none">This section has no URLs. Just plain text content with no http or https protocols.</p>
+    </div>
+
+    <!-- Test 12: URL at beginning and end of text -->
+    <div class="section">
+        <h2>Section 12: Edge Positions</h2>
+        <p id="section-edges">https://start.example.com is at the beginning and at the end is http://end.example.com</p>
+    </div>
+</body>
+</html>

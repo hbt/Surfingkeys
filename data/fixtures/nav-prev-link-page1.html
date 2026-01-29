@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation Test - Page 1</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .nav-links {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 0;
+            border-top: 2px solid #333;
+            border-bottom: 2px solid #333;
+            margin: 20px 0;
+        }
+        .nav-link {
+            cursor: pointer;
+            padding: 10px 20px;
+            background: #0066cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .nav-link:hover {
+            background: #0052a3;
+        }
+        .content {
+            margin: 40px 0;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+        .rel-prev {
+            cursor: pointer;
+            display: inline-block;
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Navigation Test - Page 1</h1>
+    <p>This is the first page in the navigation test sequence.</p>
+
+    <!-- Navigation with rel attribute (preferred method) -->
+    <div class="nav-links">
+        <span style="color: #999;">(No previous page)</span>
+        <a href="nav-prev-link-page2.html" rel="next" class="nav-link">Next →</a>
+    </div>
+
+    <div class="content">
+        <h2>Page 1 Content</h2>
+        <p>This page tests the "previous link" navigation command ([[).</p>
+        <p>Since this is the first page, there is no previous link to click.</p>
+    </div>
+
+    <!-- Additional rel=prev link at bottom (should not exist on page 1) -->
+    <div style="text-align: center; margin-top: 40px;">
+        <a href="nav-prev-link-page2.html" class="rel-prev">Go to Page 2</a>
+    </div>
+</body>
+</html>
