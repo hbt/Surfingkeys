@@ -49,21 +49,52 @@ describe('cmd_visual_click_node_newtab', () => {
      * Enter visual mode and position cursor
      */
     async function enterVisualModeAtText(text: string): Promise<void> {
-        // Use browser's find API to position cursor at specific text
+        // Find the text node containing the target text and position cursor there
         await executeInTarget(pageWs, `
             (function() {
-                // Find the text on the page
-                const found = window.find('${text}', false, false, false, false, true, false);
-                if (!found) {
-                    console.warn('Text not found: ${text}');
+                // Find the text node containing our target text
+                function findTextNode(node, searchText) {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        if (node.textContent.includes(searchText)) {
+                            return node;
+                        }
+                    } else {
+                        for (let child of node.childNodes) {
+                            const found = findTextNode(child, searchText);
+                            if (found) return found;
+                        }
+                    }
+                    return null;
                 }
+
+                const textNode = findTextNode(document.body, '${text}');
+                if (!textNode) {
+                    console.warn('[enterVisualMode] Text node not found: ${text}');
+                    return;
+                }
+
+                // Position the selection at the beginning of this text node
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                const range = document.createRange();
+                range.setStart(textNode, 0);
+                range.setEnd(textNode, 0);  // Collapsed cursor at start
+                sel.addRange(range);
+
+                console.log('[enterVisualMode] Positioned cursor at:', {
+                    focusNode: sel.focusNode ? sel.focusNode.nodeName : null,
+                    focusNodeText: sel.focusNode ? sel.focusNode.textContent.substring(0, 30) : null,
+                    focusOffset: sel.focusOffset,
+                    parentNode: sel.focusNode && sel.focusNode.parentNode ? sel.focusNode.parentNode.nodeName : null
+                });
             })()
         `);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Send 'v' to enter visual mode
+        // Visual mode should pick up the cursor position we just set
         await sendKey(pageWs, 'v');
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     /**
@@ -102,35 +133,8 @@ describe('cmd_visual_click_node_newtab', () => {
      * Send Shift-Enter key combination
      */
     async function sendShiftEnter(): Promise<void> {
-        const ws = pageWs as any;
-        let msgId = 9000 + Math.floor(Math.random() * 1000);
-
-        // keyDown with Shift modifier
-        ws.send(JSON.stringify({
-            id: msgId++,
-            method: 'Input.dispatchKeyEvent',
-            params: {
-                type: 'keyDown',
-                key: 'Enter',
-                code: 'Enter',
-                modifiers: 2  // Shift modifier = 2
-            }
-        }));
-
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        // keyUp
-        ws.send(JSON.stringify({
-            id: msgId++,
-            method: 'Input.dispatchKeyEvent',
-            params: {
-                type: 'keyUp',
-                key: 'Enter',
-                code: 'Enter',
-                modifiers: 2
-            }
-        }));
-
+        // Use sendKey utility which properly handles Shift modifier
+        await sendKey(pageWs, 'Shift+Enter');
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 

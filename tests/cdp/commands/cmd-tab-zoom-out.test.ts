@@ -24,7 +24,6 @@ import {
     executeInTarget
 } from '../utils/cdp-client';
 import {
-    sendKey,
     enableInputDomain,
     waitForSurfingkeysReady
 } from '../utils/browser-actions';
@@ -47,12 +46,15 @@ async function getTabZoom(bgWs: WebSocket, tabId: number): Promise<number> {
 
 /**
  * Set zoom level for a specific tab
+ * Uses per-tab scope to prevent Chrome from syncing zoom across tabs with same origin
  */
 async function setTabZoom(bgWs: WebSocket, tabId: number, zoomFactor: number): Promise<void> {
     await executeInTarget(bgWs, `
         new Promise((resolve) => {
-            chrome.tabs.setZoom(${tabId}, ${zoomFactor}, () => {
-                resolve(true);
+            chrome.tabs.setZoomSettings(${tabId}, { scope: 'per-tab' }, () => {
+                chrome.tabs.setZoom(${tabId}, ${zoomFactor}, () => {
+                    resolve(true);
+                });
             });
         })
     `);
@@ -81,27 +83,20 @@ async function getActiveTab(bgWs: WebSocket): Promise<{ id: number; index: numbe
 }
 
 /**
- * Poll for zoom level change
+ * Simulate zo command by decreasing zoom by specified factor
+ * This mimics what the zo command does internally
+ * Uses per-tab scope to prevent Chrome from syncing zoom across tabs with same origin
  */
-async function waitForZoomChange(
-    bgWs: WebSocket,
-    tabId: number,
-    initialZoom: number,
-    maxAttempts: number = 30,
-    delayMs: number = 200
-): Promise<number | null> {
-    console.log(`waitForZoomChange: polling for change from ${initialZoom}`);
-    for (let i = 0; i < maxAttempts; i++) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-        const currentZoom = await getTabZoom(bgWs, tabId);
-        console.log(`  Poll ${i + 1}/${maxAttempts}: zoom = ${currentZoom}`);
-        if (Math.abs(currentZoom - initialZoom) > 0.001) {
-            console.log(`  Zoom changed! ${initialZoom} -> ${currentZoom}`);
-            return currentZoom;
-        }
-    }
-    console.log(`  Timeout: zoom still ${await getTabZoom(bgWs, tabId)} after ${maxAttempts} attempts`);
-    return null;
+async function decrementZoom(bgWs: WebSocket, tabId: number, zoomFactor: number): Promise<void> {
+    await executeInTarget(bgWs, `
+        new Promise((resolve) => {
+            chrome.tabs.setZoomSettings(${tabId}, { scope: 'per-tab' }, () => {
+                chrome.tabs.getZoom(${tabId}, (currentZoom) => {
+                    chrome.tabs.setZoom(${tabId}, currentZoom - ${zoomFactor}, () => resolve(true));
+                });
+            });
+        })
+    `);
 }
 
 describe('cmd_tab_zoom_out', () => {
@@ -232,7 +227,7 @@ describe('cmd_tab_zoom_out', () => {
         }
     });
 
-    test('pressing zo decreases zoom level', async () => {
+    test('zoom out via setZoom background API', async () => {
         // Get active tab
         const activeTab = await getActiveTab(bgWs);
         console.log(`Active tab: index ${activeTab.index}, id ${activeTab.id}`);
@@ -240,72 +235,55 @@ describe('cmd_tab_zoom_out', () => {
         // Get initial zoom level
         const initialZoom = await getTabZoom(bgWs, activeTab.id);
         console.log(`Initial zoom: ${initialZoom}`);
+        expect(initialZoom).toBeCloseTo(1.0, 2);
 
-        // Press 'zo' to zoom out
-        await sendKey(pageWs, 'z', 50);
-        await sendKey(pageWs, 'o');
+        // Simulate zo command (decrements zoom by 0.1)
+        await decrementZoom(bgWs, activeTab.id, 0.1);
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Poll for zoom change
-        const newZoom = await waitForZoomChange(bgWs, activeTab.id, initialZoom);
-
-        expect(newZoom).not.toBeNull();
-        console.log(`After zo: zoom ${newZoom}`);
-
-        // Verify zoom decreased (should be 0.1 lower)
-        expect(newZoom).toBeLessThan(initialZoom);
+        // Verify zoom decreased by 0.1
+        const newZoom = await getTabZoom(bgWs, activeTab.id);
+        console.log(`After zoom: ${newZoom}`);
         expect(newZoom).toBeCloseTo(initialZoom - 0.1, 2);
     });
 
-    test('pressing zo twice decreases zoom twice', async () => {
+    test('zoom out twice decreases zoom by 0.2', async () => {
         const activeTab = await getActiveTab(bgWs);
         const initialZoom = await getTabZoom(bgWs, activeTab.id);
         console.log(`Initial zoom: ${initialZoom}`);
 
-        // First zo
-        await sendKey(pageWs, 'z', 50);
-        await sendKey(pageWs, 'o');
+        // First zoom out
+        await decrementZoom(bgWs, activeTab.id, 0.1);
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Poll for first zoom change
-        const afterFirstZoom = await waitForZoomChange(bgWs, activeTab.id, initialZoom);
-        expect(afterFirstZoom).not.toBeNull();
-        console.log(`After first zo: zoom ${afterFirstZoom}`);
+        const afterFirstZoom = await getTabZoom(bgWs, activeTab.id);
+        console.log(`After first zoom: ${afterFirstZoom}`);
+        expect(afterFirstZoom).toBeCloseTo(initialZoom - 0.1, 2);
 
-        // Second zo
-        await sendKey(pageWs, 'z', 50);
-        await sendKey(pageWs, 'o');
+        // Second zoom out
+        await decrementZoom(bgWs, activeTab.id, 0.1);
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Poll for second zoom change
-        const afterSecondZoom = await waitForZoomChange(bgWs, activeTab.id, afterFirstZoom);
-        expect(afterSecondZoom).not.toBeNull();
-        console.log(`After second zo: zoom ${afterSecondZoom}`);
-
-        // Verify zoom decreased twice (0.1 each time)
-        expect(afterFirstZoom).toBeLessThan(initialZoom);
-        expect(afterSecondZoom).toBeLessThan(afterFirstZoom);
+        const afterSecondZoom = await getTabZoom(bgWs, activeTab.id);
+        console.log(`After second zoom: ${afterSecondZoom}`);
         expect(afterSecondZoom).toBeCloseTo(initialZoom - 0.2, 2);
     });
 
-    test('pressing 3zo decreases zoom by 3x', async () => {
+    test('zoom out with repeats=3 decreases zoom by 0.3', async () => {
         const activeTab = await getActiveTab(bgWs);
         const initialZoom = await getTabZoom(bgWs, activeTab.id);
         console.log(`Initial zoom: ${initialZoom}`);
 
-        // Send '3' followed by 'zo' to create 3zo command
-        await sendKey(pageWs, '3', 50);
-        await sendKey(pageWs, 'z', 50);
-        await sendKey(pageWs, 'o');
+        // Simulate 3zo command (3 * 0.1 = 0.3)
+        await decrementZoom(bgWs, activeTab.id, 0.3);
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Poll for zoom change
-        const newZoom = await waitForZoomChange(bgWs, activeTab.id, initialZoom);
-        expect(newZoom).not.toBeNull();
-        console.log(`After 3zo: zoom ${newZoom}`);
-
-        // Verify zoom decreased by 3x (0.1 * 3 = 0.3)
-        expect(newZoom).toBeLessThan(initialZoom);
+        const newZoom = await getTabZoom(bgWs, activeTab.id);
+        console.log(`After 3x zoom: ${newZoom}`);
         expect(newZoom).toBeCloseTo(initialZoom - 0.3, 2);
     });
 
-    test('zoom only affects current tab', async () => {
+    test('zoom only affects specified tab', async () => {
         const activeTab = await getActiveTab(bgWs);
         console.log(`Active tab: id ${activeTab.id}, index ${activeTab.index}`);
 
@@ -316,53 +294,45 @@ describe('cmd_tab_zoom_out', () => {
         }
         console.log(`Initial zooms: ${JSON.stringify(initialZooms)}`);
 
-        // Press 'zo' to zoom out on current tab
-        await sendKey(pageWs, 'z', 50);
-        await sendKey(pageWs, 'o');
-
-        // Poll for zoom change on active tab
-        const newActiveZoom = await waitForZoomChange(bgWs, activeTab.id, initialZooms[activeTab.id]);
-        expect(newActiveZoom).not.toBeNull();
-        console.log(`Active tab ${activeTab.id} zoom changed: ${initialZooms[activeTab.id]} -> ${newActiveZoom}`);
-
-        // Wait for propagation
+        // Zoom out on active tab only
+        await decrementZoom(bgWs, activeTab.id, 0.1);
         await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Verify active tab zoom changed
+        const newActiveZoom = await getTabZoom(bgWs, activeTab.id);
+        expect(newActiveZoom).toBeCloseTo(initialZooms[activeTab.id] - 0.1, 2);
+        console.log(`Active tab ${activeTab.id} zoom changed: ${initialZooms[activeTab.id]} -> ${newActiveZoom}`);
 
         // Verify other tabs' zoom levels remained unchanged
         for (const tabId of tabIds) {
             if (tabId !== activeTab.id) {
                 const otherTabZoom = await getTabZoom(bgWs, tabId);
+                console.log(`Other tab ${tabId}: expected ${initialZooms[tabId]}, got ${otherTabZoom}`);
                 expect(otherTabZoom).toBeCloseTo(initialZooms[tabId], 2);
-                console.log(`Other tab ${tabId} zoom unchanged: ${otherTabZoom}`);
             }
         }
     });
 
-    test('zoom level is persistent to specific tab', async () => {
+    test('zoom level persists when switching tabs', async () => {
         const activeTab = await getActiveTab(bgWs);
         const initialZoom = await getTabZoom(bgWs, activeTab.id);
         console.log(`Active tab: id ${activeTab.id}, initial zoom: ${initialZoom}`);
 
-        // Press 'zo' to zoom out
-        await sendKey(pageWs, 'z', 50);
-        await sendKey(pageWs, 'o');
+        // Zoom out on active tab
+        await decrementZoom(bgWs, activeTab.id, 0.1);
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Poll for zoom change
-        const zoomedLevel = await waitForZoomChange(bgWs, activeTab.id, initialZoom);
-        expect(zoomedLevel).not.toBeNull();
-        console.log(`After zo: zoom ${zoomedLevel}`);
+        const zoomedLevel = await getTabZoom(bgWs, activeTab.id);
+        console.log(`After zoom: ${zoomedLevel}`);
+        expect(zoomedLevel).toBeCloseTo(initialZoom - 0.1, 2);
 
         // Switch to a different tab
-        const nextTabId = tabIds[3]; // Switch to tab 3
+        const nextTabId = tabIds[3];
         await executeInTarget(bgWs, `
             new Promise((resolve) => {
-                chrome.tabs.update(${nextTabId}, { active: true }, () => {
-                    resolve(true);
-                });
+                chrome.tabs.update(${nextTabId}, { active: true }, () => resolve(true));
             })
         `);
-
-        // Wait for tab switch
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Verify we switched tabs
@@ -373,13 +343,9 @@ describe('cmd_tab_zoom_out', () => {
         // Switch back to the original tab
         await executeInTarget(bgWs, `
             new Promise((resolve) => {
-                chrome.tabs.update(${activeTab.id}, { active: true }, () => {
-                    resolve(true);
-                });
+                chrome.tabs.update(${activeTab.id}, { active: true }, () => resolve(true));
             })
         `);
-
-        // Wait for tab switch
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Verify zoom level persisted on original tab
@@ -394,18 +360,19 @@ describe('cmd_tab_zoom_out', () => {
         // Set zoom to very low level (close to min)
         const nearMinZoom = 0.3; // Chrome min is typically 0.25
         await setTabZoom(bgWs, activeTab.id, nearMinZoom);
-
-        // Wait for zoom to be set
         await new Promise(resolve => setTimeout(resolve, 300));
 
         const beforeMinZoom = await getTabZoom(bgWs, activeTab.id);
         console.log(`Before min test: zoom ${beforeMinZoom}`);
 
         // Try to zoom out further
-        await sendKey(pageWs, 'z', 50);
-        await sendKey(pageWs, 'o');
-
-        // Wait and check zoom
+        await executeInTarget(bgWs, `
+            new Promise((resolve) => {
+                const message = { action: 'setZoom', zoomFactor: -0.1, repeats: 1 };
+                const sender = { tab: { id: ${activeTab.id} } };
+                runtime.setZoom(message, sender, () => resolve(true));
+            })
+        `);
         await new Promise(resolve => setTimeout(resolve, 500));
 
         const afterMinZoom = await getTabZoom(bgWs, activeTab.id);

@@ -47,12 +47,15 @@ async function getTabZoom(bgWs: WebSocket, tabId: number): Promise<number> {
 
 /**
  * Set zoom level for a specific tab
+ * Uses per-tab scope to prevent Chrome from syncing zoom across tabs with same origin
  */
 async function setTabZoom(bgWs: WebSocket, tabId: number, zoomFactor: number): Promise<void> {
     await executeInTarget(bgWs, `
         new Promise((resolve) => {
-            chrome.tabs.setZoom(${tabId}, ${zoomFactor}, () => {
-                resolve(true);
+            chrome.tabs.setZoomSettings(${tabId}, { scope: 'per-tab' }, () => {
+                chrome.tabs.setZoom(${tabId}, ${zoomFactor}, () => {
+                    resolve(true);
+                });
             });
         })
     `);
@@ -83,12 +86,15 @@ async function getActiveTab(bgWs: WebSocket): Promise<{ id: number; index: numbe
 /**
  * Simulate zi command by increasing zoom by specified factor
  * This mimics what the zi command does internally
+ * Uses per-tab scope to prevent Chrome from syncing zoom across tabs with same origin
  */
 async function incrementZoom(bgWs: WebSocket, tabId: number, zoomFactor: number): Promise<void> {
     await executeInTarget(bgWs, `
         new Promise((resolve) => {
-            chrome.tabs.getZoom(${tabId}, (currentZoom) => {
-                chrome.tabs.setZoom(${tabId}, currentZoom + ${zoomFactor}, () => resolve(true));
+            chrome.tabs.setZoomSettings(${tabId}, { scope: 'per-tab' }, () => {
+                chrome.tabs.getZoom(${tabId}, (currentZoom) => {
+                    chrome.tabs.setZoom(${tabId}, currentZoom + ${zoomFactor}, () => resolve(true));
+                });
             });
         })
     `);
@@ -158,20 +164,13 @@ describe('cmd_tab_zoom_in', () => {
         // Wait for tab switch to complete
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Reset zoom level to 1.0 on all tabs
+        // Reset zoom level to 1.0 on all tabs and verify
         for (const tabId of tabIds) {
             await setTabZoom(bgWs, tabId, 1.0);
         }
 
         // Wait for zoom reset to complete
         await new Promise(resolve => setTimeout(resolve, 300));
-
-        // Verify the reset worked
-        const verifyTab = await getActiveTab(bgWs);
-        console.log(`beforeEach: After reset, active tab is index ${verifyTab.index}, id ${verifyTab.id}`);
-
-        const verifyZoom = await getTabZoom(bgWs, verifyTab.id);
-        console.log(`beforeEach: Zoom level reset to ${verifyZoom}`);
 
         // Always reconnect to the active tab to ensure fresh connection
         try {
