@@ -82,6 +82,7 @@ const runtime = (function() {
             repeatThreshold: 9,
             richHintsForKeystroke: 1000,
             colorfulKeystrokeHints: true,
+            scrollFallback: false,
             scrollStepSize: 70,
             showModeStatus: false,
             showProxyInStatusBar: false,
