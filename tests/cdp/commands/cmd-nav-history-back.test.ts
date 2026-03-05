@@ -32,6 +32,11 @@ import {
 import { waitForCDPEvent } from '../utils/event-driven-waits';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
+import {
+    runHeadlessConfigSet,
+    clearHeadlessConfig,
+    HeadlessConfigSetResult
+} from '../utils/config-set-headless';
 
 /**
  * Get current URL of a tab via background API
@@ -258,6 +263,56 @@ describe('cmd_nav_history_back', () => {
         // Should be at PAGE_2 (not PAGE_1), because repeat is ignored
         expect(finalUrl).toBe(PAGE_2);
         console.log(`After 2S: ${finalUrl} (correctly stayed at PAGE_2, not PAGE_1)`);
+    });
+
+    describe('custom A mapping via config', () => {
+        beforeAll(async () => {
+            const result = await runHeadlessConfigSet({
+                bgWs,
+                configPath: 'data/fixtures/cmd-nav-history-back-config.js',
+                waitAfterSetMs: 5000,
+                ensureAdvancedMode: true
+            });
+            if (!result.success) {
+                throw new Error(`Config failed: ${result.error}`);
+            }
+
+            // Navigate to PAGE_1 so SurfingKeys reinitializes with the new A mapping.
+            // Must happen AFTER config is loaded (mirrors cdp-scroll.test.ts custom config pattern).
+            await closeCDP(pageWs);
+            await navigateTabAndWait(bgWs, tabId, PAGE_1);
+            const freshPageWsUrl = await findContentPage('127.0.0.1:9873/scroll-test.html');
+            pageWs = await connectToCDP(freshPageWsUrl);
+            enableInputDomain(pageWs);
+            // waitForSurfingkeysReady waits readyState=complete + 500ms settle,
+            // giving the async user-script import time to register the A mapping.
+            await waitForSurfingkeysReady(pageWs);
+        });
+
+        afterAll(async () => {
+            await clearHeadlessConfig(bgWs).catch(() => undefined);
+        });
+
+        test('pressing A navigates back in history (custom mapping)', async () => {
+            // Navigate to PAGE_2 to build history; PAGE_1 (with A mapped) goes to BFCache
+            await navigateTabAndWait(bgWs, tabId, PAGE_2);
+            expect(await getTabURL(bgWs, tabId)).toBe(PAGE_2);
+
+            // Press A via pageWs (connected to BFCache PAGE_1 which has A mapped).
+            // Same mechanism as the S tests — BFCache page handles key, calls history.go(-1).
+            await sendKey(pageWs, 'A');
+
+            // Poll for navigation back to PAGE_1
+            const startTime = Date.now();
+            let backUrl = '';
+            while (Date.now() - startTime < 5000) {
+                backUrl = await getTabURL(bgWs, tabId);
+                if (backUrl.includes('scroll-test.html')) break;
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            expect(backUrl).toContain('scroll-test.html');
+        });
     });
 
     test('S does nothing when no history exists', async () => {
