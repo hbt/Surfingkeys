@@ -58,6 +58,10 @@ interface MappingEntry {
         hasTest: boolean;
         testFiles?: string[];
     };
+    custom_mapping?: {
+        hasMapping: boolean;
+        mappings?: Array<{ key: string; type: string }>;
+    };
 }
 
 interface Summary {
@@ -84,6 +88,11 @@ interface Summary {
         total_with_tests: number;
         total_without_tests: number;
         invalid_test_names: string[];
+    };
+    // Custom mapping coverage
+    custom_mapping_coverage?: {
+        mapped: number;
+        unmapped: number;
     };
 }
 
@@ -1035,6 +1044,63 @@ function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string
 }
 
 // ============================================================================
+// CUSTOM MAPPING COVERAGE
+// ============================================================================
+
+/**
+ * Cross-reference built-in mappings against custom config mappings by unique_id.
+ * Mutates mappings in place (same pattern as generateTestCoverageStats).
+ * Returns summary counts.
+ */
+function generateCustomMappingStats(mappings: MappingEntry[], customConfig: CustomConfiguration): {
+    mapped: number;
+    unmapped: number;
+} {
+    // Build map: unique_id -> list of custom config entries that reference it
+    const uidToCustomMappings = new Map<string, Array<{ key: string; type: string }>>();
+
+    for (const cm of customConfig.mappings) {
+        if (cm.unique_id) {
+            if (!uidToCustomMappings.has(cm.unique_id)) {
+                uidToCustomMappings.set(cm.unique_id, []);
+            }
+            uidToCustomMappings.get(cm.unique_id)!.push({ key: cm.key, type: cm.type });
+        }
+    }
+
+    let mapped = 0;
+    let unmapped = 0;
+
+    // Track unique_ids already counted to avoid double-counting duplicate entries
+    const countedUids = new Set<string>();
+
+    for (const mapping of mappings) {
+        if (typeof mapping.annotation !== 'object' || !mapping.annotation.unique_id) {
+            continue;
+        }
+
+        const uid = mapping.annotation.unique_id;
+        const customMappings = uidToCustomMappings.get(uid);
+
+        if (customMappings && customMappings.length > 0) {
+            mapping.custom_mapping = { hasMapping: true, mappings: customMappings };
+            if (!countedUids.has(uid)) {
+                mapped++;
+                countedUids.add(uid);
+            }
+        } else {
+            mapping.custom_mapping = { hasMapping: false };
+            if (!countedUids.has(uid)) {
+                unmapped++;
+                countedUids.add(uid);
+            }
+        }
+    }
+
+    return { mapped, unmapped };
+}
+
+// ============================================================================
 // SUMMARY GENERATION
 // ============================================================================
 
@@ -1432,6 +1498,10 @@ function main(): void {
     // Parse custom configuration
     const customConfigPath = path.join(process.env.HOME || '/root', '.surfingkeys-2026.js');
     const customConfig = parseCustomConfigAST(customConfigPath);
+
+    // Add custom_mapping field to each mapping and get coverage counts
+    const customMappingCoverage = generateCustomMappingStats(mappings, customConfig);
+    summary.custom_mapping_coverage = customMappingCoverage;
 
     // Create report
     const report: Report = {
