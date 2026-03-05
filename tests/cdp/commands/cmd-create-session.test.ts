@@ -25,10 +25,13 @@ import {
 import {
     sendKey,
     enableInputDomain,
-    waitForSurfingkeysReady
+    waitForSurfingkeysReady,
+    waitFor
 } from '../utils/browser-actions';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
+
+const COVERAGE_ENABLED = process.env.CDP_COVERAGE !== '0';
 
 /**
  * Get the currently active tab
@@ -196,14 +199,17 @@ describe('cmd_create_session', () => {
         `);
         console.log(`beforeEach: Reset tab ${resetTabId}, result: ${resetResult}`);
 
-        // Wait for tab switch to complete
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Poll until the tab switch is confirmed (replaces fixed 500ms sleep)
+        await waitFor(async () => {
+            const active = await getActiveTab(bgWs);
+            return active?.id === resetTabId;
+        }, 2000, 50);
 
         // Verify the reset worked by checking which tab is active
         const verifyTab = await getActiveTab(bgWs);
         console.log(`beforeEach: After reset, active tab is index ${verifyTab.index}, id ${verifyTab.id}`);
 
-        // Always reconnect to the active tab to ensure fresh connection
+        // Reconnect WebSocket to pick up any tab changes from previous test
         try {
             await closeCDP(pageWs);
         } catch (e) {
@@ -217,7 +223,7 @@ describe('cmd_create_session', () => {
             id: 999,
             method: 'Runtime.enable'
         }));
-        await waitForSurfingkeysReady(pageWs);
+        // Page is already loaded from beforeAll — no need to wait for SK to re-inject
         console.log(`beforeEach: Reconnected to content page and ready`);
 
         // Capture test name
@@ -225,12 +231,16 @@ describe('cmd_create_session', () => {
         currentTestName = state.currentTestName || 'unknown-test';
 
         // Capture coverage snapshot before test
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        if (COVERAGE_ENABLED) {
+            beforeCovData = await captureBeforeCoverage(pageWs);
+        }
     });
 
     afterEach(async () => {
         // Capture coverage snapshot after test and calculate delta
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (COVERAGE_ENABLED) {
+            await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        }
     });
 
     afterAll(async () => {
@@ -345,17 +355,13 @@ describe('cmd_create_session', () => {
         // Close some tabs to change the state
         await closeTab(bgWs, tabIds[0]);
         await closeTab(bgWs, tabIds[1]);
-        await new Promise(resolve => setTimeout(resolve, 300));
         console.log(`Closed 2 tabs`);
 
         // Create session again with same name
         await createSessionViaRuntime(bgWs, sessionName);
         console.log(`Created session again with same name: ${sessionName}`);
 
-        // Wait a bit for storage to update
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Get the session and verify it was overwritten
+        // Get the session and verify it was overwritten (waitForSession polls internally)
         const session2 = await waitForSession(bgWs, sessionName);
         expect(session2).not.toBeNull();
         console.log(`✓ Assertion: session still exists after overwrite`);
