@@ -49,6 +49,8 @@ import {
 } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
+const COVERAGE_ENABLED = process.env.CDP_COVERAGE !== '0';
+
 describe('cmd_hints_delete_element', () => {
     jest.setTimeout(60000);
 
@@ -144,8 +146,6 @@ describe('cmd_hints_delete_element', () => {
     }
 
     async function waitForRegionalMenu() {
-        await new Promise(resolve => setTimeout(resolve, 300));
-
         await waitFor(async () => {
             const menuSnapshot = await fetchRegionalMenuSnapshot();
             return menuSnapshot.visible && menuSnapshot.menuItems.length > 0;
@@ -178,10 +178,6 @@ describe('cmd_hints_delete_element', () => {
         for (const char of firstHint) {
             await sendKey(pageWs, char, 50);
         }
-
-        // Wait a bit for selection to complete
-        // Note: Menu may not appear (known issue), so we don't wait for it
-        await new Promise(resolve => setTimeout(resolve, 500));
 
         return firstHint;
     }
@@ -221,28 +217,25 @@ describe('cmd_hints_delete_element', () => {
         currentTestName = state.currentTestName || 'unknown-test';
 
         // Capture coverage snapshot before test
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        if (COVERAGE_ENABLED) beforeCovData = await captureBeforeCoverage(pageWs);
 
         // Scroll to top to ensure consistent element positions
         await executeInTarget(pageWs, 'window.scrollTo(0, 0);');
-        await new Promise(resolve => setTimeout(resolve, 100));
     });
 
     afterEach(async () => {
         // Clear any hints left over from test
-        for (let i = 0; i < 4; i++) {
-            await sendKey(pageWs, 'Escape');
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        await sendKey(pageWs, 'Escape');
+        await sendKey(pageWs, 'Escape');
+        await waitForHintsCleared();
 
         // Force clean up any lingering hints hosts
         await executeInTarget(pageWs, `
             document.querySelectorAll('.surfingkeys_hints_host').forEach(h => h.remove());
         `);
-        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Capture coverage snapshot after test
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (COVERAGE_ENABLED) await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
     });
 
     afterAll(async () => {
@@ -307,7 +300,6 @@ describe('cmd_hints_delete_element', () => {
 
             // Press 'd' to delete element
             await sendKey(pageWs, 'd');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Command should execute and exit hints mode
             await waitForHintsCleared();
@@ -358,7 +350,7 @@ describe('cmd_hints_delete_element', () => {
                 document.body.insertBefore(testDiv, document.body.firstChild);
             `);
 
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             // Verify element exists
             const existsBefore = await executeInTarget(pageWs, `
@@ -370,7 +362,7 @@ describe('cmd_hints_delete_element', () => {
 
             // Execute d command
             await sendKey(pageWs, 'd');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Verify element is removed
             const existsAfter = await executeInTarget(pageWs, `
@@ -389,7 +381,7 @@ describe('cmd_hints_delete_element', () => {
 
             // Execute d command
             await sendKey(pageWs, 'd');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             const finalCount = await countElements(pageWs, 'p');
 
@@ -419,7 +411,7 @@ describe('cmd_hints_delete_element', () => {
                 document.body.insertBefore(parent, document.body.firstChild);
             `);
 
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             // Verify parent and children exist
             const beforeCheck = await executeInTarget(pageWs, `
@@ -435,7 +427,7 @@ describe('cmd_hints_delete_element', () => {
 
             // Execute d command
             await sendKey(pageWs, 'd');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // If parent was deleted, children should also be gone
             // Note: We may not have selected the parent, so we just check completion
@@ -460,7 +452,7 @@ describe('cmd_hints_delete_element', () => {
                 document.body.insertBefore(div, document.body.firstChild);
             `);
 
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const initialDivCount = await countElements(pageWs, '#test-div-delete');
             expect(initialDivCount).toBe(1);
@@ -469,7 +461,7 @@ describe('cmd_hints_delete_element', () => {
 
             // Execute d command
             await sendKey(pageWs, 'd');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Command should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -488,7 +480,7 @@ describe('cmd_hints_delete_element', () => {
             // Should be able to use normal mode commands
             const scrollBefore = await executeInTarget(pageWs, 'window.scrollY');
             await sendKey(pageWs, 'j');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await waitFor(async () => (await executeInTarget(pageWs, 'window.scrollY')) > scrollBefore, 2000, 50);
             const scrollAfter = await executeInTarget(pageWs, 'window.scrollY');
 
             expect(scrollAfter).toBeGreaterThan(scrollBefore);
@@ -524,7 +516,7 @@ describe('cmd_hints_delete_element', () => {
             for (const char of firstHint) {
                 await sendKey(pageWs, char, 50);
             }
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await sendKey(pageWs, 'd');
             await waitForHintsCleared();
@@ -550,7 +542,7 @@ describe('cmd_hints_delete_element', () => {
 
             // Execute d command
             await sendKey(pageWs, 'd');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Command should complete
             const snapshot = await fetchRegionalHintSnapshot();
@@ -577,13 +569,13 @@ describe('cmd_hints_delete_element', () => {
                 document.body.insertBefore(div, document.body.firstChild);
             `);
 
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await enterRegionalHintsAndSelectFirst();
 
             // Execute d command
             await sendKey(pageWs, 'd');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -620,13 +612,13 @@ describe('cmd_hints_delete_element', () => {
                 document.body.insertBefore(div, document.body.firstChild);
             `);
 
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await enterRegionalHintsAndSelectFirst();
 
             // Execute d command
             await sendKey(pageWs, 'd');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -673,7 +665,7 @@ describe('cmd_hints_delete_element', () => {
 
             // Execute d command
             await sendKey(pageWs, 'd');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // If we got here without errors, the command executed successfully
             const snapshot = await fetchRegionalHintSnapshot();

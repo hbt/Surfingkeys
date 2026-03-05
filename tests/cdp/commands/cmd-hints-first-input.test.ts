@@ -48,6 +48,8 @@ import {
 } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
+const COVERAGE_ENABLED = process.env.CDP_COVERAGE !== '0';
+
 describe('cmd_hints_first_input', () => {
     jest.setTimeout(60000);
 
@@ -182,20 +184,18 @@ describe('cmd_hints_first_input', () => {
         currentTestName = state.currentTestName || 'unknown-test';
 
         // Capture coverage snapshot before test
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        if (COVERAGE_ENABLED) { beforeCovData = await captureBeforeCoverage(pageWs); }
 
         // Ensure clean state - click body to remove focus from any input
         await clickAt(pageWs, 100, 100);
-        await new Promise(resolve => setTimeout(resolve, 100));
     });
 
     afterEach(async () => {
         // Clear any state
         await sendKey(pageWs, 'Escape');
-        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Capture coverage snapshot after test
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (COVERAGE_ENABLED) { await captureAfterCoverage(pageWs, currentTestName, beforeCovData); }
     });
 
     afterAll(async () => {
@@ -255,7 +255,6 @@ describe('cmd_hints_first_input', () => {
         test('2.1 should focus first input when pressing gi', async () => {
             // Click page to ensure not focused on input
             await clickAt(pageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             // Press 'gi'
             await sendKey(pageWs, 'g');
@@ -271,7 +270,6 @@ describe('cmd_hints_first_input', () => {
 
         test('2.2 should focus the FIRST text input (text-input-1)', async () => {
             await clickAt(pageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             await sendKey(pageWs, 'g');
             await sendKey(pageWs, 'i');
@@ -284,7 +282,6 @@ describe('cmd_hints_first_input', () => {
 
         test('2.3 should create input layer with masks for multiple inputs', async () => {
             await clickAt(pageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             await sendKey(pageWs, 'g');
             await sendKey(pageWs, 'i');
@@ -298,7 +295,6 @@ describe('cmd_hints_first_input', () => {
 
         test('2.4 should NOT create traditional hint labels', async () => {
             await clickAt(pageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             await sendKey(pageWs, 'g');
             await sendKey(pageWs, 'i');
@@ -523,7 +519,7 @@ describe('cmd_hints_first_input', () => {
             await sendKey(pageWs, 'e');
             await sendKey(pageWs, 's');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const activeEl = await getActiveElement();
             expect(activeEl?.value).toContain('Test');
@@ -542,7 +538,6 @@ describe('cmd_hints_first_input', () => {
             // Clear and repeat
             await sendKey(pageWs, 'Escape');
             await clickAt(pageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 200));
 
             await sendKey(pageWs, 'g');
             await sendKey(pageWs, 'i');
@@ -565,7 +560,6 @@ describe('cmd_hints_first_input', () => {
             // Clear and repeat
             await sendKey(pageWs, 'Escape');
             await clickAt(pageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 200));
 
             await sendKey(pageWs, 'g');
             await sendKey(pageWs, 'i');
@@ -590,7 +584,10 @@ describe('cmd_hints_first_input', () => {
 
             // Clear with Escape
             await sendKey(pageWs, 'Escape');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await waitFor(async () => {
+                const layer = await checkInputLayer();
+                return !layer.found;
+            }, 2000, 50);
 
             const after = await checkInputLayer();
             expect(after.found).toBe(false);
@@ -605,7 +602,6 @@ describe('cmd_hints_first_input', () => {
 
             await sendKey(pageWs, 'Escape');
             await clickAt(pageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 200));
 
             await sendKey(pageWs, 'g');
             await sendKey(pageWs, 'i');
@@ -761,7 +757,6 @@ describe('cmd_hints_first_input', () => {
         test('10.1 should handle rapid gi invocations', async () => {
             for (let i = 0; i < 3; i++) {
                 await clickAt(pageWs, 100, 100);
-                await new Promise(resolve => setTimeout(resolve, 100));
 
                 await sendKey(pageWs, 'g');
                 await sendKey(pageWs, 'i');
@@ -771,7 +766,6 @@ describe('cmd_hints_first_input', () => {
                 expect(activeEl?.id).toBe('text-input-1');
 
                 await sendKey(pageWs, 'Escape');
-                await new Promise(resolve => setTimeout(resolve, 100));
             }
         });
 
@@ -840,7 +834,6 @@ describe('cmd_hints_first_input', () => {
         test('11.1 should focus single input directly without creating masks', async () => {
             // Click to ensure no focus on input
             await clickAt(singleInputPageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             // Press gi
             await sendKey(singleInputPageWs, 'g');
@@ -873,7 +866,6 @@ describe('cmd_hints_first_input', () => {
 
         test('11.2 should NOT create input layer for single input', async () => {
             await clickAt(singleInputPageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             await sendKey(singleInputPageWs, 'g');
             await sendKey(singleInputPageWs, 'i');
@@ -913,7 +905,6 @@ describe('cmd_hints_first_input', () => {
 
         test('11.3 should enter insert mode for single input', async () => {
             await clickAt(singleInputPageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             // Clear input first
             await executeInTarget(singleInputPageWs, `
@@ -936,7 +927,7 @@ describe('cmd_hints_first_input', () => {
             await sendKey(singleInputPageWs, 'e');
             await sendKey(singleInputPageWs, 's');
             await sendKey(singleInputPageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const value = await executeInTarget(singleInputPageWs, `
                 document.querySelector('#only-input')?.value
@@ -976,12 +967,11 @@ describe('cmd_hints_first_input', () => {
 
         test('12.1 should handle page with no editable inputs gracefully', async () => {
             await clickAt(noInputPageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             // Press gi - should not crash
             await sendKey(noInputPageWs, 'g');
             await sendKey(noInputPageWs, 'i');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             // Verify no input layer created
             const inputLayer = await executeInTarget(noInputPageWs, `
@@ -1003,7 +993,6 @@ describe('cmd_hints_first_input', () => {
 
         test('12.2 should keep focus on body when no inputs available', async () => {
             await clickAt(noInputPageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             const beforeActive = await executeInTarget(noInputPageWs, `
                 document.activeElement?.tagName
@@ -1011,7 +1000,7 @@ describe('cmd_hints_first_input', () => {
 
             await sendKey(noInputPageWs, 'g');
             await sendKey(noInputPageWs, 'i');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             const afterActive = await executeInTarget(noInputPageWs, `
                 document.activeElement?.tagName
@@ -1023,11 +1012,10 @@ describe('cmd_hints_first_input', () => {
 
         test('12.3 should not create any masks when no inputs exist', async () => {
             await clickAt(noInputPageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 100));
 
             await sendKey(noInputPageWs, 'g');
             await sendKey(noInputPageWs, 'i');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             const maskCount = await executeInTarget(noInputPageWs, `
                 (function() {

@@ -49,6 +49,8 @@ import {
 } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
+const COVERAGE_ENABLED = process.env.CDP_COVERAGE !== '0';
+
 describe('cmd_hints_learn_element', () => {
     jest.setTimeout(60000);
 
@@ -174,8 +176,6 @@ describe('cmd_hints_learn_element', () => {
     }
 
     async function waitForRegionalMenu() {
-        await new Promise(resolve => setTimeout(resolve, 300));
-
         await waitFor(async () => {
             const menuSnapshot = await fetchRegionalMenuSnapshot();
             return menuSnapshot.visible && menuSnapshot.menuItems.length > 0;
@@ -216,10 +216,6 @@ describe('cmd_hints_learn_element', () => {
             await sendKey(pageWs, char, 50);
         }
 
-        // Wait a bit for selection to complete
-        // Note: Menu may not appear (known issue), so we don't wait for it
-        await new Promise(resolve => setTimeout(resolve, 500));
-
         return firstHint;
     }
 
@@ -258,32 +254,26 @@ describe('cmd_hints_learn_element', () => {
         currentTestName = state.currentTestName || 'unknown-test';
 
         // Capture coverage snapshot before test
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        if (COVERAGE_ENABLED) { beforeCovData = await captureBeforeCoverage(pageWs); }
 
         // Scroll to top to ensure consistent element positions
         await executeInTarget(pageWs, 'window.scrollTo(0, 0);');
-        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Close any open omnibar from previous tests
         await sendKey(pageWs, 'Escape');
-        await new Promise(resolve => setTimeout(resolve, 100));
     });
 
     afterEach(async () => {
         // Clear any hints left over from test
-        for (let i = 0; i < 4; i++) {
-            await sendKey(pageWs, 'Escape');
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        await sendKey(pageWs, 'Escape');
+        await sendKey(pageWs, 'Escape');
+        await waitForHintsCleared();
 
         // Force clean up any lingering hints hosts
-        await executeInTarget(pageWs, `
-            document.querySelectorAll('.surfingkeys_hints_host').forEach(h => h.remove());
-        `);
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await executeInTarget(pageWs, `document.querySelectorAll('.surfingkeys_hints_host').forEach(h => h.remove());`);
 
         // Capture coverage snapshot after test
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (COVERAGE_ENABLED) { await captureAfterCoverage(pageWs, currentTestName, beforeCovData); }
     });
 
     afterAll(async () => {
@@ -352,10 +342,9 @@ describe('cmd_hints_learn_element', () => {
 
             // Press 'l' to learn about element
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Command should execute (hints should be cleared)
-            await waitForHintsCleared();
             const snapshot = await fetchRegionalHintSnapshot();
             expect(snapshot.count).toBe(0);
         });
@@ -392,7 +381,7 @@ describe('cmd_hints_learn_element', () => {
 
             // Execute l command
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Try to detect omnibar (may not be visible in all environments)
             const omnibarCheck = await executeInTarget(pageWs, `
@@ -416,7 +405,7 @@ describe('cmd_hints_learn_element', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#line1')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const elementText = await executeInTarget(pageWs, `
                 document.querySelector('#line1')?.innerText || ''
@@ -427,7 +416,7 @@ describe('cmd_hints_learn_element', () => {
 
             // Execute l command
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Command should execute successfully
             const snapshot = await fetchRegionalHintSnapshot();
@@ -439,13 +428,13 @@ describe('cmd_hints_learn_element', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#line7')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await enterRegionalHintsAndSelectFirst();
 
             // Execute l command
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -457,13 +446,13 @@ describe('cmd_hints_learn_element', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#link-line')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await enterRegionalHintsAndSelectFirst();
 
             // Execute l command
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -477,7 +466,7 @@ describe('cmd_hints_learn_element', () => {
 
             // Execute l command
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Check for omnibar indicators
             const omnibarInfo = await executeInTarget(pageWs, `
@@ -506,7 +495,7 @@ describe('cmd_hints_learn_element', () => {
 
             // Execute l command
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Verify command executed (hints cleared)
             const snapshot = await fetchRegionalHintSnapshot();
@@ -529,7 +518,6 @@ describe('cmd_hints_learn_element', () => {
 
             // Close omnibar if it opened
             await sendKey(pageWs, 'Escape');
-            await new Promise(resolve => setTimeout(resolve, 200));
         });
 
         test('6.2 should allow re-entering regional hints after l command', async () => {
@@ -541,7 +529,6 @@ describe('cmd_hints_learn_element', () => {
 
             // Close omnibar if open
             await sendKey(pageWs, 'Escape');
-            await new Promise(resolve => setTimeout(resolve, 200));
 
             // Re-enter regional hints
             await clickAt(pageWs, 100, 100);
@@ -560,13 +547,13 @@ describe('cmd_hints_learn_element', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#line4')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await enterRegionalHintsAndSelectFirst();
 
             // Execute l command (should open LLM chat with empty text)
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -584,13 +571,13 @@ describe('cmd_hints_learn_element', () => {
                 document.body.insertBefore(div, document.body.firstChild);
             `);
 
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await enterRegionalHintsAndSelectFirst();
 
             // Execute l command
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -611,7 +598,6 @@ describe('cmd_hints_learn_element', () => {
 
                 // Close omnibar
                 await sendKey(pageWs, 'Escape');
-                await new Promise(resolve => setTimeout(resolve, 200));
 
                 const snapshot = await fetchRegionalHintSnapshot();
                 expect(snapshot.count).toBe(0);
@@ -629,13 +615,13 @@ describe('cmd_hints_learn_element', () => {
                 document.body.insertBefore(div, document.body.firstChild);
             `);
 
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await enterRegionalHintsAndSelectFirst();
 
             // Execute l command
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -654,7 +640,7 @@ describe('cmd_hints_learn_element', () => {
 
             // Execute l command (triggers openOmnibar in hints.js)
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Verify command completed
             const snapshot = await fetchRegionalHintSnapshot();
@@ -672,7 +658,7 @@ describe('cmd_hints_learn_element', () => {
 
             // Execute l command
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Command should complete
             const snapshot = await fetchRegionalHintSnapshot();
@@ -684,7 +670,7 @@ describe('cmd_hints_learn_element', () => {
 
             // Execute l command (calls openOmnibar with type: "LLMChat")
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Verify hints cleared (command executed)
             const snapshot = await fetchRegionalHintSnapshot();
@@ -731,7 +717,7 @@ describe('cmd_hints_learn_element', () => {
 
             // Execute l command
             await sendKey(pageWs, 'l');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // If we got here without errors, the command executed successfully
             const snapshot = await fetchRegionalHintSnapshot();

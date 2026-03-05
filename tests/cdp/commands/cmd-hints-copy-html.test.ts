@@ -48,6 +48,8 @@ import {
 } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
+const COVERAGE_ENABLED = process.env.CDP_COVERAGE !== '0';
+
 describe('cmd_hints_copy_html', () => {
     jest.setTimeout(60000);
 
@@ -143,8 +145,6 @@ describe('cmd_hints_copy_html', () => {
     }
 
     async function waitForRegionalMenu() {
-        await new Promise(resolve => setTimeout(resolve, 300));
-
         await waitFor(async () => {
             const menuSnapshot = await fetchRegionalMenuSnapshot();
             return menuSnapshot.visible && menuSnapshot.menuItems.length > 0;
@@ -178,10 +178,6 @@ describe('cmd_hints_copy_html', () => {
         for (const char of firstHint) {
             await sendKey(pageWs, char, 50);
         }
-
-        // Small delay to allow hint selection to process
-        // (menu may or may not appear due to timing issues)
-        await new Promise(resolve => setTimeout(resolve, 300));
 
         return firstHint;
     }
@@ -239,28 +235,25 @@ describe('cmd_hints_copy_html', () => {
         currentTestName = state.currentTestName || 'unknown-test';
 
         // Capture coverage snapshot before test
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        if (COVERAGE_ENABLED) beforeCovData = await captureBeforeCoverage(pageWs);
 
         // Scroll to top to ensure consistent element positions
         await executeInTarget(pageWs, 'window.scrollTo(0, 0);');
-        await new Promise(resolve => setTimeout(resolve, 100));
     });
 
     afterEach(async () => {
         // Clear any hints left over from test
-        for (let i = 0; i < 4; i++) {
-            await sendKey(pageWs, 'Escape');
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        await sendKey(pageWs, 'Escape');
+        await sendKey(pageWs, 'Escape');
+        await waitForHintsCleared();
 
         // Force clean up any lingering hints hosts
         await executeInTarget(pageWs, `
             document.querySelectorAll('.surfingkeys_hints_host').forEach(h => h.remove());
         `);
-        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Capture coverage snapshot after test
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (COVERAGE_ENABLED) await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
     });
 
     afterAll(async () => {
@@ -332,7 +325,7 @@ describe('cmd_hints_copy_html', () => {
             // Press 'ch' to copy HTML
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Command should execute (hints should be cleared or command processed)
             // In headless mode, clipboard operations complete quickly
@@ -356,12 +349,11 @@ describe('cmd_hints_copy_html', () => {
             for (const char of firstHint) {
                 await sendKey(pageWs, char, 50);
             }
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Execute ch command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Verify hints are cleared
             const hintsAfter = await fetchRegionalHintSnapshot();
@@ -373,15 +365,14 @@ describe('cmd_hints_copy_html', () => {
 
             // Execute ch command (copy HTML)
             await sendKey(pageWs, 'c');
-            await new Promise(resolve => setTimeout(resolve, 100));
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Command should complete without error
             // Verify by checking we can execute another command
             const scrollBefore = await executeInTarget(pageWs, 'window.scrollY');
             await sendKey(pageWs, 'j'); // Scroll down in normal mode
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await waitFor(async () => (await executeInTarget(pageWs, 'window.scrollY')) > scrollBefore, 2000, 50);
             const scrollAfter = await executeInTarget(pageWs, 'window.scrollY');
 
             // Should be able to scroll (back in normal mode)
@@ -411,12 +402,11 @@ describe('cmd_hints_copy_html', () => {
             for (const char of firstHint) {
                 await sendKey(pageWs, char, 50);
             }
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Execute ch command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Verify command executed (hints cleared)
             const snapshot = await fetchRegionalHintSnapshot();
@@ -436,7 +426,7 @@ describe('cmd_hints_copy_html', () => {
             // Execute ch command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -455,7 +445,7 @@ describe('cmd_hints_copy_html', () => {
             // Execute ch command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -470,12 +460,12 @@ describe('cmd_hints_copy_html', () => {
             // Execute ch command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Should be able to use normal mode commands
             const scrollBefore = await executeInTarget(pageWs, 'window.scrollY');
             await sendKey(pageWs, 'j');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await waitFor(async () => (await executeInTarget(pageWs, 'window.scrollY')) > scrollBefore, 2000, 50);
             const scrollAfter = await executeInTarget(pageWs, 'window.scrollY');
 
             expect(scrollAfter).toBeGreaterThan(scrollBefore);
@@ -491,7 +481,7 @@ describe('cmd_hints_copy_html', () => {
             // Execute ch command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Verify we exited regional hints mode
             // After ch command, both hints and menu should be cleared
@@ -501,7 +491,7 @@ describe('cmd_hints_copy_html', () => {
             // Verify we can execute normal mode commands
             const scrollBefore = await executeInTarget(pageWs, 'window.scrollY');
             await sendKey(pageWs, 'j');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await waitFor(async () => (await executeInTarget(pageWs, 'window.scrollY')) > scrollBefore, 2000, 50);
             const scrollAfter = await executeInTarget(pageWs, 'window.scrollY');
             expect(scrollAfter).toBeGreaterThan(scrollBefore);
         });
@@ -521,7 +511,7 @@ describe('cmd_hints_copy_html', () => {
             // Execute ch command (should copy empty string)
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -541,7 +531,7 @@ describe('cmd_hints_copy_html', () => {
             // Execute ch command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -555,7 +545,7 @@ describe('cmd_hints_copy_html', () => {
             // Execute ch command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitForHintsCleared();
 
             // Verify cleanup
             const snapshot = await fetchRegionalHintSnapshot();
@@ -581,7 +571,7 @@ describe('cmd_hints_copy_html', () => {
             // Execute ch command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Should complete without error
             const snapshot = await fetchRegionalHintSnapshot();
@@ -596,7 +586,7 @@ describe('cmd_hints_copy_html', () => {
             // Execute ch command (triggers clipboard.write in hints.js)
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Verify command completed (hints cleared)
             const snapshot = await fetchRegionalHintSnapshot();
@@ -616,7 +606,7 @@ describe('cmd_hints_copy_html', () => {
             // Execute ch command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Verify command executed
             const snapshot = await fetchRegionalHintSnapshot();
@@ -633,7 +623,7 @@ describe('cmd_hints_copy_html', () => {
             // Execute ch command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 'h');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Command should complete successfully
             const snapshot = await fetchRegionalHintSnapshot();

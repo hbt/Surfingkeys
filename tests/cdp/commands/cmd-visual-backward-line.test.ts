@@ -32,9 +32,12 @@ import {
 import {
     sendKey,
     enableInputDomain,
-    waitForSurfingkeysReady
+    waitForSurfingkeysReady,
+    waitFor
 } from '../utils/browser-actions';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
+
+const COVERAGE_ENABLED = process.env.CDP_COVERAGE !== '0';
 import { CDP_PORT } from '../cdp-config';
 
 describe('cmd_visual_backward_line', () => {
@@ -51,7 +54,8 @@ describe('cmd_visual_backward_line', () => {
      * Enter visual mode by pressing 'v'
      */
     async function enterVisualMode(): Promise<void> {
-        // Send 'v' to enter visual mode
+        // Send 'v' to enter visual mode — use fixed 500ms settle delay (matches pattern of
+        // other visual tests; isVisualCursorVisible DOM-cursor check is unreliable in headless)
         await sendKey(pageWs, 'v');
         await new Promise(resolve => setTimeout(resolve, 500));
     }
@@ -170,26 +174,28 @@ describe('cmd_visual_backward_line', () => {
             window.getSelection().removeAllRanges();
             window.scrollTo(0, 0);
         `);
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // No fixed settle delay needed after scroll reset
 
         // Move to line 50 (middle of document) using normal mode navigation
         // Send 'gg' to go to start of document first
         await sendKey(pageWs, 'g');
         await sendKey(pageWs, 'g');
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // No fixed settle delay needed between key commands
 
         // Then move down to line 50
         for (let i = 0; i < 49; i++) {
             await sendKey(pageWs, 'j', 30);
         }
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // No fixed settle delay needed after scroll
 
         // Capture test name
         const state = expect.getState();
         currentTestName = state.currentTestName || 'unknown-test';
 
         // Capture coverage snapshot before test
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        if (COVERAGE_ENABLED) {
+            beforeCovData = await captureBeforeCoverage(pageWs);
+        }
     });
 
     afterEach(async () => {
@@ -197,13 +203,15 @@ describe('cmd_visual_backward_line', () => {
         try {
             // Press Escape to exit visual mode
             await sendKey(pageWs, 'Escape');
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // No fixed settle delay needed after Escape
         } catch (e) {
             // Ignore errors
         }
 
         // Capture coverage snapshot after test and calculate delta
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (COVERAGE_ENABLED) {
+            await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        }
     });
 
     afterAll(async () => {
@@ -228,9 +236,9 @@ describe('cmd_visual_backward_line', () => {
         const initialLine = await getCurrentLineNumber();
         console.log(`Initial line: ${initialLine}`);
 
-        // Press k to move backward one line
+        // Press k to move backward one line — poll for line change
         await sendKey(pageWs, 'k');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => (await getCurrentLineNumber()) !== initialLine, 2000, 50);
 
         // Verify no error by checking we can still get line number
         const finalLine = await getCurrentLineNumber();
@@ -247,9 +255,9 @@ describe('cmd_visual_backward_line', () => {
         console.log(`Before k: line ${before}`);
         expect(before).toBeGreaterThan(1); // Should be around line 50
 
-        // Press k to move backward one line
+        // Press k to move backward one line — poll for line change
         await sendKey(pageWs, 'k');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => (await getCurrentLineNumber()) !== before, 2000, 50);
 
         const after = await getCurrentLineNumber();
         console.log(`After k: line ${after}`);
@@ -272,10 +280,11 @@ describe('cmd_visual_backward_line', () => {
         const before = await getCurrentLineNumber();
         console.log(`Starting line: ${before}`);
 
-        // Press k 5 times
+        // Press k 5 times — poll for line change each iteration
         for (let i = 0; i < 5; i++) {
+            const lineBeforeK = await getCurrentLineNumber();
             await sendKey(pageWs, 'k');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await waitFor(async () => (await getCurrentLineNumber()) !== lineBeforeK, 1000, 50);
         }
 
         const after = await getCurrentLineNumber();
@@ -292,10 +301,9 @@ describe('cmd_visual_backward_line', () => {
     });
 
     test('k at start of document does not move beyond start', async () => {
-        // Move to line 1 first
+        // Move to line 1 first — poll for cursor at start instead of fixed delay
         await sendKey(pageWs, 'g');
         await sendKey(pageWs, 'g');
-        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Enter visual mode
         await enterVisualMode();
@@ -304,10 +312,11 @@ describe('cmd_visual_backward_line', () => {
         console.log(`Before k at start: line ${beforeLine}`);
         expect(beforeLine).toBeGreaterThan(0); // Should be a valid line near start
 
-        // Press k multiple times when at/near start
+        // Press k multiple times when at/near start — k may not move at start,
+        // so use a small fixed delay to avoid 2000ms timeout on no-change
         for (let i = 0; i < 5; i++) {
             await sendKey(pageWs, 'k');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
 
         const afterLine = await getCurrentLineNumber();
@@ -323,7 +332,8 @@ describe('cmd_visual_backward_line', () => {
         // Enter visual mode
         await enterVisualMode();
 
-        // Move down a few lines to create a range
+        // Move down a few lines to create a range — fixed 200ms settle (j in visual mode
+        // updates selection state; waitFor on lineNumber is unreliable since hints may intercept j)
         await sendKey(pageWs, 'j');
         await sendKey(pageWs, 'j');
         await sendKey(pageWs, 'j');
@@ -332,7 +342,7 @@ describe('cmd_visual_backward_line', () => {
         const before = await getSelectionInfo();
         console.log(`Before k in range mode: type=${before.type}, text length=${before.text.length}`);
 
-        // Press k to extend selection backward
+        // Press k to extend selection backward — fixed 500ms settle
         await sendKey(pageWs, 'k');
         await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -353,9 +363,10 @@ describe('cmd_visual_backward_line', () => {
         const cursorVisibleBefore = await isVisualCursorVisible();
         console.log(`Visual cursor visible before k: ${cursorVisibleBefore}`);
 
-        // Press k
+        // Press k — poll for line change instead of fixed delay
+        const lineBeforeK = await getCurrentLineNumber();
         await sendKey(pageWs, 'k');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => (await getCurrentLineNumber()) !== lineBeforeK, 1000, 50);
 
         // Check cursor visibility after k
         const cursorVisibleAfter = await isVisualCursorVisible();
@@ -375,7 +386,8 @@ describe('cmd_visual_backward_line', () => {
         const startLine = await getCurrentLineNumber();
         console.log(`Starting line: ${startLine}`);
 
-        // Move forward with j multiple times to ensure we're not at document end
+        // Move forward with j multiple times — fixed 200ms settle (j in visual mode
+        // updates selection; waitFor on lineNumber is unreliable since hints may intercept j)
         await sendKey(pageWs, 'j');
         await sendKey(pageWs, 'j');
         await sendKey(pageWs, 'j');
@@ -387,7 +399,7 @@ describe('cmd_visual_backward_line', () => {
         // Verify j moved forward (or stayed at end if already there)
         expect(afterJ).toBeGreaterThanOrEqual(startLine);
 
-        // Move backward with k
+        // Move backward with k — fixed 500ms settle
         await sendKey(pageWs, 'k');
         await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -408,9 +420,9 @@ describe('cmd_visual_backward_line', () => {
         console.log(`Before k (mid-document): line ${before}`);
         expect(before).toBeGreaterThan(40); // Should be around line 50
 
-        // Press k to move backward
+        // Press k to move backward — poll for line change
         await sendKey(pageWs, 'k');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => (await getCurrentLineNumber()) !== before, 1000, 50);
 
         const after = await getCurrentLineNumber();
         console.log(`After k (mid-document): line ${after}`);
@@ -431,9 +443,9 @@ describe('cmd_visual_backward_line', () => {
         const line0 = await getCurrentLineNumber();
         console.log(`Initial line: ${line0}`);
 
-        // First k
+        // First k — poll for line change
         await sendKey(pageWs, 'k');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => (await getCurrentLineNumber()) !== line0, 1000, 50);
 
         const line1 = await getCurrentLineNumber();
         const firstDistance = line0 - line1;
@@ -442,9 +454,9 @@ describe('cmd_visual_backward_line', () => {
         // Command completed successfully if we can still read line number
         expect(line1).toBeGreaterThan(0);
 
-        // Second k
+        // Second k — poll for line change
         await sendKey(pageWs, 'k');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => (await getCurrentLineNumber()) !== line1, 1000, 50);
 
         const line2 = await getCurrentLineNumber();
         const secondDistance = line1 - line2;
@@ -462,10 +474,11 @@ describe('cmd_visual_backward_line', () => {
 
         const lines = [await getCurrentLineNumber()];
 
-        // Perform 3 k operations
+        // Perform 3 k operations — poll for line change each iteration
         for (let i = 0; i < 3; i++) {
+            const lineBeforeK = await getCurrentLineNumber();
             await sendKey(pageWs, 'k');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await waitFor(async () => (await getCurrentLineNumber()) !== lineBeforeK, 1000, 50);
             const currentLine = await getCurrentLineNumber();
             lines.push(currentLine);
 
@@ -489,11 +502,10 @@ describe('cmd_visual_backward_line', () => {
     });
 
     test('k from near end of document moves backward', async () => {
-        // Move to line 95 (near end)
+        // Move to line 95 (near end) — 30ms delay per j press provides sufficient pacing
         for (let i = 0; i < 45; i++) {
             await sendKey(pageWs, 'j', 30);
         }
-        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Enter visual mode
         await enterVisualMode();
@@ -502,9 +514,9 @@ describe('cmd_visual_backward_line', () => {
         console.log(`Before k near end: line ${before}`);
         expect(before).toBeGreaterThan(90);
 
-        // Press k to move backward
+        // Press k to move backward — poll for line change
         await sendKey(pageWs, 'k');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => (await getCurrentLineNumber()) !== before, 1000, 50);
 
         const after = await getCurrentLineNumber();
         console.log(`After k near end: line ${after}`);

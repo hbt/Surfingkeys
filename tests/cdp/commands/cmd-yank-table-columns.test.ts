@@ -33,6 +33,9 @@ import {
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
+// Opt-1: COVERAGE_ENABLED gate
+const COVERAGE_ENABLED = process.env.CDP_COVERAGE !== '0';
+
 /**
  * Fetch snapshot of hints in shadowRoot
  */
@@ -135,7 +138,7 @@ describe('cmd_yank_table_columns', () => {
 
         // Create tab with table fixture
         tabId = await createTab(bgWs, FIXTURE_URL, true);
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Opt-2: removed fixed 300ms delay — waitForSurfingkeysReady already waits for readiness
 
         // Connect to the content page
         const pageWsUrl = await findContentPage('127.0.0.1:9873/table-test.html');
@@ -160,37 +163,39 @@ describe('cmd_yank_table_columns', () => {
     beforeEach(async () => {
         // Scroll to top to ensure consistent element positions
         await executeInTarget(pageWs, 'window.scrollTo(0, 0);');
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Opt-3: removed fixed 100ms delay — scrollTo is a sync DOM op
 
         // Clear any lingering hints from previous tests
         await executeInTarget(pageWs, `
             document.querySelectorAll('.surfingkeys_hints_host').forEach(h => h.remove());
         `);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Opt-3: removed fixed 100ms delay — querySelectorAll/forEach is a sync DOM op
 
         // Capture test name
         const state = expect.getState();
         currentTestName = state.currentTestName || 'unknown-test';
 
         // Capture coverage snapshot before test
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        if (COVERAGE_ENABLED) {
+            beforeCovData = await captureBeforeCoverage(pageWs);
+        }
     });
 
     afterEach(async () => {
-        // Clear any hints left over from test
-        for (let i = 0; i < 3; i++) {
-            await sendKey(pageWs, 'Escape');
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        // Opt-4: Replace 3×(Escape+100ms)+200ms with 2 Escapes + waitForHintsCleared
+        await sendKey(pageWs, 'Escape');
+        await sendKey(pageWs, 'Escape');
+        await waitForHintsCleared(pageWs);
 
         // Force clean up any lingering hints hosts
         await executeInTarget(pageWs, `
             document.querySelectorAll('.surfingkeys_hints_host').forEach(h => h.remove());
         `);
-        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Capture coverage snapshot after test and calculate delta
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (COVERAGE_ENABLED) {
+            await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        }
     });
 
     afterAll(async () => {
@@ -285,7 +290,8 @@ describe('cmd_yank_table_columns', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#simple')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Opt-6: reduced 200ms → 50ms after scrollIntoView
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             // Enter ymc mode
             await sendKey(pageWs, 'y');
@@ -304,8 +310,11 @@ describe('cmd_yank_table_columns', () => {
                 await sendKey(pageWs, char, 50);
             }
 
-            // Wait for clipboard update
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Opt-5: replaced fixed 500ms with waitFor polling for next state change
+            await waitFor(async () => {
+                const snap = await executeInTarget(pageWs, hintSnapshotScript);
+                return snap.found;
+            }, 1000, 50);
 
             // Hints should remain (multipleHits mode)
             const afterSnapshot = await executeInTarget(pageWs, hintSnapshotScript);
@@ -327,7 +336,11 @@ describe('cmd_yank_table_columns', () => {
                 await sendKey(pageWs, char, 50);
             }
 
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Opt-5: replaced fixed 300ms with waitFor polling for next state change
+            await waitFor(async () => {
+                const snap = await executeInTarget(pageWs, hintSnapshotScript);
+                return snap.found;
+            }, 1000, 50);
 
             // Hints should still be present
             const afterSnapshot = await executeInTarget(pageWs, hintSnapshotScript);
@@ -342,7 +355,8 @@ describe('cmd_yank_table_columns', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#simple')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Opt-6: reduced 200ms → 50ms after scrollIntoView
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             // Enter ymc mode
             await sendKey(pageWs, 'y');
@@ -359,17 +373,25 @@ describe('cmd_yank_table_columns', () => {
             for (const char of hints[0]) {
                 await sendKey(pageWs, char, 50);
             }
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Opt-5: replaced fixed 300ms with waitFor polling
+            await waitFor(async () => {
+                const snap = await executeInTarget(pageWs, hintSnapshotScript);
+                return snap.found;
+            }, 1000, 50);
 
             // Select second column (should be column B from simple table)
             for (const char of hints[1]) {
                 await sendKey(pageWs, char, 50);
             }
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Opt-5: replaced fixed 500ms with waitFor polling
+            await waitFor(async () => {
+                const snap = await executeInTarget(pageWs, hintSnapshotScript);
+                return snap.found;
+            }, 1000, 50);
 
             // Exit hints mode
             await sendKey(pageWs, 'Escape');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await waitForHintsCleared(pageWs);
 
             // Verify clipboard content structure (should have tab separator)
             // Note: Actual clipboard reading may not work in all environments
@@ -393,7 +415,11 @@ describe('cmd_yank_table_columns', () => {
                 for (const char of hints[i]) {
                     await sendKey(pageWs, char, 50);
                 }
-                await new Promise(resolve => setTimeout(resolve, 300));
+                // Opt-5: replaced fixed 300ms with waitFor polling
+                await waitFor(async () => {
+                    const snap = await executeInTarget(pageWs, hintSnapshotScript);
+                    return snap.found;
+                }, 1000, 50);
             }
 
             // Command should complete without error
@@ -416,7 +442,11 @@ describe('cmd_yank_table_columns', () => {
                 for (const char of hints[i]) {
                     await sendKey(pageWs, char, 50);
                 }
-                await new Promise(resolve => setTimeout(resolve, 300));
+                // Opt-5: replaced fixed 300ms with waitFor polling
+                await waitFor(async () => {
+                    const snap = await executeInTarget(pageWs, hintSnapshotScript);
+                    return snap.found;
+                }, 1000, 50);
             }
 
             // Command should complete without error
@@ -551,7 +581,8 @@ describe('cmd_yank_table_columns', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#employees')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Opt-6: reduced 200ms → 50ms after scrollIntoView
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await sendKey(pageWs, 'y');
             await sendKey(pageWs, 'm');
@@ -568,7 +599,8 @@ describe('cmd_yank_table_columns', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#products')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Opt-6: reduced 200ms → 50ms after scrollIntoView
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await sendKey(pageWs, 'y');
             await sendKey(pageWs, 'm');
@@ -584,7 +616,8 @@ describe('cmd_yank_table_columns', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#simple')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Opt-6: reduced 200ms → 50ms after scrollIntoView
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await sendKey(pageWs, 'y');
             await sendKey(pageWs, 'm');
@@ -626,12 +659,20 @@ describe('cmd_yank_table_columns', () => {
             for (const char of firstHint) {
                 await sendKey(pageWs, char, 50);
             }
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Opt-5: replaced fixed 300ms with waitFor polling
+            await waitFor(async () => {
+                const snap = await executeInTarget(pageWs, hintSnapshotScript);
+                return snap.found;
+            }, 1000, 50);
 
             for (const char of firstHint) {
                 await sendKey(pageWs, char, 50);
             }
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Opt-5: replaced fixed 300ms with waitFor polling
+            await waitFor(async () => {
+                const snap = await executeInTarget(pageWs, hintSnapshotScript);
+                return snap.found;
+            }, 1000, 50);
 
             // Should still work (will duplicate column in output)
             const afterSnapshot = await executeInTarget(pageWs, hintSnapshotScript);
@@ -646,7 +687,8 @@ describe('cmd_yank_table_columns', () => {
                 table.innerHTML = '<tr><td>A</td><td></td></tr><tr><td>B</td><td></td></tr>';
                 document.body.appendChild(table);
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Opt-7: reduced 200ms → 50ms after createElement/appendChild
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const secondColumn = await executeInTarget(pageWs, `
                 Array.from(document.querySelectorAll('#empty-test tr')).map(tr =>
@@ -703,7 +745,8 @@ describe('cmd_yank_table_columns', () => {
             // Should be able to use normal mode commands
             const scrollBefore = await executeInTarget(pageWs, 'window.scrollY');
             await sendKey(pageWs, 'j');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Opt-8: replaced fixed 200ms with waitFor polling for scroll change
+            await waitFor(async () => (await executeInTarget(pageWs, 'window.scrollY')) > scrollBefore, 2000, 50);
             const scrollAfter = await executeInTarget(pageWs, 'window.scrollY');
 
             expect(scrollAfter).toBeGreaterThan(scrollBefore);

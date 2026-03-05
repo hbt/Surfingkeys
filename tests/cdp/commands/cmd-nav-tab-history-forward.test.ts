@@ -31,9 +31,12 @@ import {
 import {
     sendKey,
     enableInputDomain,
-    waitForSurfingkeysReady
+    waitForSurfingkeysReady,
+    waitFor
 } from '../utils/browser-actions';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
+
+const COVERAGE_ENABLED = process.env.CDP_COVERAGE !== '0';
 import { CDP_PORT } from '../cdp-config';
 
 /**
@@ -97,7 +100,10 @@ describe('cmd_nav_tab_history_forward', () => {
         for (let i = 0; i < 5; i++) {
             const tabId = await createTab(bgWs, FIXTURE_URL, i === 4); // Make last tab active
             tabIds.push(tabId);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await waitFor(async () => {
+                const t = await getActiveTab(bgWs);
+                return t !== null;
+            }, 2000, 50);
         }
 
         // Connect to the active tab's content page
@@ -125,26 +131,26 @@ describe('cmd_nav_tab_history_forward', () => {
         // History will be: tab0 -> tab1 -> tab2 -> tab3 -> tab4 (current)
         console.log('\n=== Building tab activation history ===');
 
-        // Activate tabs in sequence
+        // Activate tabs in sequence — poll for each switch instead of fixed sleeps
         await activateTab(bgWs, tabIds[0]);
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await waitFor(async () => (await getActiveTab(bgWs))?.id === tabIds[0], 2000, 50);
         console.log(`Activated tab 0 (id: ${tabIds[0]})`);
 
         await activateTab(bgWs, tabIds[1]);
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await waitFor(async () => (await getActiveTab(bgWs))?.id === tabIds[1], 2000, 50);
         console.log(`Activated tab 1 (id: ${tabIds[1]})`);
 
         await activateTab(bgWs, tabIds[2]);
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await waitFor(async () => (await getActiveTab(bgWs))?.id === tabIds[2], 2000, 50);
         console.log(`Activated tab 2 (id: ${tabIds[2]})`);
 
         await activateTab(bgWs, tabIds[3]);
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await waitFor(async () => (await getActiveTab(bgWs))?.id === tabIds[3], 2000, 50);
         console.log(`Activated tab 3 (id: ${tabIds[3]})`);
 
         // Finally activate tab 4 (current tab)
         await activateTab(bgWs, tabIds[4]);
-        await new Promise(resolve => setTimeout(resolve, 600));
+        await waitFor(async () => (await getActiveTab(bgWs))?.id === tabIds[4], 2000, 50);
         console.log(`Activated tab 4 (id: ${tabIds[4]})`);
 
         // Now go back twice to create a forward history
@@ -165,11 +171,12 @@ describe('cmd_nav_tab_history_forward', () => {
             id: 999,
             method: 'Runtime.enable'
         }));
-        await waitForSurfingkeysReady(pageWs);
+        // Page is already loaded from beforeAll — no need to wait for SK to re-inject
 
-        // Go back once (tab4 -> tab3)
+        // Go back once (tab4 -> tab3) — poll for tab switch instead of fixed sleep
+        const tabBeforeFirstB = await getActiveTab(bgWs);
         await sendKey(pageWs, 'B');
-        await new Promise(resolve => setTimeout(resolve, 600));
+        await waitFor(async () => (await getActiveTab(bgWs))?.id !== tabBeforeFirstB.id, 2000, 50);
         const afterFirstB = await getActiveTab(bgWs);
         console.log(`After first B: active tab index ${afterFirstB.index}, id ${afterFirstB.id}`);
 
@@ -186,11 +193,12 @@ describe('cmd_nav_tab_history_forward', () => {
             id: 999,
             method: 'Runtime.enable'
         }));
-        await waitForSurfingkeysReady(pageWs);
+        // Page is already loaded — no need to wait for SK to re-inject
 
-        // Go back again (tab3 -> tab2)
+        // Go back again (tab3 -> tab2) — poll for tab switch instead of fixed sleep
+        const tabBeforeSecondB = await getActiveTab(bgWs);
         await sendKey(pageWs, 'B');
-        await new Promise(resolve => setTimeout(resolve, 600));
+        await waitFor(async () => (await getActiveTab(bgWs))?.id !== tabBeforeSecondB.id, 2000, 50);
         const afterSecondB = await getActiveTab(bgWs);
         console.log(`After second B: active tab index ${afterSecondB.index}, id ${afterSecondB.id}`);
 
@@ -212,16 +220,20 @@ describe('cmd_nav_tab_history_forward', () => {
             id: 999,
             method: 'Runtime.enable'
         }));
-        await waitForSurfingkeysReady(pageWs);
+        // Page is already loaded — no need to wait for SK to re-inject
 
         // Capture test name and coverage
         const state = expect.getState();
         currentTestName = state.currentTestName || 'unknown-test';
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        if (COVERAGE_ENABLED) {
+            beforeCovData = await captureBeforeCoverage(pageWs);
+        }
     });
 
     afterEach(async () => {
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (COVERAGE_ENABLED) {
+            await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        }
     });
 
     afterAll(async () => {
@@ -254,15 +266,8 @@ describe('cmd_nav_tab_history_forward', () => {
         await sendKey(pageWs, 'F');
 
         // Poll for tab switch
-        let afterF = null;
-        for (let i = 0; i < 20; i++) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const currentTab = await getActiveTab(bgWs);
-            if (currentTab.id !== initialTab.id) {
-                afterF = currentTab;
-                break;
-            }
-        }
+        await waitFor(async () => (await getActiveTab(bgWs))?.id !== initialTab.id, 2000, 50);
+        const afterF = await getActiveTab(bgWs);
 
         expect(afterF).not.toBeNull();
         console.log(`After F: index ${afterF.index}, id ${afterF.id}`);
@@ -284,15 +289,8 @@ describe('cmd_nav_tab_history_forward', () => {
         await sendKey(pageWs, 'F');
 
         // Poll for first tab switch
-        let afterFirstF = null;
-        for (let i = 0; i < 20; i++) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const currentTab = await getActiveTab(bgWs);
-            if (currentTab.id !== initialTab.id) {
-                afterFirstF = currentTab;
-                break;
-            }
-        }
+        await waitFor(async () => (await getActiveTab(bgWs))?.id !== initialTab.id, 2000, 50);
+        const afterFirstF = await getActiveTab(bgWs);
 
         expect(afterFirstF).not.toBeNull();
         expect(afterFirstF.id).toBe(tabIds[3]);
@@ -308,15 +306,8 @@ describe('cmd_nav_tab_history_forward', () => {
         await sendKey(newPageWs, 'F');
 
         // Poll for second tab switch
-        let afterSecondF = null;
-        for (let i = 0; i < 20; i++) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const currentTab = await getActiveTab(bgWs);
-            if (currentTab.id !== afterFirstF.id) {
-                afterSecondF = currentTab;
-                break;
-            }
-        }
+        await waitFor(async () => (await getActiveTab(bgWs))?.id !== afterFirstF.id, 2000, 50);
+        const afterSecondF = await getActiveTab(bgWs);
 
         expect(afterSecondF).not.toBeNull();
         expect(afterSecondF.id).toBe(tabIds[4]);
@@ -341,15 +332,8 @@ describe('cmd_nav_tab_history_forward', () => {
         await sendKey(pageWs, 'F');
 
         // Poll for tab switch
-        let afterTwoF = null;
-        for (let i = 0; i < 50; i++) {
-            await new Promise(resolve => setTimeout(resolve, 200));
-            const currentTab = await getActiveTab(bgWs);
-            if (currentTab && currentTab.id !== initialTab.id) {
-                afterTwoF = currentTab;
-                break;
-            }
-        }
+        await waitFor(async () => (await getActiveTab(bgWs))?.id !== initialTab.id, 10000, 50);
+        const afterTwoF = await getActiveTab(bgWs);
 
         expect(afterTwoF).not.toBeNull();
         console.log(`After 2F: index ${afterTwoF.index}, id ${afterTwoF.id}`);
@@ -370,15 +354,8 @@ describe('cmd_nav_tab_history_forward', () => {
         await sendKey(pageWs, 'F');
 
         // Poll for tab switch to tab3
-        let afterF = null;
-        for (let i = 0; i < 20; i++) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const currentTab = await getActiveTab(bgWs);
-            if (currentTab.id !== initialTab.id) {
-                afterF = currentTab;
-                break;
-            }
-        }
+        await waitFor(async () => (await getActiveTab(bgWs))?.id !== initialTab.id, 2000, 50);
+        const afterF = await getActiveTab(bgWs);
 
         expect(afterF).not.toBeNull();
         expect(afterF.id).toBe(tabIds[3]);
@@ -394,15 +371,8 @@ describe('cmd_nav_tab_history_forward', () => {
         await sendKey(newPageWs, 'B');
 
         // Poll for tab switch back to tab2
-        let afterB = null;
-        for (let i = 0; i < 20; i++) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const currentTab = await getActiveTab(bgWs);
-            if (currentTab.id !== afterF.id) {
-                afterB = currentTab;
-                break;
-            }
-        }
+        await waitFor(async () => (await getActiveTab(bgWs))?.id !== afterF.id, 2000, 50);
+        const afterB = await getActiveTab(bgWs);
 
         expect(afterB).not.toBeNull();
         expect(afterB.id).toBe(tabIds[2]);
@@ -424,8 +394,8 @@ describe('cmd_nav_tab_history_forward', () => {
         // Send F command
         await sendKey(pageWs, 'F');
 
-        // Wait for command processing
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Poll until command is processed (tab may or may not switch)
+        await waitFor(async () => (await getActiveTab(bgWs)) !== null, 1500, 50);
 
         // Verify browser is still in a valid state
         const afterF = await getActiveTab(bgWs);

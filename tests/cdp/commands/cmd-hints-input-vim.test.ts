@@ -49,6 +49,8 @@ import {
 } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
+const COVERAGE_ENABLED = process.env.CDP_COVERAGE !== '0';
+
 describe('cmd_hints_input_vim', () => {
     jest.setTimeout(60000);
 
@@ -171,9 +173,7 @@ describe('cmd_hints_input_vim', () => {
         // Press Escape multiple times to ensure editor closure
         // The editor might require multiple escapes depending on its state
         await sendKey(pageWs, 'Escape');
-        await new Promise(resolve => setTimeout(resolve, 100));
         await sendKey(pageWs, 'Escape');
-        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Wait for editor to be hidden
         await waitFor(async () => {
@@ -217,7 +217,9 @@ describe('cmd_hints_input_vim', () => {
         currentTestName = state.currentTestName || 'unknown-test';
 
         // Capture coverage snapshot before test
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        if (COVERAGE_ENABLED) {
+            beforeCovData = await captureBeforeCoverage(pageWs);
+        }
     });
 
     afterEach(async () => {
@@ -234,13 +236,11 @@ describe('cmd_hints_input_vim', () => {
         }
 
         try {
-            // Press Escape MANY times to close any editors, modals, or hints
-            // The vim editor requires Escape to close, and we need to ensure it's fully closed
-            // Multiple presses handle nested modals and ensure propagation to frontend iframe
-            for (let i = 0; i < 5; i++) {
-                await sendKey(pageWs, 'Escape');
-                await new Promise(resolve => setTimeout(resolve, 150));
-            }
+            // Press Escape twice to close any editors, modals, or hints
+            await sendKey(pageWs, 'Escape');
+            await sendKey(pageWs, 'Escape');
+            await waitForHintsCleared();
+            await executeInTarget(pageWs, `document.querySelectorAll('.surfingkeys_hints_host').forEach(h => h.remove());`);
 
             // CRITICAL: Blur any focused input element and reset Surfingkeys state
             // After selecting a hint, the input remains focused which prevents new hints from being created
@@ -265,17 +265,17 @@ describe('cmd_hints_input_vim', () => {
                     }
                 })()
             `);
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Click on page body to ensure focus is reset
             await clickAt(pageWs, 100, 100);
-            await new Promise(resolve => setTimeout(resolve, 300));
         } catch (e) {
             // Ignore errors during cleanup
         }
 
         // Capture coverage snapshot after test and calculate delta
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (COVERAGE_ENABLED) {
+            await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        }
     });
 
     afterAll(async () => {
@@ -619,7 +619,11 @@ describe('cmd_hints_input_vim', () => {
             // Type first character of hint
             if (firstHint && firstHint.length > 0) {
                 await sendKey(pageWs, firstHint[0]);
-                await new Promise(resolve => setTimeout(resolve, 200));
+                // Poll until hint count changes (filtering applied) or hints cleared
+                await waitFor(async () => {
+                    const snap = await fetchHintSnapshot();
+                    return !snap.found || snap.count < initialCount;
+                }, 3000, 50);
 
                 const filteredSnapshot = await fetchHintSnapshot();
 

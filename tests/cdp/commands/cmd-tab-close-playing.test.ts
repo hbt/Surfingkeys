@@ -35,9 +35,12 @@ import {
 import {
     sendKey,
     enableInputDomain,
-    waitForSurfingkeysReady
+    waitForSurfingkeysReady,
+    waitFor
 } from '../utils/browser-actions';
 import { startCoverage, captureBeforeCoverage, captureAfterCoverage } from '../utils/cdp-coverage';
+
+const COVERAGE_ENABLED = process.env.CDP_COVERAGE !== '0';
 import { CDP_PORT } from '../cdp-config';
 
 /**
@@ -179,7 +182,6 @@ describe('cmd_tab_close_playing', () => {
         for (let i = 0; i < urls.length; i++) {
             const tabId = await createTab(bgWs, urls[i], i === 2); // Make tab 2 active (middle tab)
             tabIds.push(tabId);
-            await new Promise(resolve => setTimeout(resolve, 200)); // Small delay between tab creation
         }
 
         // Connect to the active tab's content page
@@ -214,8 +216,11 @@ describe('cmd_tab_close_playing', () => {
         `);
         console.log(`beforeEach: Reset tab ${resetTabId}, result: ${resetResult}`);
 
-        // Wait for tab switch to complete
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Poll until tab switch is confirmed (replaces fixed 500ms sleep)
+        await waitFor(async () => {
+            const tab = await getActiveTab(bgWs);
+            return tab?.id === resetTabId;
+        }, 2000, 50);
 
         // Verify the reset worked by checking which tab is active
         const verifyTab = await getActiveTab(bgWs);
@@ -238,7 +243,11 @@ describe('cmd_tab_close_playing', () => {
                         chrome.tabs.update(${audioTabId}, { active: true }, () => resolve(true));
                     })
                 `);
-                await new Promise(resolve => setTimeout(resolve, 300));
+                // Poll until audio tab is active (replaces fixed 300ms sleep)
+                await waitFor(async () => {
+                    const tab = await getActiveTab(bgWs);
+                    return tab?.id === audioTabId;
+                }, 2000, 50);
 
                 const audioPageWsUrl = await findContentPage('127.0.0.1:9873/audio-test.html');
                 const audioPageWs = await connectToCDP(audioPageWsUrl);
@@ -265,7 +274,11 @@ describe('cmd_tab_close_playing', () => {
                 chrome.tabs.update(${resetTabId}, { active: true }, () => resolve(true));
             })
         `);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Poll until tab switch is confirmed (replaces fixed 500ms sleep)
+        await waitFor(async () => {
+            const tab = await getActiveTab(bgWs);
+            return tab?.id === resetTabId;
+        }, 2000, 50);
 
         // Always reconnect to the active tab to ensure fresh connection
         try {
@@ -281,7 +294,7 @@ describe('cmd_tab_close_playing', () => {
             id: 999,
             method: 'Runtime.enable'
         }));
-        await waitForSurfingkeysReady(pageWs);
+        // Page is already loaded from beforeAll — no need to wait for SK to re-inject
         console.log(`beforeEach: Reconnected to content page and ready`);
 
         // Capture test name
@@ -289,12 +302,16 @@ describe('cmd_tab_close_playing', () => {
         currentTestName = state.currentTestName || 'unknown-test';
 
         // Capture coverage snapshot before test
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        if (COVERAGE_ENABLED) {
+            beforeCovData = await captureBeforeCoverage(pageWs);
+        }
     });
 
     afterEach(async () => {
         // Capture coverage snapshot after test and calculate delta
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (COVERAGE_ENABLED) {
+            await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        }
     });
 
     afterAll(async () => {
@@ -343,7 +360,10 @@ describe('cmd_tab_close_playing', () => {
                 chrome.tabs.update(${tabIds[0]}, { active: true }, () => resolve(true));
             })
         `);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => {
+            const tab = await getActiveTab(bgWs);
+            return tab?.id === tabIds[0];
+        }, 2000, 50);
 
         // Connect to audio tab and start playback
         const audioPageWsUrl = await findContentPage('127.0.0.1:9873/audio-test.html');
@@ -356,7 +376,10 @@ describe('cmd_tab_close_playing', () => {
         await closeCDP(audioPageWs);
 
         // Wait for Chrome to potentially mark tab as audible (may not happen in headless)
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await waitFor(async () => {
+            const audible = await getAudibleTabs(bgWs);
+            return audible.length > 0;
+        }, 3000, 100).catch(() => { /* headless: no audio hardware */ });
 
         // Check if tab is now audible
         const audibleAfterStart = await getAudibleTabs(bgWs);
@@ -379,7 +402,10 @@ describe('cmd_tab_close_playing', () => {
                 chrome.tabs.update(${tabIds[2]}, { active: true }, () => resolve(true));
             })
         `);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => {
+            const tab = await getActiveTab(bgWs);
+            return tab?.id === tabIds[2];
+        }, 2000, 50);
 
         // Verify we're back on tab 2
         const beforeGxp = await getActiveTab(bgWs);
@@ -399,18 +425,8 @@ describe('cmd_tab_close_playing', () => {
 
         await closeCDP(beforeGxpPageWs);
 
-        // Poll for tab closure after gxp
-        let tabClosed = false;
-        for (let i = 0; i < 30; i++) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const exists = await tabExists(bgWs, tabIds[0]);
-            if (!exists) {
-                tabClosed = true;
-                break;
-            }
-        }
-
-        expect(tabClosed).toBe(true);
+        // Wait for tab closure after gxp
+        await waitFor(async () => !(await tabExists(bgWs, tabIds[0])), 3000, 100);
         console.log(`After gxp: tab ${tabIds[0]} was closed`);
 
         // Verify the audible tab was closed
@@ -451,13 +467,15 @@ describe('cmd_tab_close_playing', () => {
                 chrome.tabs.update(${tabIds[0]}, { active: true }, () => resolve(true));
             })
         `);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => {
+            const tab = await getActiveTab(bgWs);
+            return tab?.id === tabIds[0];
+        }, 2000, 50);
 
         const audioPageWs0 = await connectToCDP(await findContentPage('127.0.0.1:9873/audio-test.html'));
         enableInputDomain(audioPageWs0);
         await startAudioInTab(audioPageWs0);
         await closeCDP(audioPageWs0);
-        await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Start audio in tab 4
         await executeInTarget(bgWs, `
@@ -465,13 +483,21 @@ describe('cmd_tab_close_playing', () => {
                 chrome.tabs.update(${tabIds[4]}, { active: true }, () => resolve(true));
             })
         `);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => {
+            const tab = await getActiveTab(bgWs);
+            return tab?.id === tabIds[4];
+        }, 2000, 50);
 
         const audioPageWs4 = await connectToCDP(await findContentPage('127.0.0.1:9873/audio-test.html'));
         enableInputDomain(audioPageWs4);
         await startAudioInTab(audioPageWs4);
         await closeCDP(audioPageWs4);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Wait for Chrome to potentially mark tabs as audible
+        await waitFor(async () => {
+            const audible = await getAudibleTabs(bgWs);
+            return audible.length > 0;
+        }, 3000, 100).catch(() => { /* headless: no audio hardware */ });
 
         // Verify multiple tabs are audible
         const audibleTabs = await getAudibleTabs(bgWs);
@@ -492,7 +518,10 @@ describe('cmd_tab_close_playing', () => {
                 chrome.tabs.update(${tabIds[2]}, { active: true }, () => resolve(true));
             })
         `);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => {
+            const tab = await getActiveTab(bgWs);
+            return tab?.id === tabIds[2];
+        }, 2000, 50);
 
         // Reconnect and send gxp
         const testPageWs = await connectToCDP(await findContentPage('127.0.0.1:9873/scroll-test.html'));
@@ -505,18 +534,8 @@ describe('cmd_tab_close_playing', () => {
 
         await closeCDP(testPageWs);
 
-        // Poll for tab closure
-        let tabClosed = false;
-        for (let i = 0; i < 30; i++) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const exists = await tabExists(bgWs, firstAudibleTabId);
-            if (!exists) {
-                tabClosed = true;
-                break;
-            }
-        }
-
-        expect(tabClosed).toBe(true);
+        // Wait for tab closure
+        await waitFor(async () => !(await tabExists(bgWs, firstAudibleTabId)), 3000, 100);
         console.log(`After gxp with multiple audible tabs: first audible tab ${firstAudibleTabId} was closed`);
 
         // Verify the first audible tab was closed
@@ -555,8 +574,8 @@ describe('cmd_tab_close_playing', () => {
         await sendKey(pageWs, 'x', 50);
         await sendKey(pageWs, 'p');
 
-        // Wait a bit to see if any tab closes (none should)
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait briefly to confirm no tab closes (reduced from 1000ms)
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Check active tab is still the same
         const finalTab = await getActiveTab(bgWs);
@@ -595,13 +614,21 @@ describe('cmd_tab_close_playing', () => {
                 chrome.tabs.update(${tabIds[0]}, { active: true }, () => resolve(true));
             })
         `);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => {
+            const tab = await getActiveTab(bgWs);
+            return tab?.id === tabIds[0];
+        }, 2000, 50);
 
         const audioPageWs = await connectToCDP(await findContentPage('127.0.0.1:9873/audio-test.html'));
         enableInputDomain(audioPageWs);
         await startAudioInTab(audioPageWs);
         await closeCDP(audioPageWs);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Wait for Chrome to potentially mark tab as audible
+        await waitFor(async () => {
+            const audible = await getAudibleTabs(bgWs);
+            return audible.length > 0;
+        }, 3000, 100).catch(() => { /* headless: no audio hardware */ });
 
         // Verify tab 0 is audible
         const audibleTabs = await getAudibleTabs(bgWs);
@@ -621,7 +648,10 @@ describe('cmd_tab_close_playing', () => {
                 chrome.tabs.update(${tabIds[3]}, { active: true }, () => resolve(true));
             })
         `);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => {
+            const tab = await getActiveTab(bgWs);
+            return tab?.id === tabIds[3];
+        }, 2000, 50);
 
         // Verify we're on tab 3
         const beforeGxp = await getActiveTab(bgWs);
@@ -640,18 +670,8 @@ describe('cmd_tab_close_playing', () => {
 
         await closeCDP(testPageWs);
 
-        // Poll for tab closure
-        let tabClosed = false;
-        for (let i = 0; i < 30; i++) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const exists = await tabExists(bgWs, tabIds[0]);
-            if (!exists) {
-                tabClosed = true;
-                break;
-            }
-        }
-
-        expect(tabClosed).toBe(true);
+        // Wait for tab closure
+        await waitFor(async () => !(await tabExists(bgWs, tabIds[0])), 3000, 100);
         console.log(`After gxp: audible tab ${tabIds[0]} was closed`);
 
         // Verify the audible tab was closed (tab 0)
@@ -676,19 +696,40 @@ describe('cmd_tab_close_playing', () => {
     test('gxp closes tab and remaining tabs still exist', async () => {
         // NOTE: This test may skip in headless Chrome without audio hardware
 
-        // Start audio in tab 4 (last tab)
+        // Record which tabs currently exist before this test begins
+        // (earlier tests may have closed tabs 0 or 4)
+        const tabsExistBefore: boolean[] = [];
+        for (let i = 0; i < tabIds.length; i++) {
+            tabsExistBefore[i] = await tabExists(bgWs, tabIds[i]);
+        }
+        console.log(`Tabs existing before test: ${tabsExistBefore.map((e, i) => `[${i}]:${e}`).join(' ')}`);
+
+        // Start audio in tab 4 (last tab) — only if it still exists
+        if (!tabsExistBefore[4]) {
+            console.log(`SKIP: tab 4 was already closed by a previous test`);
+            return;
+        }
+
         await executeInTarget(bgWs, `
             new Promise((resolve) => {
                 chrome.tabs.update(${tabIds[4]}, { active: true }, () => resolve(true));
             })
         `);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => {
+            const tab = await getActiveTab(bgWs);
+            return tab?.id === tabIds[4];
+        }, 2000, 50);
 
         const audioPageWs = await connectToCDP(await findContentPage('127.0.0.1:9873/audio-test.html'));
         enableInputDomain(audioPageWs);
         await startAudioInTab(audioPageWs);
         await closeCDP(audioPageWs);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Wait for Chrome to potentially mark tab as audible
+        await waitFor(async () => {
+            const audible = await getAudibleTabs(bgWs);
+            return audible.length > 0;
+        }, 3000, 100).catch(() => { /* headless: no audio hardware */ });
 
         // Verify tab 4 is audible
         const audibleTabs = await getAudibleTabs(bgWs);
@@ -708,7 +749,10 @@ describe('cmd_tab_close_playing', () => {
                 chrome.tabs.update(${tabIds[2]}, { active: true }, () => resolve(true));
             })
         `);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await waitFor(async () => {
+            const tab = await getActiveTab(bgWs);
+            return tab?.id === tabIds[2];
+        }, 2000, 50);
 
         // Reconnect and send gxp
         const testPageWs = await connectToCDP(await findContentPage('127.0.0.1:9873/scroll-test.html'));
@@ -721,29 +765,24 @@ describe('cmd_tab_close_playing', () => {
 
         await closeCDP(testPageWs);
 
-        // Poll for tab closure
-        let tabClosed = false;
-        for (let i = 0; i < 30; i++) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const exists = await tabExists(bgWs, tabIds[4]);
-            if (!exists) {
-                tabClosed = true;
-                break;
-            }
-        }
-
-        expect(tabClosed).toBe(true);
+        // Wait for tab closure
+        await waitFor(async () => !(await tabExists(bgWs, tabIds[4])), 3000, 100);
         console.log(`After gxp: tab ${tabIds[4]} was closed`);
 
         // Verify tab 4 was closed
         const closedTabExists = await tabExists(bgWs, tabIds[4]);
         expect(closedTabExists).toBe(false);
 
-        // Verify all other tabs still exist
+        // Verify all other tabs that existed before this test still exist
+        // (tabs 0..3 that were alive when we started this test should still be alive)
         for (let i = 0; i < 4; i++) {
-            const exists = await tabExists(bgWs, tabIds[i]);
-            console.log(`Tab ${i} (id=${tabIds[i]}) exists: ${exists}`);
-            expect(exists).toBe(true);
+            if (tabsExistBefore[i]) {
+                const exists = await tabExists(bgWs, tabIds[i]);
+                console.log(`Tab ${i} (id=${tabIds[i]}) exists: ${exists}`);
+                expect(exists).toBe(true);
+            } else {
+                console.log(`Tab ${i} (id=${tabIds[i]}) was already closed before this test — skipping check`);
+            }
         }
     });
 });

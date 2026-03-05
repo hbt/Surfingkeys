@@ -48,6 +48,8 @@ import {
 } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
+const COVERAGE_ENABLED = process.env.CDP_COVERAGE !== '0';
+
 describe('cmd_hints_copy_text', () => {
     jest.setTimeout(60000);
 
@@ -149,8 +151,6 @@ describe('cmd_hints_copy_text', () => {
     }
 
     async function waitForRegionalMenu() {
-        await new Promise(resolve => setTimeout(resolve, 300));
-
         await waitFor(async () => {
             const menuSnapshot = await fetchRegionalMenuSnapshot();
             return menuSnapshot.visible && menuSnapshot.menuItems.length > 0;
@@ -184,10 +184,7 @@ describe('cmd_hints_copy_text', () => {
             await sendKey(pageWs, char, 50);
         }
 
-        // Wait a bit for regionalHints.attach() to be called
-        // Note: Menu may not be reliably detectable in headless mode
-        await new Promise(resolve => setTimeout(resolve, 500));
-
+        // Callers use waitForHintsCleared() which already polls
         return firstHint;
     }
 
@@ -226,28 +223,30 @@ describe('cmd_hints_copy_text', () => {
         currentTestName = state.currentTestName || 'unknown-test';
 
         // Capture coverage snapshot before test
-        beforeCovData = await captureBeforeCoverage(pageWs);
+        if (COVERAGE_ENABLED) {
+            beforeCovData = await captureBeforeCoverage(pageWs);
+        }
 
         // Scroll to top to ensure consistent element positions
         await executeInTarget(pageWs, 'window.scrollTo(0, 0);');
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // scroll is synchronous — no delay needed
     });
 
     afterEach(async () => {
         // Clear any hints left over from test
-        for (let i = 0; i < 4; i++) {
-            await sendKey(pageWs, 'Escape');
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        await sendKey(pageWs, 'Escape');
+        await sendKey(pageWs, 'Escape');
+        await waitForHintsCleared();
 
         // Force clean up any lingering hints hosts
         await executeInTarget(pageWs, `
             document.querySelectorAll('.surfingkeys_hints_host').forEach(h => h.remove());
         `);
-        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Capture coverage snapshot after test
-        await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        if (COVERAGE_ENABLED) {
+            await captureAfterCoverage(pageWs, currentTestName, beforeCovData);
+        }
     });
 
     afterAll(async () => {
@@ -320,7 +319,6 @@ describe('cmd_hints_copy_text', () => {
             // Press 'ct' to copy text
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Command should execute (hints should be cleared)
             await waitForHintsCleared();
@@ -347,7 +345,6 @@ describe('cmd_hints_copy_text', () => {
             // Execute ct command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Verify command completed by checking hints are cleared
             await waitForHintsCleared();
@@ -362,7 +359,7 @@ describe('cmd_hints_copy_text', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#line1')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             // Get the expected text
             const expectedText = await executeInTarget(pageWs, `
@@ -374,9 +371,9 @@ describe('cmd_hints_copy_text', () => {
             // Execute ct command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Verify command executed
+            await waitForHintsCleared();
             const snapshot = await fetchRegionalHintSnapshot();
             expect(snapshot.count).toBe(0);
 
@@ -390,7 +387,7 @@ describe('cmd_hints_copy_text', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#link-line')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             // Get innerText (should not contain HTML tags)
             const innerText = await executeInTarget(pageWs, `
@@ -407,9 +404,9 @@ describe('cmd_hints_copy_text', () => {
             // Execute ct command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Should complete without error
+            await waitForHintsCleared();
             const snapshot = await fetchRegionalHintSnapshot();
             expect(snapshot.count).toBe(0);
         });
@@ -419,7 +416,7 @@ describe('cmd_hints_copy_text', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#line7')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const innerText = await executeInTarget(pageWs, `
                 document.querySelector('#line7')?.innerText || ''
@@ -433,9 +430,9 @@ describe('cmd_hints_copy_text', () => {
             // Execute ct command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Should complete without error
+            await waitForHintsCleared();
             const snapshot = await fetchRegionalHintSnapshot();
             expect(snapshot.count).toBe(0);
         });
@@ -445,7 +442,7 @@ describe('cmd_hints_copy_text', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#line8')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const innerText = await executeInTarget(pageWs, `
                 document.querySelector('#line8')?.innerText || ''
@@ -458,9 +455,9 @@ describe('cmd_hints_copy_text', () => {
             // Execute ct command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Should complete without error
+            await waitForHintsCleared();
             const snapshot = await fetchRegionalHintSnapshot();
             expect(snapshot.count).toBe(0);
         });
@@ -472,7 +469,7 @@ describe('cmd_hints_copy_text', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#link-line')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const innerText = await executeInTarget(pageWs, `
                 document.querySelector('#link-line')?.innerText || ''
@@ -490,9 +487,9 @@ describe('cmd_hints_copy_text', () => {
             // Execute ct command (copies innerText, not innerHTML)
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Should complete without error
+            await waitForHintsCleared();
             const snapshot = await fetchRegionalHintSnapshot();
             expect(snapshot.count).toBe(0);
         });
@@ -506,7 +503,7 @@ describe('cmd_hints_copy_text', () => {
                 document.body.appendChild(div);
             `);
 
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const innerText = await executeInTarget(pageWs, `
                 document.querySelector('#test-formatted')?.innerText || ''
@@ -523,9 +520,9 @@ describe('cmd_hints_copy_text', () => {
             // Execute ct command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Should complete without error
+            await waitForHintsCleared();
             const snapshot = await fetchRegionalHintSnapshot();
             expect(snapshot.count).toBe(0);
 
@@ -548,7 +545,7 @@ describe('cmd_hints_copy_text', () => {
             // Should be able to use normal mode commands
             const scrollBefore = await executeInTarget(pageWs, 'window.scrollY');
             await sendKey(pageWs, 'j');
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await waitFor(async () => (await executeInTarget(pageWs, 'window.scrollY')) > scrollBefore, 2000, 50);
             const scrollAfter = await executeInTarget(pageWs, 'window.scrollY');
 
             expect(scrollAfter).toBeGreaterThan(scrollBefore);
@@ -588,16 +585,16 @@ describe('cmd_hints_copy_text', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#line4')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await enterRegionalHintsAndSelectFirst();
 
             // Execute ct command (should copy empty string)
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Should complete without error
+            await waitForHintsCleared();
             const snapshot = await fetchRegionalHintSnapshot();
             expect(snapshot.count).toBe(0);
         });
@@ -611,16 +608,16 @@ describe('cmd_hints_copy_text', () => {
                 document.body.appendChild(div);
             `);
 
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await enterRegionalHintsAndSelectFirst();
 
             // Execute ct command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Should complete without error
+            await waitForHintsCleared();
             const snapshot = await fetchRegionalHintSnapshot();
             expect(snapshot.count).toBe(0);
 
@@ -662,16 +659,16 @@ describe('cmd_hints_copy_text', () => {
                 document.body.appendChild(div);
             `);
 
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             await enterRegionalHintsAndSelectFirst();
 
             // Execute ct command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Should complete without error
+            await waitForHintsCleared();
             const snapshot = await fetchRegionalHintSnapshot();
             expect(snapshot.count).toBe(0);
 
@@ -689,7 +686,6 @@ describe('cmd_hints_copy_text', () => {
             // Execute ct command (triggers clipboard.write in hints.js)
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             // Verify command completed (hints cleared)
             await waitForHintsCleared();
@@ -702,7 +698,7 @@ describe('cmd_hints_copy_text', () => {
             await executeInTarget(pageWs, `
                 document.querySelector('#line2')?.scrollIntoView();
             `);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const originalText = await executeInTarget(pageWs, `
                 document.querySelector('#line2')?.innerText || ''
@@ -713,7 +709,7 @@ describe('cmd_hints_copy_text', () => {
             // Execute ct command
             await sendKey(pageWs, 'c');
             await sendKey(pageWs, 't');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await waitForHintsCleared();
 
             // Verify original text was extracted
             expect(originalText).toBeTruthy();
