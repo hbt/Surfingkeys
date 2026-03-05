@@ -17,6 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { retryFailedTests } = require('../lib/test-utils');
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
 const TESTS_DIR = path.join(PROJECT_ROOT, 'tests/cdp');
@@ -91,7 +92,10 @@ function generateAggregateStats(testResults) {
         totalAssertions: 0,
         totalDuration: 0,
         successCount: 0,
-        failureCount: 0
+        failureCount: 0,
+        retriedTestsCount: 0,
+        retriedPassedCount: 0,
+        retriedStillFailingCount: 0
     };
 
     testResults.forEach(tr => {
@@ -107,6 +111,16 @@ function generateAggregateStats(testResults) {
             stats.totalDuration += result.duration || 0;
         } else {
             stats.failureCount++;
+        }
+
+        // Track retry statistics
+        if (tr.retries && tr.retries.length > 0) {
+            stats.retriedTestsCount++;
+            if (tr.flaky) {
+                stats.retriedPassedCount++;
+            } else {
+                stats.retriedStillFailingCount++;
+            }
         }
     });
 
@@ -132,7 +146,12 @@ function createConciseSummary(testResults, stats, aggregateReportFile, aggregate
             totalSkipped: stats.totalSkipped,
             totalSlow: stats.totalSlow,
             totalAssertions: stats.totalAssertions,
-            totalDuration: stats.totalDuration
+            totalDuration: stats.totalDuration,
+            retries: {
+                retriedTestsCount: stats.retriedTestsCount,
+                retriedPassedCount: stats.retriedPassedCount,
+                retriedStillFailingCount: stats.retriedStillFailingCount
+            }
         },
         testSummaries: testResults.map(tr => ({
             file: tr.testFile,
@@ -146,9 +165,11 @@ function createConciseSummary(testResults, stats, aggregateReportFile, aggregate
                 duration: tr.result.duration,
                 reportFile: tr.result.reportFile,
                 diagnosticsFile: tr.result.diagnosticsFile,
-                ...(tr.result.headlessLogFile ? { headlessLogFile: tr.result.headlessLogFile } : {})
+                ...(tr.result.headlessLogFile ? { headlessLogFile: tr.result.headlessLogFile } : {}),
+                ...(tr.retries ? { retries: tr.retries, flaky: tr.flaky || false } : {})
             } : {
-                error: tr.error
+                error: tr.error,
+                ...(tr.retries ? { retries: tr.retries, flaky: tr.flaky || false } : {})
             })
         })),
         aggregateReportFile,
@@ -175,7 +196,12 @@ function createAggregateReport(testResults, stats, timestamp) {
             totalSkipped: stats.totalSkipped,
             totalSlow: stats.totalSlow,
             totalAssertions: stats.totalAssertions,
-            totalDuration: stats.totalDuration
+            totalDuration: stats.totalDuration,
+            retries: {
+                retriedTestsCount: stats.retriedTestsCount,
+                retriedPassedCount: stats.retriedPassedCount,
+                retriedStillFailingCount: stats.retriedStillFailingCount
+            }
         },
         details: {
             overallSuccess: stats.failureCount === 0 && stats.totalFailed === 0,
@@ -185,7 +211,8 @@ function createAggregateReport(testResults, stats, timestamp) {
             file: tr.testFile,
             success: tr.success,
             result: tr.result,
-            error: tr.error || null
+            error: tr.error || null,
+            ...(tr.retries ? { retries: tr.retries, flaky: tr.flaky || false } : {})
         })),
         timestamp
     };
@@ -211,11 +238,15 @@ async function run(args) {
         }
 
         // Run each test and collect results
-        const testResults = [];
+        let testResults = [];
         for (const testFile of testFiles) {
             const result = runTestViaDbg(testFile);
             testResults.push(result);
         }
+
+        // Retry failed tests (up to 2 retries, 3 total attempts)
+        const runFn = (testFile) => Promise.resolve(runTestViaDbg(testFile));
+        testResults = await retryFailedTests(testResults, runFn);
 
         // Generate statistics
         const stats = generateAggregateStats(testResults);

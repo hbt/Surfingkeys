@@ -196,6 +196,67 @@ function generateMarkdownReport(jsonReport) {
     return md;
 }
 
+/**
+ * Retry failed tests with flaky detection
+ *
+ * @param {Array} testResults - Initial test results array
+ * @param {Function} runFn - (testFile) => Promise<{success, testFile, result?, error?}>
+ * @param {number} maxRetries - Number of retry rounds (default: 2 → up to 3 total attempts)
+ * @returns {Array} Updated test results with retry/flaky metadata
+ */
+async function retryFailedTests(testResults, runFn, maxRetries = 2) {
+    if (maxRetries === 0) return testResults;
+
+    // Build mutable map for results
+    const resultMap = new Map(testResults.map(r => [r.testFile, { ...r, retries: [] }]));
+
+    // Track which tests still need retrying
+    let stillFailing = testResults.filter(
+        tr => !tr.success || (tr.result?.failed > 0)
+    );
+
+    for (let attempt = 2; attempt <= maxRetries + 1 && stillFailing.length > 0; attempt++) {
+        process.stderr.write(`[retry ${attempt - 1}/${maxRetries}] ${stillFailing.length} tests...\n`);
+
+        const retryResults = await Promise.all(stillFailing.map(ft => runFn(ft.testFile)));
+
+        for (const retryResult of retryResults) {
+            const entry = resultMap.get(retryResult.testFile);
+            entry.retries.push({
+                attempt,
+                success: retryResult.success,
+                failed: retryResult.result?.failed || 0
+            });
+
+            if (retryResult.success && !retryResult.result?.failed) {
+                // Passed on retry — upgrade + mark flaky
+                entry.success = true;
+                entry.result = retryResult.result;
+                entry.flaky = true;
+            }
+        }
+
+        // Only retry tests that are still failing after this round
+        stillFailing = retryResults
+            .filter(r => !r.success || (r.result?.failed > 0))
+            .map(r => resultMap.get(r.testFile));
+    }
+
+    // Re-attach initial attempt info into retries array (prepend attempt 1)
+    return testResults.map(orig => {
+        const entry = resultMap.get(orig.testFile);
+        if (entry.retries.length === 0) return orig; // never retried
+
+        return {
+            ...entry,
+            retries: [
+                { attempt: 1, success: orig.success, failed: orig.result?.failed || 0 },
+                ...entry.retries
+            ]
+        };
+    });
+}
+
 module.exports = {
     ensureReportsDir,
     discoverTestFiles,
@@ -205,6 +266,7 @@ module.exports = {
     getNestedValue,
     buildTable,
     generateMarkdownReport,
+    retryFailedTests,
     PROJECT_ROOT,
     TESTS_DIR,
     REPORTS_DIR

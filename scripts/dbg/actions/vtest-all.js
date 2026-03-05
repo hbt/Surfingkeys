@@ -102,8 +102,8 @@ function generateTestAllSummary(testAllJson) {
     // Build Test Files table
     md += '## Test Files\n\n';
     const testFilesRows = [
-        ['File', 'Status', 'Tests', 'Passed', 'Failed', 'Duration'],
-        ['---', '---', '---', '---', '---', '---']
+        ['File', 'Status', 'Tests', 'Passed', 'Failed', 'Flaky', 'Duration'],
+        ['---', '---', '---', '---', '---', '---', '---']
     ];
 
     testSummaries.forEach(ts => {
@@ -115,6 +115,7 @@ function generateTestAllSummary(testAllJson) {
             String(ts.tests || 0),
             String(ts.passed || 0),
             String(ts.failed || 0),
+            ts.flaky ? '⚠️' : '',
             `${ts.duration || 0}ms`
         ]);
     });
@@ -124,6 +125,7 @@ function generateTestAllSummary(testAllJson) {
 
     // Build Overview table
     md += '## Overview\n\n';
+    const retries = summary.retries || {};
     const overviewRows = [
         ['Metric', 'Value'],
         ['---', '---'],
@@ -136,6 +138,14 @@ function generateTestAllSummary(testAllJson) {
         ['Assertions', String(summary.totalAssertions || 0)],
         ['Duration', `${summary.totalDuration || 0}ms`]
     ];
+
+    if (retries.retriedTestsCount > 0) {
+        overviewRows.push(
+            ['Retried Tests', String(retries.retriedTestsCount)],
+            ['Flaky (passed after retry)', String(retries.retriedPassedCount || 0)],
+            ['Still Failing', String(retries.retriedStillFailingCount || 0)]
+        );
+    }
 
     md += formatMarkdownTable(overviewRows);
     md += '\n\n';
