@@ -46,6 +46,8 @@ interface MappingEntry {
         feature_group?: number;
         repeatIgnore?: boolean;
         code?: any;
+        code_type?: 'anonymous' | 'named_ref' | 'method_ref' | 'bound_method' | 'unknown';
+        code_name?: string;  // function/method name for named_ref, method_ref, bound_method
         stopPropagation?: any;
         [key: string]: any;  // Allow other discovered options
     };
@@ -320,6 +322,40 @@ function getMemberExpressionName(node: any): string {
         return `${node.object.name}.${propName}`;
     }
     return '<expr>';
+}
+
+/**
+ * Determine the code implementation type from an AST node (the value of a `code:` property).
+ * Returns a structured descriptor used to populate code_type and code_name on mapping_options.
+ */
+function extractCodeType(node: any): { type: 'anonymous' | 'named_ref' | 'method_ref' | 'bound_method' | 'unknown'; name?: string } {
+    if (!node) return { type: 'unknown' };
+    const nodeType: string = node.type || '';
+
+    // code: function() {} or code: () => {}
+    if (nodeType === 'FunctionExpression' || nodeType === 'ArrowFunctionExpression') {
+        return { type: 'anonymous' };
+    }
+
+    // code: moveCursorEOL
+    if (nodeType === 'Identifier') {
+        return { type: 'named_ref', name: node.name };
+    }
+
+    // code: self.scroll.bind(self, "down") — check before plain MemberExpression
+    if (nodeType === 'CallExpression') {
+        const callee = node.callee;
+        if (callee && callee.type === 'MemberExpression' && callee.property && callee.property.name === 'bind') {
+            return { type: 'bound_method', name: getMemberExpressionName(callee.object) };
+        }
+    }
+
+    // code: self.scroll (member expression, not a call)
+    if (nodeType === 'MemberExpression') {
+        return { type: 'method_ref', name: getMemberExpressionName(node) };
+    }
+
+    return { type: 'unknown' };
 }
 
 /**
@@ -695,6 +731,17 @@ function parseMappingsAddPatternsAST(
 
                 if (propKey === 'annotation') {
                     annotation = extractValue(prop.value);
+                } else if (propKey === 'code') {
+                    // Preserve existing serialization and add structured code_type / code_name
+                    const value = extractValue(prop.value);
+                    if (value !== undefined) {
+                        mappingOptions[propKey] = value;
+                    }
+                    const codeInfo = extractCodeType(prop.value);
+                    mappingOptions['code_type'] = codeInfo.type;
+                    if (codeInfo.name !== undefined) {
+                        mappingOptions['code_name'] = codeInfo.name;
+                    }
                 } else {
                     // All other properties are mapping options
                     const value = extractValue(prop.value);

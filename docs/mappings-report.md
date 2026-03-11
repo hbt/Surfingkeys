@@ -171,11 +171,40 @@ Each item in `mappings.list` represents one keyboard binding or command registra
 
 | Field | Present when | Description |
 |---|---|---|
-| `mapping_options` | `mappingType === 'direct'` | Raw options passed to `mappings.add` (e.g. `feature_group`, `repeatIgnore`, `code`, `stopPropagation`) |
+| `mapping_options` | `mappingType === 'direct'` | Raw options passed to `mappings.add` (e.g. `feature_group`, `repeatIgnore`, `code`, `stopPropagation`, `code_type`, `code_name`) |
 | `runtime_options.accepts_count` | `mappingType === 'direct'` | `true` unless `repeatIgnore: true` is set — whether a numeric prefix like `3j` is meaningful |
 | `validationStatus` | always | `valid` \| `invalid` \| `not_migrated` |
 | `validationErrors` | when invalid | Array of human-readable error strings (missing fields, duplicate `unique_id`) |
 | `test_coverage` | when annotation is an object | Coverage linkage (see below) |
+
+#### MappingEntry — code_type / code_name
+
+For `mappingType === 'direct'` entries that have a `code` property, the AST extractor adds:
+
+| Field | Values | Description |
+|---|---|---|
+| `mapping_options.code_type` | `anonymous` \| `named_ref` \| `method_ref` \| `bound_method` \| `unknown` | How the handler function is expressed in source |
+| `mapping_options.code_name` | string (optional) | Function/method name; present for all non-anonymous types |
+
+| `code_type` | Source pattern | Example |
+|---|---|---|
+| `anonymous` | `code: function() {...}` | Most insert/normal commands |
+| `named_ref` | `code: moveCursorEOL` | Direct identifier reference |
+| `method_ref` | `code: self.scroll` | Member expression, not called |
+| `bound_method` | `code: self.scroll.bind(self, "down")` | `.bind()` call — name is the target before `.bind` |
+| `unknown` | anything else | Unrecognised AST pattern |
+
+**jq — count by code_type:**
+```bash
+bun scripts/mappings-json-report.ts | jq '[.mappings.list[] | select(.mapping_options.code_type) | .mapping_options.code_type] | group_by(.) | map({type: .[0], count: length})'
+```
+
+**jq — all named_ref commands:**
+```bash
+bun scripts/mappings-json-report.ts | jq '[.mappings.list[] | select(.mapping_options.code_type == "named_ref") | {unique_id: .annotation.unique_id, code_name: .mapping_options.code_name}]'
+```
+
+---
 
 #### MappingEntry — test_coverage
 
