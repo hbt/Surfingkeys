@@ -199,6 +199,22 @@ function _initModules() {
     const commandRegistry = buildCommandRegistry({ normal, insert, visual, hints });
     api._setCommandRegistry(commandRegistry);
 
+    // Test hook: invoke any registered command by unique_id via DOM CustomEvent.
+    // Content scripts run in an isolated world; DOM events bridge to the main world.
+    // Usage from main world (CDP eval):
+    //   document.dispatchEvent(new CustomEvent('__sk_invoke', {detail: 'cmd_insert_cursor_end'}))
+    //   document.documentElement.dataset.skInvokeResult  // 'true' | 'false'
+    document.addEventListener('__sk_invoke', (e) => {
+        const unique_id = e.detail;
+        const cmd = commandRegistry.get(unique_id);
+        if (cmd && typeof cmd.code === 'function') {
+            cmd.code();
+            document.documentElement.dataset.skInvokeResult = 'true';
+        } else {
+            document.documentElement.dataset.skInvokeResult = 'false';
+        }
+    });
+
     if (typeof(_browser.plugin) === "function") {
         _browser.plugin({ front });
     }

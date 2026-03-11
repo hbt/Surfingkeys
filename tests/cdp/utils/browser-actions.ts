@@ -469,3 +469,21 @@ export async function waitForConfigReady(
 
     throw new Error(`Config not ready after ${timeoutMs}ms. Error: ${errorDetails}`);
 }
+
+/**
+ * Invoke a SurfingKeys command directly by unique_id, bypassing keybinding dispatch.
+ *
+ * Uses a DOM CustomEvent bridge: content scripts run in an isolated world but share
+ * the DOM with the main world. Dispatching '__sk_invoke' from main world fires the
+ * content script listener synchronously; the result is written to a dataset attribute.
+ */
+export async function invokeCommand(ws: WebSocket, unique_id: string): Promise<boolean> {
+    const result = await executeInTarget(ws, `
+        (function() {
+            delete document.documentElement.dataset.skInvokeResult;
+            document.dispatchEvent(new CustomEvent('__sk_invoke', {detail: ${JSON.stringify(unique_id)}}));
+            return document.documentElement.dataset.skInvokeResult;
+        })()
+    `);
+    return result === 'true';
+}
