@@ -33,7 +33,8 @@ import {
 import {
     startCoverage,
     captureBeforeCoverage,
-    captureAfterCoverage
+    captureAfterCoverage,
+    getCoverageDelta
 } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
@@ -140,6 +141,9 @@ describe('cmd_insert_delete_before_cursor', () => {
             expect(before.selectionStart).toBe(5);
 
             await invokeCommand(pageWs, 'cmd_insert_delete_before_cursor');
+
+            const delta = await getCoverageDelta(pageWs, beforeCovData);
+            expect(delta['getRealEdit']?.count).toBeGreaterThan(0);
 
             const after = await getInputState();
             expect(after.value).toBe(' world');

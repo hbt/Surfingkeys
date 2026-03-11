@@ -31,7 +31,8 @@ import {
 import {
     startCoverage,
     captureBeforeCoverage,
-    captureAfterCoverage
+    captureAfterCoverage,
+    getCoverageDelta
 } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
@@ -138,6 +139,9 @@ describe('cmd_insert_cursor_end', () => {
             expect(before.selectionStart).toBe(0);
 
             await invokeCommand(pageWs, 'cmd_insert_cursor_end');
+
+            const delta = await getCoverageDelta(pageWs, beforeCovData);
+            expect(delta['moveCursorEOL']?.count).toBeGreaterThan(0);
 
             const after = await getInputState();
             expect(after.value).toBe('hello world');

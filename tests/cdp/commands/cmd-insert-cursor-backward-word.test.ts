@@ -45,7 +45,8 @@ import {
 import {
     startCoverage,
     captureBeforeCoverage,
-    captureAfterCoverage
+    captureAfterCoverage,
+    getCoverageDelta
 } from '../utils/cdp-coverage';
 import { CDP_PORT } from '../cdp-config';
 
@@ -153,6 +154,9 @@ describe('cmd_insert_cursor_backward_word', () => {
             expect(before.selectionStart).toBe(11);
 
             await invokeCommand(pageWs, 'cmd_insert_cursor_backward_word');
+
+            const delta = await getCoverageDelta(pageWs, beforeCovData);
+            expect(delta['nextNonWord']?.count).toBeGreaterThan(0);
 
             const after = await getInputState();
             expect(after.value).toBe('hello world');
