@@ -8,7 +8,7 @@
  *
  * nextNonWord(str, dir=1, cur) behavior for "hello world" (len=11):
  *   cur=0  → 5  (scans h,e,l,l,o → stops at space at index 5)
- *   cur=5  → 5  (str[5]=' ' is \W immediately, stops)
+ *   cur=5  → 11 (advances to 6, scans w,o,r,l,d → end — fix: commit 802708d)
  *   cur=6  → 11 (scans w,o,r,l,d → cur=11 >= length, returns 11)
  *   cur=11 → 11 (cur >= length immediately, returns 11)
  *
@@ -204,8 +204,9 @@ describe('cmd_insert_cursor_forward_word', () => {
             expect(after.selectionEnd).toBe(0);
         });
 
-        test('3.3 cursor at non-word char (space) stays in place', async () => {
-            // str[5]=' ' is \W immediately — nextNonWord returns 5 unchanged
+        test('3.3 cursor at non-word char (space) advances through next word', async () => {
+            // fix 802708d: cur = cur + dir always advances by 1 first,
+            // so cursor on space at 5 advances to 6, scans w,o,r,l,d → end = 11
             await setInputState('hello world', 5);
             const before = await getInputState();
             expect(before.selectionStart).toBe(5);
@@ -214,8 +215,8 @@ describe('cmd_insert_cursor_forward_word', () => {
 
             const after = await getInputState();
             expect(after.value).toBe('hello world');
-            expect(after.selectionStart).toBe(5);
-            expect(after.selectionEnd).toBe(5);
+            expect(after.selectionStart).toBe(11);
+            expect(after.selectionEnd).toBe(11);
         });
 
         test('3.4 single word — cursor at 0 moves to end', async () => {
@@ -229,6 +230,29 @@ describe('cmd_insert_cursor_forward_word', () => {
             expect(after.value).toBe('hello');
             expect(after.selectionStart).toBe(5);
             expect(after.selectionEnd).toBe(5);
+        });
+    });
+
+    describe('5.0 Bug Fix — cursor on non-word char now advances (commit 802708d)', () => {
+        // Fixed in commit 802708d (PR #2393): `cur = cur + dir` always advances
+        // by 1 first, so cursor on a \W char skips it and scans to next boundary.
+
+        test('5.1 cursor on space between words advances to end of next word', async () => {
+            // "hello world": cursor at 5 (space)
+            // advances to 6, scans w,o,r,l,d → end = 11
+            await setInputState('hello world', 5);
+            await invokeCommand(pageWs, 'cmd_insert_cursor_forward_word');
+            const after = await getInputState();
+            expect(after.selectionStart).toBe(11);
+        });
+
+        test('5.2 cursor on mid-string space advances to next word boundary', async () => {
+            // "one two three": cursor at 3 (space after "one")
+            // advances to 4, scans t,w,o → space at 7 = 7
+            await setInputState('one two three', 3);
+            await invokeCommand(pageWs, 'cmd_insert_cursor_forward_word');
+            const after = await getInputState();
+            expect(after.selectionStart).toBe(7);
         });
     });
 
