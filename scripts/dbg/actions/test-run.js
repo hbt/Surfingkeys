@@ -253,6 +253,19 @@ async function runTest(testFile) {
                 // Inject error information from full report file
                 json = injectErrorInformation(json);
 
+                // Add coverage query hint when per-test coverage exists in the full report file
+                if (json.reportFile && fs.existsSync(json.reportFile)) {
+                    try {
+                        const fullReport = JSON.parse(fs.readFileSync(json.reportFile, 'utf-8'));
+                        if (fullReport.coverage?.perTest && Object.keys(fullReport.coverage.perTest).length > 0) {
+                            json.coverageQueryHint = 'bin/dbg test-coverage-query funcs  (query per-function call counts)';
+                            // Attach perTest to summary coverage so injectPerTestCoverage works
+                            if (!json.coverage) json.coverage = {};
+                            json.coverage.perTest = fullReport.coverage.perTest;
+                        }
+                    } catch (_) {}
+                }
+
                 // Add log file paths to JSON output if found
                 if (headlessLogFile) {
                     json.headlessLogFile = headlessLogFile;

@@ -201,18 +201,17 @@ class JSONReporter {
         }
 
         // Build dual-profile coverage data
+        // Per-test profiles are built whenever per-test files exist, even without a suite-level file
         let coverageData = null;
-        if (coverageFile) {
+        const perTestProfile = this.buildPerTestCoverage(coverageDir);
+        if (coverageFile || (perTestProfile && Object.keys(perTestProfile).length > 0)) {
             // Suite-level (aggregated) coverage
-            const suiteProfile = {
+            const suiteProfile = coverageFile ? {
                 enabled: true,
                 type: 'v8',
                 file: coverageFile,
                 summary: coverageSummary
-            };
-
-            // Per-test coverage data
-            const perTestProfile = this.buildPerTestCoverage(coverageDir);
+            } : null;
 
             // Tag legend explaining what each tag means
             const tagLegend = {
@@ -355,7 +354,8 @@ class JSONReporter {
                                 file: matchingFile.path,
                                 summary: enhancedSummary,
                                 analysis: analysis,
-                                delta: delta
+                                delta: delta,
+                                functionDelta: data.functionDelta || null
                             };
 
                             // Update cumulative sets with this test's functions and statements

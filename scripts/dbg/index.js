@@ -57,7 +57,8 @@ const ACTIONS = {
     'vtest-all': 'Run all CDP tests sequentially, aggregate results to visual markdown report',
     'test-allp': 'Run all CDP tests in parallel (configurable limit), aggregate results to JSON',
     'vtest-allp': 'Run all CDP tests in parallel, aggregate results to visual markdown report',
-    'vtest-sample': 'Run a sample of N tests with per-test wall/overhead timing (default: 10)'
+    'vtest-sample': 'Run a sample of N tests with per-test wall/overhead timing (default: 10)',
+    'test-coverage-query': 'Query per-function call counts from last coverage run'
 };
 
 /**
