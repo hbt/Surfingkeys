@@ -440,6 +440,62 @@ export async function captureAfterCoverage(
     }
 }
 
+export type FunctionDelta = { count: number; scriptUrl: string };
+export type CoverageDeltaMap = Record<string, FunctionDelta>;
+
+/**
+ * Compute per-function entry-count delta between a before snapshot and the current coverage state.
+ * Does NOT stop coverage collection — it's a lightweight in-test read.
+ *
+ * Entry count = ranges[0].count (outermost range), matching V8 callCount semantics.
+ * Functions are keyed by `"${scriptUrl}::${functionName}::${startOffset}"` to handle duplicates.
+ * The returned map uses plain `functionName` as key for ergonomic assertions.
+ *
+ * @param ws WebSocket connection to the target
+ * @param beforeCoverage Coverage snapshot captured before the test (from captureBeforeCoverage)
+ * @returns Map of functionName → { count: delta, scriptUrl }
+ */
+export async function getCoverageDelta(ws: WebSocket, beforeCoverage: any): Promise<CoverageDeltaMap> {
+    if (!beforeCoverage) return {};
+
+    try {
+        const afterCoverage = await sendCDPCommand(ws, 'Profiler.takePreciseCoverage');
+
+        // Build lookup: unique key → entry count before
+        const beforeMap = new Map<string, number>();
+        for (const script of beforeCoverage.result ?? []) {
+            for (const func of script.functions ?? []) {
+                const startOffset = func.ranges?.[0]?.startOffset ?? 0;
+                const key = `${script.url}::${func.functionName}::${startOffset}`;
+                beforeMap.set(key, func.ranges?.[0]?.count ?? 0);
+            }
+        }
+
+        // Compute delta for each function in the after snapshot
+        const deltaMap: CoverageDeltaMap = {};
+        for (const script of afterCoverage.result ?? []) {
+            for (const func of script.functions ?? []) {
+                const startOffset = func.ranges?.[0]?.startOffset ?? 0;
+                const key = `${script.url}::${func.functionName}::${startOffset}`;
+                const afterCount = func.ranges?.[0]?.count ?? 0;
+                const beforeCount = beforeMap.get(key) ?? 0;
+                const delta = afterCount - beforeCount;
+                if (delta > 0 || func.functionName) {
+                    deltaMap[func.functionName || '<anonymous>'] = {
+                        count: delta,
+                        scriptUrl: script.url
+                    };
+                }
+            }
+        }
+
+        return deltaMap;
+    } catch (err) {
+        coverageWarn('Warning: Could not compute coverage delta:', err);
+        return {};
+    }
+}
+
 /**
  * Setup per-test coverage collection hooks
  * Automatically captures coverage before and after each test
