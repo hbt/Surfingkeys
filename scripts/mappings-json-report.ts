@@ -42,12 +42,12 @@ interface MappingEntry {
         line: number;
     };
     mappingType: 'mapkey' | 'direct' | 'search_alias' | 'command';
+    handler_type?: 'inline' | 'named' | 'bound' | 'method' | 'uncaptured' | 'synthetic' | 'unknown';
+    handler_name?: string;  // present when handler_type is named/bound/method
     mapping_options?: {
         feature_group?: number;
         repeatIgnore?: boolean;
         code?: any;
-        code_type?: 'anonymous' | 'named_ref' | 'method_ref' | 'bound_method' | 'unknown';
-        code_name?: string;  // function/method name for named_ref, method_ref, bound_method
         stopPropagation?: any;
         [key: string]: any;  // Allow other discovered options
     };
@@ -70,6 +70,7 @@ interface Summary {
     total: number;
     by_mode: Record<string, number>;
     by_type: Record<string, number>;
+    by_handler_type: Record<string, number>;
     migrated: number;
     not_migrated: number;
     validation: {
@@ -325,34 +326,34 @@ function getMemberExpressionName(node: any): string {
 }
 
 /**
- * Determine the code implementation type from an AST node (the value of a `code:` property).
- * Returns a structured descriptor used to populate code_type and code_name on mapping_options.
+ * Determine the handler implementation type from an AST node (e.g. `code:` property or args[2]).
+ * Returns a structured descriptor used to populate handler_type and handler_name on MappingEntry.
  */
-function extractCodeType(node: any): { type: 'anonymous' | 'named_ref' | 'method_ref' | 'bound_method' | 'unknown'; name?: string } {
+function extractHandlerType(node: any): { type: 'inline' | 'named' | 'bound' | 'method' | 'unknown'; name?: string } {
     if (!node) return { type: 'unknown' };
     const nodeType: string = node.type || '';
 
-    // code: function() {} or code: () => {}
+    // function() {} or () => {}
     if (nodeType === 'FunctionExpression' || nodeType === 'ArrowFunctionExpression') {
-        return { type: 'anonymous' };
+        return { type: 'inline' };
     }
 
-    // code: moveCursorEOL
+    // moveCursorEOL
     if (nodeType === 'Identifier') {
-        return { type: 'named_ref', name: node.name };
+        return { type: 'named', name: node.name };
     }
 
-    // code: self.scroll.bind(self, "down") — check before plain MemberExpression
+    // self.scroll.bind(self, "down") — check before plain MemberExpression
     if (nodeType === 'CallExpression') {
         const callee = node.callee;
         if (callee && callee.type === 'MemberExpression' && callee.property && callee.property.name === 'bind') {
-            return { type: 'bound_method', name: getMemberExpressionName(callee.object) };
+            return { type: 'bound', name: getMemberExpressionName(callee.object) };
         }
     }
 
-    // code: self.scroll (member expression, not a call)
+    // self.scroll (member expression, not a call)
     if (nodeType === 'MemberExpression') {
-        return { type: 'method_ref', name: getMemberExpressionName(node) };
+        return { type: 'method', name: getMemberExpressionName(node) };
     }
 
     return { type: 'unknown' };
@@ -650,12 +651,22 @@ function parseMapkeyPatternsAST(
             const lineNum = path.node.loc?.start.line || 0;
             const mode = MODE_MAP[functionName] || 'Normal';
 
+            let handlerType: string = 'uncaptured';
+            let handlerName: string | undefined;
+            if (args.length >= 3 && args[2]) {
+                const h = extractHandlerType(args[2]);
+                handlerType = h.type;
+                handlerName = h.name;
+            }
+
             mappings.push({
                 key,
                 mode,
                 annotation,
                 source: { file: relPath, line: lineNum },
-                mappingType: 'mapkey'
+                mappingType: 'mapkey',
+                handler_type: handlerType as MappingEntry['handler_type'],
+                ...(handlerName !== undefined && { handler_name: handlerName })
             });
         }
     });
@@ -716,6 +727,7 @@ function parseMappingsAddPatternsAST(
             // Extract properties from the options object
             let annotation: string | AnnotationObject | undefined;
             const mappingOptions: Record<string, any> = {};
+            let handlerInfo: { type: 'inline' | 'named' | 'bound' | 'method' | 'unknown'; name?: string } | undefined;
 
             for (const prop of objArg.properties) {
                 if (!t.isObjectProperty(prop) || prop.computed) continue;
@@ -732,16 +744,12 @@ function parseMappingsAddPatternsAST(
                 if (propKey === 'annotation') {
                     annotation = extractValue(prop.value);
                 } else if (propKey === 'code') {
-                    // Preserve existing serialization and add structured code_type / code_name
+                    // Preserve existing serialization
                     const value = extractValue(prop.value);
                     if (value !== undefined) {
                         mappingOptions[propKey] = value;
                     }
-                    const codeInfo = extractCodeType(prop.value);
-                    mappingOptions['code_type'] = codeInfo.type;
-                    if (codeInfo.name !== undefined) {
-                        mappingOptions['code_name'] = codeInfo.name;
-                    }
+                    handlerInfo = extractHandlerType(prop.value);
                 } else {
                     // All other properties are mapping options
                     const value = extractValue(prop.value);
@@ -774,6 +782,8 @@ function parseMappingsAddPatternsAST(
                 annotation,
                 source: { file: relPath, line: lineNum },
                 mappingType: 'direct',
+                ...(handlerInfo !== undefined && { handler_type: handlerInfo.type }),
+                ...(handlerInfo?.name !== undefined && { handler_name: handlerInfo.name }),
                 ...(Object.keys(mappingOptions).length > 0 ? { mapping_options: mappingOptions } : {}),
                 runtime_options: runtimeOptions
             });
@@ -816,12 +826,22 @@ function parseCommandPatternsAST(
 
             const lineNum = path.node.loc?.start.line || 0;
 
+            let handlerType: string = 'uncaptured';
+            let handlerName: string | undefined;
+            if (args.length >= 3 && args[2]) {
+                const h = extractHandlerType(args[2]);
+                handlerType = h.type;
+                handlerName = h.name;
+            }
+
             mappings.push({
                 key: name,
                 mode: 'Command',
                 annotation,
                 source: { file: relPath, line: lineNum },
-                mappingType: 'command'
+                mappingType: 'command',
+                handler_type: handlerType as MappingEntry['handler_type'],
+                ...(handlerName !== undefined && { handler_name: handlerName })
             });
         }
     });
@@ -874,7 +894,8 @@ function parseSearchAliasPatternsAST(
                 mode: 'Visual',
                 annotation: `${annotation} (selected text)`,
                 source: { file: relPath, line: lineNum },
-                mappingType: 'search_alias'
+                mappingType: 'search_alias',
+                handler_type: 'synthetic'
             });
 
             // 2. o<alias> - Open omnibar for search
@@ -883,7 +904,8 @@ function parseSearchAliasPatternsAST(
                 mode: 'Normal',
                 annotation: `${annotation} (omnibar)`,
                 source: { file: relPath, line: lineNum },
-                mappingType: 'search_alias'
+                mappingType: 'search_alias',
+                handler_type: 'synthetic'
             });
 
             // 3. <searchLeaderKey>o<alias> - Search only this site
@@ -893,7 +915,8 @@ function parseSearchAliasPatternsAST(
                     mode: 'Normal',
                     annotation: `${annotation} (this site only)`,
                     source: { file: relPath, line: lineNum },
-                    mappingType: 'search_alias'
+                    mappingType: 'search_alias',
+                    handler_type: 'synthetic'
                 });
             }
 
@@ -904,7 +927,8 @@ function parseSearchAliasPatternsAST(
                     mode: 'Visual',
                     annotation: `${annotation} (selected, uppercase variant)`,
                     source: { file: relPath, line: lineNum },
-                    mappingType: 'search_alias'
+                    mappingType: 'search_alias',
+                    handler_type: 'synthetic'
                 });
             }
         }
@@ -1284,6 +1308,7 @@ function generateSummary(mappings: MappingEntry[], testMap?: Map<string, string>
         total: mappings.length,
         by_mode: {},
         by_type: {},
+        by_handler_type: {},
         migrated: 0,
         not_migrated: 0,
         validation: {
@@ -1363,6 +1388,14 @@ function generateSummary(mappings: MappingEntry[], testMap?: Map<string, string>
                 // Increment invalid count
                 summary.validation.invalid++;
             }
+        }
+    }
+
+    // Compute by_handler_type across all entries
+    for (const mapping of mappings) {
+        if (mapping.handler_type) {
+            summary.by_handler_type[mapping.handler_type] =
+                (summary.by_handler_type[mapping.handler_type] || 0) + 1;
         }
     }
 

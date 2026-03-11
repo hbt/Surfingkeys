@@ -35,6 +35,7 @@ Schema and field reference for `bun scripts/mappings-json-report.ts`.
 | `total` | number | Total mapping entries found |
 | `by_mode` | `Record<string, number>` | Count per mode (Normal, Visual, Insert, Omnibar, Command, Hints, CursorPrompt) |
 | `by_type` | `Record<string, number>` | Count per extraction type (see `mappingType` below) |
+| `by_handler_type` | `Record<string, number>` | Count per handler type across all entries (see `handler_type` below) |
 | `migrated` | number | Entries with an object annotation (have `unique_id`) |
 | `not_migrated` | number | Entries still using a plain string annotation |
 | `validation.valid` | number | Migrated entries that pass all field checks |
@@ -171,37 +172,46 @@ Each item in `mappings.list` represents one keyboard binding or command registra
 
 | Field | Present when | Description |
 |---|---|---|
-| `mapping_options` | `mappingType === 'direct'` | Raw options passed to `mappings.add` (e.g. `feature_group`, `repeatIgnore`, `code`, `stopPropagation`, `code_type`, `code_name`) |
+| `handler_type` | always | How the handler is connected to its registration (see table below) |
+| `handler_name` | when `handler_type` is `named`, `bound`, or `method` | Function/method name extracted from source |
+| `mapping_options` | `mappingType === 'direct'` | Raw options passed to `mappings.add` (e.g. `feature_group`, `repeatIgnore`, `code`, `stopPropagation`) |
 | `runtime_options.accepts_count` | `mappingType === 'direct'` | `true` unless `repeatIgnore: true` is set — whether a numeric prefix like `3j` is meaningful |
 | `validationStatus` | always | `valid` \| `invalid` \| `not_migrated` |
 | `validationErrors` | when invalid | Array of human-readable error strings (missing fields, duplicate `unique_id`) |
 | `test_coverage` | when annotation is an object | Coverage linkage (see below) |
 
-#### MappingEntry — code_type / code_name
+#### MappingEntry — handler_type / handler_name
 
-For `mappingType === 'direct'` entries that have a `code` property, the AST extractor adds:
+Universal field present on all 270 entries. Answers "how is this command's implementation connected to its registration?"
 
-| Field | Values | Description |
+| Field | Type | Description |
 |---|---|---|
-| `mapping_options.code_type` | `anonymous` \| `named_ref` \| `method_ref` \| `bound_method` \| `unknown` | How the handler function is expressed in source |
-| `mapping_options.code_name` | string (optional) | Function/method name; present for all non-anonymous types |
+| `handler_type` | string | One of 7 values (see matrix below) |
+| `handler_name` | string (optional) | Present when `handler_type` is `named`, `bound`, or `method` |
 
-| `code_type` | Source pattern | Example |
-|---|---|---|
-| `anonymous` | `code: function() {...}` | Most insert/normal commands |
-| `named_ref` | `code: moveCursorEOL` | Direct identifier reference |
-| `method_ref` | `code: self.scroll` | Member expression, not called |
-| `bound_method` | `code: self.scroll.bind(self, "down")` | `.bind()` call — name is the target before `.bind` |
-| `unknown` | anything else | Unrecognised AST pattern |
+| `handler_type` | Source pattern | Assertable by name | Example |
+|---|---|---|---|
+| `inline` | `function() {...}` or `() => {}` at registration site | No | Most insert/normal commands |
+| `named` | Bare identifier reference | Yes | `code: moveCursorEOL` |
+| `method` | Member expression, not called | Yes | `code: self.scroll` |
+| `bound` | `.bind()` call | Yes (target before `.bind`) | `code: self.scroll.bind(self, "down")` |
+| `unknown` | Unrecognised AST pattern | No | Any other expression |
+| `uncaptured` | Handler exists but not captured by report | No | `mapkey`/`command` with no args[2] |
+| `synthetic` | Generated entry, no real handler | No | All `addSearchAlias` expansions |
 
-**jq — count by code_type:**
+**jq — count by handler_type (all 270 entries):**
 ```bash
-bun scripts/mappings-json-report.ts | jq '[.mappings.list[] | select(.mapping_options.code_type) | .mapping_options.code_type] | group_by(.) | map({type: .[0], count: length})'
+bun scripts/mappings-json-report.ts | jq '.mappings.summary.by_handler_type'
 ```
 
-**jq — all named_ref commands:**
+**jq — all named handlers with their function names:**
 ```bash
-bun scripts/mappings-json-report.ts | jq '[.mappings.list[] | select(.mapping_options.code_type == "named_ref") | {unique_id: .annotation.unique_id, code_name: .mapping_options.code_name}]'
+bun scripts/mappings-json-report.ts | jq '[.mappings.list[] | select(.handler_type == "named") | {unique_id: .annotation.unique_id?, handler_name}]'
+```
+
+**jq — uncaptured entries (mapkey/command with no handler info):**
+```bash
+bun scripts/mappings-json-report.ts | jq '[.mappings.list[] | select(.handler_type == "uncaptured") | .annotation.unique_id? // .key]'
 ```
 
 ---
