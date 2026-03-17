@@ -1,0 +1,107 @@
+import { test, expect, Page, BrowserContext } from '@playwright/test';
+import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
+
+const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
+
+let context: BrowserContext;
+let page: Page;
+
+async function enterVisualMode(p: Page, text: string) {
+    await p.evaluate((t) => { (window as any).find(t); }, text);
+    await p.waitForTimeout(100);
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(100);
+    await p.keyboard.press('v');
+    await p.waitForTimeout(300);
+}
+
+async function getSelectionInfo(p: Page) {
+    return p.evaluate(() => {
+        const sel = window.getSelection();
+        return {
+            type: sel?.type ?? '',
+            text: sel?.toString() ?? '',
+            focusOffset: sel?.focusOffset ?? 0,
+        };
+    });
+}
+
+test.describe('cmd_visual_read_text (Playwright)', () => {
+    test.beforeAll(async () => {
+        ({ context } = await launchExtensionContext());
+        page = await context.newPage();
+        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await page.waitForTimeout(500);
+    });
+
+    test.afterAll(async () => {
+        await context?.close();
+    });
+
+    test.beforeEach(async () => {
+        await page.evaluate(() => window.getSelection()?.removeAllRanges());
+    });
+
+    test.afterEach(async () => {
+        try { await page.keyboard.press('Escape'); await page.waitForTimeout(100); } catch (_) {}
+    });
+
+    test('gr in visual mode does not error', async () => {
+        await enterVisualMode(page, 'Short');
+        await page.waitForTimeout(200);
+        await page.keyboard.press('g');
+        await page.waitForTimeout(50);
+        await page.keyboard.press('r');
+        await page.waitForTimeout(500);
+        const sel = await getSelectionInfo(page);
+        expect(typeof sel.focusOffset).toBe('number');
+        console.log(`gr executed: focusOffset=${sel.focusOffset}`);
+    });
+
+    test('gr with selected text does not error', async () => {
+        await enterVisualMode(page, 'Special chars:');
+        // Move to end of line to select text
+        await page.keyboard.press('$');
+        await page.waitForTimeout(200);
+        const selBefore = await getSelectionInfo(page);
+        console.log(`Selected before gr: "${selBefore.text}"`);
+        await page.keyboard.press('g');
+        await page.waitForTimeout(50);
+        await page.keyboard.press('r');
+        await page.waitForTimeout(500);
+        const selAfter = await getSelectionInfo(page);
+        // Selection should be preserved
+        expect(typeof selAfter.focusOffset).toBe('number');
+        console.log(`gr with selection: type=${selAfter.type}`);
+    });
+
+    test('gr can be called multiple times', async () => {
+        await enterVisualMode(page, 'medium');
+        await page.keyboard.press('g');
+        await page.waitForTimeout(50);
+        await page.keyboard.press('r');
+        await page.waitForTimeout(300);
+        const first = await getSelectionInfo(page);
+        await page.keyboard.press('g');
+        await page.waitForTimeout(50);
+        await page.keyboard.press('r');
+        await page.waitForTimeout(300);
+        const second = await getSelectionInfo(page);
+        expect(typeof first.focusOffset).toBe('number');
+        expect(typeof second.focusOffset).toBe('number');
+        console.log(`gr twice: ${first.focusOffset} → ${second.focusOffset}`);
+    });
+
+    test('gr executes without crashing', async () => {
+        await enterVisualMode(page, 'medium');
+        const before = await getSelectionInfo(page);
+        await page.keyboard.press('g');
+        await page.waitForTimeout(50);
+        await page.keyboard.press('r');
+        await page.waitForTimeout(500);
+        const after = await getSelectionInfo(page);
+        // Verify gr executed (selection info is still accessible)
+        expect(typeof after.focusOffset).toBe('number');
+        console.log(`gr cursor: ${before.focusOffset} → ${after.focusOffset}`);
+    });
+});

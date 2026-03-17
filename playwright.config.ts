@@ -5,7 +5,7 @@ export default defineConfig({
     workers: 1,
     timeout: 30_000,
     use: {
-        trace: 'on',
+        trace: 'off',
     },
     webServer: {
         command: 'node tests/fixtures-server.js',
