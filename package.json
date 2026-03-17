@@ -29,7 +29,8 @@
     "validate:mappings": "bun scripts/validate-mappings.js",
     "validate:mappings:prefixes": "bun scripts/validate-mappings.js --prefixes",
     "report:migration": "bun scripts/find-migrated-commands.js",
-    "report:mappings:json": "bun scripts/mappings-json-report.ts"
+    "report:mappings:json": "bun scripts/mappings-json-report.ts",
+    "test:playwright": "bunx playwright test"
   },
   "repository": {
     "type": "git",
@@ -45,6 +46,7 @@
     "@babel/parser": "^7.28.6",
     "@babel/traverse": "^7.28.6",
     "@babel/types": "^7.28.6",
+    "@playwright/test": "^1.58.2",
     "@types/chrome": "^0.1.35",
     "@types/events": "^3.0.0",
     "@types/jest": "^29.5.0",
