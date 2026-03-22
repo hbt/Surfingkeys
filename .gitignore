@@ -6,6 +6,7 @@ data/gen/
 .vscode/
 package-lock.json
 jsconfig.json
+/test-results/
 src/content_scripts/safari.js
 *~
 .idea
