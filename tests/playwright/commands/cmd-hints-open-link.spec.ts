@@ -339,7 +339,7 @@ test.describe('cmd_hints_open_link (Playwright)', () => {
         }
     });
 
-    test('7.2 should toggle hints when pressing f key repeatedly', async () => {
+    test('7.2 should treat f key as hint filter input when hints are active', async () => {
         await page.mouse.click(100, 100);
         await page.keyboard.press('f');
         await waitForHintCount(page, 10);
@@ -347,11 +347,17 @@ test.describe('cmd_hints_open_link (Playwright)', () => {
         const firstSnapshot = await fetchHintSnapshot(page);
         expect(firstSnapshot.count).toBeGreaterThan(10);
 
+        // Pressing 'Escape' clears hints, then 'f' opens them again
+        await page.keyboard.press('Escape');
+        await waitForHintsCleared(page);
+
+        await page.mouse.click(100, 100);
         await page.keyboard.press('f');
-        await page.waitForTimeout(300);
+        await waitForHintCount(page, 10);
 
         const secondSnapshot = await fetchHintSnapshot(page);
-        expect(secondSnapshot.found).toBeDefined();
+        expect(secondSnapshot.found).toBe(true);
+        expect(secondSnapshot.count).toBe(firstSnapshot.count);
     });
 
     // -----------------------------------------------------------------------
