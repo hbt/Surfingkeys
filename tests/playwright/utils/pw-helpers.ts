@@ -201,3 +201,58 @@ export async function collectCDPCoverage(port: number): Promise<any> {
         return [];
     }
 }
+
+/**
+ * Optionally collect and report V8 coverage if COVERAGE=true environment variable is set.
+ * This helper encapsulates coverage collection logic so tests don't need separate implementations.
+ *
+ * Usage:
+ *   await collectOptionalCoverage(cdpPort, page);
+ *
+ * Run with coverage:
+ *   COVERAGE=true bunx playwright test <test-file>
+ *
+ * Run without coverage (default):
+ *   bunx playwright test <test-file>
+ */
+export async function collectOptionalCoverage(
+    cdpPort?: number,
+    page?: import('@playwright/test').Page,
+): Promise<void> {
+    const shouldCollect = process.env.COVERAGE === 'true';
+
+    if (!shouldCollect || !cdpPort || !page) {
+        return;
+    }
+
+    try {
+        // Lazy import to avoid circular dependencies and overhead when not needed
+        const cdpCoverage = require('./cdp-coverage');
+        const { collectV8Coverage, calculateCoverageStats } = cdpCoverage;
+
+        const targets = await collectCDPCoverage(cdpPort);
+        const pageTarget = targets.find((t: any) => t.type === 'page' && t.url?.includes(page.url()));
+
+        if (!pageTarget?.webSocketDebuggerUrl) {
+            return;
+        }
+
+        // Collect coverage
+        const coverage = await collectV8Coverage(pageTarget.webSocketDebuggerUrl, 10000);
+
+        if (!coverage || coverage.length === 0) {
+            return;
+        }
+
+        // Report coverage
+        const stats = calculateCoverageStats(coverage);
+        console.log('\n--- V8 Coverage Report ---');
+        console.log(`Coverage: ${stats.percentage}% (${stats.coveredBytes}/${stats.totalBytes} bytes)`);
+        Object.entries(stats.byUrl).forEach(([url, data]: any) => {
+            const pct = data.total > 0 ? ((data.covered / data.total) * 100).toFixed(1) : '0';
+            console.log(`  ${pct}% | ${url.substring(0, 70)}`);
+        });
+    } catch (err) {
+        console.error('Failed to collect coverage:', err);
+    }
+}

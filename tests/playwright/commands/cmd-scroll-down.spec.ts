@@ -1,14 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE, collectOptionalCoverage } from '../utils/pw-helpers';
 
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
+let cdpPort: number | undefined;
 
 test.describe('cmd_scroll_down (Playwright)', () => {
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchExtensionContext({ enableCoverage: process.env.COVERAGE === 'true' });
+        context = result.context;
+        cdpPort = result.cdpPort;
+
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
@@ -31,6 +35,8 @@ test.describe('cmd_scroll_down (Playwright)', () => {
 
         expect(result.final).toBeGreaterThan(result.baseline);
         console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
+
+        await collectOptionalCoverage(cdpPort, page);
     });
 
     test('scroll down distance is consistent', async () => {
@@ -39,6 +45,8 @@ test.describe('cmd_scroll_down (Playwright)', () => {
 
         console.log(`1st: ${result1.delta}px, 2nd: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`);
         expect(Math.abs(result1.delta - result2.delta)).toBeLessThan(15);
+
+        await collectOptionalCoverage(cdpPort, page);
     });
 
     test('pressing 5j scrolls 5 times the distance of j', async () => {
@@ -88,5 +96,7 @@ test.describe('cmd_scroll_down (Playwright)', () => {
         console.log(`Single j: ${singleDistance}px, 5j: ${repeatDistance}px (ratio: ${ratio.toFixed(2)}x)`);
         expect(ratio).toBeGreaterThanOrEqual(3.5);
         expect(ratio).toBeLessThanOrEqual(6.5);
+
+        await collectOptionalCoverage(cdpPort, page);
     });
 });
