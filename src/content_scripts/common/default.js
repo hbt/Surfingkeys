@@ -2138,6 +2138,9 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }, function() {
             front.openOmnibar(({type: "Bookmarks"}));
         });
+        mapkey(';x', '#3Close tabs by URL', function() {
+            front.openOmnibar({type: "CloseTabs"});
+        });
         mapkey('ab', {
             short: "Add bookmark omnibar",
             unique_id: "cmd_omnibar_add_bookmark",

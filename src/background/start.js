@@ -1168,6 +1168,9 @@ function start(browser) {
             });
         });
     };
+    self.closeTabByIds = function(message, sender, sendResponse) {
+        chrome.tabs.remove(message.tabIds);
+    };
     function focusTab(windowId, tabId) {
         chrome.windows.update(windowId, {
             focused: true
