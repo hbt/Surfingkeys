@@ -89,7 +89,17 @@ Automatically builds and reloads extension.
 - **Test scripts** (`tests/`): Permanent, stable regression tests that are actively maintained and must remain functional
 
 
-## Automated Testing using Jest
+## Automated Testing
+
+### Playwright Tests (Recommended for new tests)
+
+See **[docs/dev.md § Playwright Testing](docs/dev.md#automated-testing-using-playwright)** — Functional tests with optional V8 coverage:
+```bash
+bunx playwright test tests/playwright/commands/cmd-scroll-down.spec.ts           # Fast (2.9s)
+COVERAGE=true bunx playwright test tests/playwright/commands/cmd-scroll-down.spec.ts  # With coverage (5.8s)
+```
+
+### Jest/CDP Tests (Legacy, being migrated to Playwright)
 
 #### // TODO(hbt) NEXT [tests] consolidate both reporters? fix the headless:seq + :all (aggregate results. pass/fail for whole suite)
 

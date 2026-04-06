@@ -433,3 +433,110 @@ jq '.analysis.hotPathAnalysis.hottest[] | select(.executionCount > 100)' page-hi
    - Coverage gaps (functions needing more tests)
 4. **Plan tests:** Use insights to guide new test cases
 5. **Compare over time:** Run same tests, compare coverage to track improvement
+
+---
+
+## Automated Testing using Playwright
+
+Playwright tests provide **functional testing** of the extension with optional **V8 code coverage** collection for code analysis.
+
+### Running Playwright Tests
+
+**Default: Fast functional tests (no coverage overhead):**
+```bash
+bunx playwright test tests/playwright/commands/cmd-scroll-down.spec.ts
+```
+
+Output:
+```
+  3 passed (2.9s)
+```
+
+**With V8 coverage collection:**
+```bash
+COVERAGE=true bunx playwright test tests/playwright/commands/cmd-scroll-down.spec.ts
+```
+
+Output includes coverage reports for each test:
+```
+✓ Test 1: pressing j key scrolls page down (1.3s)
+--- V8 Coverage Report ---
+Coverage: 77.01% (42973/55803 bytes)
+  77.0% | chrome-extension://aajlcoiaogpknhgninhopncaldipjdnp/content.js
+```
+
+### How Coverage Works
+
+When `COVERAGE=true` is set:
+
+1. Browser launches with `--remote-debugging-port` for Chrome DevTools Protocol (CDP)
+2. Tests run normally with full functional assertions
+3. After each test, the `collectOptionalCoverage()` helper:
+   - Connects to CDP to the page target
+   - Enables Profiler domain with `startPreciseCoverage()`
+   - Collects V8 coverage data with `takePreciseCoverage()`
+   - Reports coverage percentage and scripts
+4. Coverage is isolated per-test (can be accumulated with further work)
+
+### Coverage Collection Details
+
+**What's measured:**
+- Content script (`content.js`) execution during test
+- Function-level execution counts
+- Code branch coverage (which if/else paths were taken)
+- Byte-level precision (exact offsets in source code)
+
+**Example coverage data structure:**
+```json
+{
+  "scriptId": "6",
+  "url": "chrome-extension://aajlcoiaogpknhgninhopncaldipjdnp/content.js",
+  "functions": [
+    {
+      "functionName": "elm.skScrollBy",
+      "ranges": [
+        {"startOffset": 116472, "endOffset": 117481, "count": 3},
+        {"startOffset": 116532, "endOffset": 116626, "count": 0}
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}
+```
+
+### Timing & Overhead
+
+- **Without coverage:** ~2.9s for 3 tests
+- **With coverage:** ~5.8s for 3 tests (~100% overhead)
+
+The overhead is mostly one-time browser startup with remote debugging. With further optimization (context/connection pooling), this can be reduced to ~30-50% overhead.
+
+### Single Source of Truth
+
+All Playwright tests maintain **one implementation** for both modes:
+- Same test assertions in both modes
+- Coverage collection is **optional** via `COVERAGE=true` environment variable
+- Helper `collectOptionalCoverage()` handles all coverage logic internally
+- No duplicate test files
+
+Example: `cmd-scroll-down.spec.ts` tests scroll behavior identically whether coverage is enabled or not.
+
+### When to Use Playwright Tests
+
+- ✅ **Functional verification** - Does the command work? (always)
+- ✅ **CI/CD automation** - Fast, simple test suite (default, no coverage)
+- ✅ **Code coverage analysis** - Which code paths were exercised? (optional with `COVERAGE=true`)
+- ❌ Performance profiling - Use Chrome DevTools instead
+- ❌ Complex CDP interactions - Use CDP debug scripts instead
+
+### Running All Playwright Tests
+
+```bash
+# Fast functional tests
+bunx playwright test tests/playwright/
+
+# With coverage
+COVERAGE=true bunx playwright test tests/playwright/
+```
+
+See `tests/playwright/commands/` for test examples and `tests/playwright/utils/pw-helpers.ts` for the `collectOptionalCoverage()` helper.
