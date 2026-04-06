@@ -142,13 +142,14 @@ function createOmnibar(front, clipboard) {
         },
         feature_group: 8,
         code: function () {
+            const savedInput = self.input.value;
             if (runtime.conf.omnibarPosition === "bottom") {
                 runtime.conf.omnibarPosition = "middle";
             } else {
                 runtime.conf.omnibarPosition = "bottom";
             }
             reopen(function() {
-                _savedAargs.pref = self.input.value;
+                _savedAargs.pref = savedInput;
                 front.openOmnibar(_savedAargs);
             });
         }
