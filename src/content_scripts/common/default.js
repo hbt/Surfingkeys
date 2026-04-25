@@ -1374,10 +1374,11 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         unique_id: "cmd_nav_url_root",
         feature_group: 4,
         category: "navigation",
-        description: "Navigate to the root of current URL (origin only)",
+        description: "Navigate to root of current URL hierarchy, supports count prefix",
         tags: ["navigation", "url", "root"]
     }, function() {
-        window.location.href = window.location.origin;
+        window.location.href = window.location.href.replace(new RegExp('(://([^/]+/){'+RUNTIME.repeats+'}).*'), '$1');
+        RUNTIME.repeats = 1;
     });
     mapkey('gxt', {
         short: "Close tab on left",
