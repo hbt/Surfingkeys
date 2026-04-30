@@ -60,6 +60,28 @@ export async function launchExtensionContext(opts?: { headless?: boolean; enable
 }
 
 /**
+ * Invoke a SurfingKeys command directly by unique_id, bypassing keybinding dispatch.
+ *
+ * Uses the __sk_invoke DOM CustomEvent bridge: content scripts run in an isolated
+ * world but share the DOM. page.evaluate() runs in the main world and dispatches
+ * the event; the content script listener fires synchronously and writes the result
+ * to a dataset attribute that the main world reads back.
+ *
+ * Usage:
+ *   await invokeCommand(page, 'cmd_tab_close_magic_right');
+ */
+export async function invokeCommand(
+    page: import('@playwright/test').Page,
+    unique_id: string,
+): Promise<boolean> {
+    return page.evaluate((uid) => {
+        delete (document.documentElement.dataset as any).skInvokeResult;
+        document.dispatchEvent(new CustomEvent('__sk_invoke', { detail: uid }));
+        return (document.documentElement.dataset as any).skInvokeResult === 'true';
+    }, unique_id);
+}
+
+/**
  * Navigate to a URL and wait for Surfingkeys content script to settle.
  */
 export async function waitForSKReady(page: import('@playwright/test').Page, settleMs = 500): Promise<void> {
