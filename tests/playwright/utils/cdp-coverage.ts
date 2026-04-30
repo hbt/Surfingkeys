@@ -166,7 +166,8 @@ export class ServiceWorkerCoverage {
             if (!raw) return null;
         }
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const dir = path.join(outputDir, label);
+        const baseOutputDir = process.env.COVERAGE_OUTPUT_DIR ?? outputDir;
+        const dir = path.join(baseOutputDir, label);
         fs.mkdirSync(dir, { recursive: true });
 
         // Raw counts since the last snapshot() call — isolation is achieved by

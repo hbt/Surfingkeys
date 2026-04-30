@@ -1,76 +1,178 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import * as fs from 'fs';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_tab_close';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+
+function coverageSlug(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+function readCoverageStats(
+    filePath: string,
+    expectedTarget: 'service_worker' | 'page',
+    scriptFile: 'background.js' | 'content.js',
+): { total: number; zero: number; gt0: number; byFunction: Map<string, number> } {
+    const payload = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    expect(payload.target).toBe(expectedTarget);
+
+    const scriptEntries = (payload.result ?? []).filter((entry: any) =>
+        typeof entry.url === 'string' && entry.url.endsWith(scriptFile),
+    );
+    expect(scriptEntries.length).toBeGreaterThan(0);
+
+    const byFunction = new Map<string, number>();
+    let total = 0;
+    let zero = 0;
+    let gt0 = 0;
+
+    for (const script of scriptEntries) {
+        for (const fn of script.functions ?? []) {
+            const maxCount = Math.max(...((fn.ranges ?? []).map((range: any) => Number(range.count) || 0)));
+            total += 1;
+            if (maxCount > 0) gt0 += 1;
+            else zero += 1;
+            if (fn.functionName) {
+                byFunction.set(fn.functionName, Math.max(byFunction.get(fn.functionName) ?? 0, maxCount));
+            }
+        }
+    }
+
+    return { total, zero, gt0, byFunction };
+}
+
+async function closeTabWithCoverage(
+    pageToClose: Page,
+    label: string,
+): Promise<{
+    bgPath: string | null;
+    contentPath: string | null;
+}> {
+    const contentCoverageUrl = `${FIXTURE_URL}#${coverageSlug(label)}`;
+    await pageToClose.goto(contentCoverageUrl, { waitUntil: 'load' });
+    await pageToClose.waitForTimeout(300);
+    await pageToClose.bringToFront();
+    await pageToClose.waitForTimeout(200);
+
+    const covContent = await initContentCoverageForUrl?.(contentCoverageUrl);
+    if (process.env.COVERAGE === 'true' && !covContent) {
+        throw new Error(`Content coverage session failed to initialize for ${label}`);
+    }
+
+    try {
+        await covBg?.snapshot();
+        await covContent?.snapshot();
+
+        const closePromise = pageToClose.waitForEvent('close');
+        await pageToClose.keyboard.down('x').catch(() => {});
+
+        // The page target disappears on `x`, so flush immediately after keydown.
+        const contentFlushPromise = covContent?.flush(`${label}/content`).catch(() => null) ?? Promise.resolve(null);
+        await closePromise;
+        await pageToClose.keyboard.up('x').catch(() => {});
+
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await contentFlushPromise;
+
+        return { bgPath, contentPath };
+    } finally {
+        await covContent?.close().catch(() => {});
+    }
+}
+
+function assertBasicCoverage(
+    bgPath: string | null,
+    contentPath: string | null,
+    opts?: { expectedBackgroundFunctions?: string[]; requireContent?: boolean },
+): void {
+    expect(bgPath).toBeTruthy();
+    if (bgPath) {
+        const bg = readCoverageStats(bgPath, 'service_worker', 'background.js');
+        expect(bg.total).toBeGreaterThan(0);
+        expect(bg.zero).toBeGreaterThan(0);
+        expect(bg.gt0).toBeGreaterThan(0);
+        for (const fn of opts?.expectedBackgroundFunctions ?? []) {
+            expect(bg.byFunction.get(fn) ?? 0).toBeGreaterThan(0);
+        }
+    }
+
+    if (opts?.requireContent !== false) {
+        expect(contentPath).toBeTruthy();
+    } else if (DEBUG && !contentPath) {
+        console.log('Content coverage target closed before persistence; treating cmd_tab_close as background-only.');
+    }
+    if (contentPath) {
+        const content = readCoverageStats(contentPath, 'page', 'content.js');
+        expect(content.total).toBeGreaterThan(0);
+        expect(content.zero).toBeGreaterThan(0);
+        expect(content.gt0).toBeGreaterThan(0);
+    }
+}
 
 test.describe('cmd_tab_close (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage();
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
-        cov = result.cov;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
-        await cov?.snapshot(); // reset counters past page-load noise
     });
 
     test.afterAll(async () => {
-        if (cov) await cov.flush('cmd_tab_close');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
     test('pressing x closes the current tab', async () => {
-        // Open a second page to close (we keep the main page alive)
         const pageToClose = await context.newPage();
-        await pageToClose.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await pageToClose.waitForTimeout(500);
-
-        await pageToClose.bringToFront();
-        await pageToClose.waitForTimeout(200);
         const beforeCount = context.pages().length;
 
-        const closePromise = pageToClose.waitForEvent('close');
-        // Tab closes so fast that CDP response is lost — ignore the keyboard error
-        await pageToClose.keyboard.press('x').catch(() => {});
-        await closePromise;
+        const { bgPath, contentPath } = await closeTabWithCoverage(
+            pageToClose,
+            `${SUITE_LABEL}/${coverageSlug(test.info().title)}`,
+        );
 
         expect(context.pages().length).toBe(beforeCount - 1);
+        assertBasicCoverage(bgPath, contentPath, {
+            expectedBackgroundFunctions: ['removeTab'],
+            requireContent: false,
+        });
         if (DEBUG) console.log(`Tab closed: ${beforeCount} → ${context.pages().length} pages`);
     });
 
     test('pressing x twice closes two tabs', async () => {
-        // Open two extra pages to close
         const p1 = await context.newPage();
-        await p1.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await p1.waitForTimeout(300);
-
         const p2 = await context.newPage();
-        await p2.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await p2.waitForTimeout(300);
-
         const beforeCount = context.pages().length;
+        const baseLabel = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
 
-        await p1.bringToFront();
-        await p1.waitForTimeout(200);
-        const close1 = p1.waitForEvent('close');
-        await p1.keyboard.press('x').catch(() => {});
-        await close1;
-
-        await p2.bringToFront();
-        await p2.waitForTimeout(200);
-        const close2 = p2.waitForEvent('close');
-        await p2.keyboard.press('x').catch(() => {});
-        await close2;
+        const first = await closeTabWithCoverage(p1, `${baseLabel}/first_close`);
+        const second = await closeTabWithCoverage(p2, `${baseLabel}/second_close`);
 
         expect(context.pages().length).toBe(beforeCount - 2);
+        assertBasicCoverage(first.bgPath, first.contentPath, {
+            expectedBackgroundFunctions: ['removeTab'],
+            requireContent: false,
+        });
+        assertBasicCoverage(second.bgPath, second.contentPath, {
+            expectedBackgroundFunctions: ['removeTab'],
+            requireContent: false,
+        });
         if (DEBUG) console.log(`Two tabs closed: ${beforeCount} → ${context.pages().length} pages`);
     });
 });
