@@ -1406,9 +1406,7 @@ function start(browser) {
     };
 
     self.goToParentTab = function(message, sender, sendResponse) {
-        console.log('[goToParentTab] sender.tab.id=', sender.tab.id, 'sender.tab.openerTabId=', sender.tab.openerTabId);
         chrome.tabs.get(sender.tab.id, function(tab) {
-            console.log('[goToParentTab] chrome.tabs.get result:', JSON.stringify(tab));
             if (tab && tab.openerTabId) {
                 chrome.tabs.update(tab.openerTabId, { active: true });
             }

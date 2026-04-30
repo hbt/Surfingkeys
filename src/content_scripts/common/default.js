@@ -1561,7 +1561,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     });
 
     // Group A — Tab Navigation
-    mapkey('gxop', {
+    mapkey('gK', {
         short: "Go to parent tab",
         unique_id: "cmd_tab_parent",
         feature_group: 3,
