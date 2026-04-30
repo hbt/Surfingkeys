@@ -43,6 +43,36 @@ async function waitForTabCount(activePage: Page, expected: number) {
     }
 }
 
+async function openWindowViaSW(ctx: BrowserContext, url: string): Promise<number> {
+    const sw = ctx.serviceWorkers()[0];
+    if (!sw) throw new Error('No service worker found');
+    return sw.evaluate((url: string) => {
+        return new Promise<number>((resolve) => {
+            chrome.windows.create({ url }, (win: any) => resolve(win.id));
+        });
+    }, url);
+}
+
+async function closeWindowViaSW(ctx: BrowserContext, windowId: number): Promise<void> {
+    const sw = ctx.serviceWorkers()[0];
+    if (!sw) throw new Error('No service worker found');
+    await sw.evaluate((windowId: number) => {
+        return new Promise<void>((resolve) => {
+            chrome.windows.remove(windowId, () => resolve());
+        });
+    }, windowId);
+}
+
+async function getAllTabsViaSW(ctx: BrowserContext): Promise<any[]> {
+    const sw = ctx.serviceWorkers()[0];
+    if (!sw) throw new Error('No service worker found');
+    return sw.evaluate(() => {
+        return new Promise<any[]>((resolve) => {
+            chrome.tabs.query({}, (tabs: any[]) => resolve(tabs));
+        });
+    });
+}
+
 test.describe('cmd_tab_magic_close (Playwright)', () => {
     test.beforeAll(async () => {
         ({ context } = await launchExtensionContext());
@@ -185,6 +215,192 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         expect(remainingIds.has(child2Id)).toBe(false);
 
         console.log(`cmd_tab_close_magic_children: ${beforeCount} → ${afterCount}`);
+    });
+
+    test('cmd_tab_close_magic_right_inclusive closes current + all to the right', async () => {
+        const anchor = await context.newPage();
+        await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await closeAllExcept(anchor);
+
+        const r0 = await context.newPage();
+        await r0.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await r0.waitForTimeout(200);
+
+        const r1 = await context.newPage();
+        await r1.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await r1.waitForTimeout(200);
+
+        await anchor.bringToFront();
+        await anchor.waitForTimeout(300);
+
+        const beforeCount = context.pages().length;
+        expect(beforeCount).toBeGreaterThanOrEqual(3);
+
+        // anchor + 2 to the right = 3 tabs closed
+        await invokeCommand(anchor, 'cmd_tab_close_magic_right_inclusive');
+
+        await waitForTabCount(anchor, beforeCount - 3);
+
+        expect(context.pages().length).toBe(beforeCount - 3);
+        console.log(`cmd_tab_close_magic_right_inclusive: ${beforeCount} → ${context.pages().length}`);
+    });
+
+    test('cmd_tab_close_magic_left_inclusive closes current + all to the left', async () => {
+        const base = await context.newPage();
+        await base.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await closeAllExcept(base);
+
+        const r0 = await context.newPage();
+        await r0.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await r0.waitForTimeout(200);
+
+        const r1 = await context.newPage();
+        await r1.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await r1.waitForTimeout(200);
+
+        await r1.bringToFront();
+        await r1.waitForTimeout(300);
+
+        const beforeCount = context.pages().length;
+        expect(beforeCount).toBeGreaterThanOrEqual(3);
+
+        // r1 (rightmost) + 2 to the left = 3 tabs closed
+        await invokeCommand(r1, 'cmd_tab_close_magic_left_inclusive');
+
+        await waitForTabCount(r1, beforeCount - 3);
+
+        expect(context.pages().length).toBe(beforeCount - 3);
+        console.log(`cmd_tab_close_magic_left_inclusive: ${beforeCount} → ${context.pages().length}`);
+    });
+
+    test('cmd_tab_close_magic_children_recursive closes child + grandchild tabs', async () => {
+        const parent = await context.newPage();
+        await parent.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await closeAllExcept(parent);
+
+        const sibling = await context.newPage();
+        await sibling.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await sibling.waitForTimeout(200);
+
+        await parent.bringToFront();
+        await parent.waitForTimeout(300);
+
+        const parentTab = await getActiveTabViaSW(context);
+
+        // parent → child → grandchild
+        const childId = await openChildTabViaSW(context, parentTab.id, FIXTURE_URL);
+        await parent.waitForTimeout(300);
+
+        const siblingTab = await getActiveTabViaSW(context);
+        const grandchildId = await openChildTabViaSW(context, childId, FIXTURE_URL);
+        await parent.waitForTimeout(300);
+
+        await parent.bringToFront();
+        await parent.waitForTimeout(300);
+
+        const beforeCount = context.pages().length;
+        const allTabs = await getAllTabsViaSW(context);
+        const siblingTabObj = allTabs.find((t: any) => t.id === siblingTab.id);
+
+        await invokeCommand(parent, 'cmd_tab_close_magic_children_recursive');
+
+        // child + grandchild = 2 tabs closed, sibling survives
+        await waitForTabCount(parent, beforeCount - 2);
+
+        const afterCount = context.pages().length;
+        expect(afterCount).toBe(beforeCount - 2);
+
+        const remainingTabs = await getAllTabsViaSW(context);
+        const remainingIds = new Set(remainingTabs.map((t: any) => t.id));
+        expect(remainingIds.has(childId)).toBe(false);
+        expect(remainingIds.has(grandchildId)).toBe(false);
+        expect(remainingIds.has(parentTab.id)).toBe(true);
+        if (siblingTabObj) expect(remainingIds.has(siblingTabObj.id)).toBe(true);
+
+        console.log(`cmd_tab_close_magic_children_recursive: ${beforeCount} → ${afterCount}`);
+    });
+
+    test('cmd_tab_close_magic_other_windows closes tabs in other windows', async () => {
+        const anchor = await context.newPage();
+        await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await closeAllExcept(anchor);
+
+        const beforeCurrentWindow = context.pages().length;
+
+        // Open a 2nd window with 2 tabs via SW
+        const win2Id = await openWindowViaSW(context, FIXTURE_URL);
+        await anchor.waitForTimeout(500);
+        const sw = context.serviceWorkers()[0];
+        await sw.evaluate(({ win2Id, url }: { win2Id: number; url: string }) => {
+            return new Promise<void>((resolve) => {
+                chrome.tabs.create({ windowId: win2Id, url, active: false }, () => resolve());
+            });
+        }, { win2Id, url: FIXTURE_URL });
+        await anchor.waitForTimeout(500);
+
+        const allTabsBefore = await getAllTabsViaSW(context);
+        const win2Tabs = allTabsBefore.filter((t: any) => t.windowId === win2Id);
+        expect(win2Tabs.length).toBeGreaterThanOrEqual(1);
+
+        await anchor.bringToFront();
+        await anchor.waitForTimeout(300);
+
+        await invokeCommand(anchor, 'cmd_tab_close_magic_other_windows');
+        await anchor.waitForTimeout(1000);
+
+        const allTabsAfter = await getAllTabsViaSW(context);
+        const win2TabsAfter = allTabsAfter.filter((t: any) => t.windowId === win2Id);
+        expect(win2TabsAfter.length).toBe(0);
+
+        // Current window tabs should be intact
+        const currentWindowTabsAfter = allTabsAfter.filter((t: any) => t.windowId !== win2Id);
+        expect(currentWindowTabsAfter.length).toBe(beforeCurrentWindow);
+
+        console.log(`cmd_tab_close_magic_other_windows: other window tabs removed`);
+    });
+
+    test('cmd_tab_close_magic_other_windows_no_pinned skips windows with pinned tabs', async () => {
+        const anchor = await context.newPage();
+        await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await closeAllExcept(anchor);
+
+        const sw = context.serviceWorkers()[0];
+
+        // 2nd window: no pinned tabs → should be closed
+        const win2Id = await openWindowViaSW(context, FIXTURE_URL);
+        await anchor.waitForTimeout(500);
+
+        // 3rd window: has a pinned tab → should NOT be closed
+        const win3Id = await openWindowViaSW(context, FIXTURE_URL);
+        await anchor.waitForTimeout(500);
+
+        // Pin the tab in win3
+        const allTabsBefore = await getAllTabsViaSW(context);
+        const win3Tab = allTabsBefore.find((t: any) => t.windowId === win3Id);
+        await sw.evaluate((tabId: number) => {
+            return new Promise<void>((resolve) => {
+                chrome.tabs.update(tabId, { pinned: true }, () => resolve());
+            });
+        }, win3Tab.id);
+        await anchor.waitForTimeout(300);
+
+        await anchor.bringToFront();
+        await anchor.waitForTimeout(300);
+
+        await invokeCommand(anchor, 'cmd_tab_close_magic_other_windows_no_pinned');
+        await anchor.waitForTimeout(1000);
+
+        const allTabsAfter = await getAllTabsViaSW(context);
+        const win2TabsAfter = allTabsAfter.filter((t: any) => t.windowId === win2Id);
+        const win3TabsAfter = allTabsAfter.filter((t: any) => t.windowId === win3Id);
+
+        expect(win2TabsAfter.length).toBe(0);   // no pinned → closed
+        expect(win3TabsAfter.length).toBeGreaterThan(0); // has pinned → survives
+
+        // Cleanup
+        await closeWindowViaSW(context, win3Id).catch(() => {});
+
+        console.log(`cmd_tab_close_magic_other_windows_no_pinned: win2 closed, win3 (pinned) survived`);
     });
 
     // Repeat count test uses key dispatch (specifically tests 2gxe chord + RUNTIME.repeats flow)

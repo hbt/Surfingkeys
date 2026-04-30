@@ -1328,25 +1328,63 @@ function start(browser) {
         });
     };
 
-    function tabHandleMagic(magic, currentTab, repeats, allWindowTabs) {
+    function getChildrenTabsRecursively(tabId, allTabs) {
+        var direct = allTabs.filter(function(t) { return t.openerTabId === tabId; });
+        var result = direct.slice();
+        direct.forEach(function(child) {
+            result = result.concat(getChildrenTabsRecursively(child.id, allTabs));
+        });
+        return result;
+    }
+
+    function tabHandleMagic(magic, currentTab, repeats, windowTabs, allTabs) {
         switch (magic) {
             case 'DirectionRight': {
-                var right = allWindowTabs.filter(function(t) { return t.index > currentTab.index; });
-                return right.slice(0, repeats).map(function(t) { return t.id; });
+                var right = windowTabs.filter(function(t) { return t.index > currentTab.index; });
+                return right.slice(0, repeats || 1).map(function(t) { return t.id; });
+            }
+            case 'DirectionRightInclusive': {
+                var right = windowTabs.filter(function(t) { return t.index >= currentTab.index; });
+                // no repeat = close all; explicit N = close current + N to the right
+                if (repeats == null) return right.map(function(t) { return t.id; });
+                return right.slice(0, repeats + 1).map(function(t) { return t.id; });
             }
             case 'DirectionLeft': {
-                var left = allWindowTabs.filter(function(t) { return t.index < currentTab.index; });
+                var left = windowTabs.filter(function(t) { return t.index < currentTab.index; });
                 left.reverse();
-                return left.slice(0, repeats).map(function(t) { return t.id; });
+                return left.slice(0, repeats || 1).map(function(t) { return t.id; });
+            }
+            case 'DirectionLeftInclusive': {
+                var left = windowTabs.filter(function(t) { return t.index <= currentTab.index; });
+                left.reverse();
+                // no repeat = close all; explicit N = close current + N to the left
+                if (repeats == null) return left.map(function(t) { return t.id; });
+                return left.slice(0, repeats + 1).map(function(t) { return t.id; });
             }
             case 'AllExceptActive':
-                return allWindowTabs.filter(function(t) { return t.id !== currentTab.id; }).map(function(t) { return t.id; });
+                return windowTabs.filter(function(t) { return t.id !== currentTab.id; }).map(function(t) { return t.id; });
             case 'AllInWindow':
-                return allWindowTabs.map(function(t) { return t.id; });
+                return windowTabs.map(function(t) { return t.id; });
             case 'AllExceptActiveAllWindows':
-                return allWindowTabs.filter(function(t) { return t.id !== currentTab.id; }).map(function(t) { return t.id; });
+                return allTabs.filter(function(t) { return t.id !== currentTab.id; }).map(function(t) { return t.id; });
             case 'ChildrenTabs':
-                return allWindowTabs.filter(function(t) { return t.openerTabId === currentTab.id; }).map(function(t) { return t.id; });
+                return windowTabs.filter(function(t) { return t.openerTabId === currentTab.id; }).map(function(t) { return t.id; });
+            case 'ChildrenTabsRecursively':
+                return getChildrenTabsRecursively(currentTab.id, allTabs).map(function(t) { return t.id; });
+            case 'AllOtherWindowsTabs':
+                return allTabs.filter(function(t) { return t.windowId !== currentTab.windowId; }).map(function(t) { return t.id; });
+            case 'OtherWindowsNoPinned': {
+                var otherWindows = [...new Set(
+                    allTabs.filter(function(t) { return t.windowId !== currentTab.windowId; }).map(function(t) { return t.windowId; })
+                )];
+                var windowsWithPinned = new Set(
+                    allTabs.filter(function(t) { return t.pinned; }).map(function(t) { return t.windowId; })
+                );
+                var eligibleWindows = new Set(otherWindows.filter(function(wid) { return !windowsWithPinned.has(wid); }));
+                return allTabs.filter(function(t) { return eligibleWindows.has(t.windowId); }).map(function(t) { return t.id; });
+            }
+            case 'AllIncognitoTabs':
+                return allTabs.filter(function(t) { return t.incognito; }).map(function(t) { return t.id; });
             case 'CurrentTab':
                 return [currentTab.id];
             default:
@@ -1355,10 +1393,11 @@ function start(browser) {
     }
 
     self.closeTabMagic = function(message, sender, sendResponse) {
-        chrome.tabs.query({currentWindow: true}, function(tabs) {
-            var repeats = message.repeats || 1;
-            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, tabs);
-            var pinnedIds = new Set(tabs.filter(function(t) { return t.pinned; }).map(function(t) { return t.id; }));
+        chrome.tabs.query({}, function(allTabs) {
+            var windowTabs = allTabs.filter(function(t) { return t.windowId === sender.tab.windowId; });
+            var repeats = message.repeats;
+            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, windowTabs, allTabs);
+            var pinnedIds = new Set(allTabs.filter(function(t) { return t.pinned; }).map(function(t) { return t.id; }));
             tabIds = tabIds.filter(function(id) { return !pinnedIds.has(id); });
             if (tabIds.length) {
                 chrome.tabs.remove(tabIds);

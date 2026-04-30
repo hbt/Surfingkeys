@@ -1489,6 +1489,66 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'ChildrenTabs'});
     });
+    mapkey('gxE', {
+        short: "Close current tab and all to the right",
+        unique_id: "cmd_tab_close_magic_right_inclusive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close the current tab and all tabs to its right",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'DirectionRightInclusive'});
+    });
+    mapkey('gxQ', {
+        short: "Close current tab and all to the left",
+        unique_id: "cmd_tab_close_magic_left_inclusive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close the current tab and all tabs to its left",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'DirectionLeftInclusive'});
+    });
+    mapkey('gxK', {
+        short: "Close descendant tabs recursively",
+        unique_id: "cmd_tab_close_magic_children_recursive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close all descendant tabs opened from the current tab (recursive)",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'ChildrenTabsRecursively'});
+    });
+    mapkey('gxW', {
+        short: "Close all tabs in other windows",
+        unique_id: "cmd_tab_close_magic_other_windows",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close all tabs in windows other than the current window",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'AllOtherWindowsTabs'});
+    });
+    mapkey('gxw', {
+        short: "Close other windows without pinned tabs",
+        unique_id: "cmd_tab_close_magic_other_windows_no_pinned",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close all tabs in other windows that contain no pinned tabs",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'OtherWindowsNoPinned'});
+    });
+    mapkey('gxo', {
+        short: "Close all incognito tabs",
+        unique_id: "cmd_tab_close_magic_incognito",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close all tabs across all incognito windows",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'AllIncognitoTabs'});
+    });
     mapkey('gxp', {
         short: "Close playing tab",
         unique_id: "cmd_tab_close_playing",
