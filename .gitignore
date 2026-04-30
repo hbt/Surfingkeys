@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 coverage-raw/
+coverage-html/
 data/gen/
 .DS_Store
 .vscode/
