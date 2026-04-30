@@ -32,7 +32,8 @@
     "report:mappings:json": "bun scripts/mappings-json-report.ts",
     "report:audit": "bun scripts/mappings-json-report.ts | bun scripts/audit-report.ts",
     "test:playwright": "bunx playwright test",
-    "test:playwright:parallel": "bunx playwright test --workers=9 --reporter=dot"
+    "test:playwright:parallel": "bunx playwright test --workers=9 --reporter=dot",
+    "worktree:setup": "MAIN=$(git worktree list --porcelain | awk 'NR==1{print $2}') && [ -e node_modules ] || ln -s \"$MAIN/node_modules\" node_modules && npm run build:dev"
   },
   "repository": {
     "type": "git",
