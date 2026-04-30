@@ -44,23 +44,23 @@ for await (const f of specGlob.scan({ cwd: playwrightDir })) {
 }
 specFiles.sort();
 
-// cmd-scroll-down.spec.ts → cmd_scroll_down
-// cmd-hints-link-background-tab.minimal.spec.ts → cmd_hints_link_background_tab (strip after first non-spec dot)
-function specToUniqueId(filename: string): string {
-  // Remove .spec.ts suffix, then take up to first remaining dot, replace hyphens
-  const base = filename.replace(/\.spec\.ts$/, "");
-  const firstPart = base.split(".")[0];
-  return firstPart.replace(/-/g, "_");
-}
-
-const playwrightCoveredIds = new Set(specFiles.map(specToUniqueId));
-
-// Count individual test() calls across all spec files
+// Scan spec file contents for test.describe('cmd_X') to get exact unique_ids.
+// This is more reliable than filename matching (handles .minimal variants, etc.)
+const playwrightCoveredIds = new Set<string>();
 let playwrightTestCount = 0;
+
 for (const f of specFiles) {
   const content = await Bun.file(path.join(playwrightDir, f)).text();
-  const matches = content.match(/^\s*test\(/gm);
-  if (matches) playwrightTestCount += matches.length;
+
+  // Extract unique_ids from test.describe('cmd_X ...')
+  const describeMatches = content.matchAll(/test\.describe\(['"`](cmd_[a-z_]+)/g);
+  for (const m of describeMatches) {
+    playwrightCoveredIds.add(m[1]);
+  }
+
+  // Count individual test() calls
+  const testMatches = content.match(/^\s*test\(/gm);
+  if (testMatches) playwrightTestCount += testMatches.length;
 }
 
 // ---------------------------------------------------------------------------
