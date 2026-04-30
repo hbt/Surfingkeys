@@ -23,7 +23,7 @@
     "test:cdp:live": "bun tests/cdp/run-live.js",
     "debug:cdp:headless": "bun debug/run-headless.js",
     "debug:cdp:live": "bun debug/run-live.js",
-    "cov": "bun scripts/cov.ts",
+    "cov:html": "bun scripts/cov.ts",
     "lint": "bun scripts/run-lint.js",
     "lint:js": "eslint --config config/eslint.config.js src tests debug scripts --ext .js,.ts",
     "lint:css": "stylelint --config config/stylelint.config.js 'src/**/*.css'",

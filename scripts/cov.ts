@@ -3,8 +3,8 @@
  * Run a Playwright spec with coverage, then generate the raw V8 HTML report.
  *
  * Usage:
- *   npm run cov tests/playwright/commands/cmd-tab-close.spec.ts
- *   npm run cov /absolute/path/to/cmd-tab-close-all-left.spec.ts
+ *   npm run cov:html tests/playwright/commands/cmd-tab-close.spec.ts
+ *   npm run cov:html /absolute/path/to/cmd-tab-close-all-left.spec.ts
  */
 
 import { execSync } from 'child_process';
@@ -13,7 +13,7 @@ import * as path from 'path';
 
 const specFile = process.argv[2];
 if (!specFile) {
-    console.error('Usage: npm run cov <spec-file>');
+    console.error('Usage: npm run cov:html <spec-file>');
     process.exit(1);
 }
 
