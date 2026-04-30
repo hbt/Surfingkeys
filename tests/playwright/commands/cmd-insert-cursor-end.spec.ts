@@ -1,5 +1,7 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
 
@@ -7,6 +9,7 @@ const FIXTURE_URL = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
 let page: Page;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function clickInput(p: Page) {
     const coords = await p.evaluate(() => {
@@ -35,14 +38,18 @@ async function getInputState(p: Page) {
 
 test.describe('cmd_insert_cursor_end (Playwright)', () => {
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchWithCoverage(FIXTURE_URL);
+        context = result.context;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
+        cov = await result.covInit();
         await page.waitForTimeout(500);
         await clickInput(page);
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_insert_cursor_end');
+        await cov?.close();
         await context?.close();
     });
 

@@ -1,5 +1,7 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
 
@@ -7,6 +9,7 @@ const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function getAllWindowsInfo(): Promise<Array<{ id: number; tabCount: number }>> {
     const sw = context.serviceWorkers()[0];
@@ -87,15 +90,19 @@ test.describe('cmd_tab_gather_all (Playwright)', () => {
     let extraWindowId: number | null = null;
 
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchWithCoverage(FIXTURE_URL);
+        context = result.context;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
+        cov = await result.covInit();
         await page.waitForTimeout(500);
         mainWindowId = await getMainWindowId();
         if (DEBUG) console.log(`Main window ID: ${mainWindowId}`);
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_gather_all');
+        await cov?.close();
         await context?.close();
     });
 

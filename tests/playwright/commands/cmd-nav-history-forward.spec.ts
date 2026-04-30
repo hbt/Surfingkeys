@@ -1,5 +1,7 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
 
@@ -8,16 +10,21 @@ const URL_B = `${FIXTURE_BASE}/form-test.html`;
 
 let context: BrowserContext;
 let page: Page;
+let cov: ServiceWorkerCoverage | undefined;
 
 test.describe('cmd_nav_history_forward (Playwright)', () => {
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchWithCoverage(URL_A);
+        context = result.context;
         page = await context.newPage();
         await page.goto(URL_A, { waitUntil: 'load' });
+        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_nav_history_forward');
+        await cov?.close();
         await context?.close();
     });
 

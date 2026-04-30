@@ -1,9 +1,12 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
+let cov: ServiceWorkerCoverage | undefined;
 let page: Page;
 
 async function callSKApi(page: Page, fn: string, ...args: unknown[]) {
@@ -19,10 +22,14 @@ async function callSKApi(page: Page, fn: string, ...args: unknown[]) {
 
 test.describe('unmapAllExcept + mapcmdkey (Playwright)', () => {
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchWithCoverage();
+        context = result.context;
+        cov = result.cov;
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_unmap_all_except');
+        await cov?.close();
         await context?.close();
     });
 

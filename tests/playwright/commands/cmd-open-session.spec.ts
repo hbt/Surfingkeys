@@ -1,10 +1,13 @@
 import { test, expect, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const FIXTURE_URL_1 = `${FIXTURE_BASE}/scroll-test.html`;
 const FIXTURE_URL_2 = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function clearSessions(ctx: BrowserContext): Promise<void> {
     const sw = ctx.serviceWorkers()[0];
@@ -68,13 +71,17 @@ async function openSession(ctx: BrowserContext, name: string): Promise<void> {
 
 test.describe('cmd_open_session (Playwright)', () => {
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchWithCoverage(FIXTURE_URL_1);
+        context = result.context;
         const page = await context.newPage();
         await page.goto(FIXTURE_URL_1, { waitUntil: 'load' });
+        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_open_session');
+        await cov?.close();
         await context?.close();
     });
 

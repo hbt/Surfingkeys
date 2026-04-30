@@ -1,11 +1,14 @@
 import { test, expect, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
 
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function getActiveTabViaSW(ctx: BrowserContext): Promise<any> {
     const sw = ctx.serviceWorkers()[0];
@@ -49,13 +52,17 @@ async function openChildTabViaSW(ctx: BrowserContext, openerTabId: number, url: 
 
 test.describe('cmd_tab_nav (Playwright)', () => {
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchWithCoverage();
+        context = result.context;
+        cov = result.cov;
         const p = await context.newPage();
         await p.goto(FIXTURE_URL, { waitUntil: 'load' });
         await p.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_nav');
+        await cov?.close();
         await context?.close();
     });
 

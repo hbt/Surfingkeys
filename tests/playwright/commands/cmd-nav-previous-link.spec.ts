@@ -1,5 +1,7 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
 
@@ -9,16 +11,21 @@ const PAGE3_URL = `${FIXTURE_BASE}/nav-prev-link-page3.html`;
 
 let context: BrowserContext;
 let page: Page;
+let cov: ServiceWorkerCoverage | undefined;
 
 test.describe('cmd_nav_previous_link (Playwright)', () => {
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchWithCoverage(PAGE2_URL);
+        context = result.context;
         page = await context.newPage();
         await page.goto(PAGE2_URL, { waitUntil: 'load' });
+        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_nav_previous_link');
+        await cov?.close();
         await context?.close();
     });
 

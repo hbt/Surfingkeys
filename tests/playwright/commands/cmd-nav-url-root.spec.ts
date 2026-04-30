@@ -1,5 +1,7 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
 
@@ -8,16 +10,21 @@ const BASE_ORIGIN = 'http://127.0.0.1:9873';
 
 let context: BrowserContext;
 let page: Page;
+let cov: ServiceWorkerCoverage | undefined;
 
 test.describe('cmd_nav_url_root (Playwright)', () => {
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchWithCoverage(FIXTURE_URL);
+        context = result.context;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
+        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_nav_url_root');
+        await cov?.close();
         await context?.close();
     });
 

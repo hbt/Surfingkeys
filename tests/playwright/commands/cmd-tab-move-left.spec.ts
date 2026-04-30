@@ -1,5 +1,7 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
 
@@ -7,6 +9,7 @@ const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function getTabById(tabId: number): Promise<{ id: number; index: number } | null> {
     const sw = context.serviceWorkers()[0];
@@ -40,7 +43,8 @@ test.describe('cmd_tab_move_left (Playwright)', () => {
     let pages: Page[] = [];
 
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchWithCoverage(FIXTURE_URL);
+        context = result.context;
         // Create 4 pages so we have room to move left
         for (let i = 0; i < 4; i++) {
             const p = await context.newPage();
@@ -55,6 +59,8 @@ test.describe('cmd_tab_move_left (Playwright)', () => {
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_move_left');
+        await cov?.close();
         await context?.close();
     });
 

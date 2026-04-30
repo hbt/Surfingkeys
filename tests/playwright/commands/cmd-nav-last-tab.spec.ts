@@ -1,11 +1,14 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
 
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function getActiveTabId(): Promise<number> {
     const sw = context.serviceWorkers()[0];
@@ -51,13 +54,15 @@ test.describe('cmd_nav_last_tab (Playwright)', () => {
     let ids: number[] = [];
 
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchWithCoverage(FIXTURE_URL);
+        context = result.context;
 
         // Create 3 tabs
         for (let i = 0; i < 3; i++) {
             const p = await context.newPage();
             await p.goto(FIXTURE_URL, { waitUntil: 'load' });
-            await p.waitForTimeout(200);
+            cov = await result.covInit();
+        await p.waitForTimeout(200);
             pages.push(p);
         }
 
@@ -70,6 +75,8 @@ test.describe('cmd_nav_last_tab (Playwright)', () => {
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_nav_last_tab');
+        await cov?.close();
         await context?.close();
     });
 

@@ -8,16 +8,16 @@
  *   bunx playwright test tests/playwright/commands/cmd-hints-open-link.spec.ts
  */
 
-import { test, expect, chromium, BrowserContext, Page } from '@playwright/test';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
+import { test, expect, BrowserContext, Page } from '@playwright/test';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
-const EXTENSION_PATH = path.resolve(__dirname, '../../../dist/development/chrome');
-const FIXTURE_URL = 'http://127.0.0.1:9873/hackernews.html';
+const FIXTURE_URL = `${FIXTURE_BASE}/hackernews.html`;
 
 let context: BrowserContext;
 let page: Page;
+let cov: ServiceWorkerCoverage | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers (mirror the CDP versions from the original test)
@@ -78,36 +78,12 @@ test.describe('cmd_hints_open_link (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const userDataDir = fs.mkdtempSync(
-            path.join(os.tmpdir(), 'pw-hints-test-'),
-        );
-        const defaultDir = path.join(userDataDir, 'Default');
-        fs.mkdirSync(defaultDir, { recursive: true });
-        fs.writeFileSync(
-            path.join(defaultDir, 'Preferences'),
-            JSON.stringify({ extensions: { ui: { developer_mode: true } } }),
-        );
-
-        context = await chromium.launchPersistentContext(userDataDir, {
-            headless: false,
-            args: [
-                '--headless=new',
-                `--disable-extensions-except=${EXTENSION_PATH}`,
-                `--load-extension=${EXTENSION_PATH}`,
-                '--enable-experimental-extension-apis',
-                '--enable-features=UserScriptsAPI',
-                '--disable-gpu',
-                '--no-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-background-networking',
-                '--disable-sync',
-                '--no-pings',
-                '--metrics-recording-only',
-            ],
-        });
+        const result = await launchWithCoverage(FIXTURE_URL);
+        context = result.context;
 
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
+        cov = await result.covInit();
         // Let Surfingkeys content script settle (mirrors waitForSurfingkeysReady delay).
         await page.waitForTimeout(500);
     });
@@ -119,6 +95,8 @@ test.describe('cmd_hints_open_link (Playwright)', () => {
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_open_link');
+        await cov?.close();
         await context?.close();
     });
 

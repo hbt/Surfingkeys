@@ -14,17 +14,17 @@
  *   bunx playwright test tests/playwright/commands/cmd-tab-next-prev.spec.ts
  */
 
-import { test, expect, chromium, BrowserContext, Page } from '@playwright/test';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
+import { test, expect, BrowserContext, Page } from '@playwright/test';
+import { launchWithCoverage } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
-const EXTENSION_PATH = path.resolve(__dirname, '../../../dist/development/chrome');
 const FIXTURE_BASE = 'http://127.0.0.1:9873/scroll-test.html';
 const TAB_COUNT = 5;
 const START_INDEX = 2; // middle tab — 2 tabs left, 2 tabs right
 
 let context: BrowserContext;
+let cov: ServiceWorkerCoverage | undefined;
 let queryPage: Page;       // extension options page for chrome.tabs access
 let fixtureTabs: Page[];   // Playwright pages in creation order
 // Maps chrome tab id → Playwright Page (built after setup)
@@ -109,32 +109,9 @@ test.describe('cmd_tab_next + cmd_tab_previous (Playwright)', () => {
     let startChromeTabId: number;
 
     test.beforeAll(async () => {
-        const userDataDir = fs.mkdtempSync(
-            path.join(os.tmpdir(), 'pw-tab-nav-test-'),
-        );
-        fs.mkdirSync(path.join(userDataDir, 'Default'), { recursive: true });
-        fs.writeFileSync(
-            path.join(userDataDir, 'Default', 'Preferences'),
-            JSON.stringify({ extensions: { ui: { developer_mode: true } } }),
-        );
-
-        context = await chromium.launchPersistentContext(userDataDir, {
-            headless: false,
-            args: [
-                '--headless=new',
-                `--disable-extensions-except=${EXTENSION_PATH}`,
-                `--load-extension=${EXTENSION_PATH}`,
-                '--enable-experimental-extension-apis',
-                '--enable-features=UserScriptsAPI',
-                '--disable-gpu',
-                '--no-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-background-networking',
-                '--disable-sync',
-                '--no-pings',
-                '--metrics-recording-only',
-            ],
-        });
+        const result = await launchWithCoverage();
+        context = result.context;
+        cov = result.cov;
 
         // Close the initial blank page Chrome opens so our tab indices are clean.
         const initialPages = context.pages();
@@ -179,6 +156,8 @@ test.describe('cmd_tab_next + cmd_tab_previous (Playwright)', () => {
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_next_prev');
+        await cov?.close();
         await context?.close();
     });
 

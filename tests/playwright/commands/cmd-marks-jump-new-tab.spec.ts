@@ -1,11 +1,14 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const FIXTURE_URL_2 = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
 let page: Page;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function addVIMark(ctx: BrowserContext, mark: string, url: string): Promise<void> {
     const sw = ctx.serviceWorkers()[0];
@@ -33,13 +36,17 @@ async function clearMarks(ctx: BrowserContext): Promise<void> {
 
 test.describe('cmd_marks_jump_new_tab (Playwright)', () => {
     test.beforeAll(async () => {
-        ({ context } = await launchExtensionContext());
+        const result = await launchWithCoverage(FIXTURE_URL);
+        context = result.context;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
+        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
+        if (cov) printCoverageDelta(await cov.delta(), 'cmd_marks_jump_new_tab');
+        await cov?.close();
         await context?.close();
     });
 
