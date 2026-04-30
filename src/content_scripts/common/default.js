@@ -2149,7 +2149,11 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         }, function() {
             front.openOmnibar(({type: "Bookmarks"}));
         });
-        mapkey(';x', '#3Close tabs by URL', function() {
+        mapkey(';x', {
+            short: "Close tabs by URL",
+            unique_id: "cmd_close_tabs_by_url",
+            tags: ["omnibar", "tabs"],
+        }, function() {
             front.openOmnibar({type: "CloseTabs"});
         });
         mapkey('ab', {
