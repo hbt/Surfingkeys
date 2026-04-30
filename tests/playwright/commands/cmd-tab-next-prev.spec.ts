@@ -151,6 +151,11 @@ test.describe('cmd_tab_next + cmd_tab_previous (Playwright)', () => {
 
         // Let Surfingkeys settle in the active tab.
         await fixtureTabs[START_INDEX].waitForTimeout(500);
+
+        // Anchor page for content coverage — must exist at CONTENT_COVERAGE_URL
+        const anchorPage = await context.newPage();
+        await anchorPage.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+        await anchorPage.waitForTimeout(500);
     });
 
     test.beforeEach(async () => {

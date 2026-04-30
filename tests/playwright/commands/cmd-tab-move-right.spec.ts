@@ -62,6 +62,12 @@ test.describe('cmd_tab_move_right (Playwright)', () => {
         context = result.context;
         covBg = result.covBg;
         initContentCoverageForUrl = result.covForPageUrl;
+
+        // Anchor page for content coverage
+        const anchorPage = await context.newPage();
+        await anchorPage.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+        await anchorPage.waitForTimeout(500);
+
         // Create 4 pages — we'll focus the first (leftmost) one to move right
         for (let i = 0; i < 4; i++) {
             const p = await context.newPage();

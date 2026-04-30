@@ -45,6 +45,11 @@ test.describe('cmd_tab_history_last (Playwright)', () => {
         covBg = result.covBg;
         initContentCoverageForUrl = result.covForPageUrl;
 
+        // Anchor page for content coverage
+        const anchorPage = await context.newPage();
+        await anchorPage.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+        await anchorPage.waitForTimeout(500);
+
         // Create 3 pages and build activation history
         for (let i = 0; i < 3; i++) {
             const p = await context.newPage();

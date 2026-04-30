@@ -12,6 +12,7 @@ const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 let context: BrowserContext;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+let coverageAnchorPage: import('@playwright/test').Page | undefined;
 
 async function getActiveTabViaSW(ctx: BrowserContext): Promise<any> {
     const sw = ctx.serviceWorkers()[0];
@@ -49,9 +50,9 @@ test.describe('cmd_tab_reload_magic (Playwright)', () => {
         context = result.context;
         covBg = result.covBg;
         initContentCoverageForUrl = result.covForPageUrl;
-        const p = await context.newPage();
-        await p.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
-        await p.waitForTimeout(500);
+        coverageAnchorPage = await context.newPage();
+        await coverageAnchorPage.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+        await coverageAnchorPage.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
@@ -61,7 +62,7 @@ test.describe('cmd_tab_reload_magic (Playwright)', () => {
 
     async function closeAllExcept(keepPage: import('@playwright/test').Page) {
         for (const p of context.pages()) {
-            if (p !== keepPage) await p.close().catch(() => {});
+            if (p !== keepPage && p !== coverageAnchorPage) await p.close().catch(() => {});
         }
         await keepPage.bringToFront();
         await keepPage.waitForTimeout(200);
