@@ -1,26 +1,39 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE, collectOptionalCoverage } from '../utils/pw-helpers';
+import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
+import { ServiceWorkerCoverage, printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
+const COVERAGE = process.env.COVERAGE === 'true';
 
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cdpPort: number | undefined;
+let swCoverage: ServiceWorkerCoverage | undefined;
 
 test.describe('cmd_scroll_down (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchExtensionContext({ enableCoverage: process.env.COVERAGE === 'true' });
+        const result = await launchExtensionContext({ enableCoverage: COVERAGE });
         context = result.context;
-        cdpPort = result.cdpPort;
 
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
+
+        if (COVERAGE && result.cdpPort) {
+            swCoverage = new ServiceWorkerCoverage();
+            // Scroll commands execute in the content script (page context), not the service worker.
+            // Connect to the fixture page target so the profiler captures content-script execution.
+            const ok = await swCoverage.init(
+                result.cdpPort,
+                (t) => t.type === 'page' && t.url?.includes('scroll-test.html'),
+            );
+            if (!ok) swCoverage = undefined;
+        }
     });
 
     test.afterAll(async () => {
+        await swCoverage?.close();
         await context?.close();
     });
 
@@ -33,22 +46,22 @@ test.describe('cmd_scroll_down (Playwright)', () => {
         const initialScroll = await page.evaluate(() => window.scrollY);
         expect(initialScroll).toBe(0);
 
+        await swCoverage?.snapshot();                                              // baseline BEFORE
         const result = await sendKeyAndWaitForScroll(page, 'j', { direction: 'down', minDelta: 20 });
+        if (swCoverage) printCoverageDelta(await swCoverage.delta(), 'cmd_scroll_down'); // delta AFTER
 
         expect(result.final).toBeGreaterThan(result.baseline);
         if (DEBUG) console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
-
-        await collectOptionalCoverage(cdpPort, page);
     });
 
     test('scroll down distance is consistent', async () => {
+        await swCoverage?.snapshot();
         const result1 = await sendKeyAndWaitForScroll(page, 'j', { direction: 'down', minDelta: 20 });
         const result2 = await sendKeyAndWaitForScroll(page, 'j', { direction: 'down', minDelta: 20 });
+        if (swCoverage) printCoverageDelta(await swCoverage.delta(), 'cmd_scroll_down x2');
 
         if (DEBUG) console.log(`1st: ${result1.delta}px, 2nd: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`);
         expect(Math.abs(result1.delta - result2.delta)).toBeLessThan(15);
-
-        await collectOptionalCoverage(cdpPort, page);
     });
 
     test('pressing 5j scrolls 5 times the distance of j', async () => {
@@ -88,17 +101,18 @@ test.describe('cmd_scroll_down (Playwright)', () => {
             { minDelta: singleDistance * 3, timeoutMs: 5000 },
         );
 
+        await swCoverage?.snapshot();
         await page.keyboard.press('5');
         await page.keyboard.press('j');
 
         const { baseline, final } = await scrollPromise;
+        if (swCoverage) printCoverageDelta(await swCoverage.delta(), 'cmd_scroll_down 5j');
+
         const repeatDistance = final - baseline;
         const ratio = repeatDistance / singleDistance;
 
         if (DEBUG) console.log(`Single j: ${singleDistance}px, 5j: ${repeatDistance}px (ratio: ${ratio.toFixed(2)}x)`);
         expect(ratio).toBeGreaterThanOrEqual(3.5);
         expect(ratio).toBeLessThanOrEqual(6.5);
-
-        await collectOptionalCoverage(cdpPort, page);
     });
 });

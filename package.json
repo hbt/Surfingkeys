@@ -30,6 +30,7 @@
     "validate:mappings:prefixes": "bun scripts/validate-mappings.js --prefixes",
     "report:migration": "bun scripts/find-migrated-commands.js",
     "report:mappings:json": "bun scripts/mappings-json-report.ts",
+    "report:audit": "bun scripts/mappings-json-report.ts | bun scripts/audit-report.ts",
     "test:playwright": "bunx playwright test",
     "test:playwright:parallel": "bunx playwright test --workers=9 --reporter=dot"
   },

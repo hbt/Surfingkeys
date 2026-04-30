@@ -7,6 +7,18 @@ import { chromium, BrowserContext } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import * as net from 'net';
+
+async function findFreePort(): Promise<number> {
+    return new Promise((resolve, reject) => {
+        const server = net.createServer();
+        server.listen(0, '127.0.0.1', () => {
+            const { port } = server.address() as net.AddressInfo;
+            server.close(() => resolve(port));
+        });
+        server.on('error', reject);
+    });
+}
 
 export const EXTENSION_PATH = path.resolve(__dirname, '../../../dist/development/chrome');
 export const FIXTURE_BASE = 'http://127.0.0.1:9873';
@@ -34,7 +46,7 @@ export async function launchExtensionContext(opts?: { headless?: boolean; enable
     // Find an available port for remote debugging
     let cdpPort: number | undefined;
     if (enableCoverage) {
-        cdpPort = 9222 + Math.floor(Math.random() * 100);
+        cdpPort = await findFreePort();
     }
 
     const context = await chromium.launchPersistentContext(userDataDir, {
@@ -253,14 +265,16 @@ export async function collectOptionalCoverage(
         const { collectV8Coverage, calculateCoverageStats } = cdpCoverage;
 
         const targets = await collectCDPCoverage(cdpPort);
-        const pageTarget = targets.find((t: any) => t.type === 'page' && t.url?.includes(page.url()));
+        const swTarget = targets.find(
+            (t: any) => t.type === 'service_worker' && t.url?.includes('background.js'),
+        );
 
-        if (!pageTarget?.webSocketDebuggerUrl) {
+        if (!swTarget?.webSocketDebuggerUrl) {
             return;
         }
 
-        // Collect coverage
-        const coverage = await collectV8Coverage(pageTarget.webSocketDebuggerUrl, 10000);
+        // Collect coverage from service worker (where commands execute)
+        const coverage = await collectV8Coverage(swTarget.webSocketDebuggerUrl, 10000);
 
         if (!coverage || coverage.length === 0) {
             return;

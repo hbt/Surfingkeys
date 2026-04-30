@@ -1,23 +1,34 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE, collectOptionalCoverage } from '../utils/pw-helpers';
+import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
+import { ServiceWorkerCoverage, printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
+const COVERAGE = process.env.COVERAGE === 'true';
 
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cdpPort: number | undefined;
+let swCoverage: ServiceWorkerCoverage | undefined;
 
 test.describe('cmd_scroll_up (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchExtensionContext({ enableCoverage: process.env.COVERAGE === 'true' });
+        const result = await launchExtensionContext({ enableCoverage: COVERAGE });
         context = result.context;
-        cdpPort = result.cdpPort;
 
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
+
+        if (COVERAGE && result.cdpPort) {
+            swCoverage = new ServiceWorkerCoverage();
+            // Scroll commands execute in the content script (page context), not the service worker.
+            const ok = await swCoverage.init(
+                result.cdpPort,
+                (t) => t.type === 'page' && t.url?.includes('scroll-test.html'),
+            );
+            if (!ok) swCoverage = undefined;
+        }
     });
 
     test.beforeEach(async () => {
@@ -35,6 +46,7 @@ test.describe('cmd_scroll_up (Playwright)', () => {
     });
 
     test.afterAll(async () => {
+        await swCoverage?.close();
         await context?.close();
     });
 
@@ -42,41 +54,24 @@ test.describe('cmd_scroll_up (Playwright)', () => {
         const initialScroll = await page.evaluate(() => window.scrollY);
         expect(initialScroll).toBeGreaterThan(0);
 
-        const result = await sendKeyAndWaitForScroll(page, 'k', {
-            direction: 'up',
-            minDelta: 20,
-        });
+        await swCoverage?.snapshot();
+        const result = await sendKeyAndWaitForScroll(page, 'k', { direction: 'up', minDelta: 20 });
+        if (swCoverage) printCoverageDelta(await swCoverage.delta(), 'cmd_scroll_up');
 
         expect(result.final).toBeLessThan(result.baseline);
-        if (DEBUG) {
-            console.log(
-            `Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`,
-            );
-        }
-
-        await collectOptionalCoverage(cdpPort, page);
+        if (DEBUG) console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
     });
 
     test('scroll up distance is consistent', async () => {
         const start = await page.evaluate(() => window.scrollY);
         expect(start).toBeGreaterThan(0);
 
-        const result1 = await sendKeyAndWaitForScroll(page, 'k', {
-            direction: 'up',
-            minDelta: 20,
-        });
-        const result2 = await sendKeyAndWaitForScroll(page, 'k', {
-            direction: 'up',
-            minDelta: 20,
-        });
+        await swCoverage?.snapshot();
+        const result1 = await sendKeyAndWaitForScroll(page, 'k', { direction: 'up', minDelta: 20 });
+        const result2 = await sendKeyAndWaitForScroll(page, 'k', { direction: 'up', minDelta: 20 });
+        if (swCoverage) printCoverageDelta(await swCoverage.delta(), 'cmd_scroll_up x2');
 
-        if (DEBUG) {
-            console.log(
-            `1st scroll: ${result1.delta}px, 2nd scroll: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`,
-            );
-        }
+        if (DEBUG) console.log(`1st: ${result1.delta}px, 2nd: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`);
         expect(Math.abs(result1.delta - result2.delta)).toBeLessThan(15);
-
-        await collectOptionalCoverage(cdpPort, page);
     });
 });
