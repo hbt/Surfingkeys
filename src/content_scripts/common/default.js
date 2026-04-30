@@ -1499,6 +1499,103 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("closeAudibleTab");
     });
+
+    // Group A — Tab Navigation
+    mapkey('gxop', {
+        short: "Go to parent tab",
+        unique_id: "cmd_tab_parent",
+        feature_group: 3,
+        category: "tabs",
+        description: "Switch to the tab that opened the current tab",
+        tags: ["tabs", "navigation", "parent"]
+    }, function() {
+        RUNTIME("goToParentTab");
+    });
+
+    // Group B — Reload Magic
+    mapkey('grxe', {
+        short: "Reload tabs to the right",
+        unique_id: "cmd_tab_reload_magic_right",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload 1 tab to the right of current tab",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'DirectionRight'});
+    });
+    mapkey('grxq', {
+        short: "Reload tabs to the left",
+        unique_id: "cmd_tab_reload_magic_left",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload 1 tab to the left of current tab",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'DirectionLeft'});
+    });
+    mapkey('grxc', {
+        short: "Reload all tabs except active",
+        unique_id: "cmd_tab_reload_magic_except_active",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload all tabs in current window except the active tab",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'AllExceptActive'});
+    });
+    mapkey('grxk', {
+        short: "Reload children tabs",
+        unique_id: "cmd_tab_reload_magic_children",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload tabs opened directly from the current tab",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'ChildrenTabs'});
+    });
+
+    // Group C — Detach
+    mapkey('gxd', {
+        short: "Detach current tab to new window",
+        unique_id: "cmd_tab_detach",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move current tab to a new window",
+        tags: ["tabs", "detach", "window"]
+    }, function() {
+        RUNTIME("moveToWindow", {windowId: -1});
+    });
+    mapkey('gXe', {
+        short: "Detach tabs to the right to new window",
+        unique_id: "cmd_tab_detach_magic_right",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move 1 tab to the right of current tab to a new window",
+        tags: ["tabs", "detach", "magic"]
+    }, function() {
+        RUNTIME("detachTabMagic", {magic: 'DirectionRight'});
+    });
+    mapkey('gXc', {
+        short: "Detach all tabs except active to new window",
+        unique_id: "cmd_tab_detach_magic_except_active",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move all tabs except the active tab to a new window",
+        tags: ["tabs", "detach", "magic"]
+    }, function() {
+        RUNTIME("detachTabMagic", {magic: 'AllExceptActive'});
+    });
+    mapkey('gXk', {
+        short: "Detach children tabs to new window",
+        unique_id: "cmd_tab_detach_magic_children",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move tabs opened directly from the current tab to a new window",
+        tags: ["tabs", "detach", "magic"]
+    }, function() {
+        RUNTIME("detachTabMagic", {magic: 'ChildrenTabs'});
+    });
+
     mapkey(';e', {
         short: "Edit settings",
         unique_id: "cmd_tools_edit_settings",
