@@ -1,14 +1,46 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import * as fs from 'fs';
 
 const DEBUG = !!process.env.DEBUG;
 
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+
+function readCoverageStats(
+    filePath: string,
+    expectedTarget: 'service_worker' | 'page',
+    scriptFile: 'background.js' | 'content.js',
+): { total: number; zero: number; gt0: number; byFunction: Map<string, number> } {
+    const payload = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    expect(payload.target).toBe(expectedTarget);
+
+    const scriptEntries = (payload.result ?? []).filter((s: any) => typeof s.url === 'string' && s.url.endsWith(scriptFile));
+    expect(scriptEntries.length).toBeGreaterThan(0);
+
+    const byFunction = new Map<string, number>();
+    let total = 0;
+    let zero = 0;
+    let gt0 = 0;
+
+    for (const script of scriptEntries) {
+        for (const fn of script.functions ?? []) {
+            const maxCount = Math.max(...((fn.ranges ?? []).map((r: any) => Number(r.count) || 0)));
+            total += 1;
+            if (maxCount > 0) gt0 += 1;
+            else zero += 1;
+            if (fn.functionName) byFunction.set(fn.functionName, Math.max(byFunction.get(fn.functionName) ?? 0, maxCount));
+        }
+    }
+
+    return { total, zero, gt0, byFunction };
+}
 
 async function getActiveTabViaSW(ctx: BrowserContext): Promise<any> {
     const sw = ctx.serviceWorkers()[0];
@@ -32,18 +64,17 @@ async function getTabsViaSW(ctx: BrowserContext): Promise<any[]> {
 
 test.describe('cmd_tab_close_all_left (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage();
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
-        cov = result.cov;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
-        await cov?.snapshot(); // reset counters past page-load noise
     });
 
     test.afterAll(async () => {
-        if (cov) await cov.flush('cmd_tab_close_all_left');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -57,8 +88,9 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
         await l1.goto(FIXTURE_URL, { waitUntil: 'load' });
         await l1.waitForTimeout(200);
 
+        const activePageUrl = `${FIXTURE_URL}#gx0_case_left_active`;
         const activePage = await context.newPage();
-        await activePage.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await activePage.goto(activePageUrl, { waitUntil: 'load' });
         await activePage.waitForTimeout(200);
 
         const r0 = await context.newPage();
@@ -67,12 +99,20 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
 
         await activePage.bringToFront();
         await activePage.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(activePageUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error('Content coverage session failed to initialize for gx0 case 1');
+        }
 
         const activeTab = await getActiveTabViaSW(context);
         const tabsToLeft = activeTab.index; // number of tabs to the left
         const beforeCount = context.pages().length;
 
         if (DEBUG) console.log(`gx0: active tab index=${activeTab.index}, tabsToLeft=${tabsToLeft}, beforeCount=${beforeCount}`);
+
+        // Command window starts here: snapshot immediately before gx0 dispatch.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
         // Press gx0
         await activePage.keyboard.press('g');
@@ -92,6 +132,23 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
 
         expect(finalCount).toBe(expectedCount);
         if (DEBUG) console.log(`gx0: ${beforeCount} → ${finalCount} pages (expected ${expectedCount})`);
+        const bgPath = await covBg?.flush('cmd_tab_close_all_left/gx0_closes_all_tabs_to_the_left_of_current_tab/command_window/background');
+        const contentPath = await covContent?.flush('cmd_tab_close_all_left/gx0_closes_all_tabs_to_the_left_of_current_tab/content');
+        expect(bgPath).toBeTruthy();
+        expect(contentPath).toBeTruthy();
+        if (bgPath) {
+            const bg = readCoverageStats(bgPath, 'service_worker', 'background.js');
+            expect(bg.total).toBeGreaterThan(0);
+            expect(bg.zero).toBeGreaterThan(0); // sanity: not "every function covered"
+            expect(bg.byFunction.get('_closeTab') ?? 0).toBeGreaterThan(0); // gx0-specific hot path
+        }
+        if (contentPath) {
+            const content = readCoverageStats(contentPath, 'page', 'content.js');
+            expect(content.total).toBeGreaterThan(0);
+            expect(content.zero).toBeGreaterThan(0); // sanity: not "every function covered"
+            expect(content.gt0).toBeGreaterThan(0); // command path did execute in content script
+        }
+        await covContent?.close();
 
         // Cleanup right page
         await r0.close().catch(() => {});
@@ -100,11 +157,16 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
 
     test('gx0 at leftmost tab closes nothing', async () => {
         // Open one page and ensure it has no pages to its left
+        const leftmostPageUrl = `${FIXTURE_URL}#gx0_case_leftmost_active`;
         const leftmostPage = await context.newPage();
-        await leftmostPage.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await leftmostPage.goto(leftmostPageUrl, { waitUntil: 'load' });
         await leftmostPage.waitForTimeout(300);
         await leftmostPage.bringToFront();
         await leftmostPage.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(leftmostPageUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error('Content coverage session failed to initialize for gx0 case 2');
+        }
 
         const activeTab = await getActiveTabViaSW(context);
         const allTabs = await getTabsViaSW(context);
@@ -112,6 +174,10 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
 
         if (tabsToLeft === 0) {
             const beforeCount = context.pages().length;
+
+            // Command window starts here: snapshot immediately before gx0 dispatch.
+            await covBg?.snapshot();
+            await covContent?.snapshot();
 
             await leftmostPage.keyboard.press('g');
             await leftmostPage.waitForTimeout(50);
@@ -122,10 +188,13 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
 
             expect(context.pages().length).toBe(beforeCount);
             if (DEBUG) console.log(`gx0 at leftmost: count unchanged at ${beforeCount}`);
+            if (covBg) await covBg.flush('cmd_tab_close_all_left/gx0_at_leftmost_tab_closes_nothing/command_window/background');
+            if (covContent) await covContent.flush('cmd_tab_close_all_left/gx0_at_leftmost_tab_closes_nothing/content');
         } else {
             if (DEBUG) console.log(`Could not isolate leftmost scenario (${tabsToLeft} tabs to left) — skipping assertion`);
         }
 
+        await covContent?.close();
         await leftmostPage.close().catch(() => {});
     });
 
@@ -135,11 +204,16 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
         await extra1.goto(FIXTURE_URL, { waitUntil: 'load' });
         await extra1.waitForTimeout(200);
 
+        const rightmostPageUrl = `${FIXTURE_URL}#gx0_case_rightmost_active`;
         const rightmost = await context.newPage();
-        await rightmost.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await rightmost.goto(rightmostPageUrl, { waitUntil: 'load' });
         await rightmost.waitForTimeout(200);
         await rightmost.bringToFront();
         await rightmost.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(rightmostPageUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error('Content coverage session failed to initialize for gx0 case 3');
+        }
 
         const activeTab = await getActiveTabViaSW(context);
         const allTabs = await getTabsViaSW(context);
@@ -149,6 +223,10 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
 
         const tabsToLeft = activeTab.index;
         const beforeCount = context.pages().length;
+
+        // Command window starts here: snapshot immediately before gx0 dispatch.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
         await rightmost.keyboard.press('g');
         await rightmost.waitForTimeout(50);
@@ -167,6 +245,9 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
         expect(finalCount).toBe(expectedCount);
         if (DEBUG) console.log(`gx0 from rightmost: ${beforeCount} → ${finalCount} (expected ${expectedCount})`);
 
+        if (covBg) await covBg.flush('cmd_tab_close_all_left/gx0_from_rightmost_tab_closes_all_other_tabs/command_window/background');
+        if (covContent) await covContent.flush('cmd_tab_close_all_left/gx0_from_rightmost_tab_closes_all_other_tabs/content');
+        await covContent?.close();
         await rightmost.close().catch(() => {});
     });
 });
