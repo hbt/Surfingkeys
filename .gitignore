@@ -1,8 +1,9 @@
 node_modules/
 dist/
-coverage/
-coverage-raw/
-coverage-html/
+/coverage/
+/coverage-raw/
+/coverage-html/
+/coverage-manifests/
 data/gen/
 .DS_Store
 .vscode/
