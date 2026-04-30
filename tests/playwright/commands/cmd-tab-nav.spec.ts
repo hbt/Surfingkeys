@@ -1,14 +1,17 @@
 import { test, expect, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_tab_nav';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getActiveTabViaSW(ctx: BrowserContext): Promise<any> {
     const sw = ctx.serviceWorkers()[0];
@@ -52,17 +55,17 @@ async function openChildTabViaSW(ctx: BrowserContext, openerTabId: number, url: 
 
 test.describe('cmd_tab_nav (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage();
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
-        cov = result.cov;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         const p = await context.newPage();
-        await p.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await p.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await p.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_nav');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -75,113 +78,119 @@ test.describe('cmd_tab_nav (Playwright)', () => {
     }
 
     test('cmd_tab_next moves active tab from index 0 to index 1', async () => {
-        const tab0 = await context.newPage();
-        await tab0.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await closeAllExcept(tab0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const tab0 = await context.newPage();
+            await tab0.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await closeAllExcept(tab0);
 
-        const tab1 = await context.newPage();
-        await tab1.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await tab1.waitForTimeout(200);
+            const tab1 = await context.newPage();
+            await tab1.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await tab1.waitForTimeout(200);
 
-        const tab2 = await context.newPage();
-        await tab2.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await tab2.waitForTimeout(200);
+            const tab2 = await context.newPage();
+            await tab2.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await tab2.waitForTimeout(200);
 
-        // Get tabs from SW and find index 0 tab
-        const allTabs = await getTabsViaSW(context);
-        expect(allTabs.length).toBe(3);
-        const tab0Info = allTabs.find((t: any) => t.index === 0);
-        expect(tab0Info).toBeDefined();
+            // Get tabs from SW and find index 0 tab
+            const allTabs = await getTabsViaSW(context);
+            expect(allTabs.length).toBe(3);
+            const tab0Info = allTabs.find((t: any) => t.index === 0);
+            expect(tab0Info).toBeDefined();
 
-        // Activate index 0 via SW (reliable)
-        await activateTabViaSW(context, tab0Info!.id);
-        await tab0.waitForTimeout(300);
+            // Activate index 0 via SW (reliable)
+            await activateTabViaSW(context, tab0Info!.id);
+            await tab0.waitForTimeout(300);
 
-        const beforeActive = await getActiveTabViaSW(context);
-        expect(beforeActive.index).toBe(0);
+            const beforeActive = await getActiveTabViaSW(context);
+            expect(beforeActive.index).toBe(0);
 
-        await invokeCommand(tab0, 'cmd_tab_next');
-        await tab0.waitForTimeout(500);
+            await invokeCommand(tab0, 'cmd_tab_next');
+            await tab0.waitForTimeout(500);
 
-        const afterActive = await getActiveTabViaSW(context);
-        expect(afterActive.index).toBe(1);
-        if (DEBUG) console.log(`cmd_tab_next: index ${beforeActive.index} → ${afterActive.index}`);
+            const afterActive = await getActiveTabViaSW(context);
+            expect(afterActive.index).toBe(1);
+            if (DEBUG) console.log(`cmd_tab_next: index ${beforeActive.index} → ${afterActive.index}`);
+        });
     });
 
     test('cmd_tab_prev moves active tab from index 2 to index 1', async () => {
-        const base = await context.newPage();
-        await base.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await closeAllExcept(base);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const base = await context.newPage();
+            await base.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await closeAllExcept(base);
 
-        const r1 = await context.newPage();
-        await r1.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await r1.waitForTimeout(200);
+            const r1 = await context.newPage();
+            await r1.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await r1.waitForTimeout(200);
 
-        const r2 = await context.newPage();
-        await r2.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await r2.waitForTimeout(200);
+            const r2 = await context.newPage();
+            await r2.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await r2.waitForTimeout(200);
 
-        // Get tabs from SW and find index 2 tab
-        const allTabs = await getTabsViaSW(context);
-        expect(allTabs.length).toBe(3);
-        const tab2Info = allTabs.find((t: any) => t.index === 2);
-        expect(tab2Info).toBeDefined();
+            // Get tabs from SW and find index 2 tab
+            const allTabs = await getTabsViaSW(context);
+            expect(allTabs.length).toBe(3);
+            const tab2Info = allTabs.find((t: any) => t.index === 2);
+            expect(tab2Info).toBeDefined();
 
-        // Activate index 2 via SW (reliable)
-        await activateTabViaSW(context, tab2Info!.id);
-        await r2.waitForTimeout(300);
+            // Activate index 2 via SW (reliable)
+            await activateTabViaSW(context, tab2Info!.id);
+            await r2.waitForTimeout(300);
 
-        const beforeActive = await getActiveTabViaSW(context);
-        expect(beforeActive.index).toBe(2);
+            const beforeActive = await getActiveTabViaSW(context);
+            expect(beforeActive.index).toBe(2);
 
-        await invokeCommand(r2, 'cmd_tab_previous');
-        await r2.waitForTimeout(500);
+            await invokeCommand(r2, 'cmd_tab_previous');
+            await r2.waitForTimeout(500);
 
-        const afterActive = await getActiveTabViaSW(context);
-        expect(afterActive.index).toBe(1);
-        if (DEBUG) console.log(`cmd_tab_prev: index ${beforeActive.index} → ${afterActive.index}`);
+            const afterActive = await getActiveTabViaSW(context);
+            expect(afterActive.index).toBe(1);
+            if (DEBUG) console.log(`cmd_tab_prev: index ${beforeActive.index} → ${afterActive.index}`);
+        });
     });
 
     test('cmd_tab_parent activates the opener tab from a child tab', async () => {
-        const parent = await context.newPage();
-        await parent.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await closeAllExcept(parent);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const parent = await context.newPage();
+            await parent.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await closeAllExcept(parent);
 
-        await parent.bringToFront();
-        await parent.waitForTimeout(300);
+            await parent.bringToFront();
+            await parent.waitForTimeout(300);
 
-        const parentTab = await getActiveTabViaSW(context);
+            const parentTab = await getActiveTabViaSW(context);
 
-        // Listen for new page before opening child tab
-        const childPagePromise = context.waitForEvent('page');
+            // Listen for new page before opening child tab
+            const childPagePromise = context.waitForEvent('page');
 
-        // Open a child tab with openerTabId set to parent
-        const childId = await openChildTabViaSW(context, parentTab.id, FIXTURE_URL);
+            // Open a child tab with openerTabId set to parent
+            const childId = await openChildTabViaSW(context, parentTab.id, FIXTURE_URL);
 
-        // Wait for the child page to appear in Playwright's pages
-        const childPage = await childPagePromise;
-        // Navigate to fixture URL via Playwright to ensure content script is properly injected
-        await childPage.goto(FIXTURE_URL, { waitUntil: 'load' });
-        // Give extension content script time to initialize in child tab
-        await childPage.waitForTimeout(800);
+            // Wait for the child page to appear in Playwright's pages
+            const childPage = await childPagePromise;
+            // Navigate to fixture URL via Playwright to ensure content script is properly injected
+            await childPage.goto(FIXTURE_URL, { waitUntil: 'load' });
+            // Give extension content script time to initialize in child tab
+            await childPage.waitForTimeout(800);
 
-        const allTabs = await getTabsViaSW(context);
-        const childTabInfo = allTabs.find((t: any) => t.id === childId);
-        expect(childTabInfo).toBeDefined();
+            const allTabs = await getTabsViaSW(context);
+            const childTabInfo = allTabs.find((t: any) => t.id === childId);
+            expect(childTabInfo).toBeDefined();
 
-        // Activate child tab via SW (reliable)
-        await activateTabViaSW(context, childId);
-        await parent.waitForTimeout(400);
+            // Activate child tab via SW (reliable)
+            await activateTabViaSW(context, childId);
+            await parent.waitForTimeout(400);
 
-        const activeBeforeInvoke = await getActiveTabViaSW(context);
-        expect(activeBeforeInvoke.id).toBe(childId);
+            const activeBeforeInvoke = await getActiveTabViaSW(context);
+            expect(activeBeforeInvoke.id).toBe(childId);
 
-        // Invoke from the child page (content script sender.tab = child tab with openerTabId set)
-        await invokeCommand(childPage, 'cmd_tab_parent');
-        await parent.waitForTimeout(500);
+            // Invoke from the child page (content script sender.tab = child tab with openerTabId set)
+            await invokeCommand(childPage, 'cmd_tab_parent');
+            await parent.waitForTimeout(500);
 
-        const afterActive = await getActiveTabViaSW(context);
-        expect(afterActive.id).toBe(parentTab.id);
-        if (DEBUG) console.log(`cmd_tab_parent: child ${childId} → parent ${parentTab.id} (active: ${afterActive.id})`);
+            const afterActive = await getActiveTabViaSW(context);
+            expect(afterActive.id).toBe(parentTab.id);
+            if (DEBUG) console.log(`cmd_tab_parent: child ${childId} → parent ${parentTab.id} (active: ${afterActive.id})`);
+        });
     });
 });

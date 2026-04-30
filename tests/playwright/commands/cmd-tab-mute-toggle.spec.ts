@@ -1,15 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_tab_mute_toggle';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getActiveTabInfo(): Promise<{ id: number; muted: boolean }> {
     const sw = context.serviceWorkers()[0];
@@ -64,11 +67,12 @@ test.describe('cmd_tab_mute_toggle (Playwright)', () => {
     let testTabId: number;
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
         const info = await getActiveTabInfo();
         testTabId = info.id;
@@ -76,8 +80,7 @@ test.describe('cmd_tab_mute_toggle (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_mute_toggle');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -88,73 +91,81 @@ test.describe('cmd_tab_mute_toggle (Playwright)', () => {
     });
 
     test('muting an unmuted tab changes muted state to true', async () => {
-        const initialMuted = await getTabMuteState(testTabId);
-        expect(initialMuted).toBe(false);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialMuted = await getTabMuteState(testTabId);
+            expect(initialMuted).toBe(false);
 
-        // Toggle mute (unmuted -> muted)
-        await toggleMute(testTabId);
-        await page.waitForTimeout(200);
+            // Toggle mute (unmuted -> muted)
+            await toggleMute(testTabId);
+            await page.waitForTimeout(200);
 
-        const afterMute = await getTabMuteState(testTabId);
-        expect(afterMute).toBe(true);
-        if (DEBUG) console.log(`Mute toggle: false -> ${afterMute}`);
+            const afterMute = await getTabMuteState(testTabId);
+            expect(afterMute).toBe(true);
+            if (DEBUG) console.log(`Mute toggle: false -> ${afterMute}`);
+        });
     });
 
     test('unmuting a muted tab changes muted state to false', async () => {
-        // First mute the tab
-        await setTabMuteState(testTabId, true);
-        await page.waitForTimeout(200);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // First mute the tab
+            await setTabMuteState(testTabId, true);
+            await page.waitForTimeout(200);
 
-        const preMuted = await getTabMuteState(testTabId);
-        expect(preMuted).toBe(true);
+            const preMuted = await getTabMuteState(testTabId);
+            expect(preMuted).toBe(true);
 
-        // Toggle mute (muted -> unmuted)
-        await toggleMute(testTabId);
-        await page.waitForTimeout(200);
+            // Toggle mute (muted -> unmuted)
+            await toggleMute(testTabId);
+            await page.waitForTimeout(200);
 
-        const afterToggle = await getTabMuteState(testTabId);
-        expect(afterToggle).toBe(false);
-        if (DEBUG) console.log(`Unmute toggle: true -> ${afterToggle}`);
+            const afterToggle = await getTabMuteState(testTabId);
+            expect(afterToggle).toBe(false);
+            if (DEBUG) console.log(`Unmute toggle: true -> ${afterToggle}`);
+        });
     });
 
     test('toggling mute multiple times cycles state correctly', async () => {
-        // Start: unmuted
-        expect(await getTabMuteState(testTabId)).toBe(false);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Start: unmuted
+            expect(await getTabMuteState(testTabId)).toBe(false);
 
-        // Toggle 1: false -> true
-        await toggleMute(testTabId);
-        await page.waitForTimeout(200);
-        expect(await getTabMuteState(testTabId)).toBe(true);
+            // Toggle 1: false -> true
+            await toggleMute(testTabId);
+            await page.waitForTimeout(200);
+            expect(await getTabMuteState(testTabId)).toBe(true);
 
-        // Toggle 2: true -> false
-        await toggleMute(testTabId);
-        await page.waitForTimeout(200);
-        expect(await getTabMuteState(testTabId)).toBe(false);
+            // Toggle 2: true -> false
+            await toggleMute(testTabId);
+            await page.waitForTimeout(200);
+            expect(await getTabMuteState(testTabId)).toBe(false);
 
-        // Toggle 3: false -> true
-        await toggleMute(testTabId);
-        await page.waitForTimeout(200);
-        expect(await getTabMuteState(testTabId)).toBe(true);
+            // Toggle 3: false -> true
+            await toggleMute(testTabId);
+            await page.waitForTimeout(200);
+            expect(await getTabMuteState(testTabId)).toBe(true);
 
-        if (DEBUG) console.log(`Toggle cycle: false -> true -> false -> true`);
+            if (DEBUG) console.log(`Toggle cycle: false -> true -> false -> true`);
+        });
     });
 
     test('pressing Alt-m key sequence changes mute state', async () => {
-        // This tests the actual keyboard shortcut through Surfingkeys
-        await page.bringToFront();
-        await page.waitForTimeout(300);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // This tests the actual keyboard shortcut through Surfingkeys
+            await page.bringToFront();
+            await page.waitForTimeout(300);
 
-        const initialMuted = await getTabMuteState(testTabId);
-        if (DEBUG) console.log(`Initial muted: ${initialMuted}`);
+            const initialMuted = await getTabMuteState(testTabId);
+            if (DEBUG) console.log(`Initial muted: ${initialMuted}`);
 
-        // Send Alt+m
-        await page.keyboard.press('Alt+m');
-        await page.waitForTimeout(500);
+            // Send Alt+m
+            await page.keyboard.press('Alt+m');
+            await page.waitForTimeout(500);
 
-        const afterMuted = await getTabMuteState(testTabId);
-        if (DEBUG) console.log(`After Alt+m: muted=${afterMuted}`);
+            const afterMuted = await getTabMuteState(testTabId);
+            if (DEBUG) console.log(`After Alt+m: muted=${afterMuted}`);
 
-        // The mute state should have changed
-        expect(afterMuted).not.toBe(initialMuted);
+            // The mute state should have changed
+            expect(afterMuted).not.toBe(initialMuted);
+        });
     });
 });

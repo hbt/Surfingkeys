@@ -1,14 +1,46 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { coverageSlug, readCoverageStats } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_tab_magic_close';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+
+function assertBasicCoverage(
+    bgPath: string | null,
+    contentPath: string | null,
+    opts?: { expectedBackgroundFunctions?: string[]; requireContent?: boolean },
+): void {
+    expect(bgPath).toBeTruthy();
+    if (bgPath) {
+        const bg = readCoverageStats(bgPath, 'service_worker', 'background.js');
+        expect(bg.total).toBeGreaterThan(0);
+        expect(bg.zero).toBeGreaterThan(0);
+        expect(bg.gt0).toBeGreaterThan(0);
+        for (const fn of opts?.expectedBackgroundFunctions ?? []) {
+            expect(bg.byFunction.get(fn) ?? 0).toBeGreaterThan(0);
+        }
+    }
+
+    if (opts?.requireContent !== false) {
+        expect(contentPath).toBeTruthy();
+    } else if (DEBUG && !contentPath) {
+        console.log('Content coverage target closed before persistence; treating as background-only.');
+    }
+    if (contentPath) {
+        const content = readCoverageStats(contentPath, 'page', 'content.js');
+        expect(content.total).toBeGreaterThan(0);
+        expect(content.zero).toBeGreaterThan(0);
+        expect(content.gt0).toBeGreaterThan(0);
+    }
+}
 
 async function getActiveTabViaSW(ctx: BrowserContext): Promise<any> {
     const sw = ctx.serviceWorkers()[0];
@@ -80,17 +112,17 @@ async function getAllTabsViaSW(ctx: BrowserContext): Promise<any[]> {
 
 test.describe('cmd_tab_magic_close (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage();
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
-        cov = result.cov;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         const p = await context.newPage();
-        await p.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await p.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await p.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_magic_close');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -103,8 +135,9 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
     }
 
     test('cmd_tab_close_magic_right closes 1 tab to the right', async () => {
+        const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/cmd_tab_close_magic_right_closes_1_tab_to_the_right`)}`;
         const anchor = await context.newPage();
-        await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await anchor.goto(anchorUrl, { waitUntil: 'load' });
         await closeAllExcept(anchor);
 
         const r0 = await context.newPage();
@@ -117,9 +150,17 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
 
         await anchor.bringToFront();
         await anchor.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(anchorUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 1`);
+        }
 
         const beforeCount = context.pages().length;
         expect(beforeCount).toBeGreaterThanOrEqual(3);
+
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
         await invokeCommand(anchor, 'cmd_tab_close_magic_right');
 
@@ -127,6 +168,12 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
 
         expect(context.pages().length).toBe(beforeCount - 1);
         if (DEBUG) console.log(`cmd_tab_close_magic_right: ${beforeCount} → ${context.pages().length}`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await covContent?.flush(`${label}/content`) ?? null;
+        assertBasicCoverage(bgPath, contentPath);
+        await covContent?.close();
     });
 
     test('cmd_tab_close_magic_left closes 1 tab to the left', async () => {
@@ -138,14 +185,23 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         await r0.goto(FIXTURE_URL, { waitUntil: 'load' });
         await r0.waitForTimeout(200);
 
+        const r1Url = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/cmd_tab_close_magic_left_closes_1_tab_to_the_left`)}`;
         const r1 = await context.newPage();
-        await r1.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await r1.goto(r1Url, { waitUntil: 'load' });
         await r1.waitForTimeout(200);
 
         await r1.bringToFront();
         await r1.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(r1Url);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 2`);
+        }
 
         const beforeCount = context.pages().length;
+
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
         await invokeCommand(r1, 'cmd_tab_close_magic_left');
 
@@ -153,6 +209,12 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
 
         expect(context.pages().length).toBe(beforeCount - 1);
         if (DEBUG) console.log(`cmd_tab_close_magic_left: ${beforeCount} → ${context.pages().length}`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await covContent?.flush(`${label}/content`) ?? null;
+        assertBasicCoverage(bgPath, contentPath);
+        await covContent?.close();
     });
 
     test('cmd_tab_close_magic_except_active closes all tabs except current', async () => {
@@ -167,11 +229,23 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         }
 
         const pages = context.pages();
-        const keeper = pages[Math.floor(pages.length / 2)];
+        const keeperIdx = Math.floor(pages.length / 2);
+        const keeperUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/cmd_tab_close_magic_except_active_closes_all_tabs_except_current`)}`;
+        const keeper = pages[keeperIdx];
+        await keeper.goto(keeperUrl, { waitUntil: 'load' });
+        await keeper.waitForTimeout(200);
         await keeper.bringToFront();
         await keeper.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(keeperUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 3`);
+        }
 
         const beforeCount = context.pages().length;
+
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
         await invokeCommand(keeper, 'cmd_tab_close_magic_except_active');
 
@@ -179,11 +253,18 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
 
         expect(context.pages().length).toBe(1);
         if (DEBUG) console.log(`cmd_tab_close_magic_except_active: ${beforeCount} → ${context.pages().length}`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await covContent?.flush(`${label}/content`) ?? null;
+        assertBasicCoverage(bgPath, contentPath);
+        await covContent?.close();
     });
 
     test('cmd_tab_close_magic_children closes only child tabs, leaves siblings', async () => {
+        const parentUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/cmd_tab_close_magic_children_closes_only_child_tabs_leaves_siblings`)}`;
         const parent = await context.newPage();
-        await parent.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await parent.goto(parentUrl, { waitUntil: 'load' });
         await closeAllExcept(parent);
 
         const sibling1 = await context.newPage();
@@ -196,6 +277,10 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
 
         await parent.bringToFront();
         await parent.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(parentUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 4`);
+        }
 
         const parentTab = await getActiveTabViaSW(context);
 
@@ -211,6 +296,10 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         const childTabs = allTabs.filter((t: any) => t.openerTabId === parentTab.id);
         expect(childTabs.length).toBe(2);
 
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
+
         await invokeCommand(parent, 'cmd_tab_close_magic_children');
 
         await waitForTabCount(parent, beforeCount - 2);
@@ -224,11 +313,19 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         expect(remainingIds.has(child2Id)).toBe(false);
 
         if (DEBUG) console.log(`cmd_tab_close_magic_children: ${beforeCount} → ${afterCount}`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await covContent?.flush(`${label}/content`) ?? null;
+        assertBasicCoverage(bgPath, contentPath);
+        await covContent?.close();
     });
 
     test('cmd_tab_close_magic_right_inclusive closes current + all to the right', async () => {
+        // The active tab itself is closed — use the manual close pattern.
+        const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/cmd_tab_close_magic_right_inclusive_closes_current_all_to_the_right`)}`;
         const anchor = await context.newPage();
-        await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await anchor.goto(anchorUrl, { waitUntil: 'load' });
         await closeAllExcept(anchor);
 
         const r0 = await context.newPage();
@@ -241,20 +338,37 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
 
         await anchor.bringToFront();
         await anchor.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(anchorUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 5`);
+        }
 
         const beforeCount = context.pages().length;
         expect(beforeCount).toBeGreaterThanOrEqual(3);
 
-        // anchor + 2 to the right = 3 tabs closed
-        await invokeCommand(anchor, 'cmd_tab_close_magic_right_inclusive');
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
-        await waitForTabCount(anchor, beforeCount - 3);
+        // anchor + 2 to the right = 3 tabs closed (anchor itself is closed)
+        // Fire content flush immediately — the anchor target disappears on invocation.
+        const contentFlushPromise = covContent?.flush(`${SUITE_LABEL}/${coverageSlug(test.info().title)}/content`).catch(() => null) ?? Promise.resolve(null);
+        await invokeCommand(anchor, 'cmd_tab_close_magic_right_inclusive').catch(() => {});
+
+        await waitForTabCount(r0, beforeCount - 3);
 
         expect(context.pages().length).toBe(beforeCount - 3);
         if (DEBUG) console.log(`cmd_tab_close_magic_right_inclusive: ${beforeCount} → ${context.pages().length}`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await contentFlushPromise;
+        assertBasicCoverage(bgPath, contentPath, { requireContent: false });
+        await covContent?.close().catch(() => {});
     });
 
     test('cmd_tab_close_magic_left_inclusive closes current + all to the left', async () => {
+        // The active tab itself is closed — use the manual close pattern.
         const base = await context.newPage();
         await base.goto(FIXTURE_URL, { waitUntil: 'load' });
         await closeAllExcept(base);
@@ -263,28 +377,46 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         await r0.goto(FIXTURE_URL, { waitUntil: 'load' });
         await r0.waitForTimeout(200);
 
+        const r1Url = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/cmd_tab_close_magic_left_inclusive_closes_current_all_to_the_left`)}`;
         const r1 = await context.newPage();
-        await r1.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await r1.goto(r1Url, { waitUntil: 'load' });
         await r1.waitForTimeout(200);
 
         await r1.bringToFront();
         await r1.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(r1Url);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 6`);
+        }
 
         const beforeCount = context.pages().length;
         expect(beforeCount).toBeGreaterThanOrEqual(3);
 
-        // r1 (rightmost) + 2 to the left = 3 tabs closed
-        await invokeCommand(r1, 'cmd_tab_close_magic_left_inclusive');
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
-        await waitForTabCount(r1, beforeCount - 3);
+        // r1 (rightmost) + 2 to the left = 3 tabs closed (r1 itself is closed)
+        // Fire content flush immediately — the r1 target disappears on invocation.
+        const contentFlushPromise = covContent?.flush(`${SUITE_LABEL}/${coverageSlug(test.info().title)}/content`).catch(() => null) ?? Promise.resolve(null);
+        await invokeCommand(r1, 'cmd_tab_close_magic_left_inclusive').catch(() => {});
+
+        await waitForTabCount(base, beforeCount - 3);
 
         expect(context.pages().length).toBe(beforeCount - 3);
         if (DEBUG) console.log(`cmd_tab_close_magic_left_inclusive: ${beforeCount} → ${context.pages().length}`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await contentFlushPromise;
+        assertBasicCoverage(bgPath, contentPath, { requireContent: false });
+        await covContent?.close().catch(() => {});
     });
 
     test('cmd_tab_close_magic_children_recursive closes child + grandchild tabs', async () => {
+        const parentUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/cmd_tab_close_magic_children_recursive_closes_child_grandchild_tabs`)}`;
         const parent = await context.newPage();
-        await parent.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await parent.goto(parentUrl, { waitUntil: 'load' });
         await closeAllExcept(parent);
 
         const sibling = await context.newPage();
@@ -293,6 +425,10 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
 
         await parent.bringToFront();
         await parent.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(parentUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 7`);
+        }
 
         const parentTab = await getActiveTabViaSW(context);
 
@@ -311,6 +447,10 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         const allTabs = await getAllTabsViaSW(context);
         const siblingTabObj = allTabs.find((t: any) => t.id === siblingTab.id);
 
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
+
         await invokeCommand(parent, 'cmd_tab_close_magic_children_recursive');
 
         // child + grandchild = 2 tabs closed, sibling survives
@@ -327,11 +467,18 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         if (siblingTabObj) expect(remainingIds.has(siblingTabObj.id)).toBe(true);
 
         if (DEBUG) console.log(`cmd_tab_close_magic_children_recursive: ${beforeCount} → ${afterCount}`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await covContent?.flush(`${label}/content`) ?? null;
+        assertBasicCoverage(bgPath, contentPath);
+        await covContent?.close();
     });
 
     test('cmd_tab_close_magic_other_windows closes tabs in other windows', async () => {
+        const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/cmd_tab_close_magic_other_windows_closes_tabs_in_other_windows`)}`;
         const anchor = await context.newPage();
-        await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await anchor.goto(anchorUrl, { waitUntil: 'load' });
         await closeAllExcept(anchor);
 
         const beforeCurrentWindow = context.pages().length;
@@ -353,6 +500,14 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
 
         await anchor.bringToFront();
         await anchor.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(anchorUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 8`);
+        }
+
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
         await invokeCommand(anchor, 'cmd_tab_close_magic_other_windows');
         await anchor.waitForTimeout(1000);
@@ -366,11 +521,18 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         expect(currentWindowTabsAfter.length).toBe(beforeCurrentWindow);
 
         if (DEBUG) console.log(`cmd_tab_close_magic_other_windows: other window tabs removed`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await covContent?.flush(`${label}/content`) ?? null;
+        assertBasicCoverage(bgPath, contentPath);
+        await covContent?.close();
     });
 
     test('cmd_tab_close_magic_other_windows_no_pinned skips windows with pinned tabs', async () => {
+        const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/cmd_tab_close_magic_other_windows_no_pinned_skips_windows_with_pinned_tabs`)}`;
         const anchor = await context.newPage();
-        await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await anchor.goto(anchorUrl, { waitUntil: 'load' });
         await closeAllExcept(anchor);
 
         const sw = context.serviceWorkers()[0];
@@ -395,6 +557,14 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
 
         await anchor.bringToFront();
         await anchor.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(anchorUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 9`);
+        }
+
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
         await invokeCommand(anchor, 'cmd_tab_close_magic_other_windows_no_pinned');
         await anchor.waitForTimeout(1000);
@@ -410,12 +580,19 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         await closeWindowViaSW(context, win3Id).catch(() => {});
 
         if (DEBUG) console.log(`cmd_tab_close_magic_other_windows_no_pinned: win2 closed, win3 (pinned) survived`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await covContent?.flush(`${label}/content`) ?? null;
+        assertBasicCoverage(bgPath, contentPath);
+        await covContent?.close();
     });
 
     // Repeat count test uses key dispatch (specifically tests 2gxe chord + RUNTIME.repeats flow)
     test('2gxe closes 2 tabs to the right (repeat count via key dispatch)', async () => {
+        const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/2gxe_closes_2_tabs_to_the_right_repeat_count_via_key_dispatch`)}`;
         const anchor = await context.newPage();
-        await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await anchor.goto(anchorUrl, { waitUntil: 'load' });
         await closeAllExcept(anchor);
 
         for (let i = 0; i < 3; i++) {
@@ -426,9 +603,17 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
 
         await anchor.bringToFront();
         await anchor.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(anchorUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 10`);
+        }
 
         const beforeCount = context.pages().length;
         expect(beforeCount).toBeGreaterThanOrEqual(4);
+
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
         for (const key of ['2', 'g', 'x', 'e']) {
             await anchor.keyboard.press(key).catch(() => {});
@@ -439,5 +624,11 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
 
         expect(context.pages().length).toBe(beforeCount - 2);
         if (DEBUG) console.log(`2gxe: ${beforeCount} → ${context.pages().length}`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await covContent?.flush(`${label}/content`) ?? null;
+        assertBasicCoverage(bgPath, contentPath);
+        await covContent?.close();
     });
 });

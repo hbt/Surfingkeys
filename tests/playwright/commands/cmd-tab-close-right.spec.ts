@@ -1,15 +1,45 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { coverageSlug, readCoverageStats } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_tab_close_right';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+
+function assertBasicCoverage(
+    bgPath: string | null,
+    contentPath: string | null,
+    opts?: { expectedBackgroundFunctions?: string[]; requireContent?: boolean },
+): void {
+    expect(bgPath).toBeTruthy();
+    if (bgPath) {
+        const bg = readCoverageStats(bgPath, 'service_worker', 'background.js');
+        expect(bg.total).toBeGreaterThan(0);
+        expect(bg.zero).toBeGreaterThan(0);
+        expect(bg.gt0).toBeGreaterThan(0);
+        for (const fn of opts?.expectedBackgroundFunctions ?? []) {
+            expect(bg.byFunction.get(fn) ?? 0).toBeGreaterThan(0);
+        }
+    }
+
+    if (opts?.requireContent !== false) {
+        expect(contentPath).toBeTruthy();
+    }
+    if (contentPath) {
+        const content = readCoverageStats(contentPath, 'page', 'content.js');
+        expect(content.total).toBeGreaterThan(0);
+        expect(content.zero).toBeGreaterThan(0);
+        expect(content.gt0).toBeGreaterThan(0);
+    }
+}
 
 async function getActiveTabViaSW(ctx: BrowserContext): Promise<any> {
     const sw = ctx.serviceWorkers()[0];
@@ -33,24 +63,25 @@ async function getTabsViaSW(ctx: BrowserContext): Promise<any[]> {
 
 test.describe('cmd_tab_close_right (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_close_right');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
     test('gxT closes the tab immediately to the right', async () => {
         // Ensure we have: active page, then a rightPage after it
+        const activePageUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/gxT_closes_the_tab_immediately_to_the_right`)}`;
         const activePage = await context.newPage();
-        await activePage.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await activePage.goto(activePageUrl, { waitUntil: 'load' });
         await activePage.waitForTimeout(300);
 
         const rightPage = await context.newPage();
@@ -59,8 +90,16 @@ test.describe('cmd_tab_close_right (Playwright)', () => {
 
         await activePage.bringToFront();
         await activePage.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(activePageUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 1`);
+        }
 
         const beforeCount = context.pages().length;
+
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
         const closePromise = rightPage.waitForEvent('close');
         await activePage.keyboard.press('g');
@@ -73,16 +112,27 @@ test.describe('cmd_tab_close_right (Playwright)', () => {
         expect(context.pages().length).toBe(beforeCount - 1);
         if (DEBUG) console.log(`gxT: ${beforeCount} → ${context.pages().length} pages`);
 
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await covContent?.flush(`${label}/content`) ?? null;
+        assertBasicCoverage(bgPath, contentPath);
+        await covContent?.close();
+
         await activePage.close().catch(() => {});
     });
 
     test('gxT at rightmost tab does nothing', async () => {
         // Create a page and make sure there are no tabs to its right
+        const rightmostPageUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/gxT_at_rightmost_tab_does_nothing`)}`;
         const rightmostPage = await context.newPage();
-        await rightmostPage.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await rightmostPage.goto(rightmostPageUrl, { waitUntil: 'load' });
         await rightmostPage.waitForTimeout(300);
         await rightmostPage.bringToFront();
         await rightmostPage.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(rightmostPageUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 2`);
+        }
 
         const activeTab = await getActiveTabViaSW(context);
         const allTabs = await getTabsViaSW(context);
@@ -90,6 +140,10 @@ test.describe('cmd_tab_close_right (Playwright)', () => {
 
         if (activeTab.index === maxIndex) {
             const beforeCount = context.pages().length;
+
+            // Command window starts here.
+            await covBg?.snapshot();
+            await covContent?.snapshot();
 
             await rightmostPage.keyboard.press('g');
             await rightmostPage.waitForTimeout(50);
@@ -100,16 +154,22 @@ test.describe('cmd_tab_close_right (Playwright)', () => {
 
             expect(context.pages().length).toBe(beforeCount);
             if (DEBUG) console.log(`gxT at rightmost: tab count unchanged at ${beforeCount}`);
+
+            const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+            if (covBg) await covBg.flush(`${label}/command_window/background`);
+            if (covContent) await covContent.flush(`${label}/content`);
         } else {
             if (DEBUG) console.log(`Could not isolate rightmost scenario (index ${activeTab.index} vs max ${maxIndex}) — skipping assertion`);
         }
 
+        await covContent?.close();
         await rightmostPage.close().catch(() => {});
     });
 
     test('gxT twice closes two tabs to the right', async () => {
+        const activePageUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/gxT_twice_closes_two_tabs_to_the_right`)}`;
         const activePage = await context.newPage();
-        await activePage.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await activePage.goto(activePageUrl, { waitUntil: 'load' });
         await activePage.waitForTimeout(300);
 
         const r1 = await context.newPage();
@@ -122,8 +182,16 @@ test.describe('cmd_tab_close_right (Playwright)', () => {
 
         await activePage.bringToFront();
         await activePage.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(activePageUrl);
+        if (process.env.COVERAGE === 'true' && !covContent) {
+            throw new Error(`Content coverage session failed to initialize for ${SUITE_LABEL} test 3`);
+        }
 
         const beforeCount = context.pages().length;
+
+        // Command window starts here.
+        await covBg?.snapshot();
+        await covContent?.snapshot();
 
         // First gxT closes r1
         const close1 = r1.waitForEvent('close');
@@ -148,6 +216,12 @@ test.describe('cmd_tab_close_right (Playwright)', () => {
 
         expect(context.pages().length).toBe(beforeCount - 2);
         if (DEBUG) console.log(`gxT x2: ${beforeCount} → ${context.pages().length} pages`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await covContent?.flush(`${label}/content`) ?? null;
+        assertBasicCoverage(bgPath, contentPath);
+        await covContent?.close();
 
         await activePage.close().catch(() => {});
     });

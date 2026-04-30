@@ -1,15 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_tab_gather_filtered';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getMainWindowId(): Promise<number> {
     const sw = context.serviceWorkers()[0];
@@ -72,19 +75,19 @@ test.describe('cmd_tab_gather_filtered (Playwright)', () => {
     const createdWindowIds: number[] = [];
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
         mainWindowId = await getMainWindowId();
         if (DEBUG) console.log(`Main window ID: ${mainWindowId}`);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_gather_filtered');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -97,115 +100,121 @@ test.describe('cmd_tab_gather_filtered (Playwright)', () => {
     });
 
     test('moving a specific tab from another window to main window', async () => {
-        const initialMainTabs = await getTabsInWindow(mainWindowId);
-        const initialCount = initialMainTabs.length;
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialMainTabs = await getTabsInWindow(mainWindowId);
+            const initialCount = initialMainTabs.length;
 
-        // Create a second window
-        const { windowId: secondWindowId, tabId: secondTabId } = await createWindowWithTab(FIXTURE_URL);
-        createdWindowIds.push(secondWindowId);
-        await page.waitForTimeout(600);
+            // Create a second window
+            const { windowId: secondWindowId, tabId: secondTabId } = await createWindowWithTab(FIXTURE_URL);
+            createdWindowIds.push(secondWindowId);
+            await page.waitForTimeout(600);
 
-        const secondTabs = await getTabsInWindow(secondWindowId);
-        if (DEBUG) console.log(`Second window has ${secondTabs.length} tabs, tab ID=${secondTabId}`);
-        expect(secondTabs.length).toBeGreaterThan(0);
+            const secondTabs = await getTabsInWindow(secondWindowId);
+            if (DEBUG) console.log(`Second window has ${secondTabs.length} tabs, tab ID=${secondTabId}`);
+            expect(secondTabs.length).toBeGreaterThan(0);
 
-        // Move just one tab from second window to main window (filtered gather)
-        const tabToGather = secondTabs[0];
-        await moveTabToWindow(tabToGather.id, mainWindowId);
-        await page.waitForTimeout(500);
+            // Move just one tab from second window to main window (filtered gather)
+            const tabToGather = secondTabs[0];
+            await moveTabToWindow(tabToGather.id, mainWindowId);
+            await page.waitForTimeout(500);
 
-        // Poll for completion
-        let finalMainTabs = await getTabsInWindow(mainWindowId);
-        for (let i = 0; i < 15; i++) {
-            if (finalMainTabs.length >= initialCount + 1) break;
-            await page.waitForTimeout(200);
-            finalMainTabs = await getTabsInWindow(mainWindowId);
-        }
+            // Poll for completion
+            let finalMainTabs = await getTabsInWindow(mainWindowId);
+            for (let i = 0; i < 15; i++) {
+                if (finalMainTabs.length >= initialCount + 1) break;
+                await page.waitForTimeout(200);
+                finalMainTabs = await getTabsInWindow(mainWindowId);
+            }
 
-        expect(finalMainTabs.length).toBe(initialCount + 1);
-        const gath = finalMainTabs.find((t) => t.id === tabToGather.id);
-        expect(gath).toBeDefined();
-        if (DEBUG) console.log(`Tab ${tabToGather.id} gathered to main window`);
+            expect(finalMainTabs.length).toBe(initialCount + 1);
+            const gath = finalMainTabs.find((t) => t.id === tabToGather.id);
+            expect(gath).toBeDefined();
+            if (DEBUG) console.log(`Tab ${tabToGather.id} gathered to main window`);
+        });
     });
 
     test('gathering specific tabs from multiple windows', async () => {
-        const initialMainTabs = await getTabsInWindow(mainWindowId);
-        const initialCount = initialMainTabs.length;
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialMainTabs = await getTabsInWindow(mainWindowId);
+            const initialCount = initialMainTabs.length;
 
-        // Create two extra windows
-        const win2 = await createWindowWithTab(FIXTURE_URL);
-        createdWindowIds.push(win2.windowId);
-        const win3 = await createWindowWithTab(FIXTURE_URL);
-        createdWindowIds.push(win3.windowId);
-        await page.waitForTimeout(600);
+            // Create two extra windows
+            const win2 = await createWindowWithTab(FIXTURE_URL);
+            createdWindowIds.push(win2.windowId);
+            const win3 = await createWindowWithTab(FIXTURE_URL);
+            createdWindowIds.push(win3.windowId);
+            await page.waitForTimeout(600);
 
-        const tabs2 = await getTabsInWindow(win2.windowId);
-        const tabs3 = await getTabsInWindow(win3.windowId);
-        if (DEBUG) console.log(`Window2: ${tabs2.length} tabs, Window3: ${tabs3.length} tabs`);
+            const tabs2 = await getTabsInWindow(win2.windowId);
+            const tabs3 = await getTabsInWindow(win3.windowId);
+            if (DEBUG) console.log(`Window2: ${tabs2.length} tabs, Window3: ${tabs3.length} tabs`);
 
-        const tabsToGather = [
-            ...(tabs2.length > 0 ? [tabs2[0]] : []),
-            ...(tabs3.length > 0 ? [tabs3[0]] : []),
-        ];
-        expect(tabsToGather.length).toBeGreaterThan(0);
+            const tabsToGather = [
+                ...(tabs2.length > 0 ? [tabs2[0]] : []),
+                ...(tabs3.length > 0 ? [tabs3[0]] : []),
+            ];
+            expect(tabsToGather.length).toBeGreaterThan(0);
 
-        // Gather selected tabs into main window
-        for (const tab of tabsToGather) {
-            await moveTabToWindow(tab.id, mainWindowId);
-        }
-        await page.waitForTimeout(600);
+            // Gather selected tabs into main window
+            for (const tab of tabsToGather) {
+                await moveTabToWindow(tab.id, mainWindowId);
+            }
+            await page.waitForTimeout(600);
 
-        const expectedCount = initialCount + tabsToGather.length;
-        let finalMainTabs = await getTabsInWindow(mainWindowId);
-        for (let i = 0; i < 15; i++) {
-            if (finalMainTabs.length >= expectedCount) break;
-            await page.waitForTimeout(200);
-            finalMainTabs = await getTabsInWindow(mainWindowId);
-        }
+            const expectedCount = initialCount + tabsToGather.length;
+            let finalMainTabs = await getTabsInWindow(mainWindowId);
+            for (let i = 0; i < 15; i++) {
+                if (finalMainTabs.length >= expectedCount) break;
+                await page.waitForTimeout(200);
+                finalMainTabs = await getTabsInWindow(mainWindowId);
+            }
 
-        expect(finalMainTabs.length).toBe(expectedCount);
-        for (const tab of tabsToGather) {
-            const found = finalMainTabs.find((t) => t.id === tab.id);
-            expect(found).toBeDefined();
-            if (DEBUG) console.log(`Tab ${tab.id} gathered successfully`);
-        }
+            expect(finalMainTabs.length).toBe(expectedCount);
+            for (const tab of tabsToGather) {
+                const found = finalMainTabs.find((t) => t.id === tab.id);
+                expect(found).toBeDefined();
+                if (DEBUG) console.log(`Tab ${tab.id} gathered successfully`);
+            }
+        });
     });
 
     test('gathering all tabs from no other windows keeps count unchanged', async () => {
-        // Close all extra windows first
-        const sw = context.serviceWorkers()[0];
-        if (!sw) throw new Error('No service worker');
-        const allWindows: Array<{ id: number }> = await sw.evaluate(() => {
-            return new Promise<Array<{ id: number }>>((resolve) => {
-                chrome.windows.getAll({}, (wins: any[]) => resolve(wins.map((w) => ({ id: w.id }))));
-            });
-        });
-        for (const w of allWindows) {
-            if (w.id !== mainWindowId) {
-                try { await closeWindow(w.id); } catch (_) {}
-            }
-        }
-        await page.waitForTimeout(500);
-
-        const initialMainTabs = await getTabsInWindow(mainWindowId);
-        const initialCount = initialMainTabs.length;
-
-        // Try to gather from other windows (none exist)
-        await sw.evaluate((wid: number) => {
-            return new Promise<void>((resolve) => {
-                chrome.tabs.query({}, (tabs: any[]) => {
-                    const toMove = tabs.filter((t) => t.windowId !== wid);
-                    toMove.forEach((tab) => {
-                        chrome.tabs.move(tab.id, { windowId: wid, index: -1 });
-                    });
-                    resolve();
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Close all extra windows first
+            const sw = context.serviceWorkers()[0];
+            if (!sw) throw new Error('No service worker');
+            const allWindows: Array<{ id: number }> = await sw.evaluate(() => {
+                return new Promise<Array<{ id: number }>>((resolve) => {
+                    chrome.windows.getAll({}, (wins: any[]) => resolve(wins.map((w) => ({ id: w.id }))));
                 });
             });
-        }, mainWindowId);
-        await page.waitForTimeout(500);
+            for (const w of allWindows) {
+                if (w.id !== mainWindowId) {
+                    try { await closeWindow(w.id); } catch (_) {}
+                }
+            }
+            await page.waitForTimeout(500);
 
-        const finalMainTabs = await getTabsInWindow(mainWindowId);
-        expect(finalMainTabs.length).toBe(initialCount);
-        if (DEBUG) console.log(`No other windows: count unchanged at ${finalMainTabs.length}`);
+            const initialMainTabs = await getTabsInWindow(mainWindowId);
+            const initialCount = initialMainTabs.length;
+
+            // Try to gather from other windows (none exist)
+            await sw.evaluate((wid: number) => {
+                return new Promise<void>((resolve) => {
+                    chrome.tabs.query({}, (tabs: any[]) => {
+                        const toMove = tabs.filter((t) => t.windowId !== wid);
+                        toMove.forEach((tab) => {
+                            chrome.tabs.move(tab.id, { windowId: wid, index: -1 });
+                        });
+                        resolve();
+                    });
+                });
+            }, mainWindowId);
+            await page.waitForTimeout(500);
+
+            const finalMainTabs = await getTabsInWindow(mainWindowId);
+            expect(finalMainTabs.length).toBe(initialCount);
+            if (DEBUG) console.log(`No other windows: count unchanged at ${finalMainTabs.length}`);
+        });
     });
 });

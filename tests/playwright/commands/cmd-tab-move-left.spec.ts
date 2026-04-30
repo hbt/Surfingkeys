@@ -1,15 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_tab_move_left';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getTabById(tabId: number): Promise<{ id: number; index: number } | null> {
     const sw = context.serviceWorkers()[0];
@@ -43,8 +46,10 @@ test.describe('cmd_tab_move_left (Playwright)', () => {
     let pages: Page[] = [];
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         // Create 4 pages so we have room to move left
         for (let i = 0; i < 4; i++) {
             const p = await context.newPage();
@@ -59,92 +64,95 @@ test.describe('cmd_tab_move_left (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_move_left');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
     test('pressing << moves tab one position to the left', async () => {
-        await page.bringToFront();
-        await page.waitForTimeout(300);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.bringToFront();
+            await page.waitForTimeout(300);
 
-        const initialInfo = await getActiveTabInfo();
-        const initialIndex = initialInfo.index;
-        const initialId = initialInfo.id;
-        if (DEBUG) console.log(`Initial tab: id=${initialId}, index=${initialIndex}`);
+            const initialInfo = await getActiveTabInfo();
+            const initialIndex = initialInfo.index;
+            const initialId = initialInfo.id;
+            if (DEBUG) console.log(`Initial tab: id=${initialId}, index=${initialIndex}`);
 
-        // Must not be at leftmost position
-        expect(initialIndex).toBeGreaterThan(0);
+            // Must not be at leftmost position
+            expect(initialIndex).toBeGreaterThan(0);
 
-        // Press << to move tab left (< is Shift+Comma)
-        await page.keyboard.press('Shift+Comma');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('Shift+Comma');
-        await page.waitForTimeout(500);
+            // Press << to move tab left (< is Shift+Comma)
+            await page.keyboard.press('Shift+Comma');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('Shift+Comma');
+            await page.waitForTimeout(500);
 
-        // Poll for position change
-        let movedTab: { id: number; index: number } | null = null;
-        for (let i = 0; i < 20; i++) {
-            const current = await getTabById(initialId);
-            if (current && current.index < initialIndex) {
-                movedTab = current;
-                break;
+            // Poll for position change
+            let movedTab: { id: number; index: number } | null = null;
+            for (let i = 0; i < 20; i++) {
+                const current = await getTabById(initialId);
+                if (current && current.index < initialIndex) {
+                    movedTab = current;
+                    break;
+                }
+                await page.waitForTimeout(100);
             }
-            await page.waitForTimeout(100);
-        }
 
-        expect(movedTab).not.toBeNull();
-        expect(movedTab!.index).toBe(initialIndex - 1);
-        expect(movedTab!.id).toBe(initialId);
-        if (DEBUG) console.log(`After <<: moved from index ${initialIndex} to ${movedTab!.index}`);
+            expect(movedTab).not.toBeNull();
+            expect(movedTab!.index).toBe(initialIndex - 1);
+            expect(movedTab!.id).toBe(initialId);
+            if (DEBUG) console.log(`After <<: moved from index ${initialIndex} to ${movedTab!.index}`);
+        });
     });
 
     test('pressing << twice moves tab two positions to the left', async () => {
-        await page.bringToFront();
-        await page.waitForTimeout(300);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.bringToFront();
+            await page.waitForTimeout(300);
 
-        const initialInfo = await getActiveTabInfo();
-        const initialIndex = initialInfo.index;
-        const initialId = initialInfo.id;
+            const initialInfo = await getActiveTabInfo();
+            const initialIndex = initialInfo.index;
+            const initialId = initialInfo.id;
 
-        expect(initialIndex).toBeGreaterThanOrEqual(2);
+            expect(initialIndex).toBeGreaterThanOrEqual(2);
 
-        // First <<
-        await page.keyboard.press('Shift+Comma');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('Shift+Comma');
-        await page.waitForTimeout(500);
+            // First <<
+            await page.keyboard.press('Shift+Comma');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('Shift+Comma');
+            await page.waitForTimeout(500);
 
-        let afterFirst: { id: number; index: number } | null = null;
-        for (let i = 0; i < 20; i++) {
-            const current = await getTabById(initialId);
-            if (current && current.index < initialIndex) {
-                afterFirst = current;
-                break;
+            let afterFirst: { id: number; index: number } | null = null;
+            for (let i = 0; i < 20; i++) {
+                const current = await getTabById(initialId);
+                if (current && current.index < initialIndex) {
+                    afterFirst = current;
+                    break;
+                }
+                await page.waitForTimeout(100);
             }
-            await page.waitForTimeout(100);
-        }
-        expect(afterFirst).not.toBeNull();
-        expect(afterFirst!.index).toBe(initialIndex - 1);
+            expect(afterFirst).not.toBeNull();
+            expect(afterFirst!.index).toBe(initialIndex - 1);
 
-        // Second <<
-        await page.keyboard.press('Shift+Comma');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('Shift+Comma');
-        await page.waitForTimeout(500);
+            // Second <<
+            await page.keyboard.press('Shift+Comma');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('Shift+Comma');
+            await page.waitForTimeout(500);
 
-        let afterSecond: { id: number; index: number } | null = null;
-        for (let i = 0; i < 20; i++) {
-            const current = await getTabById(initialId);
-            if (current && current.index < afterFirst!.index) {
-                afterSecond = current;
-                break;
+            let afterSecond: { id: number; index: number } | null = null;
+            for (let i = 0; i < 20; i++) {
+                const current = await getTabById(initialId);
+                if (current && current.index < afterFirst!.index) {
+                    afterSecond = current;
+                    break;
+                }
+                await page.waitForTimeout(100);
             }
-            await page.waitForTimeout(100);
-        }
-        expect(afterSecond).not.toBeNull();
-        expect(afterSecond!.index).toBe(initialIndex - 2);
-        expect(afterSecond!.id).toBe(initialId);
-        if (DEBUG) console.log(`After 2x <<: moved from index ${initialIndex} to ${afterSecond!.index}`);
+            expect(afterSecond).not.toBeNull();
+            expect(afterSecond!.index).toBe(initialIndex - 2);
+            expect(afterSecond!.id).toBe(initialId);
+            if (DEBUG) console.log(`After 2x <<: moved from index ${initialIndex} to ${afterSecond!.index}`);
+        });
     });
 });

@@ -1,14 +1,17 @@
 import { test, expect, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_tab_reload_magic';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getActiveTabViaSW(ctx: BrowserContext): Promise<any> {
     const sw = ctx.serviceWorkers()[0];
@@ -42,17 +45,17 @@ async function openChildTabViaSW(ctx: BrowserContext, openerTabId: number, url: 
 
 test.describe('cmd_tab_reload_magic (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage();
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
-        cov = result.cov;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         const p = await context.newPage();
-        await p.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await p.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await p.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_reload_magic');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -65,123 +68,131 @@ test.describe('cmd_tab_reload_magic (Playwright)', () => {
     }
 
     test('cmd_tab_reload_magic_right reloads tabs to the right, tab count unchanged', async () => {
-        const anchor = await context.newPage();
-        await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await closeAllExcept(anchor);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const anchor = await context.newPage();
+            await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await closeAllExcept(anchor);
 
-        const r1 = await context.newPage();
-        await r1.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await r1.waitForTimeout(200);
+            const r1 = await context.newPage();
+            await r1.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await r1.waitForTimeout(200);
 
-        const r2 = await context.newPage();
-        await r2.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await r2.waitForTimeout(200);
+            const r2 = await context.newPage();
+            await r2.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await r2.waitForTimeout(200);
 
-        await anchor.bringToFront();
-        await anchor.waitForTimeout(300);
+            await anchor.bringToFront();
+            await anchor.waitForTimeout(300);
 
-        const beforeCount = context.pages().length;
-        expect(beforeCount).toBeGreaterThanOrEqual(3);
+            const beforeCount = context.pages().length;
+            expect(beforeCount).toBeGreaterThanOrEqual(3);
 
-        await invokeCommand(anchor, 'cmd_tab_reload_magic_right');
-        await anchor.waitForTimeout(500);
+            await invokeCommand(anchor, 'cmd_tab_reload_magic_right');
+            await anchor.waitForTimeout(500);
 
-        const afterCount = context.pages().length;
-        expect(afterCount).toBe(beforeCount);
-        if (DEBUG) console.log(`cmd_tab_reload_magic_right: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+            const afterCount = context.pages().length;
+            expect(afterCount).toBe(beforeCount);
+            if (DEBUG) console.log(`cmd_tab_reload_magic_right: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+        });
     });
 
     test('cmd_tab_reload_magic_left reloads tabs to the left, tab count unchanged', async () => {
-        const base = await context.newPage();
-        await base.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await closeAllExcept(base);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const base = await context.newPage();
+            await base.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await closeAllExcept(base);
 
-        const r1 = await context.newPage();
-        await r1.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await r1.waitForTimeout(200);
+            const r1 = await context.newPage();
+            await r1.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await r1.waitForTimeout(200);
 
-        const r2 = await context.newPage();
-        await r2.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await r2.waitForTimeout(200);
+            const r2 = await context.newPage();
+            await r2.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await r2.waitForTimeout(200);
 
-        await r2.bringToFront();
-        await r2.waitForTimeout(300);
+            await r2.bringToFront();
+            await r2.waitForTimeout(300);
 
-        const beforeCount = context.pages().length;
+            const beforeCount = context.pages().length;
 
-        await invokeCommand(r2, 'cmd_tab_reload_magic_left');
-        await r2.waitForTimeout(500);
+            await invokeCommand(r2, 'cmd_tab_reload_magic_left');
+            await r2.waitForTimeout(500);
 
-        const afterCount = context.pages().length;
-        expect(afterCount).toBe(beforeCount);
-        if (DEBUG) console.log(`cmd_tab_reload_magic_left: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+            const afterCount = context.pages().length;
+            expect(afterCount).toBe(beforeCount);
+            if (DEBUG) console.log(`cmd_tab_reload_magic_left: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+        });
     });
 
     test('cmd_tab_reload_magic_except_active reloads all except current, tab count unchanged', async () => {
-        const anchor = await context.newPage();
-        await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await closeAllExcept(anchor);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const anchor = await context.newPage();
+            await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await closeAllExcept(anchor);
 
-        for (let i = 0; i < 3; i++) {
-            const p = await context.newPage();
-            await p.goto(FIXTURE_URL, { waitUntil: 'load' });
-            await p.waitForTimeout(200);
-        }
+            for (let i = 0; i < 3; i++) {
+                const p = await context.newPage();
+                await p.goto(FIXTURE_URL, { waitUntil: 'load' });
+                await p.waitForTimeout(200);
+            }
 
-        const pages = context.pages();
-        const keeper = pages[Math.floor(pages.length / 2)];
-        await keeper.bringToFront();
-        await keeper.waitForTimeout(300);
+            const pages = context.pages();
+            const keeper = pages[Math.floor(pages.length / 2)];
+            await keeper.bringToFront();
+            await keeper.waitForTimeout(300);
 
-        const beforeCount = context.pages().length;
-        const beforeTabIds = (await getTabsViaSW(context)).map((t: any) => t.id);
+            const beforeCount = context.pages().length;
+            const beforeTabIds = (await getTabsViaSW(context)).map((t: any) => t.id);
 
-        await invokeCommand(keeper, 'cmd_tab_reload_magic_except_active');
-        await keeper.waitForTimeout(600);
+            await invokeCommand(keeper, 'cmd_tab_reload_magic_except_active');
+            await keeper.waitForTimeout(600);
 
-        const afterCount = context.pages().length;
-        expect(afterCount).toBe(beforeCount);
+            const afterCount = context.pages().length;
+            expect(afterCount).toBe(beforeCount);
 
-        // Verify all tabs still exist
-        const afterTabIds = (await getTabsViaSW(context)).map((t: any) => t.id);
-        for (const id of beforeTabIds) {
-            expect(afterTabIds).toContain(id);
-        }
-        if (DEBUG) console.log(`cmd_tab_reload_magic_except_active: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+            // Verify all tabs still exist
+            const afterTabIds = (await getTabsViaSW(context)).map((t: any) => t.id);
+            for (const id of beforeTabIds) {
+                expect(afterTabIds).toContain(id);
+            }
+            if (DEBUG) console.log(`cmd_tab_reload_magic_except_active: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+        });
     });
 
     test('cmd_tab_reload_magic_children reloads child tabs, tab count unchanged', async () => {
-        const parent = await context.newPage();
-        await parent.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await closeAllExcept(parent);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const parent = await context.newPage();
+            await parent.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await closeAllExcept(parent);
 
-        await parent.bringToFront();
-        await parent.waitForTimeout(300);
+            await parent.bringToFront();
+            await parent.waitForTimeout(300);
 
-        const parentTab = await getActiveTabViaSW(context);
+            const parentTab = await getActiveTabViaSW(context);
 
-        const child1Id = await openChildTabViaSW(context, parentTab.id, FIXTURE_URL);
-        const child2Id = await openChildTabViaSW(context, parentTab.id, FIXTURE_URL);
-        await parent.waitForTimeout(600);
+            const child1Id = await openChildTabViaSW(context, parentTab.id, FIXTURE_URL);
+            const child2Id = await openChildTabViaSW(context, parentTab.id, FIXTURE_URL);
+            await parent.waitForTimeout(600);
 
-        await parent.bringToFront();
-        await parent.waitForTimeout(300);
+            await parent.bringToFront();
+            await parent.waitForTimeout(300);
 
-        const beforeCount = context.pages().length;
-        const allTabs = await getTabsViaSW(context);
-        const childTabs = allTabs.filter((t: any) => t.openerTabId === parentTab.id);
-        expect(childTabs.length).toBe(2);
+            const beforeCount = context.pages().length;
+            const allTabs = await getTabsViaSW(context);
+            const childTabs = allTabs.filter((t: any) => t.openerTabId === parentTab.id);
+            expect(childTabs.length).toBe(2);
 
-        await invokeCommand(parent, 'cmd_tab_reload_magic_children');
-        await parent.waitForTimeout(600);
+            await invokeCommand(parent, 'cmd_tab_reload_magic_children');
+            await parent.waitForTimeout(600);
 
-        const afterCount = context.pages().length;
-        expect(afterCount).toBe(beforeCount);
+            const afterCount = context.pages().length;
+            expect(afterCount).toBe(beforeCount);
 
-        // Verify child tabs still exist
-        const afterTabIds = (await getTabsViaSW(context)).map((t: any) => t.id);
-        expect(afterTabIds).toContain(child1Id);
-        expect(afterTabIds).toContain(child2Id);
-        if (DEBUG) console.log(`cmd_tab_reload_magic_children: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+            // Verify child tabs still exist
+            const afterTabIds = (await getTabsViaSW(context)).map((t: any) => t.id);
+            expect(afterTabIds).toContain(child1Id);
+            expect(afterTabIds).toContain(child2Id);
+            if (DEBUG) console.log(`cmd_tab_reload_magic_children: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+        });
     });
 });

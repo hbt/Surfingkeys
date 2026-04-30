@@ -1,15 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_tab_history_first';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getActiveTabId(): Promise<number> {
     const sw = context.serviceWorkers()[0];
@@ -48,8 +51,10 @@ async function getAllTabsSorted(): Promise<Array<{ id: number; index: number }>>
 
 test.describe('cmd_tab_history_first (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
 
         // Create 4 pages
         for (let i = 0; i < 4; i++) {
@@ -76,88 +81,92 @@ test.describe('cmd_tab_history_first (Playwright)', () => {
         await page.waitForTimeout(500);
 
         // Sync page reference to the active page
-        const activeId = await getActiveTabId();
         const activePage = context.pages().find((p) => !p.isClosed());
         if (activePage) page = activePage;
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_history_first');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
     test('gT command executes without errors and browser stays valid', async () => {
-        const activePage = context.pages().find((p) => !p.isClosed()) ?? page;
-        await activePage.bringToFront();
-        await activePage.waitForTimeout(300);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const activePage = context.pages().find((p) => !p.isClosed()) ?? page;
+            await activePage.bringToFront();
+            await activePage.waitForTimeout(300);
 
-        const initialId = await getActiveTabId();
-        if (DEBUG) console.log(`Initial tab ID: ${initialId}`);
-        expect(initialId).toBeGreaterThan(0);
+            const initialId = await getActiveTabId();
+            if (DEBUG) console.log(`Initial tab ID: ${initialId}`);
+            expect(initialId).toBeGreaterThan(0);
 
-        // Send gT
-        await activePage.keyboard.press('g');
-        await activePage.waitForTimeout(50);
-        await activePage.keyboard.press('T');
-        await activePage.waitForTimeout(1000);
+            // Send gT
+            await activePage.keyboard.press('g');
+            await activePage.waitForTimeout(50);
+            await activePage.keyboard.press('T');
+            await activePage.waitForTimeout(1000);
 
-        // Browser should still have a valid active tab
-        const afterId = await getActiveTabId();
-        if (DEBUG) console.log(`After gT: active tab ID=${afterId}`);
-        expect(afterId).toBeGreaterThan(0);
+            // Browser should still have a valid active tab
+            const afterId = await getActiveTabId();
+            if (DEBUG) console.log(`After gT: active tab ID=${afterId}`);
+            expect(afterId).toBeGreaterThan(0);
+        });
     });
 
     test('gT switches to a different tab (smoke test)', async () => {
-        const tabs = await getAllTabsSorted();
-        expect(tabs.length).toBeGreaterThan(1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const tabs = await getAllTabsSorted();
+            expect(tabs.length).toBeGreaterThan(1);
 
-        // Rebuild history: activate from first to last
-        for (const tab of tabs) {
-            await activateTab(tab.id);
-            await page.waitForTimeout(200);
-        }
-        // End on last tab
-        await activateTab(tabs[tabs.length - 1].id);
-        await page.waitForTimeout(500);
+            // Rebuild history: activate from first to last
+            for (const tab of tabs) {
+                await activateTab(tab.id);
+                await page.waitForTimeout(200);
+            }
+            // End on last tab
+            await activateTab(tabs[tabs.length - 1].id);
+            await page.waitForTimeout(500);
 
-        const activePage = context.pages().find((p) => !p.isClosed()) ?? page;
-        await activePage.bringToFront();
-        await activePage.waitForTimeout(300);
+            const activePage = context.pages().find((p) => !p.isClosed()) ?? page;
+            await activePage.bringToFront();
+            await activePage.waitForTimeout(300);
 
-        const initialId = await getActiveTabId();
-        if (DEBUG) console.log(`Before gT: active tab=${initialId}`);
+            const initialId = await getActiveTabId();
+            if (DEBUG) console.log(`Before gT: active tab=${initialId}`);
 
-        await activePage.keyboard.press('g');
-        await activePage.waitForTimeout(50);
-        await activePage.keyboard.press('T');
-        await activePage.waitForTimeout(1000);
+            await activePage.keyboard.press('g');
+            await activePage.waitForTimeout(50);
+            await activePage.keyboard.press('T');
+            await activePage.waitForTimeout(1000);
 
-        const afterId = await getActiveTabId();
-        if (DEBUG) console.log(`After gT: active tab=${afterId}`);
-        expect(afterId).toBeGreaterThan(0);
+            const afterId = await getActiveTabId();
+            if (DEBUG) console.log(`After gT: active tab=${afterId}`);
+            expect(afterId).toBeGreaterThan(0);
 
-        if (afterId !== initialId) {
-            if (DEBUG) console.log(`gT switched tab: ${initialId} -> ${afterId}`);
-        } else {
-            if (DEBUG) console.log(`gT: tab unchanged (may be at boundary of history)`);
-        }
+            if (afterId !== initialId) {
+                if (DEBUG) console.log(`gT switched tab: ${initialId} -> ${afterId}`);
+            } else {
+                if (DEBUG) console.log(`gT: tab unchanged (may be at boundary of history)`);
+            }
+        });
     });
 
     test('gT can be called multiple times without crashing', async () => {
-        for (let i = 0; i < 3; i++) {
-            const activePage = context.pages().find((p) => !p.isClosed()) ?? page;
-            await activePage.bringToFront();
-            await activePage.waitForTimeout(200);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            for (let i = 0; i < 3; i++) {
+                const activePage = context.pages().find((p) => !p.isClosed()) ?? page;
+                await activePage.bringToFront();
+                await activePage.waitForTimeout(200);
 
-            await activePage.keyboard.press('g').catch(() => {});
-            await activePage.waitForTimeout(50);
-            await activePage.keyboard.press('T').catch(() => {});
-            await activePage.waitForTimeout(700);
+                await activePage.keyboard.press('g').catch(() => {});
+                await activePage.waitForTimeout(50);
+                await activePage.keyboard.press('T').catch(() => {});
+                await activePage.waitForTimeout(700);
 
-            const id = await getActiveTabId();
-            expect(id).toBeGreaterThan(0);
-            if (DEBUG) console.log(`gT invocation ${i + 1}: active tab=${id}`);
-        }
+                const id = await getActiveTabId();
+                expect(id).toBeGreaterThan(0);
+                if (DEBUG) console.log(`gT invocation ${i + 1}: active tab=${id}`);
+            }
+        });
     });
 });
