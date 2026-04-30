@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -61,7 +63,7 @@ test.describe('cmd_omnibar_recent_closed (Playwright)', () => {
 
         const opened = await waitForOmnibarState(page, true);
         expect(opened).toBe(true);
-        console.log('Recently closed omnibar opened with ox key sequence');
+        if (DEBUG) console.log('Recently closed omnibar opened with ox key sequence');
     });
 
     test('recently closed omnibar closes after pressing Escape', async () => {
@@ -73,7 +75,7 @@ test.describe('cmd_omnibar_recent_closed (Playwright)', () => {
         await page.keyboard.press('Escape');
         const closed = await waitForOmnibarState(page, false);
         expect(closed).toBe(true);
-        console.log('Recently closed omnibar closed after Escape');
+        if (DEBUG) console.log('Recently closed omnibar closed after Escape');
     });
 
     test('ox command can be used multiple times consecutively', async () => {
@@ -94,6 +96,6 @@ test.describe('cmd_omnibar_recent_closed (Playwright)', () => {
         await page.keyboard.press('x');
         const secondOpen = await waitForOmnibarState(page, true);
         expect(secondOpen).toBe(true);
-        console.log('Recently closed omnibar works multiple times');
+        if (DEBUG) console.log('Recently closed omnibar works multiple times');
     });
 });

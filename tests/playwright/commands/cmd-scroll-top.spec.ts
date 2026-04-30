@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -37,7 +39,7 @@ test.describe('cmd_scroll_top (Playwright)', () => {
 
         const finalScroll = await page.evaluate(() => window.scrollY);
         expect(finalScroll).toBeLessThanOrEqual(5);
-        console.log(`Scroll: ${initialScroll}px → ${finalScroll}px`);
+        if (DEBUG) console.log(`Scroll: ${initialScroll}px → ${finalScroll}px`);
     });
 
     test('gg moves to exactly top position', async () => {
@@ -52,6 +54,6 @@ test.describe('cmd_scroll_top (Playwright)', () => {
 
         const finalScroll = await page.evaluate(() => window.scrollY);
         expect(finalScroll).toBeLessThanOrEqual(5);
-        console.log(`Final scroll: ${finalScroll}px (expected: 0px)`);
+        if (DEBUG) console.log(`Final scroll: ${finalScroll}px (expected: 0px)`);
     });
 });

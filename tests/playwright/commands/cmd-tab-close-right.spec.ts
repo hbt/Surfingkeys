@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -62,7 +64,7 @@ test.describe('cmd_tab_close_right (Playwright)', () => {
         await closePromise;
 
         expect(context.pages().length).toBe(beforeCount - 1);
-        console.log(`gxT: ${beforeCount} → ${context.pages().length} pages`);
+        if (DEBUG) console.log(`gxT: ${beforeCount} → ${context.pages().length} pages`);
 
         await activePage.close().catch(() => {});
     });
@@ -90,9 +92,9 @@ test.describe('cmd_tab_close_right (Playwright)', () => {
             await rightmostPage.waitForTimeout(800);
 
             expect(context.pages().length).toBe(beforeCount);
-            console.log(`gxT at rightmost: tab count unchanged at ${beforeCount}`);
+            if (DEBUG) console.log(`gxT at rightmost: tab count unchanged at ${beforeCount}`);
         } else {
-            console.log(`Could not isolate rightmost scenario (index ${activeTab.index} vs max ${maxIndex}) — skipping assertion`);
+            if (DEBUG) console.log(`Could not isolate rightmost scenario (index ${activeTab.index} vs max ${maxIndex}) — skipping assertion`);
         }
 
         await rightmostPage.close().catch(() => {});
@@ -138,7 +140,7 @@ test.describe('cmd_tab_close_right (Playwright)', () => {
         await close2;
 
         expect(context.pages().length).toBe(beforeCount - 2);
-        console.log(`gxT x2: ${beforeCount} → ${context.pages().length} pages`);
+        if (DEBUG) console.log(`gxT x2: ${beforeCount} → ${context.pages().length} pages`);
 
         await activePage.close().catch(() => {});
     });

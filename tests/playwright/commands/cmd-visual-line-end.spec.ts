@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
 
 let context: BrowserContext;
@@ -56,7 +58,7 @@ test.describe('cmd_visual_line_end (Playwright)', () => {
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`$ executed: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`$ executed: focusOffset=${sel.focusOffset}`);
     });
 
     test('pressing $ multiple times does not error', async () => {
@@ -67,7 +69,7 @@ test.describe('cmd_visual_line_end (Playwright)', () => {
         }
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
-        console.log(`After 3x $: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`After 3x $: focusOffset=${sel.focusOffset}`);
     });
 
     test('$ after 0 does not error', async () => {
@@ -78,7 +80,7 @@ test.describe('cmd_visual_line_end (Playwright)', () => {
         await page.waitForTimeout(300);
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
-        console.log(`0 then $: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`0 then $: focusOffset=${sel.focusOffset}`);
     });
 
     test('$ and 0 alternating do not error', async () => {
@@ -117,6 +119,6 @@ test.describe('cmd_visual_line_end (Playwright)', () => {
             return id;
         });
         expect(after).not.toBe(before);
-        console.log(`After $ then j: ${before} → ${after}`);
+        if (DEBUG) console.log(`After $ then j: ${before} → ${after}`);
     });
 });

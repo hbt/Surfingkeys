@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -60,7 +62,7 @@ test.describe('cmd_omnibar_tab_urls (Playwright)', () => {
 
         const opened = await waitForOmnibarState(page, true);
         expect(opened).toBe(true);
-        console.log('Tab URLs omnibar opened with T key');
+        if (DEBUG) console.log('Tab URLs omnibar opened with T key');
     });
 
     test('tab URLs omnibar closes after pressing Escape', async () => {
@@ -70,7 +72,7 @@ test.describe('cmd_omnibar_tab_urls (Playwright)', () => {
         await page.keyboard.press('Escape');
         const closed = await waitForOmnibarState(page, false);
         expect(closed).toBe(true);
-        console.log('Tab URLs omnibar closed after Escape');
+        if (DEBUG) console.log('Tab URLs omnibar closed after Escape');
     });
 
     test('T command can be used multiple times consecutively', async () => {
@@ -87,6 +89,6 @@ test.describe('cmd_omnibar_tab_urls (Playwright)', () => {
         await page.keyboard.press('Shift+t');
         const secondOpen = await waitForOmnibarState(page, true);
         expect(secondOpen).toBe(true);
-        console.log('Tab URLs omnibar works multiple times');
+        if (DEBUG) console.log('Tab URLs omnibar works multiple times');
     });
 });

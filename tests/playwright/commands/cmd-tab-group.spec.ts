@@ -1,6 +1,8 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -111,13 +113,13 @@ test.describe('cmd_tab_group (Playwright)', () => {
 
         const groups = await getTabGroups(context);
         expect(Array.isArray(groups)).toBe(true);
-        console.log(`Initial group count: ${groups.length}`);
+        if (DEBUG) console.log(`Initial group count: ${groups.length}`);
     });
 
     test('grouping a tab via Chrome API adds it to a group', async () => {
         const available = await tabGroupsAvailable(context);
         if (!available) {
-            console.log('Tab groups API not available — skipping');
+            if (DEBUG) console.log('Tab groups API not available — skipping');
             test.skip();
             return;
         }
@@ -135,13 +137,13 @@ test.describe('cmd_tab_group (Playwright)', () => {
 
         const finalGroups = await getTabGroups(context);
         expect(finalGroups.length).toBeGreaterThan(initialGroups.length);
-        console.log(`Grouped tab ${tabId} into group ${groupId}`);
+        if (DEBUG) console.log(`Grouped tab ${tabId} into group ${groupId}`);
     });
 
     test('group properties can be queried and updated', async () => {
         const available = await tabGroupsAvailable(context);
         if (!available) {
-            console.log('Tab groups API not available — skipping');
+            if (DEBUG) console.log('Tab groups API not available — skipping');
             test.skip();
             return;
         }
@@ -158,6 +160,6 @@ test.describe('cmd_tab_group (Playwright)', () => {
         expect(ourGroup).toBeDefined();
         expect(ourGroup.title).toBe('Test Group');
         expect(ourGroup.color).toBe('blue');
-        console.log(`Group updated: title="${ourGroup.title}", color=${ourGroup.color}`);
+        if (DEBUG) console.log(`Group updated: title="${ourGroup.title}", color=${ourGroup.color}`);
     });
 });

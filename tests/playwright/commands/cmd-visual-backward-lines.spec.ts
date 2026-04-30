@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
 
 let context: BrowserContext;
@@ -58,7 +60,7 @@ test.describe('cmd_visual_backward_lines (Playwright)', () => {
         const selection = await getSelectionInfo(page);
         expect(typeof selection.focusOffset).toBe('number');
         const scrollY = await page.evaluate(() => window.scrollY);
-        console.log(`After Ctrl-u: focusOffset=${selection.focusOffset}, scrollY=${scrollY}`);
+        if (DEBUG) console.log(`After Ctrl-u: focusOffset=${selection.focusOffset}, scrollY=${scrollY}`);
     });
 
     test('Ctrl-u can be pressed multiple times without error', async () => {
@@ -75,7 +77,7 @@ test.describe('cmd_visual_backward_lines (Playwright)', () => {
 
         const sel2 = await getSelectionInfo(page);
         expect(typeof sel2.focusOffset).toBe('number');
-        console.log(`Two Ctrl-u presses: ${sel1.focusOffset} → ${sel2.focusOffset}`);
+        if (DEBUG) console.log(`Two Ctrl-u presses: ${sel1.focusOffset} → ${sel2.focusOffset}`);
     });
 
     test('Ctrl-u maintains visual mode (selection still queryable)', async () => {
@@ -86,6 +88,6 @@ test.describe('cmd_visual_backward_lines (Playwright)', () => {
 
         const selection = await getSelectionInfo(page);
         expect(typeof selection.focusOffset).toBe('number');
-        console.log(`Visual mode still active after Ctrl-u: focusOffset=${selection.focusOffset}`);
+        if (DEBUG) console.log(`Visual mode still active after Ctrl-u: focusOffset=${selection.focusOffset}`);
     });
 });

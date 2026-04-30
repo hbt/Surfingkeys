@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -41,16 +43,16 @@ test.describe('cmd_tab_next (Playwright)', () => {
 
     test('pressing R switches to a different tab', async () => {
         const initialTabId = await getActiveTabId();
-        console.log(`Initial active tab: ${initialTabId}`);
+        if (DEBUG) console.log(`Initial active tab: ${initialTabId}`);
 
         await page.keyboard.press('R');
         await page.waitForTimeout(500);
 
         const newTabId = await getActiveTabId();
-        console.log(`After R: active tab ${newTabId}`);
+        if (DEBUG) console.log(`After R: active tab ${newTabId}`);
 
         expect(newTabId).not.toBe(initialTabId);
-        console.log(`Tab switched: ${initialTabId} → ${newTabId}`);
+        if (DEBUG) console.log(`Tab switched: ${initialTabId} → ${newTabId}`);
     });
 
     test('pressing R twice cycles through tabs', async () => {
@@ -74,7 +76,7 @@ test.describe('cmd_tab_next (Playwright)', () => {
         const afterSecond = await getActiveTabId();
 
         // After cycling through all tabs, we should be back or at next tab
-        console.log(`After 2x R: ${initialTabId} → ${afterFirst} → ${afterSecond}`);
+        if (DEBUG) console.log(`After 2x R: ${initialTabId} → ${afterFirst} → ${afterSecond}`);
         expect(afterSecond).toBeDefined();
     });
 });

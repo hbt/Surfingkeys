@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -64,7 +66,7 @@ test.describe('cmd_nav_last_tab (Playwright)', () => {
             const id = await getTabIdForPage(p);
             ids.push(id);
         }
-        console.log('Tab IDs:', ids);
+        if (DEBUG) console.log('Tab IDs:', ids);
     });
 
     test.afterAll(async () => {
@@ -87,7 +89,7 @@ test.describe('cmd_nav_last_tab (Playwright)', () => {
 
         const afterId = await pollForTabChange(beforeId);
         expect(afterId).toBe(ids[1]);
-        console.log(`Ctrl+6 switched from ids[2]=${beforeId} to ids[1]=${afterId}`);
+        if (DEBUG) console.log(`Ctrl+6 switched from ids[2]=${beforeId} to ids[1]=${afterId}`);
     });
 
     test('pressing Ctrl+6 twice toggles between two tabs', async () => {
@@ -113,7 +115,7 @@ test.describe('cmd_nav_last_tab (Playwright)', () => {
         await pages[1].keyboard.press('Control+6');
         const afterSecond = await pollForTabChange(afterFirst, 5000);
         expect(afterSecond).toBe(ids[2]);
-        console.log(`Double Ctrl+6 toggled: ${startId} -> ${afterFirst} -> ${afterSecond}`);
+        if (DEBUG) console.log(`Double Ctrl+6 toggled: ${startId} -> ${afterFirst} -> ${afterSecond}`);
     });
 
     test('Ctrl+6 navigates to history-based last tab (not position-based)', async () => {
@@ -133,6 +135,6 @@ test.describe('cmd_nav_last_tab (Playwright)', () => {
 
         // Should go to ids[2] (history-based last), not ids[0] (position-based previous)
         expect(afterId).toBe(ids[2]);
-        console.log(`History-based switch: ids[1]=${beforeId} -> ids[2]=${afterId}`);
+        if (DEBUG) console.log(`History-based switch: ids[1]=${beforeId} -> ids[2]=${afterId}`);
     });
 });

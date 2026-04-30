@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -54,7 +56,7 @@ test.describe('cmd_visual_repeat_find_opposite (Playwright)', () => {
         await page.waitForTimeout(300);
         const after = await getSelectionInfo(page);
         expect(typeof after.focusOffset).toBe('number');
-        console.log(`, with no prior find: focusOffset=${after.focusOffset}`);
+        if (DEBUG) console.log(`, with no prior find: focusOffset=${after.focusOffset}`);
     });
 
     test(', after f finds in backward direction', async () => {
@@ -68,7 +70,7 @@ test.describe('cmd_visual_repeat_find_opposite (Playwright)', () => {
         await page.waitForTimeout(300);
         const afterComma = await getSelectionInfo(page);
         expect(typeof afterComma.focusOffset).toBe('number');
-        console.log(`, after fe: ${afterForward.focusOffset} → ${afterComma.focusOffset}`);
+        if (DEBUG) console.log(`, after fe: ${afterForward.focusOffset} → ${afterComma.focusOffset}`);
     });
 
     test(', after F finds in forward direction', async () => {
@@ -82,7 +84,7 @@ test.describe('cmd_visual_repeat_find_opposite (Playwright)', () => {
         await page.waitForTimeout(300);
         const afterComma = await getSelectionInfo(page);
         expect(typeof afterComma.focusOffset).toBe('number');
-        console.log(`, after Fo: ${afterBackward.focusOffset} → ${afterComma.focusOffset}`);
+        if (DEBUG) console.log(`, after Fo: ${afterBackward.focusOffset} → ${afterComma.focusOffset}`);
     });
 
     test(', can be pressed multiple times', async () => {
@@ -100,6 +102,6 @@ test.describe('cmd_visual_repeat_find_opposite (Playwright)', () => {
         }
         expect(offsets.length).toBe(3);
         expect(offsets.every(o => typeof o === 'number')).toBe(true);
-        console.log(`Multiple , presses: ${offsets.join(' → ')}`);
+        if (DEBUG) console.log(`Multiple , presses: ${offsets.join(' → ')}`);
     });
 });

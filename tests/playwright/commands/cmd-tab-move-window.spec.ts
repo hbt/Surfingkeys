@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -102,7 +104,7 @@ test.describe('cmd_tab_move_window (Playwright)', () => {
 
         const info = await getActiveTabInfo();
         mainWindowId = info.windowId;
-        console.log(`Main window ID: ${mainWindowId}`);
+        if (DEBUG) console.log(`Main window ID: ${mainWindowId}`);
     });
 
     test.afterAll(async () => {
@@ -131,7 +133,7 @@ test.describe('cmd_tab_move_window (Playwright)', () => {
 
         const initialInfo = await getActiveTabInfo();
         const windows = await getAllWindowsInfo();
-        console.log(`Windows: ${windows.length}`);
+        if (DEBUG) console.log(`Windows: ${windows.length}`);
         expect(windows.length).toBeGreaterThanOrEqual(2);
 
         // Press W to trigger the window selection command
@@ -145,7 +147,7 @@ test.describe('cmd_tab_move_window (Playwright)', () => {
         // Browser should still be valid
         const afterInfo = await getActiveTabInfo();
         expect(afterInfo.id).toBeGreaterThan(0);
-        console.log(`W smoke test: tab ${initialInfo.id} still valid, active=${afterInfo.id}`);
+        if (DEBUG) console.log(`W smoke test: tab ${initialInfo.id} still valid, active=${afterInfo.id}`);
     });
 
     test('moving tab to another window via SW API works correctly', async () => {
@@ -161,7 +163,7 @@ test.describe('cmd_tab_move_window (Playwright)', () => {
         const initialMainCount = mainTabs.length;
         const initialWin2Count = (await getTabsInWindow(win2)).length;
 
-        console.log(`Moving tab ${tabId} from main window to window ${win2}`);
+        if (DEBUG) console.log(`Moving tab ${tabId} from main window to window ${win2}`);
 
         // Move the tab
         await moveTabToWindow(tabId, win2);
@@ -182,7 +184,7 @@ test.describe('cmd_tab_move_window (Playwright)', () => {
         const finalWin2Count = (await getTabsInWindow(win2)).length;
         expect(finalMainCount).toBe(initialMainCount - 1);
         expect(finalWin2Count).toBe(initialWin2Count + 1);
-        console.log(`Tab moved: main ${initialMainCount}->${finalMainCount}, win2 ${initialWin2Count}->${finalWin2Count}`);
+        if (DEBUG) console.log(`Tab moved: main ${initialMainCount}->${finalMainCount}, win2 ${initialWin2Count}->${finalWin2Count}`);
     });
 
     test('moving tab back and forth between windows preserves tab', async () => {
@@ -212,7 +214,7 @@ test.describe('cmd_tab_move_window (Playwright)', () => {
             if (sw) await sw.evaluate(() => new Promise<void>((r) => setTimeout(r, 200)));
         }
         expect(tab!.windowId).toBe(win2);
-        console.log(`Tab ${tabId} moved to window ${win2}`);
+        if (DEBUG) console.log(`Tab ${tabId} moved to window ${win2}`);
 
         // Move back to main
         await moveTabToWindow(tabId, mainWindowId);
@@ -224,6 +226,6 @@ test.describe('cmd_tab_move_window (Playwright)', () => {
             if (sw) await sw.evaluate(() => new Promise<void>((r) => setTimeout(r, 200)));
         }
         expect(tab!.windowId).toBe(mainWindowId);
-        console.log(`Tab ${tabId} moved back to main window ${mainWindowId}`);
+        if (DEBUG) console.log(`Tab ${tabId} moved back to main window ${mainWindowId}`);
     });
 });

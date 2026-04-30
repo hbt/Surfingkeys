@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-sentence-test.html`;
 
 let context: BrowserContext;
@@ -56,7 +58,7 @@ test.describe('cmd_visual_backward_sentence (Playwright)', () => {
 
         const selection = await getSelectionInfo(page);
         expect(typeof selection.focusOffset).toBe('number');
-        console.log(`( executed: focusOffset=${selection.focusOffset}`);
+        if (DEBUG) console.log(`( executed: focusOffset=${selection.focusOffset}`);
     });
 
     test('( moves cursor backward in visual mode', async () => {
@@ -64,14 +66,14 @@ test.describe('cmd_visual_backward_sentence (Playwright)', () => {
 
         const before = await getSelectionInfo(page);
         const initialOffset = before.focusOffset;
-        console.log(`Before (: focusOffset=${initialOffset}`);
+        if (DEBUG) console.log(`Before (: focusOffset=${initialOffset}`);
 
         await page.keyboard.press('(');
         await page.waitForTimeout(300);
 
         const after = await getSelectionInfo(page);
         const finalOffset = after.focusOffset;
-        console.log(`After (: focusOffset=${finalOffset}`);
+        if (DEBUG) console.log(`After (: focusOffset=${finalOffset}`);
 
         expect(finalOffset).toBeLessThanOrEqual(initialOffset);
     });
@@ -94,6 +96,6 @@ test.describe('cmd_visual_backward_sentence (Playwright)', () => {
         for (let i = 1; i < positions.length; i++) {
             expect(positions[i]).toBeLessThanOrEqual(positions[i - 1]);
         }
-        console.log(`( progression: ${positions.join(' → ')}`);
+        if (DEBUG) console.log(`( progression: ${positions.join(' → ')}`);
     });
 });

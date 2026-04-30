@@ -1,6 +1,8 @@
 import { test, expect, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -79,7 +81,7 @@ test.describe('cmd_tab_reload_magic (Playwright)', () => {
 
         const afterCount = context.pages().length;
         expect(afterCount).toBe(beforeCount);
-        console.log(`cmd_tab_reload_magic_right: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+        if (DEBUG) console.log(`cmd_tab_reload_magic_right: tab count ${beforeCount} → ${afterCount} (unchanged)`);
     });
 
     test('cmd_tab_reload_magic_left reloads tabs to the left, tab count unchanged', async () => {
@@ -105,7 +107,7 @@ test.describe('cmd_tab_reload_magic (Playwright)', () => {
 
         const afterCount = context.pages().length;
         expect(afterCount).toBe(beforeCount);
-        console.log(`cmd_tab_reload_magic_left: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+        if (DEBUG) console.log(`cmd_tab_reload_magic_left: tab count ${beforeCount} → ${afterCount} (unchanged)`);
     });
 
     test('cmd_tab_reload_magic_except_active reloads all except current, tab count unchanged', async () => {
@@ -138,7 +140,7 @@ test.describe('cmd_tab_reload_magic (Playwright)', () => {
         for (const id of beforeTabIds) {
             expect(afterTabIds).toContain(id);
         }
-        console.log(`cmd_tab_reload_magic_except_active: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+        if (DEBUG) console.log(`cmd_tab_reload_magic_except_active: tab count ${beforeCount} → ${afterCount} (unchanged)`);
     });
 
     test('cmd_tab_reload_magic_children reloads child tabs, tab count unchanged', async () => {
@@ -173,6 +175,6 @@ test.describe('cmd_tab_reload_magic (Playwright)', () => {
         const afterTabIds = (await getTabsViaSW(context)).map((t: any) => t.id);
         expect(afterTabIds).toContain(child1Id);
         expect(afterTabIds).toContain(child2Id);
-        console.log(`cmd_tab_reload_magic_children: tab count ${beforeCount} → ${afterCount} (unchanged)`);
+        if (DEBUG) console.log(`cmd_tab_reload_magic_children: tab count ${beforeCount} → ${afterCount} (unchanged)`);
     });
 });

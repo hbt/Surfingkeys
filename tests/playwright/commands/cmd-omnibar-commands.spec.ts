@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -60,7 +62,7 @@ test.describe('cmd_omnibar_commands (Playwright)', () => {
 
         const opened = await waitForOmnibarState(page, true);
         expect(opened).toBe(true);
-        console.log('Commands omnibar opened with : key');
+        if (DEBUG) console.log('Commands omnibar opened with : key');
     });
 
     test('commands omnibar closes after pressing Escape', async () => {
@@ -70,7 +72,7 @@ test.describe('cmd_omnibar_commands (Playwright)', () => {
         await page.keyboard.press('Escape');
         const closed = await waitForOmnibarState(page, false);
         expect(closed).toBe(true);
-        console.log('Commands omnibar closed after Escape');
+        if (DEBUG) console.log('Commands omnibar closed after Escape');
     });
 
     test('can open and close commands omnibar multiple times', async () => {
@@ -87,6 +89,6 @@ test.describe('cmd_omnibar_commands (Playwright)', () => {
         await page.keyboard.press('Shift+Semicolon');
         const secondOpen = await waitForOmnibarState(page, true);
         expect(secondOpen).toBe(true);
-        console.log('Commands omnibar works multiple times');
+        if (DEBUG) console.log('Commands omnibar works multiple times');
     });
 });

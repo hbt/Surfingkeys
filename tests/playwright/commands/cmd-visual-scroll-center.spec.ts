@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -59,7 +61,7 @@ test.describe('cmd_visual_scroll_center (Playwright)', () => {
 
         const finalScroll = await page.evaluate(() => window.scrollY);
         expect(typeof finalScroll).toBe('number');
-        console.log(`zz executed: scroll ${initialScroll}px → ${finalScroll}px`);
+        if (DEBUG) console.log(`zz executed: scroll ${initialScroll}px → ${finalScroll}px`);
     });
 
     test('zz executes without error and selection remains valid', async () => {
@@ -75,7 +77,7 @@ test.describe('cmd_visual_scroll_center (Playwright)', () => {
         const selection = await getSelectionInfo(page);
         expect(typeof selection.focusOffset).toBe('number');
         const finalScroll = await page.evaluate(() => window.scrollY);
-        console.log(`After zz: scrollY=${finalScroll}, focusOffset=${selection.focusOffset}`);
+        if (DEBUG) console.log(`After zz: scrollY=${finalScroll}, focusOffset=${selection.focusOffset}`);
     });
 
     test('zz scrolls cursor toward center of viewport', async () => {
@@ -103,7 +105,7 @@ test.describe('cmd_visual_scroll_center (Playwright)', () => {
         if (result !== null) {
             const viewportCenter = result.innerHeight / 2;
             const distanceFromCenter = Math.abs(result.center - viewportCenter);
-            console.log(`Cursor center: ${result.center}px, viewport center: ${viewportCenter}px, distance: ${distanceFromCenter}px`);
+            if (DEBUG) console.log(`Cursor center: ${result.center}px, viewport center: ${viewportCenter}px, distance: ${distanceFromCenter}px`);
             expect(distanceFromCenter).toBeLessThanOrEqual(100);
         }
     });

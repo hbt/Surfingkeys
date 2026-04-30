@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -54,7 +56,7 @@ test.describe('cmd_tab_pin_toggle (Playwright)', () => {
 
         const pinned = await getTabPinned();
         expect(pinned).toBe(true);
-        console.log(`Tab pin toggle: ${initialPinned} → ${pinned}`);
+        if (DEBUG) console.log(`Tab pin toggle: ${initialPinned} → ${pinned}`);
     });
 
     test('pressing Alt-p twice toggles pin state back to original', async () => {
@@ -69,6 +71,6 @@ test.describe('cmd_tab_pin_toggle (Playwright)', () => {
         await page.keyboard.press('Alt+p');
         await page.waitForTimeout(300);
         expect(await getTabPinned()).toBe(false);
-        console.log(`Double Alt-p: back to unpinned`);
+        if (DEBUG) console.log(`Double Alt-p: back to unpinned`);
     });
 });

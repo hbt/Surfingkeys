@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -55,7 +57,7 @@ test.describe('cmd_visual_read_text (Playwright)', () => {
         await page.waitForTimeout(500);
         const sel = await getSelectionInfo(page);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`gr executed: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`gr executed: focusOffset=${sel.focusOffset}`);
     });
 
     test('gr with selected text does not error', async () => {
@@ -64,7 +66,7 @@ test.describe('cmd_visual_read_text (Playwright)', () => {
         await page.keyboard.press('$');
         await page.waitForTimeout(200);
         const selBefore = await getSelectionInfo(page);
-        console.log(`Selected before gr: "${selBefore.text}"`);
+        if (DEBUG) console.log(`Selected before gr: "${selBefore.text}"`);
         await page.keyboard.press('g');
         await page.waitForTimeout(50);
         await page.keyboard.press('r');
@@ -72,7 +74,7 @@ test.describe('cmd_visual_read_text (Playwright)', () => {
         const selAfter = await getSelectionInfo(page);
         // Selection should be preserved
         expect(typeof selAfter.focusOffset).toBe('number');
-        console.log(`gr with selection: type=${selAfter.type}`);
+        if (DEBUG) console.log(`gr with selection: type=${selAfter.type}`);
     });
 
     test('gr can be called multiple times', async () => {
@@ -89,7 +91,7 @@ test.describe('cmd_visual_read_text (Playwright)', () => {
         const second = await getSelectionInfo(page);
         expect(typeof first.focusOffset).toBe('number');
         expect(typeof second.focusOffset).toBe('number');
-        console.log(`gr twice: ${first.focusOffset} → ${second.focusOffset}`);
+        if (DEBUG) console.log(`gr twice: ${first.focusOffset} → ${second.focusOffset}`);
     });
 
     test('gr executes without crashing', async () => {
@@ -102,6 +104,6 @@ test.describe('cmd_visual_read_text (Playwright)', () => {
         const after = await getSelectionInfo(page);
         // Verify gr executed (selection info is still accessible)
         expect(typeof after.focusOffset).toBe('number');
-        console.log(`gr cursor: ${before.focusOffset} → ${after.focusOffset}`);
+        if (DEBUG) console.log(`gr cursor: ${before.focusOffset} → ${after.focusOffset}`);
     });
 });

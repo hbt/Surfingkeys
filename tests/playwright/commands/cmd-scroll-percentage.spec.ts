@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -70,7 +72,7 @@ test.describe('cmd_scroll_percentage (Playwright)', () => {
 
         const scrollAtBottom = await page.evaluate(() => window.scrollY);
         expect(scrollAtBottom).toBeGreaterThan(100);
-        console.log('After G (bottom):', scrollAtBottom);
+        if (DEBUG) console.log('After G (bottom):', scrollAtBottom);
 
         // Press '1' then '%' — repeat count 1
         // 1% of scrollHeight ≈ 29px, minus half-viewport ≈ 352px → negative → scrolls to 0
@@ -80,7 +82,7 @@ test.describe('cmd_scroll_percentage (Playwright)', () => {
         await page.waitForTimeout(1500);
 
         const finalScroll = await page.evaluate(() => window.scrollY);
-        console.log('After 1%:', finalScroll, '(expected near 0)');
+        if (DEBUG) console.log('After 1%:', finalScroll, '(expected near 0)');
 
         // 1% target is near top — from bottom, this moves scroll to ~0
         expect(finalScroll).toBeLessThan(scrollAtBottom);
@@ -106,7 +108,7 @@ test.describe('cmd_scroll_percentage (Playwright)', () => {
         const finalScroll = await page.evaluate(() => window.scrollY);
         // 5% target = max(0, floor(5 * scrollHeight / 100) - clientHeight / 2)
         const expectedTarget = Math.max(0, Math.floor(5 * scrollHeight / 100) - Math.floor(clientHeight / 2));
-        console.log(`After 5%: scrollY=${finalScroll}, expected=${expectedTarget}, scrollHeight=${scrollHeight}`);
+        if (DEBUG) console.log(`After 5%: scrollY=${finalScroll}, expected=${expectedTarget}, scrollHeight=${scrollHeight}`);
 
         // The scroll should be near the expected target (within 20px)
         expect(Math.abs(finalScroll - expectedTarget)).toBeLessThan(20);
@@ -129,7 +131,7 @@ test.describe('cmd_scroll_percentage (Playwright)', () => {
         const clientHeight = await page.evaluate(() => document.documentElement.clientHeight);
         const expectedTarget = Math.max(0, Math.floor(1 * scrollHeight / 100) - Math.floor(clientHeight / 2));
 
-        console.log(`After bare %: scrollY=${finalScroll}, expected=${expectedTarget}`);
+        if (DEBUG) console.log(`After bare %: scrollY=${finalScroll}, expected=${expectedTarget}`);
 
         // Should have scrolled toward the 1% target position
         expect(Math.abs(finalScroll - expectedTarget)).toBeLessThan(20);

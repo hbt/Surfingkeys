@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -54,7 +56,7 @@ test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
         // Just verify we can still interact with the page
         const sel = await page.evaluate(() => typeof window.getSelection());
         expect(sel).toBe('object');
-        console.log('Shift-Enter executed without error');
+        if (DEBUG) console.log('Shift-Enter executed without error');
     });
 
     test('Shift-Enter may open new tab for link', async () => {
@@ -66,7 +68,7 @@ test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
         const newPageCount = context.pages().length;
         // Either a new tab was opened or it just navigated - verify no crash
         expect(newPageCount).toBeGreaterThanOrEqual(initialPageCount);
-        console.log(`Pages before: ${initialPageCount}, after: ${newPageCount}`);
+        if (DEBUG) console.log(`Pages before: ${initialPageCount}, after: ${newPageCount}`);
     });
 
     test('regular Enter does not open a new tab', async () => {
@@ -80,7 +82,7 @@ test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
         expect(newPageCount).toBe(initialPageCount);
         const hash = await page.evaluate(() => window.location.hash);
         // Hash may or may not change depending on cursor position in visual mode
-        console.log(`Regular Enter: no new tab (count=${newPageCount}), hash=${hash}`);
+        if (DEBUG) console.log(`Regular Enter: no new tab (count=${newPageCount}), hash=${hash}`);
     });
 
     test('Shift-Enter on plain text does not error', async () => {
@@ -90,6 +92,6 @@ test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
         await page.waitForTimeout(500);
         const sel = await page.evaluate(() => typeof window.getSelection());
         expect(sel).toBe('object');
-        console.log('Shift-Enter on plain text completed without error');
+        if (DEBUG) console.log('Shift-Enter on plain text completed without error');
     });
 });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -42,7 +44,7 @@ test.describe('cmd_tab_restore (Playwright)', () => {
         await restoredPage.waitForTimeout(300);
 
         expect(context.pages().length).toBeGreaterThan(countAfterClose);
-        console.log(`Restored tab: ${restoredPage.url()}`);
+        if (DEBUG) console.log(`Restored tab: ${restoredPage.url()}`);
 
         await restoredPage.close().catch(() => {});
     });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -62,7 +64,7 @@ test.describe('cmd_nav_tab_history_forward (Playwright)', () => {
             const id = await getTabIdForPage(p);
             ids.push(id);
         }
-        console.log('Tab IDs:', ids);
+        if (DEBUG) console.log('Tab IDs:', ids);
     });
 
     test.afterAll(async () => {
@@ -106,7 +108,7 @@ test.describe('cmd_nav_tab_history_forward (Playwright)', () => {
         await pages[2].keyboard.press('F');
         const afterId = await pollForTabChange(initialId);
         expect(afterId).toBe(ids[3]);
-        console.log(`F switched from ids[2]=${initialId} to ids[3]=${afterId}`);
+        if (DEBUG) console.log(`F switched from ids[2]=${initialId} to ids[3]=${afterId}`);
     });
 
     test('pressing F twice goes forward two steps in tab history', async () => {
@@ -125,7 +127,7 @@ test.describe('cmd_nav_tab_history_forward (Playwright)', () => {
         await pages[3].keyboard.press('F');
         const afterSecond = await pollForTabChange(afterFirst, 5000);
         expect(afterSecond).toBe(ids[4]);
-        console.log(`Two F presses: ids[2] -> ids[3] -> ids[4]`);
+        if (DEBUG) console.log(`Two F presses: ids[2] -> ids[3] -> ids[4]`);
     });
 
     test('F and B are inverses of each other', async () => {
@@ -145,6 +147,6 @@ test.describe('cmd_nav_tab_history_forward (Playwright)', () => {
         const afterB = await pollForTabChange(afterF);
         expect(afterB).toBe(ids[2]);
         expect(afterB).toBe(initialId);
-        console.log(`F and B are inverses: ids[2] -> F -> ids[3] -> B -> ids[2]`);
+        if (DEBUG) console.log(`F and B are inverses: ids[2] -> F -> ids[3] -> B -> ids[2]`);
     });
 });

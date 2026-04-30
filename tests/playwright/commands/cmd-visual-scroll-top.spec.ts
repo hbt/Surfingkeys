@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -75,7 +77,7 @@ test.describe('cmd_visual_scroll_top (Playwright)', () => {
 
         const finalScroll = await page.evaluate(() => window.scrollY);
         expect(typeof finalScroll).toBe('number');
-        console.log(`zt executed: scroll ${initialScroll}px → ${finalScroll}px`);
+        if (DEBUG) console.log(`zt executed: scroll ${initialScroll}px → ${finalScroll}px`);
     });
 
     test('zt changes scroll position', async () => {
@@ -91,7 +93,7 @@ test.describe('cmd_visual_scroll_top (Playwright)', () => {
         await page.waitForTimeout(300);
 
         const finalScroll = await page.evaluate(() => window.scrollY);
-        console.log(`Scroll: ${initialScroll}px → ${finalScroll}px`);
+        if (DEBUG) console.log(`Scroll: ${initialScroll}px → ${finalScroll}px`);
         expect(finalScroll).not.toBe(initialScroll);
     });
 
@@ -107,7 +109,7 @@ test.describe('cmd_visual_scroll_top (Playwright)', () => {
 
         const cursorTop = await getCursorTop(page);
         const finalScroll = await page.evaluate(() => window.scrollY);
-        console.log(`After zt: scroll=${finalScroll}px, cursorTop=${cursorTop}px`);
+        if (DEBUG) console.log(`After zt: scroll=${finalScroll}px, cursorTop=${cursorTop}px`);
 
         if (cursorTop !== null) {
             expect(cursorTop).toBeLessThanOrEqual(50);

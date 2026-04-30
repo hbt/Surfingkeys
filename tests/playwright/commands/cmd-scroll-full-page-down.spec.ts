@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -30,14 +32,14 @@ test.describe('cmd_scroll_full_page_down (Playwright)', () => {
         const result = await sendKeyAndWaitForScroll(page, 'P', { direction: 'down', minDelta: 300 });
 
         expect(result.final).toBeGreaterThan(result.baseline);
-        console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
+        if (DEBUG) console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
     });
 
     test('full page down distance is consistent', async () => {
         const result1 = await sendKeyAndWaitForScroll(page, 'P', { direction: 'down', minDelta: 300 });
         const result2 = await sendKeyAndWaitForScroll(page, 'P', { direction: 'down', minDelta: 300 });
 
-        console.log(`1st: ${result1.delta}px, 2nd: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`);
+        if (DEBUG) console.log(`1st: ${result1.delta}px, 2nd: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`);
         expect(Math.abs(result1.delta - result2.delta)).toBeLessThan(100);
     });
 });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -33,7 +35,7 @@ test.describe('cmd_scroll_change_target (Playwright)', () => {
 
         const finalScroll = await page.evaluate(() => window.scrollY);
         expect(finalScroll).toBeGreaterThanOrEqual(0);
-        console.log(`Scroll target changed - initial: ${initialScroll}px, after: ${finalScroll}px`);
+        if (DEBUG) console.log(`Scroll target changed - initial: ${initialScroll}px, after: ${finalScroll}px`);
     });
 
     test('cs can be called multiple times', async () => {
@@ -50,6 +52,6 @@ test.describe('cmd_scroll_change_target (Playwright)', () => {
         const afterSecond = await page.evaluate(() => window.scrollY);
         expect(afterSecond).toBeGreaterThanOrEqual(0);
 
-        console.log(`Multiple toggle - initial: ${initialScroll}px, after 1st: ${afterFirst}px, after 2nd: ${afterSecond}px`);
+        if (DEBUG) console.log(`Multiple toggle - initial: ${initialScroll}px, after 1st: ${afterFirst}px, after 2nd: ${afterSecond}px`);
     });
 });

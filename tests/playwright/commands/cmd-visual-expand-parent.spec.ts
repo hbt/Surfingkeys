@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-parent-test.html`;
 
 let context: BrowserContext;
@@ -72,7 +74,7 @@ test.describe('cmd_visual_expand_parent (Playwright)', () => {
         const after = await getSelectionTextLength(page);
         expect(after).toBeGreaterThan(before);
         expect(await getSelectionType(page)).toBe('Range');
-        console.log(`p expanded: ${before} → ${after} chars`);
+        if (DEBUG) console.log(`p expanded: ${before} → ${after} chars`);
     });
 
     test('repeated p presses continue expanding selection', async () => {
@@ -88,7 +90,7 @@ test.describe('cmd_visual_expand_parent (Playwright)', () => {
         for (let i = 1; i < lengths.length; i++) {
             expect(lengths[i]).toBeGreaterThanOrEqual(lengths[i - 1]);
         }
-        console.log(`p expansions: ${lengths.join(' → ')}`);
+        if (DEBUG) console.log(`p expansions: ${lengths.join(' → ')}`);
     });
 
     test('p results in Range selection type', async () => {
@@ -97,7 +99,7 @@ test.describe('cmd_visual_expand_parent (Playwright)', () => {
         await page.waitForTimeout(300);
         const selType = await getSelectionType(page);
         expect(selType).toBe('Range');
-        console.log(`Selection type after p: ${selType}`);
+        if (DEBUG) console.log(`Selection type after p: ${selType}`);
     });
 
     test('p works on inline elements', async () => {
@@ -107,6 +109,6 @@ test.describe('cmd_visual_expand_parent (Playwright)', () => {
         await page.waitForTimeout(300);
         const after = await getSelectionTextLength(page);
         expect(after).toBeGreaterThan(before);
-        console.log(`p on inline: ${before} → ${after} chars`);
+        if (DEBUG) console.log(`p on inline: ${before} → ${after} chars`);
     });
 });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -64,7 +66,7 @@ test.describe('cmd_tab_close_all_right (Playwright)', () => {
         const tabsToRight = allTabs.filter((t: any) => t.index > activeTab.index).length;
         const beforeCount = context.pages().length;
 
-        console.log(`gx$: active index=${activeTab.index}, tabsToRight=${tabsToRight}, beforeCount=${beforeCount}`);
+        if (DEBUG) console.log(`gx$: active index=${activeTab.index}, tabsToRight=${tabsToRight}, beforeCount=${beforeCount}`);
 
         // Press gx$
         await activePage.keyboard.press('g');
@@ -82,7 +84,7 @@ test.describe('cmd_tab_close_all_right (Playwright)', () => {
         }
 
         expect(finalCount).toBe(expectedCount);
-        console.log(`gx$: ${beforeCount} → ${finalCount} pages (expected ${expectedCount})`);
+        if (DEBUG) console.log(`gx$: ${beforeCount} → ${finalCount} pages (expected ${expectedCount})`);
 
         // Cleanup remaining
         await l0.close().catch(() => {});
@@ -112,9 +114,9 @@ test.describe('cmd_tab_close_all_right (Playwright)', () => {
             await rightmostPage.waitForTimeout(1000);
 
             expect(context.pages().length).toBe(beforeCount);
-            console.log(`gx$ at rightmost: count unchanged at ${beforeCount}`);
+            if (DEBUG) console.log(`gx$ at rightmost: count unchanged at ${beforeCount}`);
         } else {
-            console.log(`Could not isolate rightmost scenario (index ${activeTab.index} vs max ${maxIndex}) — skipping assertion`);
+            if (DEBUG) console.log(`Could not isolate rightmost scenario (index ${activeTab.index} vs max ${maxIndex}) — skipping assertion`);
         }
 
         await rightmostPage.close().catch(() => {});
@@ -141,12 +143,12 @@ test.describe('cmd_tab_close_all_right (Playwright)', () => {
         const tabsToRight = allTabs.filter((t: any) => t.index > activeTab.index).length;
         const beforeCount = context.pages().length;
 
-        console.log(`gx$ from leftmost: active index=${activeTab.index}, tabsToRight=${tabsToRight}, beforeCount=${beforeCount}`);
+        if (DEBUG) console.log(`gx$ from leftmost: active index=${activeTab.index}, tabsToRight=${tabsToRight}, beforeCount=${beforeCount}`);
 
         // Only proceed if we are actually the leftmost
         const minIndex = Math.min(...allTabs.map((t: any) => t.index));
         if (activeTab.index !== minIndex) {
-            console.log(`SKIP: page is not leftmost (index ${activeTab.index} vs min ${minIndex})`);
+            if (DEBUG) console.log(`SKIP: page is not leftmost (index ${activeTab.index} vs min ${minIndex})`);
             await r1.close().catch(() => {});
             await r2.close().catch(() => {});
             return;
@@ -167,6 +169,6 @@ test.describe('cmd_tab_close_all_right (Playwright)', () => {
         }
 
         expect(finalCount).toBe(expectedCount);
-        console.log(`gx$ from leftmost: ${beforeCount} → ${finalCount} (expected ${expectedCount})`);
+        if (DEBUG) console.log(`gx$ from leftmost: ${beforeCount} → ${finalCount} (expected ${expectedCount})`);
     });
 });

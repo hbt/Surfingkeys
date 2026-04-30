@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
 
 let context: BrowserContext;
@@ -66,7 +68,7 @@ test.describe('cmd_visual_backward_line (Playwright)', () => {
         }
 
         const initialLine = await getCurrentLineNumber(page);
-        console.log(`Before k: line ${initialLine}`);
+        if (DEBUG) console.log(`Before k: line ${initialLine}`);
         expect(initialLine).toBeGreaterThan(1);
 
         await page.keyboard.press('k');
@@ -74,7 +76,7 @@ test.describe('cmd_visual_backward_line (Playwright)', () => {
 
         const finalLine = await getCurrentLineNumber(page);
         expect(finalLine).toBeGreaterThan(0);
-        console.log(`After k: ${initialLine} → ${finalLine}`);
+        if (DEBUG) console.log(`After k: ${initialLine} → ${finalLine}`);
     });
 
     test('k moves cursor backward one line', async () => {
@@ -86,14 +88,14 @@ test.describe('cmd_visual_backward_line (Playwright)', () => {
         }
 
         const before = await getCurrentLineNumber(page);
-        console.log(`Before k: line ${before}`);
+        if (DEBUG) console.log(`Before k: line ${before}`);
         expect(before).toBeGreaterThan(1);
 
         await page.keyboard.press('k');
         await page.waitForTimeout(300);
 
         const after = await getCurrentLineNumber(page);
-        console.log(`After k: line ${after}`);
+        if (DEBUG) console.log(`After k: line ${after}`);
 
         expect(after).toBeLessThan(before!);
     });
@@ -107,13 +109,13 @@ test.describe('cmd_visual_backward_line (Playwright)', () => {
         await page.waitForTimeout(150);
 
         const afterJ = await getCurrentLineNumber(page);
-        console.log(`After 2x j: line ${afterJ}`);
+        if (DEBUG) console.log(`After 2x j: line ${afterJ}`);
 
         await page.keyboard.press('k');
         await page.waitForTimeout(300);
 
         const afterK = await getCurrentLineNumber(page);
-        console.log(`After k: line ${afterK}`);
+        if (DEBUG) console.log(`After k: line ${afterK}`);
         expect(afterK).toBeLessThan(afterJ!);
     });
 });

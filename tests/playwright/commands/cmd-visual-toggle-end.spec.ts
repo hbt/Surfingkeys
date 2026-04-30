@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
 
 let context: BrowserContext;
@@ -57,7 +59,7 @@ test.describe('cmd_visual_toggle_end (Playwright)', () => {
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`o executed: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`o executed: focusOffset=${sel.focusOffset}`);
     });
 
     test('o toggles anchor and focus after j creates range', async () => {
@@ -69,12 +71,12 @@ test.describe('cmd_visual_toggle_end (Playwright)', () => {
         }
         await page.waitForTimeout(200);
         const before = await getSelectionInfo(page);
-        console.log(`Before o: type=${before.type}, anchor=${before.anchorOffset}, focus=${before.focusOffset}`);
+        if (DEBUG) console.log(`Before o: type=${before.type}, anchor=${before.anchorOffset}, focus=${before.focusOffset}`);
 
         await page.keyboard.press('o');
         await page.waitForTimeout(300);
         const after = await getSelectionInfo(page);
-        console.log(`After o: type=${after.type}, anchor=${after.anchorOffset}, focus=${after.focusOffset}`);
+        if (DEBUG) console.log(`After o: type=${after.type}, anchor=${after.anchorOffset}, focus=${after.focusOffset}`);
 
         // After toggle, anchor and focus should swap
         expect(after.anchorOffset).toBe(before.focusOffset);
@@ -97,7 +99,7 @@ test.describe('cmd_visual_toggle_end (Playwright)', () => {
         const after = await getSelectionInfo(page);
 
         expect(after.text).toBe(textBefore);
-        console.log(`o preserved text (length=${textBefore.length})`);
+        if (DEBUG) console.log(`o preserved text (length=${textBefore.length})`);
     });
 
     test('o toggled twice returns to original', async () => {
@@ -117,7 +119,7 @@ test.describe('cmd_visual_toggle_end (Playwright)', () => {
 
         expect(back.anchorOffset).toBe(initial.anchorOffset);
         expect(back.focusOffset).toBe(initial.focusOffset);
-        console.log(`o x2 = original: anchor=${initial.anchorOffset}, focus=${initial.focusOffset}`);
+        if (DEBUG) console.log(`o x2 = original: anchor=${initial.anchorOffset}, focus=${initial.focusOffset}`);
     });
 
     test('o in caret mode does not error', async () => {
@@ -127,6 +129,6 @@ test.describe('cmd_visual_toggle_end (Playwright)', () => {
         await page.waitForTimeout(300);
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
-        console.log(`o in caret: type=${sel.type}`);
+        if (DEBUG) console.log(`o in caret: type=${sel.type}`);
     });
 });

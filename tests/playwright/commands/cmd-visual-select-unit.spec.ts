@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -62,7 +64,7 @@ test.describe('cmd_visual_select_unit (Playwright)', () => {
         const after = await getSelectionInfo(page);
         // Verify command executed without crash
         expect(typeof after.focusOffset).toBe('number');
-        console.log(`Vw: before offset=${before.focusOffset}, after offset=${after.focusOffset}`);
+        if (DEBUG) console.log(`Vw: before offset=${before.focusOffset}, after offset=${after.focusOffset}`);
     });
 
     test('Vl command executes without error', async () => {
@@ -74,7 +76,7 @@ test.describe('cmd_visual_select_unit (Playwright)', () => {
         await page.waitForTimeout(400);
         const after = await getSelectionInfo(page);
         expect(typeof after.focusOffset).toBe('number');
-        console.log(`Vl: before offset=${before.focusOffset}, after offset=${after.focusOffset}`);
+        if (DEBUG) console.log(`Vl: before offset=${before.focusOffset}, after offset=${after.focusOffset}`);
     });
 
     test('Vp command executes without error', async () => {
@@ -86,7 +88,7 @@ test.describe('cmd_visual_select_unit (Playwright)', () => {
         await page.waitForTimeout(400);
         const after = await getSelectionInfo(page);
         expect(typeof after.focusOffset).toBe('number');
-        console.log(`Vp: before offset=${before.focusOffset}, after offset=${after.focusOffset}, text="${after.text.substring(0, 30)}"`);
+        if (DEBUG) console.log(`Vp: before offset=${before.focusOffset}, after offset=${after.focusOffset}, text="${after.text.substring(0, 30)}"`);
     });
 
     test('Vs command executes without error', async () => {
@@ -98,6 +100,6 @@ test.describe('cmd_visual_select_unit (Playwright)', () => {
         await page.waitForTimeout(400);
         const after = await getSelectionInfo(page);
         expect(typeof after.focusOffset).toBe('number');
-        console.log(`Vs: before offset=${before.focusOffset}, after offset=${after.focusOffset}`);
+        if (DEBUG) console.log(`Vs: before offset=${before.focusOffset}, after offset=${after.focusOffset}`);
     });
 });

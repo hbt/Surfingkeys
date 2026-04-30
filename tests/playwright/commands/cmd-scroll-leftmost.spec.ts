@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -35,7 +37,7 @@ test.describe('cmd_scroll_leftmost (Playwright)', () => {
 
         const finalScrollX = await page.evaluate(() => window.scrollX);
         expect(finalScrollX).toBe(0);
-        console.log(`Horizontal: ${initialScrollX}px → ${finalScrollX}px`);
+        if (DEBUG) console.log(`Horizontal: ${initialScrollX}px → ${finalScrollX}px`);
     });
 
     test('0 moves to exactly leftmost position', async () => {
@@ -48,6 +50,6 @@ test.describe('cmd_scroll_leftmost (Playwright)', () => {
 
         const finalScrollX = await page.evaluate(() => window.scrollX);
         expect(finalScrollX).toBe(0);
-        console.log(`Leftmost: ${start}px → ${finalScrollX}px`);
+        if (DEBUG) console.log(`Leftmost: ${start}px → ${finalScrollX}px`);
     });
 });

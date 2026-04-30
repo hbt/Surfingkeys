@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -61,7 +63,7 @@ test.describe('cmd_visual_scroll_bottom (Playwright)', () => {
 
         const finalScroll = await page.evaluate(() => window.scrollY);
         expect(typeof finalScroll).toBe('number');
-        console.log(`zb executed: scroll ${initialScroll}px → ${finalScroll}px`);
+        if (DEBUG) console.log(`zb executed: scroll ${initialScroll}px → ${finalScroll}px`);
     });
 
     test('zb does not error and selection is still valid after execution', async () => {
@@ -78,7 +80,7 @@ test.describe('cmd_visual_scroll_bottom (Playwright)', () => {
         // Verify selection is still accessible (visual mode still active)
         const selection = await getSelectionInfo(page);
         expect(typeof selection.focusOffset).toBe('number');
-        console.log(`After zb: focusOffset=${selection.focusOffset}`);
+        if (DEBUG) console.log(`After zb: focusOffset=${selection.focusOffset}`);
     });
 
     test('zb maintains visual mode - cursor exists before and after', async () => {
@@ -88,7 +90,7 @@ test.describe('cmd_visual_scroll_bottom (Playwright)', () => {
         await page.waitForTimeout(200);
 
         const cursorBefore = await page.evaluate(() => document.querySelector('.surfingkeys_cursor') !== null);
-        console.log(`Cursor before zb: ${cursorBefore}`);
+        if (DEBUG) console.log(`Cursor before zb: ${cursorBefore}`);
 
         await page.keyboard.press('z');
         await page.waitForTimeout(50);
@@ -97,6 +99,6 @@ test.describe('cmd_visual_scroll_bottom (Playwright)', () => {
 
         const selection = await getSelectionInfo(page);
         expect(typeof selection.focusOffset).toBe('number');
-        console.log(`Visual mode active after zb: focusOffset=${selection.focusOffset}`);
+        if (DEBUG) console.log(`Visual mode active after zb: focusOffset=${selection.focusOffset}`);
     });
 });

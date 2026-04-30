@@ -1,6 +1,8 @@
 import { test, expect, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -110,7 +112,7 @@ test.describe('cmd_tab_detach (Playwright)', () => {
 
         const afterWindows = await getAllWindowsViaSW(context);
         expect(afterWindows.length).toBe(beforeWindowCount + 1);
-        console.log(`cmd_tab_detach: windows ${beforeWindowCount} → ${afterWindows.length}`);
+        if (DEBUG) console.log(`cmd_tab_detach: windows ${beforeWindowCount} → ${afterWindows.length}`);
 
         // Cleanup extra windows
         const sw = context.serviceWorkers()[0];
@@ -170,7 +172,7 @@ test.describe('cmd_tab_detach (Playwright)', () => {
         // DirectionRight from index 0 with repeats=1 moves 1 tab to the right
         expect(newWindow.tabs.length).toBe(1);
         expect(originalWindow.tabs.length).toBe(2);
-        console.log(`cmd_tab_detach_magic_right: original ${originalWindow.tabs.length} tabs, new ${newWindow.tabs.length} tabs`);
+        if (DEBUG) console.log(`cmd_tab_detach_magic_right: original ${originalWindow.tabs.length} tabs, new ${newWindow.tabs.length} tabs`);
 
         // Cleanup
         await new Promise(r => setTimeout(r, 300));
@@ -214,7 +216,7 @@ test.describe('cmd_tab_detach (Playwright)', () => {
         expect(newWindow).toBeDefined();
         expect(afterOriginalWindow!.tabs.length).toBe(1);
         expect(newWindow!.tabs.length).toBe(totalTabs - 1);
-        console.log(`cmd_tab_detach_magic_except_active: original 1 tab, new ${newWindow!.tabs.length} tabs`);
+        if (DEBUG) console.log(`cmd_tab_detach_magic_except_active: original 1 tab, new ${newWindow!.tabs.length} tabs`);
 
         // Cleanup
         await new Promise(r => setTimeout(r, 300));
@@ -261,7 +263,7 @@ test.describe('cmd_tab_detach (Playwright)', () => {
         expect(afterOriginalWindow!.tabs.length).toBe(1);
         // New window should have the 2 children
         expect(newWindow!.tabs.length).toBe(2);
-        console.log(`cmd_tab_detach_magic_children: original ${afterOriginalWindow!.tabs.length} tab, new ${newWindow!.tabs.length} tabs`);
+        if (DEBUG) console.log(`cmd_tab_detach_magic_children: original ${afterOriginalWindow!.tabs.length} tab, new ${newWindow!.tabs.length} tabs`);
 
         // Cleanup
         await new Promise(r => setTimeout(r, 300));

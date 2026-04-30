@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -45,7 +47,7 @@ test.describe('cmd_tab_close_others (Playwright)', () => {
 
         const activeTab = await getActiveTabViaSW(context);
         const beforeCount = context.pages().length;
-        console.log(`gxx: before=${beforeCount}, keeper tab id=${activeTab.id}`);
+        if (DEBUG) console.log(`gxx: before=${beforeCount}, keeper tab id=${activeTab.id}`);
 
         // Press gxx — all other tabs will close; keeper stays
         // We use a broad waitForTimeout since many tabs close at once
@@ -65,7 +67,7 @@ test.describe('cmd_tab_close_others (Playwright)', () => {
 
         // The keeper page should still be alive, all others closed
         expect(finalCount).toBe(1);
-        console.log(`gxx: ${beforeCount} → ${finalCount} pages`);
+        if (DEBUG) console.log(`gxx: ${beforeCount} → ${finalCount} pages`);
     });
 
     test('gxx with single tab does nothing', async () => {
@@ -97,6 +99,6 @@ test.describe('cmd_tab_close_others (Playwright)', () => {
         await context.pages()[0].waitForTimeout(800).catch(() => {});
 
         expect(context.pages().length).toBe(beforeCount);
-        console.log(`gxx single tab: count unchanged at ${beforeCount}`);
+        if (DEBUG) console.log(`gxx single tab: count unchanged at ${beforeCount}`);
     });
 });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -29,7 +31,7 @@ test.describe('cmd_tab_new (Playwright)', () => {
 
         await newPage.waitForTimeout(300);
         expect(context.pages().length).toBeGreaterThan(beforeCount);
-        console.log(`New tab opened: ${newPage.url()} (total: ${context.pages().length})`);
+        if (DEBUG) console.log(`New tab opened: ${newPage.url()} (total: ${context.pages().length})`);
 
         // Cleanup extra tab
         if (newPage !== page) await newPage.close();
@@ -56,7 +58,7 @@ test.describe('cmd_tab_new (Playwright)', () => {
 
         await p2.waitForTimeout(300);
         expect(context.pages().length).toBeGreaterThan(beforeCount + 1);
-        console.log(`After 2x on: total ${context.pages().length} pages`);
+        if (DEBUG) console.log(`After 2x on: total ${context.pages().length} pages`);
 
         // Cleanup
         await p1.close().catch(() => {});

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/detected-links-test.html`;
 
 let context: BrowserContext;
@@ -68,12 +70,12 @@ test.describe('cmd_nav_open_detected_link (Playwright)', () => {
         await page.waitForTimeout(1500);
 
         const hintsInfo = await getHintsInfo();
-        console.log(`Hints: ${JSON.stringify(hintsInfo)}`);
+        if (DEBUG) console.log(`Hints: ${JSON.stringify(hintsInfo)}`);
 
         expect(hintsInfo.exists).toBe(true);
         expect(hintsInfo.hasHolder).toBe(true);
         expect(hintsInfo.count).toBeGreaterThan(0);
-        console.log(`Detected ${hintsInfo.count} URL hints`);
+        if (DEBUG) console.log(`Detected ${hintsInfo.count} URL hints`);
     });
 
     test('pressing O detects multiple URLs (HTTP and HTTPS)', async () => {
@@ -84,7 +86,7 @@ test.describe('cmd_nav_open_detected_link (Playwright)', () => {
 
         // The fixture has 10+ URLs in plain text
         expect(hintsInfo.count).toBeGreaterThanOrEqual(3);
-        console.log(`Detected ${hintsInfo.count} hints: ${hintsInfo.labels.join(', ')}`);
+        if (DEBUG) console.log(`Detected ${hintsInfo.count} hints: ${hintsInfo.labels.join(', ')}`);
     });
 
     test('pressing O does not detect regular HTML anchor links as detected links', async () => {
@@ -98,6 +100,6 @@ test.describe('cmd_nav_open_detected_link (Playwright)', () => {
         // Hints should still appear for other text URLs
         expect(hintsInfo.exists).toBe(true);
         expect(hintsInfo.count).toBeGreaterThan(0);
-        console.log(`O command produced ${hintsInfo.count} hints as expected`);
+        if (DEBUG) console.log(`O command produced ${hintsInfo.count} hints as expected`);
     });
 });

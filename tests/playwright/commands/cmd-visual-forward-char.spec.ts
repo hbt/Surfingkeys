@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
 
 let context: BrowserContext;
@@ -56,7 +58,7 @@ test.describe('cmd_visual_forward_char (Playwright)', () => {
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`l executed: focusOffset=${sel.focusOffset}, type=${sel.type}`);
+        if (DEBUG) console.log(`l executed: focusOffset=${sel.focusOffset}, type=${sel.type}`);
     });
 
     test('pressing l multiple times does not error', async () => {
@@ -67,7 +69,7 @@ test.describe('cmd_visual_forward_char (Playwright)', () => {
         }
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
-        console.log(`After 5x l: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`After 5x l: focusOffset=${sel.focusOffset}`);
     });
 
     test('l at line end does not crash', async () => {
@@ -91,7 +93,7 @@ test.describe('cmd_visual_forward_char (Playwright)', () => {
         }
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
-        console.log(`After l/h alternation: type=${sel.type}`);
+        if (DEBUG) console.log(`After l/h alternation: type=${sel.type}`);
     });
 
     test('visual mode remains accessible after pressing l', async () => {
@@ -119,6 +121,6 @@ test.describe('cmd_visual_forward_char (Playwright)', () => {
         });
         expect(after).toBeTruthy();
         expect(after).not.toBe(before);
-        console.log(`After l then j: line changed ${before} → ${after}`);
+        if (DEBUG) console.log(`After l then j: line changed ${before} → ${after}`);
     });
 });

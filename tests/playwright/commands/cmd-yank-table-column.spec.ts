@@ -1,6 +1,8 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/table-test.html`;
 
 let context: BrowserContext;
@@ -95,7 +97,7 @@ test.describe('cmd_yank_table_column (Playwright)', () => {
         const snap = await getHintSnapshot(page);
         expect(snap.found).toBe(true);
         expect(snap.count).toBeGreaterThan(0);
-        console.log(`Hints displayed: ${snap.count}`);
+        if (DEBUG) console.log(`Hints displayed: ${snap.count}`);
     });
 
     test('selecting a hint clears hints (command executed)', async () => {
@@ -108,7 +110,7 @@ test.describe('cmd_yank_table_column (Playwright)', () => {
         const snap = await getHintSnapshot(page);
         const firstHint = snap.hints[0]?.text;
         expect(firstHint).toBeDefined();
-        console.log(`Selecting hint: ${firstHint}`);
+        if (DEBUG) console.log(`Selecting hint: ${firstHint}`);
 
         for (const char of firstHint) {
             await page.keyboard.press(char);
@@ -119,6 +121,6 @@ test.describe('cmd_yank_table_column (Playwright)', () => {
 
         const after = await getHintSnapshot(page);
         expect(after.count).toBe(0);
-        console.log('Hints cleared after column selection');
+        if (DEBUG) console.log('Hints cleared after column selection');
     });
 });

@@ -1,6 +1,8 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/table-test.html`;
 
 let context: BrowserContext;
@@ -105,7 +107,7 @@ test.describe('cmd_yank_table_columns (Playwright)', () => {
         const snap = await getHintSnapshot(page);
         expect(snap.found).toBe(true);
         expect(snap.count).toBeGreaterThan(0);
-        console.log(`ymc hints: ${snap.count}`);
+        if (DEBUG) console.log(`ymc hints: ${snap.count}`);
     });
 
     test('pressing Escape cancels ymc hint mode', async () => {

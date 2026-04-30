@@ -1,6 +1,8 @@
 import { test, expect, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -96,7 +98,7 @@ test.describe('cmd_tab_nav (Playwright)', () => {
 
         const afterActive = await getActiveTabViaSW(context);
         expect(afterActive.index).toBe(1);
-        console.log(`cmd_tab_next: index ${beforeActive.index} → ${afterActive.index}`);
+        if (DEBUG) console.log(`cmd_tab_next: index ${beforeActive.index} → ${afterActive.index}`);
     });
 
     test('cmd_tab_prev moves active tab from index 2 to index 1', async () => {
@@ -130,7 +132,7 @@ test.describe('cmd_tab_nav (Playwright)', () => {
 
         const afterActive = await getActiveTabViaSW(context);
         expect(afterActive.index).toBe(1);
-        console.log(`cmd_tab_prev: index ${beforeActive.index} → ${afterActive.index}`);
+        if (DEBUG) console.log(`cmd_tab_prev: index ${beforeActive.index} → ${afterActive.index}`);
     });
 
     test('cmd_tab_parent activates the opener tab from a child tab', async () => {
@@ -173,6 +175,6 @@ test.describe('cmd_tab_nav (Playwright)', () => {
 
         const afterActive = await getActiveTabViaSW(context);
         expect(afterActive.id).toBe(parentTab.id);
-        console.log(`cmd_tab_parent: child ${childId} → parent ${parentTab.id} (active: ${afterActive.id})`);
+        if (DEBUG) console.log(`cmd_tab_parent: child ${childId} → parent ${parentTab.id} (active: ${afterActive.id})`);
     });
 });

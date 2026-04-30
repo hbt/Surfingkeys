@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
 
 let context: BrowserContext;
@@ -75,7 +77,7 @@ test.describe('cmd_visual_document_end (Playwright)', () => {
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`G executed: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`G executed: focusOffset=${sel.focusOffset}`);
     });
 
     test('G moves cursor to a later line', async () => {
@@ -83,13 +85,13 @@ test.describe('cmd_visual_document_end (Playwright)', () => {
         // Move to an early line first with j movements (to have room for G to go further)
         // Use only j (which reliably works)
         const startLine = await getCurrentLineNumber(page);
-        console.log(`Start line before G: ${startLine}`);
+        if (DEBUG) console.log(`Start line before G: ${startLine}`);
 
         await page.keyboard.press('G');
         await page.waitForTimeout(500);
         const endLine = await getCurrentLineNumber(page);
 
-        console.log(`G: line ${startLine} → ${endLine}`);
+        if (DEBUG) console.log(`G: line ${startLine} → ${endLine}`);
         // G should move cursor at least as far as start (may stay same if already at end)
         expect(endLine).not.toBeNull();
         expect(endLine).toBeGreaterThanOrEqual(startLine!);
@@ -108,7 +110,7 @@ test.describe('cmd_visual_document_end (Playwright)', () => {
         await page.waitForTimeout(500);
         const endLine = await getCurrentLineNumber(page);
 
-        console.log(`After j×3 (line ${midLine}), G → line ${endLine}`);
+        if (DEBUG) console.log(`After j×3 (line ${midLine}), G → line ${endLine}`);
         expect(endLine).toBeGreaterThanOrEqual(midLine!);
         expect(endLine).not.toBeNull();
     });
@@ -125,7 +127,7 @@ test.describe('cmd_visual_document_end (Playwright)', () => {
 
         expect(first.hasNode).toBe(true);
         expect(second.hasNode).toBe(true);
-        console.log(`G twice: offset=${first.focusOffset} → ${second.focusOffset}`);
+        if (DEBUG) console.log(`G twice: offset=${first.focusOffset} → ${second.focusOffset}`);
     });
 
     test('G then gg moves to earlier line', async () => {
@@ -141,6 +143,6 @@ test.describe('cmd_visual_document_end (Playwright)', () => {
         const lineAfterGG = await getCurrentLineNumber(page);
 
         expect(lineAfterGG).toBeLessThan(lineAfterG!);
-        console.log(`G (line ${lineAfterG}) then gg (line ${lineAfterGG})`);
+        if (DEBUG) console.log(`G (line ${lineAfterG}) then gg (line ${lineAfterGG})`);
     });
 });

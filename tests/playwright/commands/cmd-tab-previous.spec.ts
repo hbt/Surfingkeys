@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -41,16 +43,16 @@ test.describe('cmd_tab_previous (Playwright)', () => {
 
     test('pressing E switches to a different tab', async () => {
         const initialTabId = await getActiveTabId();
-        console.log(`Initial active tab: ${initialTabId}`);
+        if (DEBUG) console.log(`Initial active tab: ${initialTabId}`);
 
         await page.keyboard.press('E');
         await page.waitForTimeout(500);
 
         const newTabId = await getActiveTabId();
-        console.log(`After E: active tab ${newTabId}`);
+        if (DEBUG) console.log(`After E: active tab ${newTabId}`);
 
         expect(newTabId).not.toBe(initialTabId);
-        console.log(`Tab switched back: ${initialTabId} → ${newTabId}`);
+        if (DEBUG) console.log(`Tab switched back: ${initialTabId} → ${newTabId}`);
     });
 
     test('pressing E and R cycles back to original tab', async () => {
@@ -71,7 +73,7 @@ test.describe('cmd_tab_previous (Playwright)', () => {
         await activePage.waitForTimeout(400);
         const afterR = await getActiveTabId();
 
-        console.log(`E then R: ${initialTabId} → ${afterE} → ${afterR}`);
+        if (DEBUG) console.log(`E then R: ${initialTabId} → ${afterE} → ${afterR}`);
         expect(afterR).toBeDefined();
     });
 });

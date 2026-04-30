@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -90,7 +92,7 @@ test.describe('cmd_tab_gather_all (Playwright)', () => {
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
         mainWindowId = await getMainWindowId();
-        console.log(`Main window ID: ${mainWindowId}`);
+        if (DEBUG) console.log(`Main window ID: ${mainWindowId}`);
     });
 
     test.afterAll(async () => {
@@ -118,7 +120,7 @@ test.describe('cmd_tab_gather_all (Playwright)', () => {
 
         const secondWindowTabs = await getTabsInWindow(extraWindowId);
         const expectedTotal = initialMainCount + secondWindowTabs.length;
-        console.log(`Initial: main=${initialMainCount}, second=${secondWindowTabs.length}, expected=${expectedTotal}`);
+        if (DEBUG) console.log(`Initial: main=${initialMainCount}, second=${secondWindowTabs.length}, expected=${expectedTotal}`);
 
         // Gather all tabs to main window
         await gatherAllTabsToWindow(mainWindowId);
@@ -133,7 +135,7 @@ test.describe('cmd_tab_gather_all (Playwright)', () => {
         }
 
         expect(finalMainTabs.length).toBe(expectedTotal);
-        console.log(`After gather: main window has ${finalMainTabs.length} tabs`);
+        if (DEBUG) console.log(`After gather: main window has ${finalMainTabs.length} tabs`);
         extraWindowId = null; // Window auto-closed when emptied
     });
 
@@ -158,7 +160,7 @@ test.describe('cmd_tab_gather_all (Playwright)', () => {
 
         const finalTabs = await getTabsInWindow(mainWindowId);
         expect(finalTabs.length).toBe(initialCount);
-        console.log(`Single-window gather: count unchanged at ${finalTabs.length}`);
+        if (DEBUG) console.log(`Single-window gather: count unchanged at ${finalTabs.length}`);
     });
 
     test('gathered tabs are preserved (IDs intact)', async () => {
@@ -181,7 +183,7 @@ test.describe('cmd_tab_gather_all (Playwright)', () => {
         for (const id of secondTabIds) {
             const found = finalMainTabs.find((t) => t.id === id);
             expect(found).toBeDefined();
-            console.log(`Tab ${id} gathered successfully`);
+            if (DEBUG) console.log(`Tab ${id} gathered successfully`);
         }
         extraWindowId = null;
     });

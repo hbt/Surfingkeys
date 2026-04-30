@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
@@ -57,7 +59,7 @@ test.describe('cmd_insert_delete_before_cursor (Playwright)', () => {
         const after = await getInputState(page);
         expect(after.value).toBe(' world');
         expect(after.selectionStart).toBe(0);
-        console.log(`Delete before cursor: "${before.value}" pos ${before.selectionStart} → "${after.value}"`);
+        if (DEBUG) console.log(`Delete before cursor: "${before.value}" pos ${before.selectionStart} → "${after.value}"`);
     });
 
     test('Ctrl+u at end deletes entire content', async () => {
@@ -69,7 +71,7 @@ test.describe('cmd_insert_delete_before_cursor (Playwright)', () => {
         const after = await getInputState(page);
         expect(after.value).toBe('');
         expect(after.selectionStart).toBe(0);
-        console.log(`Delete all: "${after.value}" (empty)`);
+        if (DEBUG) console.log(`Delete all: "${after.value}" (empty)`);
     });
 
     test('Ctrl+u at position 0 leaves input unchanged', async () => {
@@ -81,6 +83,6 @@ test.describe('cmd_insert_delete_before_cursor (Playwright)', () => {
         const after = await getInputState(page);
         expect(after.value).toBe('hello world');
         expect(after.selectionStart).toBe(0);
-        console.log(`Delete at 0: unchanged "${after.value}"`);
+        if (DEBUG) console.log(`Delete at 0: unchanged "${after.value}"`);
     });
 });

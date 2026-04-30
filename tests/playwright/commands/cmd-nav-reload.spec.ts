@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -34,7 +36,7 @@ test.describe('cmd_nav_reload (Playwright)', () => {
         // Marker should be gone after reload
         const markerAfter = await page.evaluate(() => (window as any).__reloadTestMarker);
         expect(markerAfter).toBeUndefined();
-        console.log(`Marker after reload: ${markerAfter} (expected: undefined)`);
+        if (DEBUG) console.log(`Marker after reload: ${markerAfter} (expected: undefined)`);
     });
 
     test('page content is preserved after reload', async () => {
@@ -48,6 +50,6 @@ test.describe('cmd_nav_reload (Playwright)', () => {
 
         const titleAfter = await page.evaluate(() => document.title);
         expect(titleAfter).toBe(titleBefore);
-        console.log(`Title preserved after reload: ${titleAfter}`);
+        if (DEBUG) console.log(`Title preserved after reload: ${titleAfter}`);
     });
 });

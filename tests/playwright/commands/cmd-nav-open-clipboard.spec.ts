@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -96,7 +98,7 @@ test.describe('cmd_nav_open_clipboard (Playwright)', () => {
         }
 
         expect(newTabCount).toBeGreaterThan(initialTabCount);
-        console.log(`cc created new tab: ${initialTabCount} → ${newTabCount} tabs`);
+        if (DEBUG) console.log(`cc created new tab: ${initialTabCount} → ${newTabCount} tabs`);
 
         // Cleanup test div
         await page.evaluate(() => {
@@ -129,6 +131,6 @@ test.describe('cmd_nav_open_clipboard (Playwright)', () => {
         }
 
         expect(newTabCount).toBeGreaterThan(initialTabCount);
-        console.log(`cc opened clipboard URL: tab count ${initialTabCount} → ${newTabCount}`);
+        if (DEBUG) console.log(`cc opened clipboard URL: tab count ${initialTabCount} → ${newTabCount}`);
     });
 });

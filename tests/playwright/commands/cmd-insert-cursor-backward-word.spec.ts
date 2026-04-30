@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
@@ -57,7 +59,7 @@ test.describe('cmd_insert_cursor_backward_word (Playwright)', () => {
         expect(after.value).toBe('hello world');
         expect(after.selectionStart).toBe(5);
         expect(after.selectionEnd).toBe(5);
-        console.log(`Backward word: cursor ${before.selectionStart} → ${after.selectionStart}`);
+        if (DEBUG) console.log(`Backward word: cursor ${before.selectionStart} → ${after.selectionStart}`);
     });
 
     test('Alt+b cursor at start of word stops at space before it', async () => {
@@ -80,6 +82,6 @@ test.describe('cmd_insert_cursor_backward_word (Playwright)', () => {
 
         const after = await getInputState(page);
         expect(after.selectionStart).toBe(0);
-        console.log(`Backward word at 0: stays at ${after.selectionStart}`);
+        if (DEBUG) console.log(`Backward word at 0: stays at ${after.selectionStart}`);
     });
 });

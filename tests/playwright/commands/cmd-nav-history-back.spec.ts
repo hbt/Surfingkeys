@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const URL_A = `${FIXTURE_BASE}/scroll-test.html`;
 const URL_B = `${FIXTURE_BASE}/form-test.html`;
 
@@ -35,7 +37,7 @@ test.describe('cmd_nav_history_back (Playwright)', () => {
 
         const finalUrl = page.url();
         expect(finalUrl).toContain('scroll-test.html');
-        console.log(`History back: ${currentUrl} → ${finalUrl}`);
+        if (DEBUG) console.log(`History back: ${currentUrl} → ${finalUrl}`);
     });
 
     test('pressing S twice goes back two levels', async () => {
@@ -58,6 +60,6 @@ test.describe('cmd_nav_history_back (Playwright)', () => {
         await back2;
 
         expect(page.url()).toContain('scroll-test.html');
-        console.log(`After two S presses: ${page.url()}`);
+        if (DEBUG) console.log(`After two S presses: ${page.url()}`);
     });
 });

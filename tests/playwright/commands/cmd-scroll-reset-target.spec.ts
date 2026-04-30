@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -51,6 +53,6 @@ test.describe('cmd_scroll_reset_target (Playwright)', () => {
         expect(result.final).toBeGreaterThan(result.baseline);
         const windowScrollY = await page.evaluate(() => window.scrollY);
         expect(windowScrollY).toBeGreaterThan(0);
-        console.log(`After cS reset, j scrolled: ${result.baseline}px → ${result.final}px`);
+        if (DEBUG) console.log(`After cS reset, j scrolled: ${result.baseline}px → ${result.final}px`);
     });
 });

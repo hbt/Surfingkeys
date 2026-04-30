@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -55,7 +57,7 @@ test.describe('cmd_visual_find_backward (Playwright)', () => {
         await page.waitForTimeout(200);
         const sel = await getSelectionInfo(page);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`F executed: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`F executed: focusOffset=${sel.focusOffset}`);
     });
 
     test('F then character finds backward occurrence', async () => {
@@ -67,7 +69,7 @@ test.describe('cmd_visual_find_backward (Playwright)', () => {
         await page.waitForTimeout(300);
         const after = await getSelectionInfo(page);
         expect(typeof after.focusOffset).toBe('number');
-        console.log(`F: ${before.focusOffset} → ${after.focusOffset}`);
+        if (DEBUG) console.log(`F: ${before.focusOffset} → ${after.focusOffset}`);
     });
 
     test('F when character not found does not error', async () => {
@@ -79,7 +81,7 @@ test.describe('cmd_visual_find_backward (Playwright)', () => {
         await page.waitForTimeout(300);
         const after = await getSelectionInfo(page);
         expect(typeof after.focusOffset).toBe('number');
-        console.log(`FQ (not found): before=${before.focusOffset}, after=${after.focusOffset}`);
+        if (DEBUG) console.log(`FQ (not found): before=${before.focusOffset}, after=${after.focusOffset}`);
     });
 
     test('Escape after F cancels find mode', async () => {
@@ -91,6 +93,6 @@ test.describe('cmd_visual_find_backward (Playwright)', () => {
         await page.waitForTimeout(200);
         const after = await getSelectionInfo(page);
         expect(after.focusOffset).toBe(before.focusOffset);
-        console.log(`F then Escape: offset stayed at ${after.focusOffset}`);
+        if (DEBUG) console.log(`F then Escape: offset stayed at ${after.focusOffset}`);
     });
 });

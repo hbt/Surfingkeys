@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
 
 let context: BrowserContext;
@@ -56,7 +58,7 @@ test.describe('cmd_visual_backward_word (Playwright)', () => {
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`b executed: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`b executed: focusOffset=${sel.focusOffset}`);
     });
 
     test('pressing b multiple times does not error', async () => {
@@ -67,7 +69,7 @@ test.describe('cmd_visual_backward_word (Playwright)', () => {
         }
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
-        console.log(`After 5x b: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`After 5x b: focusOffset=${sel.focusOffset}`);
     });
 
     test('b at line start does not crash', async () => {
@@ -88,7 +90,7 @@ test.describe('cmd_visual_backward_word (Playwright)', () => {
         await page.waitForTimeout(300);
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
-        console.log(`w then b: type=${sel.type}`);
+        if (DEBUG) console.log(`w then b: type=${sel.type}`);
     });
 
     test('visual mode remains accessible after pressing b', async () => {
@@ -115,6 +117,6 @@ test.describe('cmd_visual_backward_word (Playwright)', () => {
             return id;
         });
         expect(after).not.toBe(before);
-        console.log(`After b then j: ${before} → ${after}`);
+        if (DEBUG) console.log(`After b then j: ${before} → ${after}`);
     });
 });

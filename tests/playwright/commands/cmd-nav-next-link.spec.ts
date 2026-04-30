@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/next-link-test.html`;
 
 let context: BrowserContext;
@@ -39,7 +41,7 @@ test.describe('cmd_nav_next_link (Playwright)', () => {
 
         const finalUrl = page.url();
         expect(finalUrl).toContain('page2.html');
-        console.log(`]] navigated: ${initialUrl} → ${finalUrl}`);
+        if (DEBUG) console.log(`]] navigated: ${initialUrl} → ${finalUrl}`);
     });
 
     test('pressing ]] clicks the next link element', async () => {
@@ -65,7 +67,7 @@ test.describe('cmd_nav_next_link (Playwright)', () => {
 
         const clicked = await clickedPromise;
         expect(clicked).toBe(true);
-        console.log('next-link element was clicked by ]] command');
+        if (DEBUG) console.log('next-link element was clicked by ]] command');
     });
 
     test('no navigation occurs when no next link is present', async () => {
@@ -86,6 +88,6 @@ test.describe('cmd_nav_next_link (Playwright)', () => {
 
         const urlAfter = page.url();
         expect(urlAfter).toBe(urlBefore);
-        console.log('No navigation occurred when next link was absent');
+        if (DEBUG) console.log('No navigation occurred when next link was absent');
     });
 });

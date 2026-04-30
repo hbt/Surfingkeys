@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -47,11 +49,11 @@ test.describe('cmd_tab_playing (Playwright)', () => {
         await page.waitForTimeout(300);
 
         const initialId = await getActiveTabId();
-        console.log(`Initial tab: ${initialId}`);
+        if (DEBUG) console.log(`Initial tab: ${initialId}`);
 
         // Verify no audible tabs
         const audibleTabs = await getAudibleTabs();
-        console.log(`Audible tabs: ${audibleTabs.length}`);
+        if (DEBUG) console.log(`Audible tabs: ${audibleTabs.length}`);
         expect(audibleTabs.length).toBe(0);
 
         // Send gp
@@ -62,7 +64,7 @@ test.describe('cmd_tab_playing (Playwright)', () => {
 
         // Should remain on the same tab
         const finalId = await getActiveTabId();
-        console.log(`After gp with no audible tabs: ${finalId}`);
+        if (DEBUG) console.log(`After gp with no audible tabs: ${finalId}`);
         expect(finalId).toBe(initialId);
     });
 
@@ -82,7 +84,7 @@ test.describe('cmd_tab_playing (Playwright)', () => {
         // Browser should still have a valid active tab
         const afterId = await getActiveTabId();
         expect(afterId).toBeGreaterThan(0);
-        console.log(`gp smoke test: ${initialId} -> ${afterId}`);
+        if (DEBUG) console.log(`gp smoke test: ${initialId} -> ${afterId}`);
     });
 
     test('gp with multiple tabs does not crash', async () => {
@@ -104,7 +106,7 @@ test.describe('cmd_tab_playing (Playwright)', () => {
 
         const finalId = await getActiveTabId();
         expect(finalId).toBeGreaterThan(0);
-        console.log(`gp with multiple tabs: ${initialId} -> ${finalId}`);
+        if (DEBUG) console.log(`gp with multiple tabs: ${initialId} -> ${finalId}`);
 
         await extraPage.close().catch(() => {});
     });

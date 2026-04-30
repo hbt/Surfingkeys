@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -80,7 +82,7 @@ test.describe('cmd_omnibar_url (Playwright)', () => {
 
         const opened = await waitForOmnibarState(page, true);
         expect(opened).toBe(true);
-        console.log('Omnibar opened with go key sequence');
+        if (DEBUG) console.log('Omnibar opened with go key sequence');
     });
 
     test('omnibar closes after pressing Escape', async () => {
@@ -94,7 +96,7 @@ test.describe('cmd_omnibar_url (Playwright)', () => {
         await pressEscapeToCloseOmnibar(page);
         const closed = await waitForOmnibarState(page, false);
         expect(closed).toBe(true);
-        console.log('Omnibar closed after Escape');
+        if (DEBUG) console.log('Omnibar closed after Escape');
     });
 
     test('go command can be used multiple times consecutively', async () => {
@@ -115,6 +117,6 @@ test.describe('cmd_omnibar_url (Playwright)', () => {
         await page.keyboard.press('o');
         const secondOpen = await waitForOmnibarState(page, true);
         expect(secondOpen).toBe(true);
-        console.log('go command works multiple times consecutively');
+        if (DEBUG) console.log('go command works multiple times consecutively');
     });
 });

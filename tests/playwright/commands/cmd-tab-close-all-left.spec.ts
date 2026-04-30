@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -63,7 +65,7 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
         const tabsToLeft = activeTab.index; // number of tabs to the left
         const beforeCount = context.pages().length;
 
-        console.log(`gx0: active tab index=${activeTab.index}, tabsToLeft=${tabsToLeft}, beforeCount=${beforeCount}`);
+        if (DEBUG) console.log(`gx0: active tab index=${activeTab.index}, tabsToLeft=${tabsToLeft}, beforeCount=${beforeCount}`);
 
         // Press gx0
         await activePage.keyboard.press('g');
@@ -82,7 +84,7 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
         }
 
         expect(finalCount).toBe(expectedCount);
-        console.log(`gx0: ${beforeCount} → ${finalCount} pages (expected ${expectedCount})`);
+        if (DEBUG) console.log(`gx0: ${beforeCount} → ${finalCount} pages (expected ${expectedCount})`);
 
         // Cleanup right page
         await r0.close().catch(() => {});
@@ -112,9 +114,9 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
             await leftmostPage.waitForTimeout(800);
 
             expect(context.pages().length).toBe(beforeCount);
-            console.log(`gx0 at leftmost: count unchanged at ${beforeCount}`);
+            if (DEBUG) console.log(`gx0 at leftmost: count unchanged at ${beforeCount}`);
         } else {
-            console.log(`Could not isolate leftmost scenario (${tabsToLeft} tabs to left) — skipping assertion`);
+            if (DEBUG) console.log(`Could not isolate leftmost scenario (${tabsToLeft} tabs to left) — skipping assertion`);
         }
 
         await leftmostPage.close().catch(() => {});
@@ -156,7 +158,7 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
         }
 
         expect(finalCount).toBe(expectedCount);
-        console.log(`gx0 from rightmost: ${beforeCount} → ${finalCount} (expected ${expectedCount})`);
+        if (DEBUG) console.log(`gx0 from rightmost: ${beforeCount} → ${finalCount} (expected ${expectedCount})`);
 
         await rightmost.close().catch(() => {});
     });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -72,7 +74,7 @@ test.describe('cmd_tab_gather_filtered (Playwright)', () => {
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
         mainWindowId = await getMainWindowId();
-        console.log(`Main window ID: ${mainWindowId}`);
+        if (DEBUG) console.log(`Main window ID: ${mainWindowId}`);
     });
 
     test.afterAll(async () => {
@@ -97,7 +99,7 @@ test.describe('cmd_tab_gather_filtered (Playwright)', () => {
         await page.waitForTimeout(600);
 
         const secondTabs = await getTabsInWindow(secondWindowId);
-        console.log(`Second window has ${secondTabs.length} tabs, tab ID=${secondTabId}`);
+        if (DEBUG) console.log(`Second window has ${secondTabs.length} tabs, tab ID=${secondTabId}`);
         expect(secondTabs.length).toBeGreaterThan(0);
 
         // Move just one tab from second window to main window (filtered gather)
@@ -116,7 +118,7 @@ test.describe('cmd_tab_gather_filtered (Playwright)', () => {
         expect(finalMainTabs.length).toBe(initialCount + 1);
         const gath = finalMainTabs.find((t) => t.id === tabToGather.id);
         expect(gath).toBeDefined();
-        console.log(`Tab ${tabToGather.id} gathered to main window`);
+        if (DEBUG) console.log(`Tab ${tabToGather.id} gathered to main window`);
     });
 
     test('gathering specific tabs from multiple windows', async () => {
@@ -132,7 +134,7 @@ test.describe('cmd_tab_gather_filtered (Playwright)', () => {
 
         const tabs2 = await getTabsInWindow(win2.windowId);
         const tabs3 = await getTabsInWindow(win3.windowId);
-        console.log(`Window2: ${tabs2.length} tabs, Window3: ${tabs3.length} tabs`);
+        if (DEBUG) console.log(`Window2: ${tabs2.length} tabs, Window3: ${tabs3.length} tabs`);
 
         const tabsToGather = [
             ...(tabs2.length > 0 ? [tabs2[0]] : []),
@@ -158,7 +160,7 @@ test.describe('cmd_tab_gather_filtered (Playwright)', () => {
         for (const tab of tabsToGather) {
             const found = finalMainTabs.find((t) => t.id === tab.id);
             expect(found).toBeDefined();
-            console.log(`Tab ${tab.id} gathered successfully`);
+            if (DEBUG) console.log(`Tab ${tab.id} gathered successfully`);
         }
     });
 
@@ -197,6 +199,6 @@ test.describe('cmd_tab_gather_filtered (Playwright)', () => {
 
         const finalMainTabs = await getTabsInWindow(mainWindowId);
         expect(finalMainTabs.length).toBe(initialCount);
-        console.log(`No other windows: count unchanged at ${finalMainTabs.length}`);
+        if (DEBUG) console.log(`No other windows: count unchanged at ${finalMainTabs.length}`);
     });
 });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -62,13 +64,13 @@ test.describe('cmd_omnibar_close (Playwright)', () => {
 
         const opened = await waitForOmnibarState(page, true);
         expect(opened).toBe(true);
-        console.log('Omnibar opened with T key');
+        if (DEBUG) console.log('Omnibar opened with T key');
 
         // Close with Escape
         await page.keyboard.press('Escape');
         const closed = await waitForOmnibarState(page, false);
         expect(closed).toBe(true);
-        console.log('Omnibar closed after pressing Escape');
+        if (DEBUG) console.log('Omnibar closed after pressing Escape');
     });
 
     test('can open and close omnibar multiple times', async () => {
@@ -76,12 +78,12 @@ test.describe('cmd_omnibar_close (Playwright)', () => {
         await page.keyboard.press('Shift+t');
         const open1 = await waitForOmnibarState(page, true);
         expect(open1).toBe(true);
-        console.log('Cycle 1: omnibar opened');
+        if (DEBUG) console.log('Cycle 1: omnibar opened');
 
         await page.keyboard.press('Escape');
         const closed1 = await waitForOmnibarState(page, false);
         expect(closed1).toBe(true);
-        console.log('Cycle 1: omnibar closed');
+        if (DEBUG) console.log('Cycle 1: omnibar closed');
 
         await page.waitForTimeout(300);
 
@@ -89,12 +91,12 @@ test.describe('cmd_omnibar_close (Playwright)', () => {
         await page.keyboard.press('Shift+t');
         const open2 = await waitForOmnibarState(page, true);
         expect(open2).toBe(true);
-        console.log('Cycle 2: omnibar opened');
+        if (DEBUG) console.log('Cycle 2: omnibar opened');
 
         await page.keyboard.press('Escape');
         const closed2 = await waitForOmnibarState(page, false);
         expect(closed2).toBe(true);
-        console.log('Cycle 2: omnibar closed');
+        if (DEBUG) console.log('Cycle 2: omnibar closed');
     });
 
     test('Escape on already-closed omnibar does not cause errors', async () => {
@@ -111,6 +113,6 @@ test.describe('cmd_omnibar_close (Playwright)', () => {
 
         const stillClosed = await isOmnibarOpen(page);
         expect(stillClosed).toBe(false);
-        console.log('Escape on closed omnibar is a no-op');
+        if (DEBUG) console.log('Escape on closed omnibar is a no-op');
     });
 });

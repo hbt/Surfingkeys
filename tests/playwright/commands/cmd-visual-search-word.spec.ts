@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -71,7 +73,7 @@ test.describe('cmd_visual_search_word (Playwright)', () => {
         await page.waitForTimeout(500);
         const sel = await getSelectionInfo(page);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`* executed: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`* executed: focusOffset=${sel.focusOffset}`);
     });
 
     test('* may create match highlights', async () => {
@@ -81,7 +83,7 @@ test.describe('cmd_visual_search_word (Playwright)', () => {
         await page.waitForTimeout(500);
         const matchCount = await getMatchCount(page);
         expect(matchCount).toBeGreaterThanOrEqual(0);
-        console.log(`Match count after *: ${matchCount}`);
+        if (DEBUG) console.log(`Match count after *: ${matchCount}`);
     });
 
     test('visual mode still responsive after *', async () => {
@@ -90,7 +92,7 @@ test.describe('cmd_visual_search_word (Playwright)', () => {
         await page.waitForTimeout(500);
         const sel = await getSelectionInfo(page);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`Visual mode active after *: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`Visual mode active after *: focusOffset=${sel.focusOffset}`);
     });
 
     test('* followed by n does not error', async () => {
@@ -101,6 +103,6 @@ test.describe('cmd_visual_search_word (Playwright)', () => {
         await page.waitForTimeout(400);
         const sel = await getSelectionInfo(page);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`* then n: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`* then n: focusOffset=${sel.focusOffset}`);
     });
 });

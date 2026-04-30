@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -67,7 +69,7 @@ test.describe('cmd_nav_tab_history_back (Playwright)', () => {
             const id = await getTabIdForPage(p);
             ids.push(id);
         }
-        console.log('Tab IDs:', ids);
+        if (DEBUG) console.log('Tab IDs:', ids);
     });
 
     test.afterAll(async () => {
@@ -96,7 +98,7 @@ test.describe('cmd_nav_tab_history_back (Playwright)', () => {
 
         const afterId = await pollForTabChange(initialId);
         expect(afterId).toBe(ids[3]);
-        console.log(`B switched from ids[4]=${initialId} to ids[3]=${afterId}`);
+        if (DEBUG) console.log(`B switched from ids[4]=${initialId} to ids[3]=${afterId}`);
     });
 
     test('pressing B twice goes back two steps in tab history', async () => {
@@ -115,7 +117,7 @@ test.describe('cmd_nav_tab_history_back (Playwright)', () => {
         await pages[3].keyboard.press('B');
         const afterSecond = await pollForTabChange(afterFirst, 5000);
         expect(afterSecond).toBe(ids[2]);
-        console.log(`Two B presses: ids[4] -> ids[3] -> ids[2]`);
+        if (DEBUG) console.log(`Two B presses: ids[4] -> ids[3] -> ids[2]`);
     });
 
     test('B command leaves browser in a valid state', async () => {
@@ -127,6 +129,6 @@ test.describe('cmd_nav_tab_history_back (Playwright)', () => {
         const afterId = await getActiveTabId();
         expect(afterId).toBeDefined();
         expect(ids).toContain(afterId);
-        console.log(`After B: still valid tab ${afterId}`);
+        if (DEBUG) console.log(`After B: still valid tab ${afterId}`);
     });
 });

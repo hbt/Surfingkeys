@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -36,7 +38,7 @@ test.describe('cmd_nav_remove_hash (Playwright)', () => {
         const urlAfter = page.url();
         expect(urlAfter).not.toContain('#');
         expect(urlAfter).toBe(FIXTURE_URL);
-        console.log(`Remove hash: ${urlBefore} → ${urlAfter}`);
+        if (DEBUG) console.log(`Remove hash: ${urlBefore} → ${urlAfter}`);
     });
 
     test('g# removes hash while preserving query parameters', async () => {
@@ -58,7 +60,7 @@ test.describe('cmd_nav_remove_hash (Playwright)', () => {
         const urlAfter = page.url();
         expect(urlAfter).not.toContain('#');
         expect(urlAfter).toContain('?page=1&sort=desc');
-        console.log(`Remove hash preserves query: ${urlBefore} → ${urlAfter}`);
+        if (DEBUG) console.log(`Remove hash preserves query: ${urlBefore} → ${urlAfter}`);
     });
 
     test('g# on URL without hash leaves URL unchanged', async () => {
@@ -76,6 +78,6 @@ test.describe('cmd_nav_remove_hash (Playwright)', () => {
 
         const urlAfter = page.url();
         expect(urlAfter).toBe(urlBefore);
-        console.log(`No-op g# (no hash): ${urlAfter}`);
+        if (DEBUG) console.log(`No-op g# (no hash): ${urlAfter}`);
     });
 });

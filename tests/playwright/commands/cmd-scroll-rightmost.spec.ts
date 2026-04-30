@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -38,7 +40,7 @@ test.describe('cmd_scroll_rightmost (Playwright)', () => {
         );
 
         const finalScrollX = await page.evaluate(() => window.scrollX);
-        console.log(`Horizontal: ${initialScrollX}px → ${finalScrollX}px (max: ${maxScrollX}px)`);
+        if (DEBUG) console.log(`Horizontal: ${initialScrollX}px → ${finalScrollX}px (max: ${maxScrollX}px)`);
         expect(finalScrollX).toBeGreaterThan(initialScrollX);
         expect(Math.abs(finalScrollX - maxScrollX)).toBeLessThan(30);
     });
@@ -55,7 +57,7 @@ test.describe('cmd_scroll_rightmost (Playwright)', () => {
         );
 
         const finalScrollX = await page.evaluate(() => window.scrollX);
-        console.log(`Rightmost: ${finalScrollX}px / ${maxScrollX}px (delta: ${Math.abs(finalScrollX - maxScrollX)}px)`);
+        if (DEBUG) console.log(`Rightmost: ${finalScrollX}px / ${maxScrollX}px (delta: ${Math.abs(finalScrollX - maxScrollX)}px)`);
         expect(Math.abs(finalScrollX - maxScrollX)).toBeLessThan(30);
     });
 });

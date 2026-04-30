@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const BASE_ORIGIN = 'http://127.0.0.1:9873';
 
@@ -31,7 +33,7 @@ test.describe('cmd_nav_url_root (Playwright)', () => {
 
         const finalUrl = page.url();
         expect(finalUrl.replace(/\/$/, '')).toBe(BASE_ORIGIN);
-        console.log(`URL root: ${initialUrl} → ${finalUrl}`);
+        if (DEBUG) console.log(`URL root: ${initialUrl} → ${finalUrl}`);
 
         // Navigate back for the next test
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
@@ -54,7 +56,7 @@ test.describe('cmd_nav_url_root (Playwright)', () => {
 
         const finalUrl = page.url();
         expect(finalUrl.replace(/\/$/, '')).toBe(BASE_ORIGIN);
-        console.log(`URL root from query+hash: ${initialUrl} → ${finalUrl}`);
+        if (DEBUG) console.log(`URL root from query+hash: ${initialUrl} → ${finalUrl}`);
 
         // Navigate back for cleanup
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -65,7 +67,7 @@ test.describe('cmd_tab_mute_toggle (Playwright)', () => {
         await page.waitForTimeout(500);
         const info = await getActiveTabInfo();
         testTabId = info.id;
-        console.log(`Test tab ID: ${testTabId}`);
+        if (DEBUG) console.log(`Test tab ID: ${testTabId}`);
     });
 
     test.afterAll(async () => {
@@ -88,7 +90,7 @@ test.describe('cmd_tab_mute_toggle (Playwright)', () => {
 
         const afterMute = await getTabMuteState(testTabId);
         expect(afterMute).toBe(true);
-        console.log(`Mute toggle: false -> ${afterMute}`);
+        if (DEBUG) console.log(`Mute toggle: false -> ${afterMute}`);
     });
 
     test('unmuting a muted tab changes muted state to false', async () => {
@@ -105,7 +107,7 @@ test.describe('cmd_tab_mute_toggle (Playwright)', () => {
 
         const afterToggle = await getTabMuteState(testTabId);
         expect(afterToggle).toBe(false);
-        console.log(`Unmute toggle: true -> ${afterToggle}`);
+        if (DEBUG) console.log(`Unmute toggle: true -> ${afterToggle}`);
     });
 
     test('toggling mute multiple times cycles state correctly', async () => {
@@ -127,7 +129,7 @@ test.describe('cmd_tab_mute_toggle (Playwright)', () => {
         await page.waitForTimeout(200);
         expect(await getTabMuteState(testTabId)).toBe(true);
 
-        console.log(`Toggle cycle: false -> true -> false -> true`);
+        if (DEBUG) console.log(`Toggle cycle: false -> true -> false -> true`);
     });
 
     test('pressing Alt-m key sequence changes mute state', async () => {
@@ -136,14 +138,14 @@ test.describe('cmd_tab_mute_toggle (Playwright)', () => {
         await page.waitForTimeout(300);
 
         const initialMuted = await getTabMuteState(testTabId);
-        console.log(`Initial muted: ${initialMuted}`);
+        if (DEBUG) console.log(`Initial muted: ${initialMuted}`);
 
         // Send Alt+m
         await page.keyboard.press('Alt+m');
         await page.waitForTimeout(500);
 
         const afterMuted = await getTabMuteState(testTabId);
-        console.log(`After Alt+m: muted=${afterMuted}`);
+        if (DEBUG) console.log(`After Alt+m: muted=${afterMuted}`);
 
         // The mute state should have changed
         expect(afterMuted).not.toBe(initialMuted);

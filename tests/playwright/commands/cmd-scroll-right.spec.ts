@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -30,7 +32,7 @@ test.describe('cmd_scroll_right (Playwright)', () => {
         const result = await sendKeyAndWaitForScroll(page, 'l', { direction: 'right', minDelta: 20 });
 
         expect(result.final).toBeGreaterThan(result.baseline);
-        console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
+        if (DEBUG) console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
     });
 
     test('scroll right distance is consistent', async () => {
@@ -39,7 +41,7 @@ test.describe('cmd_scroll_right (Playwright)', () => {
 
         const dist1 = result1.delta;
         const dist2 = result2.delta;
-        console.log(`1st: ${dist1}px, 2nd: ${dist2}px, diff: ${Math.abs(dist1 - dist2)}px`);
+        if (DEBUG) console.log(`1st: ${dist1}px, 2nd: ${dist2}px, diff: ${Math.abs(dist1 - dist2)}px`);
         expect(Math.abs(dist1 - dist2)).toBeLessThan(15);
     });
 });

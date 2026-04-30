@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -37,7 +39,7 @@ test.describe('cmd_nav_remove_query (Playwright)', () => {
         const urlAfter = page.url();
         expect(urlAfter).toBe(FIXTURE_URL);
         expect(urlAfter).not.toContain('?');
-        console.log(`Remove query: ${urlBefore} → ${urlAfter}`);
+        if (DEBUG) console.log(`Remove query: ${urlBefore} → ${urlAfter}`);
     });
 
     test('g? removes all multiple query parameters', async () => {
@@ -60,7 +62,7 @@ test.describe('cmd_nav_remove_query (Playwright)', () => {
         expect(urlAfter).not.toContain('?');
         expect(urlAfter).not.toContain('p1');
         expect(urlAfter).not.toContain('p2');
-        console.log(`Remove all params: ${urlBefore} → ${urlAfter}`);
+        if (DEBUG) console.log(`Remove all params: ${urlBefore} → ${urlAfter}`);
     });
 
     test('g? on URL with only hash leaves hash unchanged', async () => {
@@ -80,6 +82,6 @@ test.describe('cmd_nav_remove_query (Playwright)', () => {
 
         const urlAfter = page.url();
         expect(urlAfter).toContain('#section2');
-        console.log(`No-op g? (no query, hash preserved): ${urlAfter}`);
+        if (DEBUG) console.log(`No-op g? (no query, hash preserved): ${urlAfter}`);
     });
 });

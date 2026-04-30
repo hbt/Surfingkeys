@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -40,7 +42,7 @@ test.describe('cmd_scroll_bottom (Playwright)', () => {
         const finalScroll = await page.evaluate(() => window.scrollY);
         expect(finalScroll).toBeGreaterThan(initialScroll);
         expect(Math.abs(finalScroll - maxScroll)).toBeLessThan(10);
-        console.log(`Scroll: ${initialScroll}px → ${finalScroll}px (maxScroll: ${maxScroll}px)`);
+        if (DEBUG) console.log(`Scroll: ${initialScroll}px → ${finalScroll}px (maxScroll: ${maxScroll}px)`);
     });
 
     test('G moves to exactly bottom position', async () => {
@@ -55,7 +57,7 @@ test.describe('cmd_scroll_bottom (Playwright)', () => {
         );
 
         const finalScroll = await page.evaluate(() => window.scrollY);
-        console.log(`Final: ${finalScroll}px, Max: ${maxScroll}px, Diff: ${Math.abs(finalScroll - maxScroll)}px`);
+        if (DEBUG) console.log(`Final: ${finalScroll}px, Max: ${maxScroll}px, Diff: ${Math.abs(finalScroll - maxScroll)}px`);
         expect(Math.abs(finalScroll - maxScroll)).toBeLessThan(10);
     });
 });

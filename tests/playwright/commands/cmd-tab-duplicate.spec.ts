@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -34,7 +36,7 @@ test.describe('cmd_tab_duplicate (Playwright)', () => {
         expect(context.pages().length).toBeGreaterThan(beforeCount);
         // Duplicated tab should have the same URL
         expect(newPage.url()).toBe(currentUrl);
-        console.log(`Duplicated tab: ${newPage.url()}`);
+        if (DEBUG) console.log(`Duplicated tab: ${newPage.url()}`);
 
         await newPage.close().catch(() => {});
     });
@@ -62,7 +64,7 @@ test.describe('cmd_tab_duplicate (Playwright)', () => {
         await dup2.waitForTimeout(200);
 
         expect(context.pages().length).toBeGreaterThan(beforeCount + 1);
-        console.log(`After 2x yt: ${context.pages().length} pages`);
+        if (DEBUG) console.log(`After 2x yt: ${context.pages().length} pages`);
 
         await dup1.close().catch(() => {});
         await dup2.close().catch(() => {});

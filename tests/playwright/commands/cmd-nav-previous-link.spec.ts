@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const PAGE1_URL = `${FIXTURE_BASE}/nav-prev-link-page1.html`;
 const PAGE2_URL = `${FIXTURE_BASE}/nav-prev-link-page2.html`;
 const PAGE3_URL = `${FIXTURE_BASE}/nav-prev-link-page3.html`;
@@ -37,7 +39,7 @@ test.describe('cmd_nav_previous_link (Playwright)', () => {
 
         const finalUrl = page.url();
         expect(finalUrl).toContain('nav-prev-link-page1.html');
-        console.log(`[[ navigated: ${initialUrl} → ${finalUrl}`);
+        if (DEBUG) console.log(`[[ navigated: ${initialUrl} → ${finalUrl}`);
     });
 
     test('pressing [[ on page 3 navigates to page 2', async () => {
@@ -57,7 +59,7 @@ test.describe('cmd_nav_previous_link (Playwright)', () => {
 
         const finalUrl = page.url();
         expect(finalUrl).toContain('nav-prev-link-page2.html');
-        console.log(`[[ navigated: ${initialUrl} → ${finalUrl}`);
+        if (DEBUG) console.log(`[[ navigated: ${initialUrl} → ${finalUrl}`);
     });
 
     test('page 2 has rel=prev links pointing to page 1', async () => {
@@ -72,7 +74,7 @@ test.describe('cmd_nav_previous_link (Playwright)', () => {
             }));
         });
 
-        console.log(`Found ${prevLinks.length} rel="prev" links:`, prevLinks);
+        if (DEBUG) console.log(`Found ${prevLinks.length} rel="prev" links:`, prevLinks);
 
         expect(prevLinks.length).toBeGreaterThanOrEqual(1);
         expect(prevLinks.some((l: any) => l.href && l.href.includes('page1.html'))).toBe(true);

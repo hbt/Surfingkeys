@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -59,7 +61,7 @@ test.describe('cmd_omnibar_bookmarks (Playwright)', () => {
 
         const opened = await waitForOmnibarState(page, true);
         expect(opened).toBe(true);
-        console.log('Bookmarks omnibar opened with b key');
+        if (DEBUG) console.log('Bookmarks omnibar opened with b key');
     });
 
     test('omnibar closes after pressing Escape', async () => {
@@ -69,7 +71,7 @@ test.describe('cmd_omnibar_bookmarks (Playwright)', () => {
         await page.keyboard.press('Escape');
         const closed = await waitForOmnibarState(page, false);
         expect(closed).toBe(true);
-        console.log('Bookmarks omnibar closed after Escape');
+        if (DEBUG) console.log('Bookmarks omnibar closed after Escape');
     });
 
     test('can open bookmarks omnibar multiple times', async () => {
@@ -86,6 +88,6 @@ test.describe('cmd_omnibar_bookmarks (Playwright)', () => {
         await page.keyboard.press('b');
         const secondOpen = await waitForOmnibarState(page, true);
         expect(secondOpen).toBe(true);
-        console.log('Bookmarks omnibar works multiple times');
+        if (DEBUG) console.log('Bookmarks omnibar works multiple times');
     });
 });

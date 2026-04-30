@@ -1,6 +1,8 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -35,7 +37,7 @@ test.describe('cmd_yank_all_urls (Playwright)', () => {
         const urls = await getAllTabUrls(context);
         expect(Array.isArray(urls)).toBe(true);
         expect(urls.length).toBeGreaterThan(0);
-        console.log(`Tab URLs: ${urls.join(', ')}`);
+        if (DEBUG) console.log(`Tab URLs: ${urls.join(', ')}`);
     });
 
     test('pressing yY executes without error', async () => {
@@ -52,7 +54,7 @@ test.describe('cmd_yank_all_urls (Playwright)', () => {
         // Tab count should be unchanged (yY doesn't open new tabs)
         const urlsAfter = await getAllTabUrls(context);
         expect(urlsAfter.length).toBe(urlsBefore.length);
-        console.log(`yY executed: ${urlsAfter.length} tabs present`);
+        if (DEBUG) console.log(`yY executed: ${urlsAfter.length} tabs present`);
     });
 
     test('multiple tabs are accessible for yY command', async () => {
@@ -63,7 +65,7 @@ test.describe('cmd_yank_all_urls (Playwright)', () => {
 
         const urls = await getAllTabUrls(context);
         expect(urls.length).toBeGreaterThanOrEqual(2);
-        console.log(`Multiple tabs accessible: ${urls.length}`);
+        if (DEBUG) console.log(`Multiple tabs accessible: ${urls.length}`);
 
         await extra.close().catch(() => {});
     });

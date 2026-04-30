@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -68,7 +70,7 @@ test.describe('cmd_tab_close_left (Playwright)', () => {
         await closePromise;
 
         expect(context.pages().length).toBe(beforeCount - 1);
-        console.log(`gxt: ${beforeCount} → ${context.pages().length} pages`);
+        if (DEBUG) console.log(`gxt: ${beforeCount} → ${context.pages().length} pages`);
 
         // Cleanup
         await midPage.close().catch(() => {});
@@ -99,9 +101,9 @@ test.describe('cmd_tab_close_left (Playwright)', () => {
             await onlyPage.waitForTimeout(800);
 
             expect(context.pages().length).toBe(beforeCount);
-            console.log(`gxt at leftmost: tab count unchanged at ${beforeCount}`);
+            if (DEBUG) console.log(`gxt at leftmost: tab count unchanged at ${beforeCount}`);
         } else {
-            console.log(`Could not isolate leftmost scenario (${tabsToLeft.length} tabs to left) — skipping assertion`);
+            if (DEBUG) console.log(`Could not isolate leftmost scenario (${tabsToLeft.length} tabs to left) — skipping assertion`);
         }
 
         await onlyPage.close().catch(() => {});
@@ -148,7 +150,7 @@ test.describe('cmd_tab_close_left (Playwright)', () => {
         await close2;
 
         expect(context.pages().length).toBe(beforeCount - 2);
-        console.log(`gxt x2: ${beforeCount} → ${context.pages().length} pages`);
+        if (DEBUG) console.log(`gxt x2: ${beforeCount} → ${context.pages().length} pages`);
 
         await activePage.close().catch(() => {});
     });

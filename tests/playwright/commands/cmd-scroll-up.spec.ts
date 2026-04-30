@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE, collectOptionalCoverage } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -46,9 +48,11 @@ test.describe('cmd_scroll_up (Playwright)', () => {
         });
 
         expect(result.final).toBeLessThan(result.baseline);
-        console.log(
+        if (DEBUG) {
+            console.log(
             `Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`,
-        );
+            );
+        }
 
         await collectOptionalCoverage(cdpPort, page);
     });
@@ -66,9 +70,11 @@ test.describe('cmd_scroll_up (Playwright)', () => {
             minDelta: 20,
         });
 
-        console.log(
+        if (DEBUG) {
+            console.log(
             `1st scroll: ${result1.delta}px, 2nd scroll: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`,
-        );
+            );
+        }
         expect(Math.abs(result1.delta - result2.delta)).toBeLessThan(15);
 
         await collectOptionalCoverage(cdpPort, page);

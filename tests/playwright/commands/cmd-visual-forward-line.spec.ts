@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
 
 let context: BrowserContext;
@@ -61,14 +63,14 @@ test.describe('cmd_visual_forward_line (Playwright)', () => {
         await enterVisualMode(page);
 
         const initialLine = await getCurrentLineNumber(page);
-        console.log(`Initial line after entering visual mode: ${initialLine}`);
+        if (DEBUG) console.log(`Initial line after entering visual mode: ${initialLine}`);
         expect(initialLine).toBeTruthy();
 
         await page.keyboard.press('j');
         await page.waitForTimeout(300);
 
         const finalLine = await getCurrentLineNumber(page);
-        console.log(`After j: line ${initialLine} → ${finalLine}`);
+        if (DEBUG) console.log(`After j: line ${initialLine} → ${finalLine}`);
 
         expect(finalLine).toBeTruthy();
         expect(finalLine).not.toBe(initialLine);
@@ -87,7 +89,7 @@ test.describe('cmd_visual_forward_line (Playwright)', () => {
         await page.waitForTimeout(300);
         const afterSecond = await getCurrentLineNumber(page);
 
-        console.log(`Progression: ${startLine} → ${afterFirst} → ${afterSecond}`);
+        if (DEBUG) console.log(`Progression: ${startLine} → ${afterFirst} → ${afterSecond}`);
 
         expect(afterFirst).toBeTruthy();
         expect(afterSecond).toBeTruthy();
@@ -105,7 +107,7 @@ test.describe('cmd_visual_forward_line (Playwright)', () => {
         await page.waitForTimeout(300);
 
         const after = await getCurrentLineNumber(page);
-        console.log(`Line ${before} → ${after}`);
+        if (DEBUG) console.log(`Line ${before} → ${after}`);
         expect(after).toBeGreaterThan(before!);
     });
 });

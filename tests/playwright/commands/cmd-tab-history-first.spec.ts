@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -85,7 +87,7 @@ test.describe('cmd_tab_history_first (Playwright)', () => {
         await activePage.waitForTimeout(300);
 
         const initialId = await getActiveTabId();
-        console.log(`Initial tab ID: ${initialId}`);
+        if (DEBUG) console.log(`Initial tab ID: ${initialId}`);
         expect(initialId).toBeGreaterThan(0);
 
         // Send gT
@@ -96,7 +98,7 @@ test.describe('cmd_tab_history_first (Playwright)', () => {
 
         // Browser should still have a valid active tab
         const afterId = await getActiveTabId();
-        console.log(`After gT: active tab ID=${afterId}`);
+        if (DEBUG) console.log(`After gT: active tab ID=${afterId}`);
         expect(afterId).toBeGreaterThan(0);
     });
 
@@ -118,7 +120,7 @@ test.describe('cmd_tab_history_first (Playwright)', () => {
         await activePage.waitForTimeout(300);
 
         const initialId = await getActiveTabId();
-        console.log(`Before gT: active tab=${initialId}`);
+        if (DEBUG) console.log(`Before gT: active tab=${initialId}`);
 
         await activePage.keyboard.press('g');
         await activePage.waitForTimeout(50);
@@ -126,13 +128,13 @@ test.describe('cmd_tab_history_first (Playwright)', () => {
         await activePage.waitForTimeout(1000);
 
         const afterId = await getActiveTabId();
-        console.log(`After gT: active tab=${afterId}`);
+        if (DEBUG) console.log(`After gT: active tab=${afterId}`);
         expect(afterId).toBeGreaterThan(0);
 
         if (afterId !== initialId) {
-            console.log(`gT switched tab: ${initialId} -> ${afterId}`);
+            if (DEBUG) console.log(`gT switched tab: ${initialId} -> ${afterId}`);
         } else {
-            console.log(`gT: tab unchanged (may be at boundary of history)`);
+            if (DEBUG) console.log(`gT: tab unchanged (may be at boundary of history)`);
         }
     });
 
@@ -149,7 +151,7 @@ test.describe('cmd_tab_history_first (Playwright)', () => {
 
             const id = await getActiveTabId();
             expect(id).toBeGreaterThan(0);
-            console.log(`gT invocation ${i + 1}: active tab=${id}`);
+            if (DEBUG) console.log(`gT invocation ${i + 1}: active tab=${id}`);
         }
     });
 });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
 
 let context: BrowserContext;
@@ -74,7 +76,7 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
         await page.waitForTimeout(300);
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
-        console.log(`gg executed: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`gg executed: focusOffset=${sel.focusOffset}`);
     });
 
     test('gg moves cursor to an earlier line', async () => {
@@ -94,7 +96,7 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
 
         const lineAfter = await getCurrentLineNumber(page);
         expect(lineAfter).toBeLessThan(lineBefore!);
-        console.log(`gg moved: line ${lineBefore} → ${lineAfter}`);
+        if (DEBUG) console.log(`gg moved: line ${lineBefore} → ${lineAfter}`);
     });
 
     test('gg moves cursor to beginning of document', async () => {
@@ -113,7 +115,7 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
         await page.waitForTimeout(500);
 
         const afterLine = await getCurrentLineNumber(page);
-        console.log(`gg: line ${beforeLine} → ${afterLine}`);
+        if (DEBUG) console.log(`gg: line ${beforeLine} → ${afterLine}`);
         expect(afterLine).toBeLessThan(beforeLine!);
     });
 
@@ -152,6 +154,6 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
         await page.waitForTimeout(500);
         const lineAfterGG = await getCurrentLineNumber(page);
         expect(lineAfterGG).toBeLessThan(lineAfterG!);
-        console.log(`G (line ${lineAfterG}) then gg (line ${lineAfterGG})`);
+        if (DEBUG) console.log(`G (line ${lineAfterG}) then gg (line ${lineAfterGG})`);
     });
 });

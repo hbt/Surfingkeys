@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -55,7 +57,7 @@ test.describe('cmd_visual_find_forward (Playwright)', () => {
         await page.waitForTimeout(200);
         const sel = await getSelectionInfo(page);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`f executed: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`f executed: focusOffset=${sel.focusOffset}`);
     });
 
     test('f then character finds forward occurrence', async () => {
@@ -68,7 +70,7 @@ test.describe('cmd_visual_find_forward (Playwright)', () => {
         const after = await getSelectionInfo(page);
         expect(typeof after.focusOffset).toBe('number');
         expect(after.focusOffset).toBeGreaterThanOrEqual(before.focusOffset);
-        console.log(`f: ${before.focusOffset} → ${after.focusOffset}`);
+        if (DEBUG) console.log(`f: ${before.focusOffset} → ${after.focusOffset}`);
     });
 
     test('f command can be invoked multiple times', async () => {
@@ -85,7 +87,7 @@ test.describe('cmd_visual_find_forward (Playwright)', () => {
         const second = await getSelectionInfo(page);
         expect(typeof first.focusOffset).toBe('number');
         expect(typeof second.focusOffset).toBe('number');
-        console.log(`first fe: ${first.focusOffset}, second fe: ${second.focusOffset}`);
+        if (DEBUG) console.log(`first fe: ${first.focusOffset}, second fe: ${second.focusOffset}`);
     });
 
     test('Escape cancels find mode without moving cursor', async () => {
@@ -97,6 +99,6 @@ test.describe('cmd_visual_find_forward (Playwright)', () => {
         await page.waitForTimeout(200);
         const after = await getSelectionInfo(page);
         expect(after.focusOffset).toBe(before.focusOffset);
-        console.log(`f then Escape: offset stayed at ${after.focusOffset}`);
+        if (DEBUG) console.log(`f then Escape: offset stayed at ${after.focusOffset}`);
     });
 });

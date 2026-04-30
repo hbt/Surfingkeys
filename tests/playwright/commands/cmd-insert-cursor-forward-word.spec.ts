@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
@@ -57,7 +59,7 @@ test.describe('cmd_insert_cursor_forward_word (Playwright)', () => {
         expect(after.value).toBe('hello world');
         // Moves past first word — cursor should be > 0
         expect(after.selectionStart).toBeGreaterThan(0);
-        console.log(`Forward word: cursor ${before.selectionStart} → ${after.selectionStart}`);
+        if (DEBUG) console.log(`Forward word: cursor ${before.selectionStart} → ${after.selectionStart}`);
     });
 
     test('Alt+f from middle of word moves to end of string', async () => {
@@ -80,6 +82,6 @@ test.describe('cmd_insert_cursor_forward_word (Playwright)', () => {
 
         const after = await getInputState(page);
         expect(after.selectionStart).toBe(11);
-        console.log(`Forward word at end: stays at ${after.selectionStart}`);
+        if (DEBUG) console.log(`Forward word at end: stays at ${after.selectionStart}`);
     });
 });

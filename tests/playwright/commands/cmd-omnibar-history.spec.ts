@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -75,7 +77,7 @@ test.describe('cmd_omnibar_history (Playwright)', () => {
 
         const opened = await waitForOmnibarState(page, true);
         expect(opened).toBe(true);
-        console.log('History omnibar opened with oh key sequence');
+        if (DEBUG) console.log('History omnibar opened with oh key sequence');
     });
 
     test('history omnibar closes after pressing Escape', async () => {
@@ -88,7 +90,7 @@ test.describe('cmd_omnibar_history (Playwright)', () => {
         await pressEscapeToCloseOmnibar(page);
         const closed = await waitForOmnibarState(page, false);
         expect(closed).toBe(true);
-        console.log('History omnibar closed after Escape');
+        if (DEBUG) console.log('History omnibar closed after Escape');
     });
 
     test('oh command can be used multiple times consecutively', async () => {
@@ -109,7 +111,7 @@ test.describe('cmd_omnibar_history (Playwright)', () => {
         await page.keyboard.press('h');
         const secondOpen = await waitForOmnibarState(page, true);
         expect(secondOpen).toBe(true);
-        console.log('History omnibar works multiple times');
+        if (DEBUG) console.log('History omnibar works multiple times');
         await pressEscapeToCloseOmnibar(page);
     });
 });

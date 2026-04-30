@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const AUDIO_FIXTURE_URL = `${FIXTURE_BASE}/audio-test.html`;
 
@@ -70,7 +72,7 @@ test.describe('cmd_tab_close_playing (Playwright)', () => {
         const afterTab = await getActiveTabViaSW(context);
         expect(afterTab.id).toBe(initialTab.id);
         expect(context.pages().length).toBe(beforeCount);
-        console.log(`gxp no audible: count unchanged at ${beforeCount}`);
+        if (DEBUG) console.log(`gxp no audible: count unchanged at ${beforeCount}`);
     });
 
     test('gxp closes an audible tab when one exists (may skip in headless)', async () => {
@@ -87,7 +89,7 @@ test.describe('cmd_tab_close_playing (Playwright)', () => {
             }
             return false;
         });
-        console.log(`Audio started: ${started}`);
+        if (DEBUG) console.log(`Audio started: ${started}`);
 
         // Wait up to 3s for Chrome to mark tab as audible
         let audibleTabs: any[] = [];
@@ -98,7 +100,7 @@ test.describe('cmd_tab_close_playing (Playwright)', () => {
         }
 
         if (audibleTabs.length === 0) {
-            console.log('SKIP: No audible tabs detected (expected in headless Chrome without audio hardware)');
+            if (DEBUG) console.log('SKIP: No audible tabs detected (expected in headless Chrome without audio hardware)');
             await audioPage.close().catch(() => {});
             return;
         }
@@ -118,6 +120,6 @@ test.describe('cmd_tab_close_playing (Playwright)', () => {
         await closePromise;
 
         expect(context.pages().length).toBe(beforeCount - 1);
-        console.log(`gxp closed audible tab: ${beforeCount} → ${context.pages().length}`);
+        if (DEBUG) console.log(`gxp closed audible tab: ${beforeCount} → ${context.pages().length}`);
     });
 });

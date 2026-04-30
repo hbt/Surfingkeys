@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -54,7 +56,7 @@ test.describe('cmd_visual_repeat_find (Playwright)', () => {
         await page.waitForTimeout(300);
         const after = await getSelectionInfo(page);
         expect(after.focusOffset).toBe(before.focusOffset);
-        console.log(`; with no prior find: offset stayed at ${after.focusOffset}`);
+        if (DEBUG) console.log(`; with no prior find: offset stayed at ${after.focusOffset}`);
     });
 
     test('; repeats forward find in same direction', async () => {
@@ -69,7 +71,7 @@ test.describe('cmd_visual_repeat_find (Playwright)', () => {
         await page.waitForTimeout(300);
         const afterRepeat = await getSelectionInfo(page);
         expect(afterRepeat.focusOffset).toBeGreaterThanOrEqual(firstOffset);
-        console.log(`fo then ;: ${firstOffset} → ${afterRepeat.focusOffset}`);
+        if (DEBUG) console.log(`fo then ;: ${firstOffset} → ${afterRepeat.focusOffset}`);
     });
 
     test('; repeats backward find after F', async () => {
@@ -83,7 +85,7 @@ test.describe('cmd_visual_repeat_find (Playwright)', () => {
         await page.waitForTimeout(300);
         const afterRepeat = await getSelectionInfo(page);
         expect(typeof afterRepeat.focusOffset).toBe('number');
-        console.log(`Fi then ;: ${afterFind.focusOffset} → ${afterRepeat.focusOffset}`);
+        if (DEBUG) console.log(`Fi then ;: ${afterFind.focusOffset} → ${afterRepeat.focusOffset}`);
     });
 
     test('; can be pressed multiple times', async () => {
@@ -101,6 +103,6 @@ test.describe('cmd_visual_repeat_find (Playwright)', () => {
         }
         expect(offsets.length).toBe(3);
         expect(offsets.every(o => typeof o === 'number')).toBe(true);
-        console.log(`Multiple ; presses: ${offsets.join(' → ')}`);
+        if (DEBUG) console.log(`Multiple ; presses: ${offsets.join(' → ')}`);
     });
 });

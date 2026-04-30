@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const DEEP_PATH = `${FIXTURE_BASE}/path/to/deep/page.html`;
 
@@ -33,7 +35,7 @@ test.describe('cmd_nav_url_up (Playwright)', () => {
         await upPromise;
 
         expect(page.url()).toBe(`${FIXTURE_BASE}/path/to/deep`);
-        console.log(`URL up: ${DEEP_PATH} → ${page.url()}`);
+        if (DEBUG) console.log(`URL up: ${DEEP_PATH} → ${page.url()}`);
     });
 
     test('pressing gu multiple times goes up multiple levels', async () => {
@@ -59,7 +61,7 @@ test.describe('cmd_nav_url_up (Playwright)', () => {
         await page.waitForTimeout(500);
         expect(page.url()).toBe(`${FIXTURE_BASE}/path/to`);
 
-        console.log(`URL up ×2: ${DEEP_PATH} → /path/to/deep → /path/to`);
+        if (DEBUG) console.log(`URL up ×2: ${DEEP_PATH} → /path/to/deep → /path/to`);
     });
 
     test('pressing gu at root level stays at root', async () => {
@@ -78,7 +80,7 @@ test.describe('cmd_nav_url_up (Playwright)', () => {
 
         const urlAfter = page.url();
         expect(urlAfter.replace(/\/$/, '')).toBe('http://127.0.0.1:9873');
-        console.log(`URL up at root: ${urlAfter} (unchanged)`);
+        if (DEBUG) console.log(`URL up at root: ${urlAfter} (unchanged)`);
 
         // Navigate back to fixture for cleanup
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });

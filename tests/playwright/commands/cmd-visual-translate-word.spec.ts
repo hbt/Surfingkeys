@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -66,7 +68,7 @@ test.describe('cmd_visual_translate_word (Playwright)', () => {
         await page.waitForTimeout(500);
         const sel = await getSelectionInfo(page);
         expect(sel.type).toBeDefined();
-        console.log(`q executed: type=${sel.type}, offset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`q executed: type=${sel.type}, offset=${sel.focusOffset}`);
     });
 
     test('q command works with simple word', async () => {
@@ -75,7 +77,7 @@ test.describe('cmd_visual_translate_word (Playwright)', () => {
         await page.waitForTimeout(500);
         const sel = await getSelectionInfo(page);
         expect(typeof sel.focusOffset).toBe('number');
-        console.log(`q on Short: focusOffset=${sel.focusOffset}`);
+        if (DEBUG) console.log(`q on Short: focusOffset=${sel.focusOffset}`);
     });
 
     test('q executes without crashing', async () => {
@@ -87,7 +89,7 @@ test.describe('cmd_visual_translate_word (Playwright)', () => {
         // Verify q executed without crash (selection API still accessible)
         expect(sel).toBe('object');
         const cursorAfter = await isVisualCursorVisible(page);
-        console.log(`Visual cursor before q: ${cursorBefore}, after q: ${cursorAfter}`);
+        if (DEBUG) console.log(`Visual cursor before q: ${cursorBefore}, after q: ${cursorAfter}`);
     });
 
     test('q can be pressed multiple times', async () => {
@@ -103,6 +105,6 @@ test.describe('cmd_visual_translate_word (Playwright)', () => {
         const second = await getSelectionInfo(page);
         expect(typeof first.focusOffset).toBe('number');
         expect(typeof second.focusOffset).toBe('number');
-        console.log(`q twice: ${first.focusOffset} → ${second.focusOffset}`);
+        if (DEBUG) console.log(`q twice: ${first.focusOffset} → ${second.focusOffset}`);
     });
 });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -117,7 +119,7 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         await waitForTabCount(anchor, beforeCount - 1);
 
         expect(context.pages().length).toBe(beforeCount - 1);
-        console.log(`cmd_tab_close_magic_right: ${beforeCount} → ${context.pages().length}`);
+        if (DEBUG) console.log(`cmd_tab_close_magic_right: ${beforeCount} → ${context.pages().length}`);
     });
 
     test('cmd_tab_close_magic_left closes 1 tab to the left', async () => {
@@ -143,7 +145,7 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         await waitForTabCount(r1, beforeCount - 1);
 
         expect(context.pages().length).toBe(beforeCount - 1);
-        console.log(`cmd_tab_close_magic_left: ${beforeCount} → ${context.pages().length}`);
+        if (DEBUG) console.log(`cmd_tab_close_magic_left: ${beforeCount} → ${context.pages().length}`);
     });
 
     test('cmd_tab_close_magic_except_active closes all tabs except current', async () => {
@@ -169,7 +171,7 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         await waitForTabCount(keeper, 1);
 
         expect(context.pages().length).toBe(1);
-        console.log(`cmd_tab_close_magic_except_active: ${beforeCount} → ${context.pages().length}`);
+        if (DEBUG) console.log(`cmd_tab_close_magic_except_active: ${beforeCount} → ${context.pages().length}`);
     });
 
     test('cmd_tab_close_magic_children closes only child tabs, leaves siblings', async () => {
@@ -214,7 +216,7 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         expect(remainingIds.has(child1Id)).toBe(false);
         expect(remainingIds.has(child2Id)).toBe(false);
 
-        console.log(`cmd_tab_close_magic_children: ${beforeCount} → ${afterCount}`);
+        if (DEBUG) console.log(`cmd_tab_close_magic_children: ${beforeCount} → ${afterCount}`);
     });
 
     test('cmd_tab_close_magic_right_inclusive closes current + all to the right', async () => {
@@ -242,7 +244,7 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         await waitForTabCount(anchor, beforeCount - 3);
 
         expect(context.pages().length).toBe(beforeCount - 3);
-        console.log(`cmd_tab_close_magic_right_inclusive: ${beforeCount} → ${context.pages().length}`);
+        if (DEBUG) console.log(`cmd_tab_close_magic_right_inclusive: ${beforeCount} → ${context.pages().length}`);
     });
 
     test('cmd_tab_close_magic_left_inclusive closes current + all to the left', async () => {
@@ -270,7 +272,7 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         await waitForTabCount(r1, beforeCount - 3);
 
         expect(context.pages().length).toBe(beforeCount - 3);
-        console.log(`cmd_tab_close_magic_left_inclusive: ${beforeCount} → ${context.pages().length}`);
+        if (DEBUG) console.log(`cmd_tab_close_magic_left_inclusive: ${beforeCount} → ${context.pages().length}`);
     });
 
     test('cmd_tab_close_magic_children_recursive closes child + grandchild tabs', async () => {
@@ -317,7 +319,7 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         expect(remainingIds.has(parentTab.id)).toBe(true);
         if (siblingTabObj) expect(remainingIds.has(siblingTabObj.id)).toBe(true);
 
-        console.log(`cmd_tab_close_magic_children_recursive: ${beforeCount} → ${afterCount}`);
+        if (DEBUG) console.log(`cmd_tab_close_magic_children_recursive: ${beforeCount} → ${afterCount}`);
     });
 
     test('cmd_tab_close_magic_other_windows closes tabs in other windows', async () => {
@@ -356,7 +358,7 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         const currentWindowTabsAfter = allTabsAfter.filter((t: any) => t.windowId !== win2Id);
         expect(currentWindowTabsAfter.length).toBe(beforeCurrentWindow);
 
-        console.log(`cmd_tab_close_magic_other_windows: other window tabs removed`);
+        if (DEBUG) console.log(`cmd_tab_close_magic_other_windows: other window tabs removed`);
     });
 
     test('cmd_tab_close_magic_other_windows_no_pinned skips windows with pinned tabs', async () => {
@@ -400,7 +402,7 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         // Cleanup
         await closeWindowViaSW(context, win3Id).catch(() => {});
 
-        console.log(`cmd_tab_close_magic_other_windows_no_pinned: win2 closed, win3 (pinned) survived`);
+        if (DEBUG) console.log(`cmd_tab_close_magic_other_windows_no_pinned: win2 closed, win3 (pinned) survived`);
     });
 
     // Repeat count test uses key dispatch (specifically tests 2gxe chord + RUNTIME.repeats flow)
@@ -429,6 +431,6 @@ test.describe('cmd_tab_magic_close (Playwright)', () => {
         await waitForTabCount(anchor, beforeCount - 2);
 
         expect(context.pages().length).toBe(beforeCount - 2);
-        console.log(`2gxe: ${beforeCount} → ${context.pages().length}`);
+        if (DEBUG) console.log(`2gxe: ${beforeCount} → ${context.pages().length}`);
     });
 });

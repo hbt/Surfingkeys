@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
@@ -56,7 +58,7 @@ test.describe('cmd_insert_cursor_end (Playwright)', () => {
         expect(after.value).toBe('hello world');
         expect(after.selectionStart).toBe(11);
         expect(after.selectionEnd).toBe(11);
-        console.log(`Cursor end: ${before.selectionStart} → ${after.selectionStart}`);
+        if (DEBUG) console.log(`Cursor end: ${before.selectionStart} → ${after.selectionStart}`);
     });
 
     test('Ctrl+e from middle of text moves to end', async () => {
@@ -77,6 +79,6 @@ test.describe('cmd_insert_cursor_end (Playwright)', () => {
 
         const after = await getInputState(page);
         expect(after.selectionStart).toBe(11);
-        console.log(`Ctrl+e already at end: stays at ${after.selectionStart}`);
+        if (DEBUG) console.log(`Ctrl+e already at end: stays at ${after.selectionStart}`);
     });
 });

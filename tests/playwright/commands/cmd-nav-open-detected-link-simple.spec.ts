@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/detected-links-test.html`;
 
 let context: BrowserContext;
@@ -66,12 +68,12 @@ test.describe('cmd_nav_open_detected_link (Playwright)', () => {
             }
         });
 
-        console.log(`Hints info: ${JSON.stringify(hintsInfo)}`);
+        if (DEBUG) console.log(`Hints info: ${JSON.stringify(hintsInfo)}`);
 
         expect(hintsInfo.exists).toBe(true);
         expect(hintsInfo.hasHolder).toBe(true);
         expect(hintsInfo.count).toBeGreaterThan(0);
 
-        console.log(`Detected ${hintsInfo.count} URL hints with labels: ${(hintsInfo as any).labels?.join(', ')}`);
+        if (DEBUG) console.log(`Detected ${hintsInfo.count} URL hints with labels: ${(hintsInfo as any).labels?.join(', ')}`);
     });
 });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -34,7 +36,7 @@ test.describe('cmd_tab_duplicate_background (Playwright)', () => {
 
         const initialTab = await getActiveTabViaSW(context);
         const beforeCount = context.pages().length;
-        console.log(`yT: initial tab id=${initialTab.id}, index=${initialTab.index}, beforeCount=${beforeCount}`);
+        if (DEBUG) console.log(`yT: initial tab id=${initialTab.id}, index=${initialTab.index}, beforeCount=${beforeCount}`);
 
         // Listen for new page event
         const newPagePromise = context.waitForEvent('page');
@@ -59,11 +61,11 @@ test.describe('cmd_tab_duplicate_background (Playwright)', () => {
         }
 
         expect(activeTab.id).toBe(initialTab.id);
-        console.log(`yT: original tab ${initialTab.id} is still active`);
+        if (DEBUG) console.log(`yT: original tab ${initialTab.id} is still active`);
 
         // Verify duplicate has same URL
         expect(newPage.url()).toBe(page.url());
-        console.log(`yT: duplicate tab URL matches original`);
+        if (DEBUG) console.log(`yT: duplicate tab URL matches original`);
 
         // Cleanup duplicate
         await newPage.close().catch(() => {});
@@ -93,7 +95,7 @@ test.describe('cmd_tab_duplicate_background (Playwright)', () => {
             activeTab = await getActiveTabViaSW(context);
         }
         expect(activeTab.id).toBe(initialTab.id);
-        console.log(`yT x1: still on original tab ${initialTab.id}`);
+        if (DEBUG) console.log(`yT x1: still on original tab ${initialTab.id}`);
 
         // Second yT
         await page.bringToFront();
@@ -114,7 +116,7 @@ test.describe('cmd_tab_duplicate_background (Playwright)', () => {
             activeTab = await getActiveTabViaSW(context);
         }
         expect(activeTab.id).toBe(initialTab.id);
-        console.log(`yT x2: still on original tab ${initialTab.id}`);
+        if (DEBUG) console.log(`yT x2: still on original tab ${initialTab.id}`);
 
         expect(context.pages().length).toBe(beforeCount + 2);
 
@@ -140,7 +142,7 @@ test.describe('cmd_tab_duplicate_background (Playwright)', () => {
 
         expect(context.pages().length).toBe(beforeCount + 1);
         expect(newPage.url()).toBe(currentUrl);
-        console.log(`yT duplicate URL: ${newPage.url()}`);
+        if (DEBUG) console.log(`yT duplicate URL: ${newPage.url()}`);
 
         await newPage.close().catch(() => {});
     });

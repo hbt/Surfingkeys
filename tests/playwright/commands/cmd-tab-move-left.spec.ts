@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -63,7 +65,7 @@ test.describe('cmd_tab_move_left (Playwright)', () => {
         const initialInfo = await getActiveTabInfo();
         const initialIndex = initialInfo.index;
         const initialId = initialInfo.id;
-        console.log(`Initial tab: id=${initialId}, index=${initialIndex}`);
+        if (DEBUG) console.log(`Initial tab: id=${initialId}, index=${initialIndex}`);
 
         // Must not be at leftmost position
         expect(initialIndex).toBeGreaterThan(0);
@@ -88,7 +90,7 @@ test.describe('cmd_tab_move_left (Playwright)', () => {
         expect(movedTab).not.toBeNull();
         expect(movedTab!.index).toBe(initialIndex - 1);
         expect(movedTab!.id).toBe(initialId);
-        console.log(`After <<: moved from index ${initialIndex} to ${movedTab!.index}`);
+        if (DEBUG) console.log(`After <<: moved from index ${initialIndex} to ${movedTab!.index}`);
     });
 
     test('pressing << twice moves tab two positions to the left', async () => {
@@ -137,6 +139,6 @@ test.describe('cmd_tab_move_left (Playwright)', () => {
         expect(afterSecond).not.toBeNull();
         expect(afterSecond!.index).toBe(initialIndex - 2);
         expect(afterSecond!.id).toBe(initialId);
-        console.log(`After 2x <<: moved from index ${initialIndex} to ${afterSecond!.index}`);
+        if (DEBUG) console.log(`After 2x <<: moved from index ${initialIndex} to ${afterSecond!.index}`);
     });
 });

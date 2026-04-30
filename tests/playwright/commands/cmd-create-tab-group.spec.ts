@@ -1,6 +1,8 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -99,7 +101,7 @@ test.describe('cmd_create_tab_group (Playwright)', () => {
 
     test('tab groups API is available in service worker', async () => {
         const available = await tabGroupsAvailable(context);
-        console.log(`Tab groups API available: ${available}`);
+        if (DEBUG) console.log(`Tab groups API available: ${available}`);
         // Just report — don't fail if headless Chrome doesn't support it
         expect(typeof available).toBe('boolean');
     });
@@ -107,7 +109,7 @@ test.describe('cmd_create_tab_group (Playwright)', () => {
     test('creating a tab group adds tab to a group', async () => {
         const available = await tabGroupsAvailable(context);
         if (!available) {
-            console.log('Tab groups API not available — skipping');
+            if (DEBUG) console.log('Tab groups API not available — skipping');
             test.skip();
             return;
         }
@@ -129,13 +131,13 @@ test.describe('cmd_create_tab_group (Playwright)', () => {
 
         const finalGroups = await getTabGroups(context);
         expect(finalGroups.length).toBeGreaterThan(initialCount);
-        console.log(`Tab grouped: groupId=${groupId}, total groups: ${finalGroups.length}`);
+        if (DEBUG) console.log(`Tab grouped: groupId=${groupId}, total groups: ${finalGroups.length}`);
     });
 
     test('grouped tab appears in chrome.tabGroups API', async () => {
         const available = await tabGroupsAvailable(context);
         if (!available) {
-            console.log('Tab groups API not available — skipping');
+            if (DEBUG) console.log('Tab groups API not available — skipping');
             test.skip();
             return;
         }
@@ -147,6 +149,6 @@ test.describe('cmd_create_tab_group (Playwright)', () => {
         const groups = await getTabGroups(context);
         const ourGroup = groups.find((g: any) => g.id === groupId);
         expect(ourGroup).toBeDefined();
-        console.log(`Group found: id=${ourGroup.id}, color=${ourGroup.color}`);
+        if (DEBUG) console.log(`Group found: id=${ourGroup.id}, color=${ourGroup.color}`);
     });
 });

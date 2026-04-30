@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const URL_A = `${FIXTURE_BASE}/scroll-test.html`;
 const URL_B = `${FIXTURE_BASE}/form-test.html`;
 
@@ -41,7 +43,7 @@ test.describe('cmd_nav_history_forward (Playwright)', () => {
 
         const finalUrl = page.url();
         expect(finalUrl).toContain('form-test.html');
-        console.log(`History forward: ${currentUrl} → ${finalUrl}`);
+        if (DEBUG) console.log(`History forward: ${currentUrl} → ${finalUrl}`);
     });
 
     test('pressing D and S toggles between history entries', async () => {
@@ -59,6 +61,6 @@ test.describe('cmd_nav_history_forward (Playwright)', () => {
         await bk;
         expect(page.url()).toContain('scroll-test.html');
 
-        console.log(`Toggle D/S: back to ${page.url()}`);
+        if (DEBUG) console.log(`Toggle D/S: back to ${page.url()}`);
     });
 });

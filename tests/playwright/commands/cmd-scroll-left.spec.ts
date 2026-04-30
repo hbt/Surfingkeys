@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -31,7 +33,7 @@ test.describe('cmd_scroll_left (Playwright)', () => {
         const result = await sendKeyAndWaitForScroll(page, 'h', { direction: 'left', minDelta: 20 });
 
         expect(result.final).toBeLessThan(result.baseline);
-        console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
+        if (DEBUG) console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
     });
 
     test('multiple scroll left operations work', async () => {
@@ -44,9 +46,9 @@ test.describe('cmd_scroll_left (Playwright)', () => {
         if (result1.final > 0) {
             const result2 = await sendKeyAndWaitForScroll(page, 'h', { direction: 'left', minDelta: 5, timeoutMs: 2000 });
             expect(result2.final).toBeLessThanOrEqual(result2.baseline);
-            console.log(`Multiple: ${start}px → ${result1.final}px → ${result2.final}px`);
+            if (DEBUG) console.log(`Multiple: ${start}px → ${result1.final}px → ${result2.final}px`);
         } else {
-            console.log(`Single scroll reached left edge: ${start}px → ${result1.final}px`);
+            if (DEBUG) console.log(`Single scroll reached left edge: ${start}px → ${result1.final}px`);
         }
     });
 });

@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -34,7 +36,7 @@ test.describe('cmd_tab_close (Playwright)', () => {
         await closePromise;
 
         expect(context.pages().length).toBe(beforeCount - 1);
-        console.log(`Tab closed: ${beforeCount} → ${context.pages().length} pages`);
+        if (DEBUG) console.log(`Tab closed: ${beforeCount} → ${context.pages().length} pages`);
     });
 
     test('pressing x twice closes two tabs', async () => {
@@ -62,6 +64,6 @@ test.describe('cmd_tab_close (Playwright)', () => {
         await close2;
 
         expect(context.pages().length).toBe(beforeCount - 2);
-        console.log(`Two tabs closed: ${beforeCount} → ${context.pages().length} pages`);
+        if (DEBUG) console.log(`Two tabs closed: ${beforeCount} → ${context.pages().length} pages`);
     });
 });

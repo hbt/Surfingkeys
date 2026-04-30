@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -39,7 +41,7 @@ test.describe('cmd_tab_zoom_reset (Playwright)', () => {
         await page.waitForTimeout(300);
 
         const zoomedIn = await getTabZoom();
-        console.log(`After zi: ${zoomedIn}`);
+        if (DEBUG) console.log(`After zi: ${zoomedIn}`);
         expect(zoomedIn).toBeGreaterThan(1.0);
 
         // Reset zoom
@@ -49,7 +51,7 @@ test.describe('cmd_tab_zoom_reset (Playwright)', () => {
         await page.waitForTimeout(300);
 
         const resetZoom = await getTabZoom();
-        console.log(`After zr: ${resetZoom}`);
+        if (DEBUG) console.log(`After zr: ${resetZoom}`);
         expect(resetZoom).toBeCloseTo(1.0, 1);
     });
 
@@ -61,7 +63,7 @@ test.describe('cmd_tab_zoom_reset (Playwright)', () => {
         await page.waitForTimeout(300);
 
         const zoomedOut = await getTabZoom();
-        console.log(`After zo: ${zoomedOut}`);
+        if (DEBUG) console.log(`After zo: ${zoomedOut}`);
         expect(zoomedOut).toBeLessThan(1.0);
 
         // Reset zoom
@@ -71,7 +73,7 @@ test.describe('cmd_tab_zoom_reset (Playwright)', () => {
         await page.waitForTimeout(300);
 
         const resetZoom = await getTabZoom();
-        console.log(`After zr: ${resetZoom}`);
+        if (DEBUG) console.log(`After zr: ${resetZoom}`);
         expect(resetZoom).toBeCloseTo(1.0, 1);
     });
 });

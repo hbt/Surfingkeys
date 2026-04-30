@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -75,7 +77,7 @@ test.describe('cmd_tab_history_last (Playwright)', () => {
         await page.waitForTimeout(300);
 
         const initialId = await getActiveTabId();
-        console.log(`Initial tab ID: ${initialId}`);
+        if (DEBUG) console.log(`Initial tab ID: ${initialId}`);
         expect(initialId).toBeGreaterThan(0);
 
         // Send gt
@@ -86,13 +88,13 @@ test.describe('cmd_tab_history_last (Playwright)', () => {
 
         // Browser should still be valid
         const afterId = await getActiveTabId();
-        console.log(`After gt: active tab=${afterId}`);
+        if (DEBUG) console.log(`After gt: active tab=${afterId}`);
         expect(afterId).toBeGreaterThan(0);
 
         if (afterId !== initialId) {
-            console.log(`gt switched tab: ${initialId} -> ${afterId}`);
+            if (DEBUG) console.log(`gt switched tab: ${initialId} -> ${afterId}`);
         } else {
-            console.log(`gt: tab unchanged (may be pointing at current tab)`);
+            if (DEBUG) console.log(`gt: tab unchanged (may be pointing at current tab)`);
         }
     });
 
@@ -126,7 +128,7 @@ test.describe('cmd_tab_history_last (Playwright)', () => {
         await activePage.waitForTimeout(300);
 
         const initialId = await getActiveTabId();
-        console.log(`Before gt: active tab=${initialId}`);
+        if (DEBUG) console.log(`Before gt: active tab=${initialId}`);
 
         await activePage.keyboard.press('g');
         await activePage.waitForTimeout(50);
@@ -134,9 +136,9 @@ test.describe('cmd_tab_history_last (Playwright)', () => {
         await activePage.waitForTimeout(1000);
 
         const afterId = await getActiveTabId();
-        console.log(`After gt: active tab=${afterId}`);
+        if (DEBUG) console.log(`After gt: active tab=${afterId}`);
         expect(afterId).toBeGreaterThan(0);
-        console.log(`gt: ${initialId} -> ${afterId}`);
+        if (DEBUG) console.log(`gt: ${initialId} -> ${afterId}`);
     });
 
     test('gt command leaves browser in valid state', async () => {
@@ -153,6 +155,6 @@ test.describe('cmd_tab_history_last (Playwright)', () => {
         const id = await getActiveTabId();
         expect(id).toBeGreaterThan(0);
         expect(context.pages().some((p) => !p.isClosed())).toBe(true);
-        console.log(`gt smoke test passed, active tab=${id}`);
+        if (DEBUG) console.log(`gt smoke test passed, active tab=${id}`);
     });
 });

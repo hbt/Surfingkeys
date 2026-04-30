@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -47,7 +49,7 @@ test.describe('cmd_tab_zoom_in (Playwright)', () => {
 
     test('pressing zi increases zoom by 0.1', async () => {
         const initialZoom = await getTabZoom(page);
-        console.log(`Initial zoom: ${initialZoom}`);
+        if (DEBUG) console.log(`Initial zoom: ${initialZoom}`);
         expect(initialZoom).toBeCloseTo(1.0, 1);
 
         await page.keyboard.press('z');
@@ -56,7 +58,7 @@ test.describe('cmd_tab_zoom_in (Playwright)', () => {
         await page.waitForTimeout(300);
 
         const newZoom = await getTabZoom(page);
-        console.log(`After zi: ${newZoom}`);
+        if (DEBUG) console.log(`After zi: ${newZoom}`);
         expect(newZoom).toBeCloseTo(initialZoom + 0.1, 1);
     });
 
@@ -74,7 +76,7 @@ test.describe('cmd_tab_zoom_in (Playwright)', () => {
         await page.waitForTimeout(300);
 
         const newZoom = await getTabZoom(page);
-        console.log(`After 2x zi: ${newZoom} (initial: ${initialZoom})`);
+        if (DEBUG) console.log(`After 2x zi: ${newZoom} (initial: ${initialZoom})`);
         expect(newZoom).toBeCloseTo(initialZoom + 0.2, 1);
     });
 });

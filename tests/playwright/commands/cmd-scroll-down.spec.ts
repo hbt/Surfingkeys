@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE, collectOptionalCoverage } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -34,7 +36,7 @@ test.describe('cmd_scroll_down (Playwright)', () => {
         const result = await sendKeyAndWaitForScroll(page, 'j', { direction: 'down', minDelta: 20 });
 
         expect(result.final).toBeGreaterThan(result.baseline);
-        console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
+        if (DEBUG) console.log(`Scroll: ${result.baseline}px → ${result.final}px (delta: ${result.delta}px)`);
 
         await collectOptionalCoverage(cdpPort, page);
     });
@@ -43,7 +45,7 @@ test.describe('cmd_scroll_down (Playwright)', () => {
         const result1 = await sendKeyAndWaitForScroll(page, 'j', { direction: 'down', minDelta: 20 });
         const result2 = await sendKeyAndWaitForScroll(page, 'j', { direction: 'down', minDelta: 20 });
 
-        console.log(`1st: ${result1.delta}px, 2nd: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`);
+        if (DEBUG) console.log(`1st: ${result1.delta}px, 2nd: ${result2.delta}px, diff: ${Math.abs(result1.delta - result2.delta)}px`);
         expect(Math.abs(result1.delta - result2.delta)).toBeLessThan(15);
 
         await collectOptionalCoverage(cdpPort, page);
@@ -93,7 +95,7 @@ test.describe('cmd_scroll_down (Playwright)', () => {
         const repeatDistance = final - baseline;
         const ratio = repeatDistance / singleDistance;
 
-        console.log(`Single j: ${singleDistance}px, 5j: ${repeatDistance}px (ratio: ${ratio.toFixed(2)}x)`);
+        if (DEBUG) console.log(`Single j: ${singleDistance}px, 5j: ${repeatDistance}px (ratio: ${ratio.toFixed(2)}x)`);
         expect(ratio).toBeGreaterThanOrEqual(3.5);
         expect(ratio).toBeLessThanOrEqual(6.5);
 

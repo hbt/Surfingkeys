@@ -1,6 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchExtensionContext, FIXTURE_BASE } from '../utils/pw-helpers';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
@@ -46,7 +48,7 @@ test.describe('cmd_visual_click_node (Playwright)', () => {
         await page.waitForTimeout(300);
         const sel = await page.evaluate(() => typeof window.getSelection());
         expect(sel).toBe('object');
-        console.log('Enter in visual mode executed without error');
+        if (DEBUG) console.log('Enter in visual mode executed without error');
     });
 
     test('pressing Enter on link text executes click action', async () => {
@@ -73,7 +75,7 @@ test.describe('cmd_visual_click_node (Playwright)', () => {
         // Either the link was clicked (hash changed) or command executed without error
         const sel = await page.evaluate(() => typeof window.getSelection());
         expect(sel).toBe('object');
-        console.log(`Enter on link: hash=${newHash}`);
+        if (DEBUG) console.log(`Enter on link: hash=${newHash}`);
     });
 
     test('Enter on plain text does not error', async () => {
@@ -83,7 +85,7 @@ test.describe('cmd_visual_click_node (Playwright)', () => {
         await page.waitForTimeout(300);
         const sel = await page.evaluate(() => typeof window.getSelection());
         expect(sel).toBe('object');
-        console.log('Enter on plain text completed without error');
+        if (DEBUG) console.log('Enter on plain text completed without error');
     });
 
     test('Enter on nested link executes click action', async () => {
@@ -110,6 +112,6 @@ test.describe('cmd_visual_click_node (Playwright)', () => {
         // Either the link was clicked (hash changed) or command executed without error
         const sel = await page.evaluate(() => typeof window.getSelection());
         expect(sel).toBe('object');
-        console.log(`Nested link test: hash=${hash}`);
+        if (DEBUG) console.log(`Nested link test: hash=${hash}`);
     });
 });
