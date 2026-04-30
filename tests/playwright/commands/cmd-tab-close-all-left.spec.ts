@@ -1,7 +1,6 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
 
@@ -33,16 +32,16 @@ async function getTabsViaSW(ctx: BrowserContext): Promise<any[]> {
 
 test.describe('cmd_tab_close_all_left (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithCoverage();
         context = result.context;
+        cov = result.cov;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_close_all_left');
+        if (cov) await cov.flush('cmd_tab_close_all_left');
         await cov?.close();
         await context?.close();
     });

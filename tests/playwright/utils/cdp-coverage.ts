@@ -37,6 +37,8 @@ export class ServiceWorkerCoverage {
     private msgId = 0;
     private baseline = new Map<FuncKey, number>();
     private swUrl: string | null = null;
+    private cdpPort: number | null = null;
+    private targetFilter: ((t: any) => boolean) | null = null;
 
     /**
      * @param cdpPort  Remote debugging port Chrome was started with.
@@ -46,11 +48,12 @@ export class ServiceWorkerCoverage {
      *     (t) => t.type === 'page' && t.url.includes('scroll-test.html')
      */
     async init(cdpPort: number, targetFilter?: (t: any) => boolean): Promise<boolean> {
-        const filter = targetFilter ??
+        this.cdpPort = cdpPort;
+        this.targetFilter = targetFilter ??
             ((t: any) => t.type === 'service_worker' && t.url?.includes('background.js'));
         try {
             const targets = await this.fetchTargets(cdpPort);
-            const sw = targets.find(filter);
+            const sw = targets.find(this.targetFilter);
             if (!sw?.webSocketDebuggerUrl) {
                 console.warn(
                     '[Coverage] Target not found. Available targets:\n' +
@@ -69,6 +72,35 @@ export class ServiceWorkerCoverage {
             return true;
         } catch (err) {
             console.error('[Coverage] init failed:', err);
+            return false;
+        }
+    }
+
+    /**
+     * Reconnect to the CDP target after the service worker was terminated
+     * (e.g. all tabs closed). Re-enables the profiler on the fresh instance.
+     * Coverage collected after a restart reflects only post-restart activity.
+     */
+    private async reconnect(): Promise<boolean> {
+        if (!this.cdpPort || !this.targetFilter) return false;
+        try {
+            this.ws?.close();
+            this.ws = null;
+            // SW may take a moment to restart — retry a few times
+            for (let attempt = 0; attempt < 5; attempt++) {
+                await new Promise(r => setTimeout(r, 500));
+                const targets = await this.fetchTargets(this.cdpPort);
+                const sw = targets.find(this.targetFilter);
+                if (sw?.webSocketDebuggerUrl) {
+                    this.swUrl = sw.url;
+                    await this.connect(sw.webSocketDebuggerUrl);
+                    await this.cmd('Profiler.enable');
+                    await this.cmd('Profiler.startPreciseCoverage', { callCount: true, detailed: true });
+                    return true;
+                }
+            }
+            return false;
+        } catch {
             return false;
         }
     }
@@ -119,7 +151,22 @@ export class ServiceWorkerCoverage {
      */
     async flush(label: string, outputDir: string = 'coverage-raw'): Promise<string | null> {
         if (!this.ws) return null;
-        const raw = await this.cmd('Profiler.takePreciseCoverage');
+        let raw: any;
+        try {
+            raw = await this.cmd('Profiler.takePreciseCoverage');
+        } catch {
+            // SW was likely terminated by aggressive tab-closing — try to reconnect
+            console.warn(`[Coverage:${label}] CDP lost, reconnecting...`);
+            const ok = await this.reconnect();
+            if (!ok) {
+                console.warn(`[Coverage:${label}] Reconnect failed — no coverage written.`);
+                return null;
+            }
+            raw = await this.cmd('Profiler.takePreciseCoverage').catch(() => null);
+            if (!raw) return null;
+            // Baseline is stale (old SW instance) — clear it so subtraction is a no-op
+            this.baseline = new Map();
+        }
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const dir = path.join(outputDir, label);
         fs.mkdirSync(dir, { recursive: true });
