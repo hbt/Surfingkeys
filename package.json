@@ -30,7 +30,8 @@
     "validate:mappings:prefixes": "bun scripts/validate-mappings.js --prefixes",
     "report:migration": "bun scripts/find-migrated-commands.js",
     "report:mappings:json": "bun scripts/mappings-json-report.ts",
-    "test:playwright": "bunx playwright test"
+    "test:playwright": "bunx playwright test",
+    "test:playwright:parallel": "bunx playwright test --workers=8"
   },
   "repository": {
     "type": "git",
