@@ -1,15 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_visual_find_forward';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function enterVisualMode(p: Page, text: string) {
     await p.evaluate((t) => { (window as any).find(t); }, text);
@@ -39,18 +42,18 @@ async function invokeVisualFindForward(p: Page) {
 
 test.describe('cmd_visual_find_forward (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_visual_find_forward');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -63,55 +66,63 @@ test.describe('cmd_visual_find_forward (Playwright)', () => {
     });
 
     test('pressing f in visual mode does not error', async () => {
-        await enterVisualMode(page, 'Short');
-        await invokeVisualFindForward(page);
-        await page.waitForTimeout(300);
-        await page.keyboard.press('Escape');
-        await page.waitForTimeout(200);
-        const sel = await getSelectionInfo(page);
-        expect(typeof sel.focusOffset).toBe('number');
-        if (DEBUG) console.log(`f executed: focusOffset=${sel.focusOffset}`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page, 'Short');
+            await invokeVisualFindForward(page);
+            await page.waitForTimeout(300);
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(200);
+            const sel = await getSelectionInfo(page);
+            expect(typeof sel.focusOffset).toBe('number');
+            if (DEBUG) console.log(`f executed: focusOffset=${sel.focusOffset}`);
+        });
     });
 
     test('f then character finds forward occurrence', async () => {
-        await enterVisualMode(page, 'Multi-word line');
-        const before = await getSelectionInfo(page);
-        await invokeVisualFindForward(page);
-        await page.waitForTimeout(200);
-        await page.keyboard.type('o');
-        await page.waitForTimeout(300);
-        const after = await getSelectionInfo(page);
-        expect(typeof after.focusOffset).toBe('number');
-        expect(after.focusOffset).toBeGreaterThanOrEqual(before.focusOffset);
-        if (DEBUG) console.log(`f: ${before.focusOffset} → ${after.focusOffset}`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page, 'Multi-word line');
+            const before = await getSelectionInfo(page);
+            await invokeVisualFindForward(page);
+            await page.waitForTimeout(200);
+            await page.keyboard.type('o');
+            await page.waitForTimeout(300);
+            const after = await getSelectionInfo(page);
+            expect(typeof after.focusOffset).toBe('number');
+            expect(after.focusOffset).toBeGreaterThanOrEqual(before.focusOffset);
+            if (DEBUG) console.log(`f: ${before.focusOffset} → ${after.focusOffset}`);
+        });
     });
 
     test('f command can be invoked multiple times', async () => {
-        await enterVisualMode(page, 'Multi-word line');
-        await invokeVisualFindForward(page);
-        await page.waitForTimeout(200);
-        await page.keyboard.type('e');
-        await page.waitForTimeout(300);
-        const first = await getSelectionInfo(page);
-        await invokeVisualFindForward(page);
-        await page.waitForTimeout(200);
-        await page.keyboard.type('e');
-        await page.waitForTimeout(300);
-        const second = await getSelectionInfo(page);
-        expect(typeof first.focusOffset).toBe('number');
-        expect(typeof second.focusOffset).toBe('number');
-        if (DEBUG) console.log(`first fe: ${first.focusOffset}, second fe: ${second.focusOffset}`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page, 'Multi-word line');
+            await invokeVisualFindForward(page);
+            await page.waitForTimeout(200);
+            await page.keyboard.type('e');
+            await page.waitForTimeout(300);
+            const first = await getSelectionInfo(page);
+            await invokeVisualFindForward(page);
+            await page.waitForTimeout(200);
+            await page.keyboard.type('e');
+            await page.waitForTimeout(300);
+            const second = await getSelectionInfo(page);
+            expect(typeof first.focusOffset).toBe('number');
+            expect(typeof second.focusOffset).toBe('number');
+            if (DEBUG) console.log(`first fe: ${first.focusOffset}, second fe: ${second.focusOffset}`);
+        });
     });
 
     test('Escape cancels find mode without moving cursor', async () => {
-        await enterVisualMode(page, 'Short');
-        const before = await getSelectionInfo(page);
-        await invokeVisualFindForward(page);
-        await page.waitForTimeout(200);
-        await page.keyboard.press('Escape');
-        await page.waitForTimeout(200);
-        const after = await getSelectionInfo(page);
-        expect(after.focusOffset).toBe(before.focusOffset);
-        if (DEBUG) console.log(`f then Escape: offset stayed at ${after.focusOffset}`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page, 'Short');
+            const before = await getSelectionInfo(page);
+            await invokeVisualFindForward(page);
+            await page.waitForTimeout(200);
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(200);
+            const after = await getSelectionInfo(page);
+            expect(after.focusOffset).toBe(before.focusOffset);
+            if (DEBUG) console.log(`f then Escape: offset stayed at ${after.focusOffset}`);
+        });
     });
 });

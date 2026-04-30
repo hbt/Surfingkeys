@@ -1,15 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_visual_expand_parent';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-parent-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function enterVisualModeAtElement(p: Page, elementId: string) {
     await p.evaluate((id) => {
@@ -51,18 +54,18 @@ async function invokeVisualExpandParent(p: Page) {
 
 test.describe('cmd_visual_expand_parent (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_visual_expand_parent');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -80,48 +83,56 @@ test.describe('cmd_visual_expand_parent (Playwright)', () => {
     });
 
     test('pressing p expands selection to parent element', async () => {
-        await enterVisualModeAtElement(page, 'simple-para');
-        const before = await getSelectionTextLength(page);
-        await invokeVisualExpandParent(page);
-        await page.waitForTimeout(300);
-        const after = await getSelectionTextLength(page);
-        expect(after).toBeGreaterThan(before);
-        expect(await getSelectionType(page)).toBe('Range');
-        if (DEBUG) console.log(`p expanded: ${before} → ${after} chars`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualModeAtElement(page, 'simple-para');
+            const before = await getSelectionTextLength(page);
+            await invokeVisualExpandParent(page);
+            await page.waitForTimeout(300);
+            const after = await getSelectionTextLength(page);
+            expect(after).toBeGreaterThan(before);
+            expect(await getSelectionType(page)).toBe('Range');
+            if (DEBUG) console.log(`p expanded: ${before} → ${after} chars`);
+        });
     });
 
     test('repeated p presses continue expanding selection', async () => {
-        await enterVisualModeAtElement(page, 'simple-para');
-        const initial = await getSelectionTextLength(page);
-        const lengths: number[] = [initial];
-        for (let i = 0; i < 3; i++) {
-            await invokeVisualExpandParent(page);
-            await page.waitForTimeout(300);
-            lengths.push(await getSelectionTextLength(page));
-        }
-        // Each expansion should be >= previous
-        for (let i = 1; i < lengths.length; i++) {
-            expect(lengths[i]).toBeGreaterThanOrEqual(lengths[i - 1]);
-        }
-        if (DEBUG) console.log(`p expansions: ${lengths.join(' → ')}`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualModeAtElement(page, 'simple-para');
+            const initial = await getSelectionTextLength(page);
+            const lengths: number[] = [initial];
+            for (let i = 0; i < 3; i++) {
+                await invokeVisualExpandParent(page);
+                await page.waitForTimeout(300);
+                lengths.push(await getSelectionTextLength(page));
+            }
+            // Each expansion should be >= previous
+            for (let i = 1; i < lengths.length; i++) {
+                expect(lengths[i]).toBeGreaterThanOrEqual(lengths[i - 1]);
+            }
+            if (DEBUG) console.log(`p expansions: ${lengths.join(' → ')}`);
+        });
     });
 
     test('p results in Range selection type', async () => {
-        await enterVisualModeAtElement(page, 'simple-para');
-        await invokeVisualExpandParent(page);
-        await page.waitForTimeout(300);
-        const selType = await getSelectionType(page);
-        expect(selType).toBe('Range');
-        if (DEBUG) console.log(`Selection type after p: ${selType}`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualModeAtElement(page, 'simple-para');
+            await invokeVisualExpandParent(page);
+            await page.waitForTimeout(300);
+            const selType = await getSelectionType(page);
+            expect(selType).toBe('Range');
+            if (DEBUG) console.log(`Selection type after p: ${selType}`);
+        });
     });
 
     test('p works on inline elements', async () => {
-        await enterVisualModeAtElement(page, 'inline-strong');
-        const before = await getSelectionTextLength(page);
-        await invokeVisualExpandParent(page);
-        await page.waitForTimeout(300);
-        const after = await getSelectionTextLength(page);
-        expect(after).toBeGreaterThan(before);
-        if (DEBUG) console.log(`p on inline: ${before} → ${after} chars`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualModeAtElement(page, 'inline-strong');
+            const before = await getSelectionTextLength(page);
+            await invokeVisualExpandParent(page);
+            await page.waitForTimeout(300);
+            const after = await getSelectionTextLength(page);
+            expect(after).toBeGreaterThan(before);
+            if (DEBUG) console.log(`p on inline: ${before} → ${after} chars`);
+        });
     });
 });

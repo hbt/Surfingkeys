@@ -1,15 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_visual_backward_sentence';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-sentence-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function enterVisualMode(p: Page, text: string) {
     await p.evaluate((t) => { (window as any).find(t); }, text);
@@ -39,18 +42,18 @@ async function invokeVisualBackwardSentence(p: Page) {
 
 test.describe('cmd_visual_backward_sentence (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_visual_backward_sentence');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -64,51 +67,57 @@ test.describe('cmd_visual_backward_sentence (Playwright)', () => {
     });
 
     test('( in visual mode does not error', async () => {
-        await enterVisualMode(page, 'third sentence here');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page, 'third sentence here');
 
-        await invokeVisualBackwardSentence(page);
-        await page.waitForTimeout(300);
-
-        const selection = await getSelectionInfo(page);
-        expect(typeof selection.focusOffset).toBe('number');
-        if (DEBUG) console.log(`( executed: focusOffset=${selection.focusOffset}`);
-    });
-
-    test('( moves cursor backward in visual mode', async () => {
-        await enterVisualMode(page, 'third sentence here');
-
-        const before = await getSelectionInfo(page);
-        const initialOffset = before.focusOffset;
-        if (DEBUG) console.log(`Before (: focusOffset=${initialOffset}`);
-
-        await invokeVisualBackwardSentence(page);
-        await page.waitForTimeout(300);
-
-        const after = await getSelectionInfo(page);
-        const finalOffset = after.focusOffset;
-        if (DEBUG) console.log(`After (: focusOffset=${finalOffset}`);
-
-        expect(finalOffset).toBeLessThanOrEqual(initialOffset);
-    });
-
-    test('( navigates backward through multiple sentences', async () => {
-        await enterVisualMode(page, 'third sentence here');
-
-        const positions: number[] = [];
-        const initial = await getSelectionInfo(page);
-        positions.push(initial.focusOffset);
-
-        for (let i = 0; i < 3; i++) {
             await invokeVisualBackwardSentence(page);
             await page.waitForTimeout(300);
 
-            const current = await getSelectionInfo(page);
-            positions.push(current.focusOffset);
-        }
+            const selection = await getSelectionInfo(page);
+            expect(typeof selection.focusOffset).toBe('number');
+            if (DEBUG) console.log(`( executed: focusOffset=${selection.focusOffset}`);
+        });
+    });
 
-        for (let i = 1; i < positions.length; i++) {
-            expect(positions[i]).toBeLessThanOrEqual(positions[i - 1]);
-        }
-        if (DEBUG) console.log(`( progression: ${positions.join(' → ')}`);
+    test('( moves cursor backward in visual mode', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page, 'third sentence here');
+
+            const before = await getSelectionInfo(page);
+            const initialOffset = before.focusOffset;
+            if (DEBUG) console.log(`Before (: focusOffset=${initialOffset}`);
+
+            await invokeVisualBackwardSentence(page);
+            await page.waitForTimeout(300);
+
+            const after = await getSelectionInfo(page);
+            const finalOffset = after.focusOffset;
+            if (DEBUG) console.log(`After (: focusOffset=${finalOffset}`);
+
+            expect(finalOffset).toBeLessThanOrEqual(initialOffset);
+        });
+    });
+
+    test('( navigates backward through multiple sentences', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page, 'third sentence here');
+
+            const positions: number[] = [];
+            const initial = await getSelectionInfo(page);
+            positions.push(initial.focusOffset);
+
+            for (let i = 0; i < 3; i++) {
+                await invokeVisualBackwardSentence(page);
+                await page.waitForTimeout(300);
+
+                const current = await getSelectionInfo(page);
+                positions.push(current.focusOffset);
+            }
+
+            for (let i = 1; i < positions.length; i++) {
+                expect(positions[i]).toBeLessThanOrEqual(positions[i - 1]);
+            }
+            if (DEBUG) console.log(`( progression: ${positions.join(' → ')}`);
+        });
     });
 });

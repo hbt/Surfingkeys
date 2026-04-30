@@ -1,15 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_visual_document_start';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function enterVisualMode(p: Page) {
     await p.keyboard.press('Escape');
@@ -107,18 +110,18 @@ async function waitForLineLessThan(p: Page, threshold: number, timeout = 3000): 
 
 test.describe('cmd_visual_document_start (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_visual_document_start');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -135,77 +138,87 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
     });
 
     test('pressing gg in visual mode does not error', async () => {
-        await enterVisualMode(page);
-        await invokeVisualDocumentStart(page);
-        await page.waitForTimeout(300);
-        const sel = await getSelectionInfo(page);
-        expect(sel.hasNode).toBe(true);
-        if (DEBUG) console.log(`gg executed: focusOffset=${sel.focusOffset}`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page);
+            await invokeVisualDocumentStart(page);
+            await page.waitForTimeout(300);
+            const sel = await getSelectionInfo(page);
+            expect(sel.hasNode).toBe(true);
+            if (DEBUG) console.log(`gg executed: focusOffset=${sel.focusOffset}`);
+        });
     });
 
     test('gg moves cursor to an earlier line', async () => {
-        // Move down first using j
-        await enterVisualMode(page);
-        for (let i = 0; i < 10; i++) {
-            await page.keyboard.press('j');
-            await page.waitForTimeout(100);
-        }
-        await page.waitForTimeout(200);
-        const lineBefore = await getCurrentLineNumber(page);
-        if (DEBUG) console.log(`before line: ${lineBefore}`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Move down first using j
+            await enterVisualMode(page);
+            for (let i = 0; i < 10; i++) {
+                await page.keyboard.press('j');
+                await page.waitForTimeout(100);
+            }
+            await page.waitForTimeout(200);
+            const lineBefore = await getCurrentLineNumber(page);
+            if (DEBUG) console.log(`before line: ${lineBefore}`);
 
-        await invokeVisualDocumentStart(page);
-        const immediateAfter = await getCurrentLineNumber(page);
-        if (DEBUG) console.log(`after invoke immediate line: ${immediateAfter}`);
-        const lineAfter = await waitForLineLessThan(page, lineBefore!, 3000);
-        expect(lineAfter).toBeLessThan(lineBefore!);
-        if (DEBUG) console.log(`gg moved: line ${lineBefore} → ${lineAfter}`);
+            await invokeVisualDocumentStart(page);
+            const immediateAfter = await getCurrentLineNumber(page);
+            if (DEBUG) console.log(`after invoke immediate line: ${immediateAfter}`);
+            const lineAfter = await waitForLineLessThan(page, lineBefore!, 3000);
+            expect(lineAfter).toBeLessThan(lineBefore!);
+            if (DEBUG) console.log(`gg moved: line ${lineBefore} → ${lineAfter}`);
+        });
     });
 
     test('gg moves cursor to beginning of document', async () => {
-        await enterVisualMode(page);
-        // Move down first
-        for (let i = 0; i < 5; i++) {
-            await page.keyboard.press('j');
-            await page.waitForTimeout(100);
-        }
-        const beforeLine = await getCurrentLineNumber(page);
-        expect(beforeLine).toBeGreaterThan(1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page);
+            // Move down first
+            for (let i = 0; i < 5; i++) {
+                await page.keyboard.press('j');
+                await page.waitForTimeout(100);
+            }
+            const beforeLine = await getCurrentLineNumber(page);
+            expect(beforeLine).toBeGreaterThan(1);
 
-        await invokeVisualDocumentStart(page);
-        const afterLine = await waitForLineLessThan(page, beforeLine!, 3000);
-        if (DEBUG) console.log(`gg: line ${beforeLine} → ${afterLine}`);
-        expect(afterLine).toBeLessThan(beforeLine!);
+            await invokeVisualDocumentStart(page);
+            const afterLine = await waitForLineLessThan(page, beforeLine!, 3000);
+            if (DEBUG) console.log(`gg: line ${beforeLine} → ${afterLine}`);
+            expect(afterLine).toBeLessThan(beforeLine!);
+        });
     });
 
     test('gg is idempotent at document start', async () => {
-        await enterVisualMode(page);
-        // First gg
-        await invokeVisualDocumentStart(page);
-        await page.waitForTimeout(300);
-        const line1 = await getCurrentLineNumber(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page);
+            // First gg
+            await invokeVisualDocumentStart(page);
+            await page.waitForTimeout(300);
+            const line1 = await getCurrentLineNumber(page);
 
-        // Second gg
-        await invokeVisualDocumentStart(page);
-        await page.waitForTimeout(300);
-        const line2 = await getCurrentLineNumber(page);
+            // Second gg
+            await invokeVisualDocumentStart(page);
+            await page.waitForTimeout(300);
+            const line2 = await getCurrentLineNumber(page);
 
-        expect(line1).not.toBeNull();
-        expect(line2).toBe(line1);
+            expect(line1).not.toBeNull();
+            expect(line2).toBe(line1);
+        });
     });
 
     test('gg after G moves to an earlier line', async () => {
-        await enterVisualMode(page);
-        // Go to end first
-        await page.keyboard.press('G');
-        await page.waitForTimeout(500);
-        const lineAfterG = await getCurrentLineNumber(page);
-        expect(lineAfterG).toBeGreaterThan(1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page);
+            // Go to end first
+            await page.keyboard.press('G');
+            await page.waitForTimeout(500);
+            const lineAfterG = await getCurrentLineNumber(page);
+            expect(lineAfterG).toBeGreaterThan(1);
 
-        // Now go to start
-        await invokeVisualDocumentStart(page);
-        const lineAfterGG = await waitForLineLessThan(page, lineAfterG!, 3000);
-        expect(lineAfterGG).toBeLessThan(lineAfterG!);
-        if (DEBUG) console.log(`G (line ${lineAfterG}) then gg (line ${lineAfterGG})`);
+            // Now go to start
+            await invokeVisualDocumentStart(page);
+            const lineAfterGG = await waitForLineLessThan(page, lineAfterG!, 3000);
+            expect(lineAfterGG).toBeLessThan(lineAfterG!);
+            if (DEBUG) console.log(`G (line ${lineAfterG}) then gg (line ${lineAfterGG})`);
+        });
     });
 });

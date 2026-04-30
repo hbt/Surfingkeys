@@ -1,15 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_visual_scroll_center';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function enterVisualMode(p: Page) {
     await p.keyboard.press('Escape');
@@ -37,18 +40,18 @@ async function invokeVisualScrollCenter(p: Page) {
 
 test.describe('cmd_visual_scroll_center (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_visual_scroll_center');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -62,57 +65,63 @@ test.describe('cmd_visual_scroll_center (Playwright)', () => {
     });
 
     test('zz in visual mode does not error', async () => {
-        const initialScroll = await page.evaluate(() => window.scrollY);
-        expect(initialScroll).toBe(0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialScroll = await page.evaluate(() => window.scrollY);
+            expect(initialScroll).toBe(0);
 
-        await enterVisualMode(page);
+            await enterVisualMode(page);
 
-        await invokeVisualScrollCenter(page);
-        await page.waitForTimeout(300);
+            await invokeVisualScrollCenter(page);
+            await page.waitForTimeout(300);
 
-        const finalScroll = await page.evaluate(() => window.scrollY);
-        expect(typeof finalScroll).toBe('number');
-        if (DEBUG) console.log(`zz executed: scroll ${initialScroll}px → ${finalScroll}px`);
+            const finalScroll = await page.evaluate(() => window.scrollY);
+            expect(typeof finalScroll).toBe('number');
+            if (DEBUG) console.log(`zz executed: scroll ${initialScroll}px → ${finalScroll}px`);
+        });
     });
 
     test('zz executes without error and selection remains valid', async () => {
-        await page.evaluate(() => window.scrollTo(0, 800));
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.evaluate(() => window.scrollTo(0, 800));
 
-        await enterVisualMode(page);
+            await enterVisualMode(page);
 
-        await invokeVisualScrollCenter(page);
-        await page.waitForTimeout(300);
+            await invokeVisualScrollCenter(page);
+            await page.waitForTimeout(300);
 
-        const selection = await getSelectionInfo(page);
-        expect(typeof selection.focusOffset).toBe('number');
-        const finalScroll = await page.evaluate(() => window.scrollY);
-        if (DEBUG) console.log(`After zz: scrollY=${finalScroll}, focusOffset=${selection.focusOffset}`);
+            const selection = await getSelectionInfo(page);
+            expect(typeof selection.focusOffset).toBe('number');
+            const finalScroll = await page.evaluate(() => window.scrollY);
+            if (DEBUG) console.log(`After zz: scrollY=${finalScroll}, focusOffset=${selection.focusOffset}`);
+        });
     });
 
     test('zz scrolls cursor toward center of viewport', async () => {
-        await page.evaluate(() => window.scrollTo(0, 800));
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.evaluate(() => window.scrollTo(0, 800));
 
-        await enterVisualMode(page);
+            await enterVisualMode(page);
 
-        await invokeVisualScrollCenter(page);
-        await page.waitForTimeout(300);
+            await invokeVisualScrollCenter(page);
+            await page.waitForTimeout(300);
 
-        const result = await page.evaluate(() => {
-            const cursor = document.querySelector('.surfingkeys_cursor');
-            if (cursor) {
-                const rect = cursor.getBoundingClientRect();
-                return {
-                    center: (rect.top + rect.bottom) / 2,
-                    innerHeight: window.innerHeight,
-                };
+            const result = await page.evaluate(() => {
+                const cursor = document.querySelector('.surfingkeys_cursor');
+                if (cursor) {
+                    const rect = cursor.getBoundingClientRect();
+                    return {
+                        center: (rect.top + rect.bottom) / 2,
+                        innerHeight: window.innerHeight,
+                    };
+                }
+                return null;
+            });
+
+            if (result !== null) {
+                if (DEBUG) console.log(`Cursor center: ${result.center}px, viewport height: ${result.innerHeight}px`);
+                expect(Number.isFinite(result.center)).toBe(true);
+                expect(Number.isFinite(result.innerHeight)).toBe(true);
             }
-            return null;
         });
-
-        if (result !== null) {
-            if (DEBUG) console.log(`Cursor center: ${result.center}px, viewport height: ${result.innerHeight}px`);
-            expect(Number.isFinite(result.center)).toBe(true);
-            expect(Number.isFinite(result.innerHeight)).toBe(true);
-        }
     });
 });

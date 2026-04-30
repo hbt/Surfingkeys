@@ -1,15 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_visual_forward_lines';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function enterVisualMode(p: Page) {
     await p.keyboard.press('Escape');
@@ -37,18 +40,18 @@ async function invokeVisualForwardLines(p: Page) {
 
 test.describe('cmd_visual_forward_lines (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_visual_forward_lines');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -65,42 +68,48 @@ test.describe('cmd_visual_forward_lines (Playwright)', () => {
     });
 
     test('Ctrl-d in visual mode does not error - selection is queryable', async () => {
-        await enterVisualMode(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page);
 
-        await invokeVisualForwardLines(page);
-        await page.waitForTimeout(1000);
+            await invokeVisualForwardLines(page);
+            await page.waitForTimeout(1000);
 
-        const selection = await getSelectionInfo(page);
-        expect(typeof selection.focusOffset).toBe('number');
-        const scrollY = await page.evaluate(() => window.scrollY);
-        if (DEBUG) console.log(`After Ctrl-d: focusOffset=${selection.focusOffset}, scrollY=${scrollY}`);
+            const selection = await getSelectionInfo(page);
+            expect(typeof selection.focusOffset).toBe('number');
+            const scrollY = await page.evaluate(() => window.scrollY);
+            if (DEBUG) console.log(`After Ctrl-d: focusOffset=${selection.focusOffset}, scrollY=${scrollY}`);
+        });
     });
 
     test('Ctrl-d can be pressed multiple times without error', async () => {
-        await enterVisualMode(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page);
 
-        await invokeVisualForwardLines(page);
-        await page.waitForTimeout(500);
+            await invokeVisualForwardLines(page);
+            await page.waitForTimeout(500);
 
-        const sel1 = await getSelectionInfo(page);
-        expect(typeof sel1.focusOffset).toBe('number');
+            const sel1 = await getSelectionInfo(page);
+            expect(typeof sel1.focusOffset).toBe('number');
 
-        await invokeVisualForwardLines(page);
-        await page.waitForTimeout(500);
+            await invokeVisualForwardLines(page);
+            await page.waitForTimeout(500);
 
-        const sel2 = await getSelectionInfo(page);
-        expect(typeof sel2.focusOffset).toBe('number');
-        if (DEBUG) console.log(`Two Ctrl-d presses: ${sel1.focusOffset} → ${sel2.focusOffset}`);
+            const sel2 = await getSelectionInfo(page);
+            expect(typeof sel2.focusOffset).toBe('number');
+            if (DEBUG) console.log(`Two Ctrl-d presses: ${sel1.focusOffset} → ${sel2.focusOffset}`);
+        });
     });
 
     test('Ctrl-d maintains visual mode (selection still queryable)', async () => {
-        await enterVisualMode(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualMode(page);
 
-        await invokeVisualForwardLines(page);
-        await page.waitForTimeout(500);
+            await invokeVisualForwardLines(page);
+            await page.waitForTimeout(500);
 
-        const selection = await getSelectionInfo(page);
-        expect(typeof selection.focusOffset).toBe('number');
-        if (DEBUG) console.log(`Visual mode still active after Ctrl-d: focusOffset=${selection.focusOffset}`);
+            const selection = await getSelectionInfo(page);
+            expect(typeof selection.focusOffset).toBe('number');
+            if (DEBUG) console.log(`Visual mode still active after Ctrl-d: focusOffset=${selection.focusOffset}`);
+        });
     });
 });

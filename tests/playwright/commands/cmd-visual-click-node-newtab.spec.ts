@@ -1,15 +1,18 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_visual_click_node_newtab';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function enterVisualModeAtText(p: Page, text: string) {
     await p.evaluate((t) => { (window as any).find(t); }, text);
@@ -27,18 +30,18 @@ async function invokeVisualClickNodeNewtab(p: Page) {
 
 test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
+        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_visual_click_node_newtab');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -62,49 +65,57 @@ test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
     });
 
     test('Shift-Enter in visual mode on link does not error', async () => {
-        await enterVisualModeAtText(page, 'Click this link');
-        await page.waitForTimeout(200);
-        await invokeVisualClickNodeNewtab(page);
-        await page.waitForTimeout(800);
-        // Just verify we can still interact with the page
-        const sel = await page.evaluate(() => typeof window.getSelection());
-        expect(sel).toBe('object');
-        if (DEBUG) console.log('Shift-Enter executed without error');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualModeAtText(page, 'Click this link');
+            await page.waitForTimeout(200);
+            await invokeVisualClickNodeNewtab(page);
+            await page.waitForTimeout(800);
+            // Just verify we can still interact with the page
+            const sel = await page.evaluate(() => typeof window.getSelection());
+            expect(sel).toBe('object');
+            if (DEBUG) console.log('Shift-Enter executed without error');
+        });
     });
 
     test('Shift-Enter may open new tab for link', async () => {
-        const initialPageCount = context.pages().length;
-        await enterVisualModeAtText(page, 'Click this link');
-        await page.waitForTimeout(200);
-        await invokeVisualClickNodeNewtab(page);
-        await page.waitForTimeout(1000);
-        const newPageCount = context.pages().length;
-        // Either a new tab was opened or it just navigated - verify no crash
-        expect(newPageCount).toBeGreaterThanOrEqual(initialPageCount);
-        if (DEBUG) console.log(`Pages before: ${initialPageCount}, after: ${newPageCount}`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialPageCount = context.pages().length;
+            await enterVisualModeAtText(page, 'Click this link');
+            await page.waitForTimeout(200);
+            await invokeVisualClickNodeNewtab(page);
+            await page.waitForTimeout(1000);
+            const newPageCount = context.pages().length;
+            // Either a new tab was opened or it just navigated - verify no crash
+            expect(newPageCount).toBeGreaterThanOrEqual(initialPageCount);
+            if (DEBUG) console.log(`Pages before: ${initialPageCount}, after: ${newPageCount}`);
+        });
     });
 
     test('regular Enter does not open a new tab', async () => {
-        const initialPageCount = context.pages().length;
-        await enterVisualModeAtText(page, 'Click this link');
-        await page.waitForTimeout(200);
-        await page.keyboard.press('Enter');
-        await page.waitForTimeout(500);
-        const newPageCount = context.pages().length;
-        // Regular Enter should not open a new tab
-        expect(newPageCount).toBe(initialPageCount);
-        const hash = await page.evaluate(() => window.location.hash);
-        // Hash may or may not change depending on cursor position in visual mode
-        if (DEBUG) console.log(`Regular Enter: no new tab (count=${newPageCount}), hash=${hash}`);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialPageCount = context.pages().length;
+            await enterVisualModeAtText(page, 'Click this link');
+            await page.waitForTimeout(200);
+            await page.keyboard.press('Enter');
+            await page.waitForTimeout(500);
+            const newPageCount = context.pages().length;
+            // Regular Enter should not open a new tab
+            expect(newPageCount).toBe(initialPageCount);
+            const hash = await page.evaluate(() => window.location.hash);
+            // Hash may or may not change depending on cursor position in visual mode
+            if (DEBUG) console.log(`Regular Enter: no new tab (count=${newPageCount}), hash=${hash}`);
+        });
     });
 
     test('Shift-Enter on plain text does not error', async () => {
-        await enterVisualModeAtText(page, 'Short line');
-        await page.waitForTimeout(200);
-        await invokeVisualClickNodeNewtab(page);
-        await page.waitForTimeout(500);
-        const sel = await page.evaluate(() => typeof window.getSelection());
-        expect(sel).toBe('object');
-        if (DEBUG) console.log('Shift-Enter on plain text completed without error');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await enterVisualModeAtText(page, 'Short line');
+            await page.waitForTimeout(200);
+            await invokeVisualClickNodeNewtab(page);
+            await page.waitForTimeout(500);
+            const sel = await page.evaluate(() => typeof window.getSelection());
+            expect(sel).toBe('object');
+            if (DEBUG) console.log('Shift-Enter on plain text completed without error');
+        });
     });
 });
