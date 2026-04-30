@@ -151,7 +151,7 @@ export class ServiceWorkerCoverage {
                     if (msg.id !== id) return;
                     clearTimeout(timer);
                     this.ws?.removeListener('message', handler);
-                    msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result);
+                    if (msg.error) { reject(new Error(msg.error.message)); } else { resolve(msg.result); }
                 } catch {}
             };
             this.ws.on('message', handler);
