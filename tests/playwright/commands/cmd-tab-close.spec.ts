@@ -1,7 +1,7 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import * as fs from 'fs';
+import { coverageSlug, readCoverageStats } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
@@ -13,46 +13,6 @@ let context: BrowserContext;
 let page: Page;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
-
-function coverageSlug(value: string): string {
-    return value
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, '');
-}
-
-function readCoverageStats(
-    filePath: string,
-    expectedTarget: 'service_worker' | 'page',
-    scriptFile: 'background.js' | 'content.js',
-): { total: number; zero: number; gt0: number; byFunction: Map<string, number> } {
-    const payload = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    expect(payload.target).toBe(expectedTarget);
-
-    const scriptEntries = (payload.result ?? []).filter((entry: any) =>
-        typeof entry.url === 'string' && entry.url.endsWith(scriptFile),
-    );
-    expect(scriptEntries.length).toBeGreaterThan(0);
-
-    const byFunction = new Map<string, number>();
-    let total = 0;
-    let zero = 0;
-    let gt0 = 0;
-
-    for (const script of scriptEntries) {
-        for (const fn of script.functions ?? []) {
-            const maxCount = Math.max(...((fn.ranges ?? []).map((range: any) => Number(range.count) || 0)));
-            total += 1;
-            if (maxCount > 0) gt0 += 1;
-            else zero += 1;
-            if (fn.functionName) {
-                byFunction.set(fn.functionName, Math.max(byFunction.get(fn.functionName) ?? 0, maxCount));
-            }
-        }
-    }
-
-    return { total, zero, gt0, byFunction };
-}
 
 async function closeTabWithCoverage(
     pageToClose: Page,
