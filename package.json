@@ -31,7 +31,7 @@
     "report:migration": "bun scripts/find-migrated-commands.js",
     "report:mappings:json": "bun scripts/mappings-json-report.ts",
     "test:playwright": "bunx playwright test",
-    "test:playwright:parallel": "bunx playwright test --workers=9"
+    "test:playwright:parallel": "bunx playwright test --workers=9 --reporter=dot"
   },
   "repository": {
     "type": "git",
