@@ -9,15 +9,17 @@
  */
 
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_delete_element';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers
@@ -83,11 +85,12 @@ test.describe('cmd_hints_delete_element (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(600);
     });
 
@@ -103,8 +106,7 @@ test.describe('cmd_hints_delete_element (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_delete_element');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -113,13 +115,17 @@ test.describe('cmd_hints_delete_element (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 page has paragraph elements', async () => {
-        const pCount = await page.locator('p').count();
-        expect(pCount).toBeGreaterThan(40);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const pCount = await page.locator('p').count();
+            expect(pCount).toBeGreaterThan(40);
+        });
     });
 
     test('1.2 no hints initially', async () => {
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(false);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(false);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -127,62 +133,70 @@ test.describe('cmd_hints_delete_element (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 d command clears hints (element deleted)', async () => {
-        await page.evaluate(() => window.scrollTo(0, 0));
-        const initialCount = await page.locator('p').count();
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.evaluate(() => window.scrollTo(0, 0));
+            const initialCount = await page.locator('p').count();
 
-        await enterRegionalHintsAndSelectFirst(page);
-        await page.keyboard.press('d');
-        await waitForHintsCleared(page);
+            await enterRegionalHintsAndSelectFirst(page);
+            await page.keyboard.press('d');
+            await waitForHintsCleared(page);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.count).toBe(0);
-        expect(snap.found).toBe(false);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.count).toBe(0);
+            expect(snap.found).toBe(false);
 
-        const finalCount = await page.locator('p').count();
-        expect(finalCount).toBeLessThanOrEqual(initialCount);
+            const finalCount = await page.locator('p').count();
+            expect(finalCount).toBeLessThanOrEqual(initialCount);
+        });
     });
 
     test('2.2 element count decreases after deletion', async () => {
-        await page.evaluate(() => window.scrollTo(0, 0));
-        const initialCount = await page.locator('p').count();
-        expect(initialCount).toBeGreaterThan(0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.evaluate(() => window.scrollTo(0, 0));
+            const initialCount = await page.locator('p').count();
+            expect(initialCount).toBeGreaterThan(0);
 
-        await enterRegionalHintsAndSelectFirst(page);
-        await page.keyboard.press('d');
-        await waitForHintsCleared(page);
+            await enterRegionalHintsAndSelectFirst(page);
+            await page.keyboard.press('d');
+            await waitForHintsCleared(page);
 
-        const finalCount = await page.locator('p').count();
-        expect(finalCount).toBeLessThanOrEqual(initialCount);
+            const finalCount = await page.locator('p').count();
+            expect(finalCount).toBeLessThanOrEqual(initialCount);
+        });
     });
 
     test('2.3 returns to normal mode after d (can scroll)', async () => {
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await enterRegionalHintsAndSelectFirst(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await enterRegionalHintsAndSelectFirst(page);
 
-        await page.keyboard.press('d');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('d');
+            await waitForHintsCleared(page);
 
-        const scrollBefore = await page.evaluate(() => window.scrollY);
-        await page.keyboard.press('j');
-        await page.waitForTimeout(300);
-        const scrollAfter = await page.evaluate(() => window.scrollY);
-        expect(scrollAfter).toBeGreaterThan(scrollBefore);
+            const scrollBefore = await page.evaluate(() => window.scrollY);
+            await page.keyboard.press('j');
+            await page.waitForTimeout(300);
+            const scrollAfter = await page.evaluate(() => window.scrollY);
+            expect(scrollAfter).toBeGreaterThan(scrollBefore);
+        });
     });
 
     test('2.4 can re-enter regional hints after deletion', async () => {
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await enterRegionalHintsAndSelectFirst(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await enterRegionalHintsAndSelectFirst(page);
 
-        await page.keyboard.press('d');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('d');
+            await waitForHintsCleared(page);
 
-        // Re-enter regional hints
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHints(page, 1);
+            // Re-enter regional hints
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHints(page, 1);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(true);
-        expect(snap.count).toBeGreaterThan(0);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(true);
+            expect(snap.count).toBeGreaterThan(0);
+        });
     });
 });

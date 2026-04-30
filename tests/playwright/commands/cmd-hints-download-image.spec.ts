@@ -10,15 +10,17 @@
  */
 
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_download_image';
 const FIXTURE_URL = `${FIXTURE_BASE}/image-download-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers
@@ -82,11 +84,12 @@ test.describe('cmd_hints_download_image (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(600);
     });
 
@@ -98,8 +101,7 @@ test.describe('cmd_hints_download_image (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_download_image');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -108,21 +110,27 @@ test.describe('cmd_hints_download_image (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 page has 5 images', async () => {
-        const imgCount = await page.locator('img').count();
-        expect(imgCount).toBe(5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const imgCount = await page.locator('img').count();
+            expect(imgCount).toBe(5);
+        });
     });
 
     test('1.2 no hints initially', async () => {
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(false);
-        expect(snap.count).toBe(0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(false);
+            expect(snap.count).toBe(0);
+        });
     });
 
     test('1.3 images have src attributes', async () => {
-        const imagesWithSrc = await page.evaluate(() =>
-            Array.from(document.querySelectorAll('img')).filter((img: any) => img.src).length
-        );
-        expect(imagesWithSrc).toBe(5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const imagesWithSrc = await page.evaluate(() =>
+                Array.from(document.querySelectorAll('img')).filter((img: any) => img.src).length
+            );
+            expect(imagesWithSrc).toBe(5);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -130,55 +138,63 @@ test.describe('cmd_hints_download_image (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 should create hints when pressing ;di', async () => {
-        await page.mouse.click(100, 100);
-        await triggerDownloadImageHints(page);
-        await waitForHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await triggerDownloadImageHints(page);
+            await waitForHints(page, 1);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(true);
-        expect(snap.count).toBeGreaterThan(0);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(true);
+            expect(snap.count).toBeGreaterThan(0);
+        });
     });
 
     test('2.2 hints are in shadowRoot', async () => {
-        await page.mouse.click(100, 100);
-        await triggerDownloadImageHints(page);
-        await waitForHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await triggerDownloadImageHints(page);
+            await waitForHints(page, 1);
 
-        const hostInfo = await page.evaluate(() => {
-            const h = document.querySelector('.surfingkeys_hints_host') as any;
-            return {
-                found: !!h,
-                hasShadowRoot: !!h?.shadowRoot,
-                children: h?.shadowRoot?.children.length || 0,
-            };
+            const hostInfo = await page.evaluate(() => {
+                const h = document.querySelector('.surfingkeys_hints_host') as any;
+                return {
+                    found: !!h,
+                    hasShadowRoot: !!h?.shadowRoot,
+                    children: h?.shadowRoot?.children.length || 0,
+                };
+            });
+            expect(hostInfo.found).toBe(true);
+            expect(hostInfo.hasShadowRoot).toBe(true);
+            expect(hostInfo.children).toBeGreaterThan(0);
         });
-        expect(hostInfo.found).toBe(true);
-        expect(hostInfo.hasShadowRoot).toBe(true);
-        expect(hostInfo.children).toBeGreaterThan(0);
     });
 
     test('2.3 hint labels are uppercase letters', async () => {
-        await page.mouse.click(100, 100);
-        await triggerDownloadImageHints(page);
-        await waitForHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await triggerDownloadImageHints(page);
+            await waitForHints(page, 1);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.sample.length).toBeGreaterThan(0);
-        for (const hint of snap.sample) {
-            expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
-        }
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.sample.length).toBeGreaterThan(0);
+            for (const hint of snap.sample) {
+                expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
+            }
+        });
     });
 
     test('2.4 hint count does not exceed image count', async () => {
-        const imgCount = await page.locator('img').count();
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const imgCount = await page.locator('img').count();
 
-        await page.mouse.click(100, 100);
-        await triggerDownloadImageHints(page);
-        await waitForHints(page, 1);
+            await page.mouse.click(100, 100);
+            await triggerDownloadImageHints(page);
+            await waitForHints(page, 1);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.count).toBeGreaterThan(0);
-        expect(snap.count).toBeLessThanOrEqual(imgCount);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.count).toBeGreaterThan(0);
+            expect(snap.count).toBeLessThanOrEqual(imgCount);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -186,52 +202,58 @@ test.describe('cmd_hints_download_image (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('3.1 hints clear on Escape', async () => {
-        await page.mouse.click(100, 100);
-        await triggerDownloadImageHints(page);
-        await waitForHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await triggerDownloadImageHints(page);
+            await waitForHints(page, 1);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.count).toBe(0);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.count).toBe(0);
+        });
     });
 
     test('3.2 selecting a hint clears hints', async () => {
-        await page.mouse.click(100, 100);
-        await triggerDownloadImageHints(page);
-        await waitForHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await triggerDownloadImageHints(page);
+            await waitForHints(page, 1);
 
-        const snap = await fetchHintSnapshot(page);
-        const firstHint = snap.sortedHints[0];
+            const snap = await fetchHintSnapshot(page);
+            const firstHint = snap.sortedHints[0];
 
-        if (firstHint) {
-            for (const char of firstHint) {
-                await page.keyboard.press(char);
-                await page.waitForTimeout(50);
+            if (firstHint) {
+                for (const char of firstHint) {
+                    await page.keyboard.press(char);
+                    await page.waitForTimeout(50);
+                }
+                await waitForHintsCleared(page);
+
+                const afterSnap = await fetchHintSnapshot(page);
+                expect(afterSnap.count).toBe(0);
             }
-            await waitForHintsCleared(page);
-
-            const afterSnap = await fetchHintSnapshot(page);
-            expect(afterSnap.count).toBe(0);
-        }
+        });
     });
 
     test('3.3 hints are consistent across multiple invocations', async () => {
-        await page.mouse.click(100, 100);
-        await triggerDownloadImageHints(page);
-        await waitForHints(page, 1);
-        const snap1 = await fetchHintSnapshot(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await triggerDownloadImageHints(page);
+            await waitForHints(page, 1);
+            const snap1 = await fetchHintSnapshot(page);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        await page.mouse.click(100, 100);
-        await triggerDownloadImageHints(page);
-        await waitForHints(page, 1);
-        const snap2 = await fetchHintSnapshot(page);
+            await page.mouse.click(100, 100);
+            await triggerDownloadImageHints(page);
+            await waitForHints(page, 1);
+            const snap2 = await fetchHintSnapshot(page);
 
-        expect(snap1.count).toBe(snap2.count);
-        expect(snap1.sortedHints).toEqual(snap2.sortedHints);
+            expect(snap1.count).toBe(snap2.count);
+            expect(snap1.sortedHints).toEqual(snap2.sortedHints);
+        });
     });
 });

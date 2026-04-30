@@ -9,15 +9,17 @@
  */
 
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_link_background_tab_minimal';
 const FIXTURE_URL = `${FIXTURE_BASE}/hints-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers
@@ -88,11 +90,12 @@ test.describe('cmd_hints_link_background_tab minimal (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
@@ -104,10 +107,9 @@ test.describe('cmd_hints_link_background_tab minimal (Playwright)', () => {
 
     test.afterAll(async () => {
         try {
-            if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_link_background_tab.minimal');
-        await cov?.close();
-        await context?.close();
-    } catch (_) {}
+            await covBg?.close();
+            await context?.close();
+        } catch (_) {}
     });
 
     // -----------------------------------------------------------------------
@@ -115,52 +117,60 @@ test.describe('cmd_hints_link_background_tab minimal (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 should have no hints initially', async () => {
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(false);
-        expect(snap.count).toBe(0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(false);
+            expect(snap.count).toBe(0);
+        });
     });
 
     test('1.2 should create hints when pressing C key', async () => {
-        await page.mouse.click(100, 100);
-        await page.waitForTimeout(500);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.waitForTimeout(500);
 
-        await page.keyboard.press('Shift+C');
-        await waitForHintCount(page, 5);
+            await page.keyboard.press('Shift+C');
+            await waitForHintCount(page, 5);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(true);
-        expect(snap.count).toBeGreaterThan(5);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(true);
+            expect(snap.count).toBeGreaterThan(5);
+        });
     });
 
     test('1.3 should show hints in shadowRoot', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Shift+C');
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Shift+C');
+            await waitForHintCount(page, 5);
 
-        const hostInfo = await page.evaluate(() => {
-            const hintsHost = document.querySelector('.surfingkeys_hints_host') as any;
-            return {
-                found: !!hintsHost,
-                hasShadowRoot: !!hintsHost?.shadowRoot,
-                divCount: hintsHost?.shadowRoot?.querySelectorAll('div').length || 0,
-            };
+            const hostInfo = await page.evaluate(() => {
+                const hintsHost = document.querySelector('.surfingkeys_hints_host') as any;
+                return {
+                    found: !!hintsHost,
+                    hasShadowRoot: !!hintsHost?.shadowRoot,
+                    divCount: hintsHost?.shadowRoot?.querySelectorAll('div').length || 0,
+                };
+            });
+
+            expect(hostInfo.found).toBe(true);
+            expect(hostInfo.hasShadowRoot).toBe(true);
+            expect(hostInfo.divCount).toBeGreaterThan(0);
         });
-
-        expect(hostInfo.found).toBe(true);
-        expect(hostInfo.hasShadowRoot).toBe(true);
-        expect(hostInfo.divCount).toBeGreaterThan(0);
     });
 
     test('1.4 should clear hints on Escape', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Shift+C');
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Shift+C');
+            await waitForHintCount(page, 5);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.count).toBe(0);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.count).toBe(0);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -168,42 +178,46 @@ test.describe('cmd_hints_link_background_tab minimal (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 should open link in background tab (new tab created)', async () => {
-        const initialCount = getPages().length;
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialCount = getPages().length;
 
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Shift+C');
-        await waitForHintCount(page, 5);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Shift+C');
+            await waitForHintCount(page, 5);
 
-        const snapshot = await fetchHintSnapshot(page);
-        const firstHint: string = snapshot.sortedHints[0];
-        expect(firstHint).toBeDefined();
+            const snapshot = await fetchHintSnapshot(page);
+            const firstHint: string = snapshot.sortedHints[0];
+            expect(firstHint).toBeDefined();
 
-        for (const char of firstHint) {
-            await page.keyboard.press(char);
-            await page.waitForTimeout(50);
-        }
+            for (const char of firstHint) {
+                await page.keyboard.press(char);
+                await page.waitForTimeout(50);
+            }
 
-        await waitForTabCount(initialCount + 1);
-        expect(getPages().length).toBe(initialCount + 1);
+            await waitForTabCount(initialCount + 1);
+            expect(getPages().length).toBe(initialCount + 1);
+        });
     });
 
     test('2.2 should keep original fixture page URL', async () => {
-        const initialCount = getPages().length;
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialCount = getPages().length;
 
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Shift+C');
-        await waitForHintCount(page, 5);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Shift+C');
+            await waitForHintCount(page, 5);
 
-        const snapshot = await fetchHintSnapshot(page);
-        const firstHint: string = snapshot.sortedHints[0];
+            const snapshot = await fetchHintSnapshot(page);
+            const firstHint: string = snapshot.sortedHints[0];
 
-        for (const char of firstHint) {
-            await page.keyboard.press(char);
-            await page.waitForTimeout(50);
-        }
+            for (const char of firstHint) {
+                await page.keyboard.press(char);
+                await page.waitForTimeout(50);
+            }
 
-        await waitForTabCount(initialCount + 1);
-        // Fixture page URL should not have changed
-        expect(page.url()).toContain('hints-test.html');
+            await waitForTabCount(initialCount + 1);
+            // Fixture page URL should not have changed
+            expect(page.url()).toContain('hints-test.html');
+        });
     });
 });

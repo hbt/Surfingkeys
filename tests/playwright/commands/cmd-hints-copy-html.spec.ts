@@ -9,15 +9,17 @@
  */
 
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_copy_html';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers
@@ -83,12 +85,13 @@ test.describe('cmd_hints_copy_html (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await context.grantPermissions(['clipboard-read', 'clipboard-write']);
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(600);
     });
 
@@ -104,8 +107,7 @@ test.describe('cmd_hints_copy_html (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_copy_html');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -114,17 +116,21 @@ test.describe('cmd_hints_copy_html (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 page has elements with HTML content', async () => {
-        const pCount = await page.locator('p').count();
-        expect(pCount).toBeGreaterThan(40);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const pCount = await page.locator('p').count();
+            expect(pCount).toBeGreaterThan(40);
 
-        const hasHTML = await page.evaluate(() => (document.querySelector('p')?.innerHTML?.length ?? 0) > 0);
-        expect(hasHTML).toBe(true);
+            const hasHTML = await page.evaluate(() => (document.querySelector('p')?.innerHTML?.length ?? 0) > 0);
+            expect(hasHTML).toBe(true);
+        });
     });
 
     test('1.2 link-line element contains nested HTML', async () => {
-        const html = await page.evaluate(() => (document.querySelector('#link-line') as HTMLElement)?.innerHTML || '');
-        expect(html).toContain('<a');
-        expect(html).toContain('href');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const html = await page.evaluate(() => (document.querySelector('#link-line') as HTMLElement)?.innerHTML || '');
+            expect(html).toContain('<a');
+            expect(html).toContain('href');
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -132,39 +138,47 @@ test.describe('cmd_hints_copy_html (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 ch command executes without error (hints cleared)', async () => {
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await enterRegionalHintsAndSelectFirst(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await enterRegionalHintsAndSelectFirst(page);
 
-        await page.keyboard.type('ch');
-        await waitForHintsCleared(page);
+            await page.keyboard.type('ch');
+            await waitForHintsCleared(page);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.count).toBe(0);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.count).toBe(0);
+        });
     });
 
     test('2.2 returns to normal mode after ch (can scroll)', async () => {
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await enterRegionalHintsAndSelectFirst(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await enterRegionalHintsAndSelectFirst(page);
 
-        await page.keyboard.type('ch');
-        await waitForHintsCleared(page);
+            await page.keyboard.type('ch');
+            await waitForHintsCleared(page);
 
-        const scrollBefore = await page.evaluate(() => window.scrollY);
-        await page.keyboard.press('j');
-        await page.waitForTimeout(300);
-        const scrollAfter = await page.evaluate(() => window.scrollY);
-        expect(scrollAfter).toBeGreaterThan(scrollBefore);
+            const scrollBefore = await page.evaluate(() => window.scrollY);
+            await page.keyboard.press('j');
+            await page.waitForTimeout(300);
+            const scrollAfter = await page.evaluate(() => window.scrollY);
+            expect(scrollAfter).toBeGreaterThan(scrollBefore);
+        });
     });
 
     test('2.3 nested-line element has span and nested-link', async () => {
-        const nestedHTML = await page.evaluate(() => (document.querySelector('#nested-line') as HTMLElement)?.innerHTML || '');
-        expect(nestedHTML).toContain('span');
-        expect(nestedHTML).toContain('nested-link');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const nestedHTML = await page.evaluate(() => (document.querySelector('#nested-line') as HTMLElement)?.innerHTML || '');
+            expect(nestedHTML).toContain('span');
+            expect(nestedHTML).toContain('nested-link');
+        });
     });
 
     test('2.4 multi-link-line element has multiple links', async () => {
-        const html = await page.evaluate(() => (document.querySelector('#multi-link-line') as HTMLElement)?.innerHTML || '');
-        expect(html).toContain('link1');
-        expect(html).toContain('link2');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const html = await page.evaluate(() => (document.querySelector('#multi-link-line') as HTMLElement)?.innerHTML || '');
+            expect(html).toContain('link1');
+            expect(html).toContain('link2');
+        });
     });
 });

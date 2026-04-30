@@ -10,15 +10,17 @@
  */
 
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_query_word';
 const FIXTURE_URL = `${FIXTURE_BASE}/hints-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers
@@ -77,12 +79,13 @@ test.describe('cmd_hints_query_word (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
 
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
@@ -92,10 +95,9 @@ test.describe('cmd_hints_query_word (Playwright)', () => {
 
     test.afterAll(async () => {
         try {
-            if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_query_word');
-        await cov?.close();
-        await context?.close();
-    } catch (_) {}
+            await covBg?.close();
+            await context?.close();
+        } catch (_) {}
     });
 
     // -----------------------------------------------------------------------
@@ -103,14 +105,18 @@ test.describe('cmd_hints_query_word (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 should have text content on page', async () => {
-        const textLength = await page.evaluate(() => document.body.innerText.trim().length);
-        expect(textLength).toBeGreaterThan(100);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const textLength = await page.evaluate(() => document.body.innerText.trim().length);
+            expect(textLength).toBeGreaterThan(100);
+        });
     });
 
     test('1.2 should have no hints initially', async () => {
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(false);
-        expect(snap.count).toBe(0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(false);
+            expect(snap.count).toBe(0);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -118,26 +124,30 @@ test.describe('cmd_hints_query_word (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 should create hints when pressing cq keys', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('c');
-        await page.keyboard.press('q');
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('c');
+            await page.keyboard.press('q');
+            await waitForHintCount(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        expect(hintData.found).toBe(true);
-        expect(hintData.count).toBeGreaterThan(5);
+            const hintData = await fetchHintSnapshot(page);
+            expect(hintData.found).toBe(true);
+            expect(hintData.count).toBeGreaterThan(5);
+        });
     });
 
     test('2.2 should create text anchor hints (more than link hints)', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('c');
-        await page.keyboard.press('q');
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('c');
+            await page.keyboard.press('q');
+            await waitForHintCount(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        // cq creates text anchor hints — more numerous than link hints
-        expect(hintData.count).toBeGreaterThan(10);
-        expect(hintData.count).toBeLessThan(500);
+            const hintData = await fetchHintSnapshot(page);
+            // cq creates text anchor hints — more numerous than link hints
+            expect(hintData.count).toBeGreaterThan(10);
+            expect(hintData.count).toBeLessThan(500);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -145,27 +155,31 @@ test.describe('cmd_hints_query_word (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('3.1 should have properly formatted hint labels (uppercase letters)', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('c');
-        await page.keyboard.press('q');
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('c');
+            await page.keyboard.press('q');
+            await waitForHintCount(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        expect(hintData.sample.length).toBeGreaterThan(0);
-        for (const hint of hintData.sample) {
-            expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
-        }
+            const hintData = await fetchHintSnapshot(page);
+            expect(hintData.sample.length).toBeGreaterThan(0);
+            for (const hint of hintData.sample) {
+                expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
+            }
+        });
     });
 
     test('3.2 should have unique hint labels', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('c');
-        await page.keyboard.press('q');
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('c');
+            await page.keyboard.press('q');
+            await waitForHintCount(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        const uniqueHints = new Set(hintData.sortedHints);
-        expect(uniqueHints.size).toBe(hintData.sortedHints.length);
+            const hintData = await fetchHintSnapshot(page);
+            const uniqueHints = new Set(hintData.sortedHints);
+            expect(uniqueHints.size).toBe(hintData.sortedHints.length);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -173,38 +187,42 @@ test.describe('cmd_hints_query_word (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('4.1 should clear hints when pressing Escape', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('c');
-        await page.keyboard.press('q');
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('c');
+            await page.keyboard.press('q');
+            await waitForHintCount(page, 5);
 
-        const beforeClear = await fetchHintSnapshot(page);
-        expect(beforeClear.found).toBe(true);
-        expect(beforeClear.count).toBeGreaterThan(5);
+            const beforeClear = await fetchHintSnapshot(page);
+            expect(beforeClear.found).toBe(true);
+            expect(beforeClear.count).toBeGreaterThan(5);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        const afterClear = await fetchHintSnapshot(page);
-        expect(afterClear.count).toBe(0);
+            const afterClear = await fetchHintSnapshot(page);
+            expect(afterClear.count).toBe(0);
+        });
     });
 
     test('4.2 should allow creating hints again after clearing', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('c');
-        await page.keyboard.press('q');
-        await waitForHintCount(page, 5);
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('c');
+            await page.keyboard.press('q');
+            await waitForHintCount(page, 5);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('c');
-        await page.keyboard.press('q');
-        await waitForHintCount(page, 5);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('c');
+            await page.keyboard.press('q');
+            await waitForHintCount(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        expect(hintData.found).toBe(true);
-        expect(hintData.count).toBeGreaterThan(5);
+            const hintData = await fetchHintSnapshot(page);
+            expect(hintData.found).toBe(true);
+            expect(hintData.count).toBeGreaterThan(5);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -212,45 +230,49 @@ test.describe('cmd_hints_query_word (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('5.1 should filter hints when typing hint label', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('c');
-        await page.keyboard.press('q');
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('c');
+            await page.keyboard.press('q');
+            await waitForHintCount(page, 5);
 
-        const initialSnapshot = await fetchHintSnapshot(page);
-        const initialCount = initialSnapshot.count;
-        const firstHint: string = initialSnapshot.sortedHints[0];
-        expect(firstHint).toBeDefined();
+            const initialSnapshot = await fetchHintSnapshot(page);
+            const initialCount = initialSnapshot.count;
+            const firstHint: string = initialSnapshot.sortedHints[0];
+            expect(firstHint).toBeDefined();
 
-        if (firstHint && firstHint.length > 0) {
-            await page.keyboard.press(firstHint[0]);
-            await page.waitForTimeout(200);
+            if (firstHint && firstHint.length > 0) {
+                await page.keyboard.press(firstHint[0]);
+                await page.waitForTimeout(200);
 
-            const filteredSnapshot = await fetchHintSnapshot(page);
-            expect(filteredSnapshot.count).toBeLessThanOrEqual(initialCount);
-        }
+                const filteredSnapshot = await fetchHintSnapshot(page);
+                expect(filteredSnapshot.count).toBeLessThanOrEqual(initialCount);
+            }
+        });
     });
 
     test('5.2 should clear hints after selecting hint by label', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('c');
-        await page.keyboard.press('q');
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('c');
+            await page.keyboard.press('q');
+            await waitForHintCount(page, 5);
 
-        const snapshot = await fetchHintSnapshot(page);
-        const firstHint: string = snapshot.sortedHints[0];
+            const snapshot = await fetchHintSnapshot(page);
+            const firstHint: string = snapshot.sortedHints[0];
 
-        if (firstHint) {
-            for (const char of firstHint) {
-                await page.keyboard.press(char);
-                await page.waitForTimeout(50);
+            if (firstHint) {
+                for (const char of firstHint) {
+                    await page.keyboard.press(char);
+                    await page.waitForTimeout(50);
+                }
+
+                await waitForHintsCleared(page);
+
+                const afterSnapshot = await fetchHintSnapshot(page);
+                expect(afterSnapshot.count).toBe(0);
             }
-
-            await waitForHintsCleared(page);
-
-            const afterSnapshot = await fetchHintSnapshot(page);
-            expect(afterSnapshot.count).toBe(0);
-        }
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -258,22 +280,24 @@ test.describe('cmd_hints_query_word (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('6.1 should create consistent hints across multiple invocations', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('c');
-        await page.keyboard.press('q');
-        await waitForHintCount(page, 5);
-        const snapshot1 = await fetchHintSnapshot(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('c');
+            await page.keyboard.press('q');
+            await waitForHintCount(page, 5);
+            const snapshot1 = await fetchHintSnapshot(page);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('c');
-        await page.keyboard.press('q');
-        await waitForHintCount(page, 5);
-        const snapshot2 = await fetchHintSnapshot(page);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('c');
+            await page.keyboard.press('q');
+            await waitForHintCount(page, 5);
+            const snapshot2 = await fetchHintSnapshot(page);
 
-        expect(snapshot1.count).toBe(snapshot2.count);
-        expect(snapshot1.sortedHints).toEqual(snapshot2.sortedHints);
+            expect(snapshot1.count).toBe(snapshot2.count);
+            expect(snapshot1.sortedHints).toEqual(snapshot2.sortedHints);
+        });
     });
 });

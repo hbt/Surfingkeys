@@ -10,15 +10,17 @@
  */
 
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_regional';
 const FIXTURE_URL = `${FIXTURE_BASE}/regional-hints-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Regional Hint helpers
@@ -101,12 +103,13 @@ test.describe('cmd_hints_regional (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
 
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
@@ -116,10 +119,9 @@ test.describe('cmd_hints_regional (Playwright)', () => {
 
     test.afterAll(async () => {
         try {
-            if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_regional');
-        await cov?.close();
-        await context?.close();
-    } catch (_) {}
+            await covBg?.close();
+            await context?.close();
+        } catch (_) {}
     });
 
     // -----------------------------------------------------------------------
@@ -127,14 +129,18 @@ test.describe('cmd_hints_regional (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 should have expected elements on page', async () => {
-        const divCount = await page.locator('div.large-block, div.medium-block, div.content-section').count();
-        expect(divCount).toBeGreaterThan(10);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const divCount = await page.locator('div.large-block, div.medium-block, div.content-section').count();
+            expect(divCount).toBeGreaterThan(10);
+        });
     });
 
     test('1.2 should have no hints initially', async () => {
-        const snap = await fetchRegionalHintSnapshot(page);
-        expect(snap.found).toBe(false);
-        expect(snap.count).toBe(0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const snap = await fetchRegionalHintSnapshot(page);
+            expect(snap.found).toBe(false);
+            expect(snap.count).toBe(0);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -142,43 +148,49 @@ test.describe('cmd_hints_regional (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 should create regional hints when pressing L key', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
 
-        const hintData = await fetchRegionalHintSnapshot(page);
-        expect(hintData.found).toBe(true);
-        expect(hintData.count).toBeGreaterThan(0);
-        expect(hintData.count).toBeLessThan(50);
+            const hintData = await fetchRegionalHintSnapshot(page);
+            expect(hintData.found).toBe(true);
+            expect(hintData.count).toBeGreaterThan(0);
+            expect(hintData.count).toBeLessThan(50);
+        });
     });
 
     test('2.2 should have hints in shadowRoot at correct host element', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
 
-        const hostInfo = await page.evaluate(() => {
-            const hintsHost = document.querySelector('.surfingkeys_hints_host') as any;
-            return {
-                found: !!hintsHost,
-                hasShadowRoot: !!hintsHost?.shadowRoot,
-                shadowRootChildren: hintsHost?.shadowRoot?.children.length || 0,
-            };
+            const hostInfo = await page.evaluate(() => {
+                const hintsHost = document.querySelector('.surfingkeys_hints_host') as any;
+                return {
+                    found: !!hintsHost,
+                    hasShadowRoot: !!hintsHost?.shadowRoot,
+                    shadowRootChildren: hintsHost?.shadowRoot?.children.length || 0,
+                };
+            });
+
+            expect(hostInfo.found).toBe(true);
+            expect(hostInfo.hasShadowRoot).toBe(true);
+            expect(hostInfo.shadowRootChildren).toBeGreaterThan(0);
         });
-
-        expect(hostInfo.found).toBe(true);
-        expect(hostInfo.hasShadowRoot).toBe(true);
-        expect(hostInfo.shadowRootChildren).toBeGreaterThan(0);
     });
 
     test('2.3 should create hints for large visible elements (fewer than total elements)', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
 
-        const hintData = await fetchRegionalHintSnapshot(page);
-        expect(hintData.count).toBeGreaterThan(0);
-        expect(hintData.count).toBeLessThan(30);
+            const hintData = await fetchRegionalHintSnapshot(page);
+            expect(hintData.count).toBeGreaterThan(0);
+            expect(hintData.count).toBeLessThan(30);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -186,25 +198,29 @@ test.describe('cmd_hints_regional (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('3.1 should have properly formatted hint labels (uppercase letters)', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
 
-        const hintData = await fetchRegionalHintSnapshot(page);
-        expect(hintData.sample.length).toBeGreaterThan(0);
-        for (const hint of hintData.sample) {
-            expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
-        }
+            const hintData = await fetchRegionalHintSnapshot(page);
+            expect(hintData.sample.length).toBeGreaterThan(0);
+            for (const hint of hintData.sample) {
+                expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
+            }
+        });
     });
 
     test('3.2 should have unique hint labels', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
 
-        const hintData = await fetchRegionalHintSnapshot(page);
-        const uniqueHints = new Set(hintData.sortedHints);
-        expect(uniqueHints.size).toBe(hintData.sortedHints.length);
+            const hintData = await fetchRegionalHintSnapshot(page);
+            const uniqueHints = new Set(hintData.sortedHints);
+            expect(uniqueHints.size).toBe(hintData.sortedHints.length);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -212,28 +228,32 @@ test.describe('cmd_hints_regional (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('4.1 should have visible hints (offsetParent !== null)', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
 
-        const hintData = await fetchRegionalHintSnapshot(page);
-        expect(hintData.sample.length).toBeGreaterThan(0);
-        for (const hint of hintData.sample) {
-            expect(hint.visible).toBe(true);
-        }
+            const hintData = await fetchRegionalHintSnapshot(page);
+            expect(hintData.sample.length).toBeGreaterThan(0);
+            for (const hint of hintData.sample) {
+                expect(hint.visible).toBe(true);
+            }
+        });
     });
 
     test('4.2 should have hints with valid positions', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
 
-        const hintData = await fetchRegionalHintSnapshot(page);
-        for (const hint of hintData.sample) {
-            expect(hint.position).toBeDefined();
-            expect(typeof hint.position.left).toBe('number');
-            expect(typeof hint.position.top).toBe('number');
-        }
+            const hintData = await fetchRegionalHintSnapshot(page);
+            for (const hint of hintData.sample) {
+                expect(hint.position).toBeDefined();
+                expect(typeof hint.position.left).toBe('number');
+                expect(typeof hint.position.top).toBe('number');
+            }
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -241,35 +261,39 @@ test.describe('cmd_hints_regional (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('5.1 should clear hints when pressing Escape', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
 
-        const beforeClear = await fetchRegionalHintSnapshot(page);
-        expect(beforeClear.found).toBe(true);
-        expect(beforeClear.count).toBeGreaterThan(0);
+            const beforeClear = await fetchRegionalHintSnapshot(page);
+            expect(beforeClear.found).toBe(true);
+            expect(beforeClear.count).toBeGreaterThan(0);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        const afterClear = await fetchRegionalHintSnapshot(page);
-        expect(afterClear.count).toBe(0);
+            const afterClear = await fetchRegionalHintSnapshot(page);
+            expect(afterClear.count).toBe(0);
+        });
     });
 
     test('5.2 should allow creating hints again after clearing', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
 
-        const hintData = await fetchRegionalHintSnapshot(page);
-        expect(hintData.found).toBe(true);
-        expect(hintData.count).toBeGreaterThan(0);
+            const hintData = await fetchRegionalHintSnapshot(page);
+            expect(hintData.found).toBe(true);
+            expect(hintData.count).toBeGreaterThan(0);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -277,23 +301,25 @@ test.describe('cmd_hints_regional (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('6.1 should create consistent hints across multiple invocations', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
-        const snapshot1 = await fetchRegionalHintSnapshot(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
+            const snapshot1 = await fetchRegionalHintSnapshot(page);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
-        await page.waitForTimeout(200);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
+            await page.waitForTimeout(200);
 
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHintCount(page, 1);
-        const snapshot2 = await fetchRegionalHintSnapshot(page);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHintCount(page, 1);
+            const snapshot2 = await fetchRegionalHintSnapshot(page);
 
-        // Regional hints can vary by ±1 across invocations due to viewport/timing
-        expect(Math.abs(snapshot1.count - snapshot2.count)).toBeLessThanOrEqual(2);
-        expect(snapshot2.count).toBeGreaterThan(0);
+            // Regional hints can vary by ±1 across invocations due to viewport/timing
+            expect(Math.abs(snapshot1.count - snapshot2.count)).toBeLessThanOrEqual(2);
+            expect(snapshot2.count).toBeGreaterThan(0);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -301,16 +327,18 @@ test.describe('cmd_hints_regional (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('7.1 should handle rapid hint creation and clearing', async () => {
-        for (let i = 0; i < 3; i++) {
-            await page.mouse.click(100, 100);
-            await page.keyboard.press('L');
-            await waitForRegionalHintCount(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            for (let i = 0; i < 3; i++) {
+                await page.mouse.click(100, 100);
+                await page.keyboard.press('L');
+                await waitForRegionalHintCount(page, 1);
 
-            const snap = await fetchRegionalHintSnapshot(page);
-            expect(snap.count).toBeGreaterThan(0);
+                const snap = await fetchRegionalHintSnapshot(page);
+                expect(snap.count).toBeGreaterThan(0);
 
-            await page.keyboard.press('Escape');
-            await waitForHintsCleared(page);
-        }
+                await page.keyboard.press('Escape');
+                await waitForHintsCleared(page);
+            }
+        });
     });
 });

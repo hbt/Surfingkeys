@@ -14,15 +14,17 @@
  */
 
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_exit_regional';
 const FIXTURE_URL = `${FIXTURE_BASE}/regional-hints-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers
@@ -72,11 +74,12 @@ test.describe('cmd_hints_exit_regional (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(600);
     });
 
@@ -93,8 +96,7 @@ test.describe('cmd_hints_exit_regional (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_exit_regional');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -103,14 +105,18 @@ test.describe('cmd_hints_exit_regional (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 page has paragraph elements', async () => {
-        const pCount = await page.locator('p').count();
-        expect(pCount).toBeGreaterThan(30);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const pCount = await page.locator('p').count();
+            expect(pCount).toBeGreaterThan(30);
+        });
     });
 
     test('1.2 no hints initially', async () => {
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(false);
-        expect(snap.count).toBe(0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(false);
+            expect(snap.count).toBe(0);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -118,77 +124,87 @@ test.describe('cmd_hints_exit_regional (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 should enter regional hints mode with L key', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHints(page, 1);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(true);
-        expect(snap.count).toBeGreaterThan(0);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(true);
+            expect(snap.count).toBeGreaterThan(0);
+        });
     });
 
     test('2.2 Escape clears regional hints without selecting', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHints(page, 1);
 
-        const before = await fetchHintSnapshot(page);
-        expect(before.count).toBeGreaterThan(0);
+            const before = await fetchHintSnapshot(page);
+            expect(before.count).toBeGreaterThan(0);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        const after = await fetchHintSnapshot(page);
-        expect(after.count).toBe(0);
+            const after = await fetchHintSnapshot(page);
+            expect(after.count).toBe(0);
+        });
     });
 
     test('2.3 can re-enter regional hints after Escape exit', async () => {
-        // First entry and exit
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHints(page, 1);
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // First entry and exit
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHints(page, 1);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        // Re-enter
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHints(page, 1);
+            // Re-enter
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHints(page, 1);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(true);
-        expect(snap.count).toBeGreaterThan(0);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(true);
+            expect(snap.count).toBeGreaterThan(0);
+        });
     });
 
     test('2.4 hint counts are consistent after re-entry', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHints(page, 1);
-        const snap1 = await fetchHintSnapshot(page);
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHints(page, 1);
+            const snap1 = await fetchHintSnapshot(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHints(page, 1);
-        const snap2 = await fetchHintSnapshot(page);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHints(page, 1);
+            const snap2 = await fetchHintSnapshot(page);
 
-        // Counts should be close (within 2) — viewport-visible elements may vary slightly
-        expect(Math.abs(snap1.count - snap2.count)).toBeLessThanOrEqual(2);
+            // Counts should be close (within 2) — viewport-visible elements may vary slightly
+            expect(Math.abs(snap1.count - snap2.count)).toBeLessThanOrEqual(2);
+        });
     });
 
     test('2.5 normal mode commands work after Escape exit (can scroll)', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('L');
-        await waitForRegionalHints(page, 1);
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('L');
+            await waitForRegionalHints(page, 1);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        await page.evaluate(() => window.scrollTo(0, 0));
-        const scrollBefore = await page.evaluate(() => window.scrollY);
-        await page.keyboard.press('j');
-        await page.waitForTimeout(300);
-        const scrollAfter = await page.evaluate(() => window.scrollY);
-        expect(scrollAfter).toBeGreaterThan(scrollBefore);
+            await page.evaluate(() => window.scrollTo(0, 0));
+            const scrollBefore = await page.evaluate(() => window.scrollY);
+            await page.keyboard.press('j');
+            await page.waitForTimeout(300);
+            const scrollAfter = await page.evaluate(() => window.scrollY);
+            expect(scrollAfter).toBeGreaterThan(scrollBefore);
+        });
     });
 });

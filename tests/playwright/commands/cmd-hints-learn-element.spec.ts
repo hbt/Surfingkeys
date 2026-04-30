@@ -9,15 +9,17 @@
  */
 
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_learn_element';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers
@@ -83,11 +85,12 @@ test.describe('cmd_hints_learn_element (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(600);
     });
 
@@ -104,8 +107,7 @@ test.describe('cmd_hints_learn_element (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_learn_element');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -114,16 +116,20 @@ test.describe('cmd_hints_learn_element (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 page has paragraph elements with text', async () => {
-        const pCount = await page.locator('p').count();
-        expect(pCount).toBeGreaterThan(40);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const pCount = await page.locator('p').count();
+            expect(pCount).toBeGreaterThan(40);
 
-        const hasText = await page.evaluate(() => ((document.querySelector('p') as HTMLElement)?.innerText?.length ?? 0) > 0);
-        expect(hasText).toBe(true);
+            const hasText = await page.evaluate(() => ((document.querySelector('p') as HTMLElement)?.innerText?.length ?? 0) > 0);
+            expect(hasText).toBe(true);
+        });
     });
 
     test('1.2 no hints initially', async () => {
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(false);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(false);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -131,63 +137,71 @@ test.describe('cmd_hints_learn_element (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 l command clears hints (command executed)', async () => {
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await enterRegionalHintsAndSelectFirst(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await enterRegionalHintsAndSelectFirst(page);
 
-        await page.keyboard.press('l');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('l');
+            await waitForHintsCleared(page);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.count).toBe(0);
-        expect(snap.found).toBe(false);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.count).toBe(0);
+            expect(snap.found).toBe(false);
+        });
     });
 
     test('2.2 no hints artifacts after l command', async () => {
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await enterRegionalHintsAndSelectFirst(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await enterRegionalHintsAndSelectFirst(page);
 
-        await page.keyboard.press('l');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('l');
+            await waitForHintsCleared(page);
 
-        const hostCount = await page.evaluate(() =>
-            document.querySelectorAll('.surfingkeys_hints_host').length
-        );
-        expect(hostCount).toBe(0);
+            const hostCount = await page.evaluate(() =>
+                document.querySelectorAll('.surfingkeys_hints_host').length
+            );
+            expect(hostCount).toBe(0);
+        });
     });
 
     test('2.3 can re-enter regional hints after l command', async () => {
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await enterRegionalHintsAndSelectFirst(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await enterRegionalHintsAndSelectFirst(page);
 
-        await page.keyboard.press('l');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('l');
+            await waitForHintsCleared(page);
 
-        // Close omnibar (may need multiple Escapes if it opened)
-        for (let i = 0; i < 3; i++) {
-            await page.keyboard.press('Escape');
-            await page.waitForTimeout(100);
-        }
-        await page.evaluate(() => {
-            document.querySelectorAll('.surfingkeys_hints_host').forEach(h => h.remove());
+            // Close omnibar (may need multiple Escapes if it opened)
+            for (let i = 0; i < 3; i++) {
+                await page.keyboard.press('Escape');
+                await page.waitForTimeout(100);
+            }
+            await page.evaluate(() => {
+                document.querySelectorAll('.surfingkeys_hints_host').forEach(h => h.remove());
+            });
+            await page.waitForTimeout(300);
+
+            // Re-enter regional hints
+            await page.mouse.click(100, 100);
+            await page.waitForTimeout(200);
+            await page.keyboard.press('L');
+            await waitForRegionalHints(page, 1);
+
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(true);
+            expect(snap.count).toBeGreaterThan(0);
         });
-        await page.waitForTimeout(300);
-
-        // Re-enter regional hints
-        await page.mouse.click(100, 100);
-        await page.waitForTimeout(200);
-        await page.keyboard.press('L');
-        await waitForRegionalHints(page, 1);
-
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(true);
-        expect(snap.count).toBeGreaterThan(0);
     });
 
     test('2.4 element text is truthy (page data integrity)', async () => {
-        const text1 = await page.evaluate(() => (document.querySelector('#line1') as HTMLElement)?.innerText || '');
-        const text2 = await page.evaluate(() => (document.querySelector('#line2') as HTMLElement)?.innerText || '');
-        expect(text1).toBeTruthy();
-        expect(text2).toBeTruthy();
-        expect(typeof text1).toBe('string');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const text1 = await page.evaluate(() => (document.querySelector('#line1') as HTMLElement)?.innerText || '');
+            const text2 = await page.evaluate(() => (document.querySelector('#line2') as HTMLElement)?.innerText || '');
+            expect(text1).toBeTruthy();
+            expect(text2).toBeTruthy();
+            expect(typeof text1).toBe('string');
+        });
     });
 });

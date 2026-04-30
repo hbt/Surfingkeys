@@ -10,15 +10,17 @@
  */
 
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_input_vim';
 const FIXTURE_URL = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers
@@ -73,11 +75,12 @@ test.describe('cmd_hints_input_vim (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(600);
     });
 
@@ -98,8 +101,7 @@ test.describe('cmd_hints_input_vim (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_input_vim');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -108,24 +110,32 @@ test.describe('cmd_hints_input_vim (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 page has text inputs', async () => {
-        const inputCount = await page.locator('input:not([type=submit]):not([disabled]):not([readonly])').count();
-        expect(inputCount).toBeGreaterThanOrEqual(8);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const inputCount = await page.locator('input:not([type=submit]):not([disabled]):not([readonly])').count();
+            expect(inputCount).toBeGreaterThanOrEqual(8);
+        });
     });
 
     test('1.2 page has textarea elements', async () => {
-        const textareaCount = await page.locator('textarea').count();
-        expect(textareaCount).toBeGreaterThanOrEqual(2);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const textareaCount = await page.locator('textarea').count();
+            expect(textareaCount).toBeGreaterThanOrEqual(2);
+        });
     });
 
     test('1.3 page has contenteditable elements', async () => {
-        const editableCount = await page.locator('[contenteditable=true]').count();
-        expect(editableCount).toBeGreaterThanOrEqual(1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const editableCount = await page.locator('[contenteditable=true]').count();
+            expect(editableCount).toBeGreaterThanOrEqual(1);
+        });
     });
 
     test('1.4 no hints initially', async () => {
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(false);
-        expect(snap.count).toBe(0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(false);
+            expect(snap.count).toBe(0);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -133,57 +143,65 @@ test.describe('cmd_hints_input_vim (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 should create hints when pressing I key', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('I');
-        await waitForHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('I');
+            await waitForHints(page, 1);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(true);
-        expect(snap.count).toBeGreaterThanOrEqual(3);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(true);
+            expect(snap.count).toBeGreaterThanOrEqual(3);
+        });
     });
 
     test('2.2 hints are in shadowRoot', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('I');
-        await waitForHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('I');
+            await waitForHints(page, 1);
 
-        const hostInfo = await page.evaluate(() => {
-            const h = document.querySelector('.surfingkeys_hints_host') as any;
-            return {
-                found: !!h,
-                hasShadowRoot: !!h?.shadowRoot,
-                children: h?.shadowRoot?.children.length || 0,
-            };
+            const hostInfo = await page.evaluate(() => {
+                const h = document.querySelector('.surfingkeys_hints_host') as any;
+                return {
+                    found: !!h,
+                    hasShadowRoot: !!h?.shadowRoot,
+                    children: h?.shadowRoot?.children.length || 0,
+                };
+            });
+            expect(hostInfo.found).toBe(true);
+            expect(hostInfo.hasShadowRoot).toBe(true);
+            expect(hostInfo.children).toBeGreaterThan(0);
         });
-        expect(hostInfo.found).toBe(true);
-        expect(hostInfo.hasShadowRoot).toBe(true);
-        expect(hostInfo.children).toBeGreaterThan(0);
     });
 
     test('2.3 hint labels are uppercase letters', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('I');
-        await waitForHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('I');
+            await waitForHints(page, 1);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.sample.length).toBeGreaterThan(0);
-        for (const hint of snap.sample) {
-            expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
-        }
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.sample.length).toBeGreaterThan(0);
+            for (const hint of snap.sample) {
+                expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
+            }
+        });
     });
 
     test('2.4 hint count does not exceed editable element count', async () => {
-        const editableCount = await page.locator(
-            'input:not([type=submit]):not([disabled]):not([readonly]), textarea, [contenteditable=true], select'
-        ).count();
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const editableCount = await page.locator(
+                'input:not([type=submit]):not([disabled]):not([readonly]), textarea, [contenteditable=true], select'
+            ).count();
 
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('I');
-        await waitForHints(page, 1);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('I');
+            await waitForHints(page, 1);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.count).toBeGreaterThan(0);
-        expect(snap.count).toBeLessThanOrEqual(editableCount);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.count).toBeGreaterThan(0);
+            expect(snap.count).toBeLessThanOrEqual(editableCount);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -191,56 +209,62 @@ test.describe('cmd_hints_input_vim (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('3.1 hints clear on Escape', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('I');
-        await waitForHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('I');
+            await waitForHints(page, 1);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.count).toBe(0);
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.count).toBe(0);
+        });
     });
 
     test('3.2 hints are consistent across invocations', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('I');
-        await waitForHints(page, 1);
-        const snap1 = await fetchHintSnapshot(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('I');
+            await waitForHints(page, 1);
+            const snap1 = await fetchHintSnapshot(page);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('I');
-        await waitForHints(page, 1);
-        const snap2 = await fetchHintSnapshot(page);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('I');
+            await waitForHints(page, 1);
+            const snap2 = await fetchHintSnapshot(page);
 
-        expect(snap1.count).toBe(snap2.count);
-        expect(snap1.sortedHints).toEqual(snap2.sortedHints);
+            expect(snap1.count).toBe(snap2.count);
+            expect(snap1.sortedHints).toEqual(snap2.sortedHints);
+        });
     });
 
     test('3.3 typing hint label filters hints', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('I');
-        await waitForHints(page, 1);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('I');
+            await waitForHints(page, 1);
 
-        const snap = await fetchHintSnapshot(page);
-        const initialCount = snap.count;
-        const firstHint = snap.sortedHints[0];
+            const snap = await fetchHintSnapshot(page);
+            const initialCount = snap.count;
+            const firstHint = snap.sortedHints[0];
 
-        if (firstHint && firstHint.length > 0) {
-            await page.keyboard.press(firstHint[0]);
-            // Wait until count changes or hints disappear
-            const deadline = Date.now() + 3000;
-            while (Date.now() < deadline) {
-                const current = await fetchHintSnapshot(page);
-                if (!current.found || current.count < initialCount) break;
-                await page.waitForTimeout(50);
+            if (firstHint && firstHint.length > 0) {
+                await page.keyboard.press(firstHint[0]);
+                // Wait until count changes or hints disappear
+                const deadline = Date.now() + 3000;
+                while (Date.now() < deadline) {
+                    const current = await fetchHintSnapshot(page);
+                    if (!current.found || current.count < initialCount) break;
+                    await page.waitForTimeout(50);
+                }
+
+                const filtered = await fetchHintSnapshot(page);
+                expect(filtered.count).toBeLessThanOrEqual(initialCount);
             }
-
-            const filtered = await fetchHintSnapshot(page);
-            expect(filtered.count).toBeLessThanOrEqual(initialCount);
-        }
+        });
     });
 });

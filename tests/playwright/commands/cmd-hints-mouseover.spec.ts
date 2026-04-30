@@ -9,15 +9,17 @@
  */
 
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_mouseover';
 const FIXTURE_URL = `${FIXTURE_BASE}/mouseover-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers
@@ -100,12 +102,13 @@ test.describe('cmd_hints_mouseover (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
 
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
@@ -115,10 +118,9 @@ test.describe('cmd_hints_mouseover (Playwright)', () => {
 
     test.afterAll(async () => {
         try {
-            if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_mouseover');
-        await cov?.close();
-        await context?.close();
-    } catch (_) {}
+            await covBg?.close();
+            await context?.close();
+        } catch (_) {}
     });
 
     // -----------------------------------------------------------------------
@@ -126,18 +128,22 @@ test.describe('cmd_hints_mouseover (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 should have expected interactive elements on page', async () => {
-        const linkCount = await page.locator('a').count();
-        const buttonCount = await page.locator('button').count();
-        const imgCount = await page.locator('img').count();
-        expect(linkCount).toBeGreaterThanOrEqual(5);
-        expect(buttonCount).toBeGreaterThanOrEqual(4);
-        expect(imgCount).toBeGreaterThanOrEqual(3);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const linkCount = await page.locator('a').count();
+            const buttonCount = await page.locator('button').count();
+            const imgCount = await page.locator('img').count();
+            expect(linkCount).toBeGreaterThanOrEqual(5);
+            expect(buttonCount).toBeGreaterThanOrEqual(4);
+            expect(imgCount).toBeGreaterThanOrEqual(3);
+        });
     });
 
     test('1.2 should have no hints initially', async () => {
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(false);
-        expect(snap.count).toBe(0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(false);
+            expect(snap.count).toBe(0);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -145,32 +151,36 @@ test.describe('cmd_hints_mouseover (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 should create hints when pressing Ctrl-h key', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Control+h');
-        await waitForHints(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Control+h');
+            await waitForHints(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        expect(hintData.found).toBe(true);
-        expect(hintData.count).toBeGreaterThanOrEqual(8);
+            const hintData = await fetchHintSnapshot(page);
+            expect(hintData.found).toBe(true);
+            expect(hintData.count).toBeGreaterThanOrEqual(8);
+        });
     });
 
     test('2.2 should have hints in shadowRoot at correct host element', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Control+h');
-        await waitForHints(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Control+h');
+            await waitForHints(page, 5);
 
-        const hostInfo = await page.evaluate(() => {
-            const hintsHost = document.querySelector('.surfingkeys_hints_host') as any;
-            return {
-                found: !!hintsHost,
-                hasShadowRoot: !!hintsHost?.shadowRoot,
-                shadowRootChildren: hintsHost?.shadowRoot?.children.length || 0,
-            };
+            const hostInfo = await page.evaluate(() => {
+                const hintsHost = document.querySelector('.surfingkeys_hints_host') as any;
+                return {
+                    found: !!hintsHost,
+                    hasShadowRoot: !!hintsHost?.shadowRoot,
+                    shadowRootChildren: hintsHost?.shadowRoot?.children.length || 0,
+                };
+            });
+
+            expect(hostInfo.found).toBe(true);
+            expect(hostInfo.hasShadowRoot).toBe(true);
+            expect(hostInfo.shadowRootChildren).toBeGreaterThan(0);
         });
-
-        expect(hostInfo.found).toBe(true);
-        expect(hostInfo.hasShadowRoot).toBe(true);
-        expect(hostInfo.shadowRootChildren).toBeGreaterThan(0);
     });
 
     // -----------------------------------------------------------------------
@@ -178,25 +188,29 @@ test.describe('cmd_hints_mouseover (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('3.1 should have properly formatted hint labels (uppercase letters)', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Control+h');
-        await waitForHints(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Control+h');
+            await waitForHints(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        expect(hintData.sample.length).toBeGreaterThan(0);
-        for (const hint of hintData.sample) {
-            expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
-        }
+            const hintData = await fetchHintSnapshot(page);
+            expect(hintData.sample.length).toBeGreaterThan(0);
+            for (const hint of hintData.sample) {
+                expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
+            }
+        });
     });
 
     test('3.2 should have unique hint labels', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Control+h');
-        await waitForHints(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Control+h');
+            await waitForHints(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        const uniqueHints = new Set(hintData.sortedHints);
-        expect(uniqueHints.size).toBe(hintData.sortedHints.length);
+            const hintData = await fetchHintSnapshot(page);
+            const uniqueHints = new Set(hintData.sortedHints);
+            expect(uniqueHints.size).toBe(hintData.sortedHints.length);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -204,46 +218,50 @@ test.describe('cmd_hints_mouseover (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('4.1 should trigger mouseover event when selecting hint', async () => {
-        await resetMouseoverCounts(page);
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Control+h');
-        await waitForHints(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await resetMouseoverCounts(page);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Control+h');
+            await waitForHints(page, 5);
 
-        const snapshot = await fetchHintSnapshot(page);
-        const firstHint: string = snapshot.sortedHints[0];
-        expect(firstHint).toBeDefined();
+            const snapshot = await fetchHintSnapshot(page);
+            const firstHint: string = snapshot.sortedHints[0];
+            expect(firstHint).toBeDefined();
 
-        if (firstHint) {
-            for (const char of firstHint) {
-                await page.keyboard.press(char);
-                await page.waitForTimeout(50);
+            if (firstHint) {
+                for (const char of firstHint) {
+                    await page.keyboard.press(char);
+                    await page.waitForTimeout(50);
+                }
+
+                await waitForHintsCleared(page);
+                // Wait for event propagation to update data attributes
+                await page.waitForTimeout(300);
+
+                const afterCounts = await getAllMouseoverCounts(page);
+                const totalAfter = Object.values(afterCounts).reduce((a: number, b: number) => a + b, 0);
+                expect(totalAfter).toBeGreaterThan(0);
             }
-
-            await waitForHintsCleared(page);
-            // Wait for event propagation to update data attributes
-            await page.waitForTimeout(300);
-
-            const afterCounts = await getAllMouseoverCounts(page);
-            const totalAfter = Object.values(afterCounts).reduce((a: number, b: number) => a + b, 0);
-            expect(totalAfter).toBeGreaterThan(0);
-        }
+        });
     });
 
     test('4.2 should not trigger mouseover when canceling with Escape', async () => {
-        await resetMouseoverCounts(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await resetMouseoverCounts(page);
 
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Control+h');
-        await waitForHints(page, 5);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Control+h');
+            await waitForHints(page, 5);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
-        await page.waitForTimeout(200);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
+            await page.waitForTimeout(200);
 
-        // After Escape (no selection), total should remain 0
-        const afterCounts = await getAllMouseoverCounts(page);
-        const total = Object.values(afterCounts).reduce((a: number, b: number) => a + b, 0);
-        expect(total).toBe(0);
+            // After Escape (no selection), total should remain 0
+            const afterCounts = await getAllMouseoverCounts(page);
+            const total = Object.values(afterCounts).reduce((a: number, b: number) => a + b, 0);
+            expect(total).toBe(0);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -251,34 +269,38 @@ test.describe('cmd_hints_mouseover (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('5.1 should clear hints when pressing Escape', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Control+h');
-        await waitForHints(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Control+h');
+            await waitForHints(page, 5);
 
-        const beforeClear = await fetchHintSnapshot(page);
-        expect(beforeClear.found).toBe(true);
-        expect(beforeClear.count).toBeGreaterThan(5);
+            const beforeClear = await fetchHintSnapshot(page);
+            expect(beforeClear.found).toBe(true);
+            expect(beforeClear.count).toBeGreaterThan(5);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        const afterClear = await fetchHintSnapshot(page);
-        expect(afterClear.count).toBe(0);
+            const afterClear = await fetchHintSnapshot(page);
+            expect(afterClear.count).toBe(0);
+        });
     });
 
     test('5.2 should allow creating hints again after clearing', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Control+h');
-        await waitForHints(page, 5);
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Control+h');
+            await waitForHints(page, 5);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        await page.mouse.click(100, 100);
-        await page.keyboard.press('Control+h');
-        await waitForHints(page, 5);
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('Control+h');
+            await waitForHints(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        expect(hintData.found).toBe(true);
-        expect(hintData.count).toBeGreaterThan(5);
+            const hintData = await fetchHintSnapshot(page);
+            expect(hintData.found).toBe(true);
+            expect(hintData.count).toBeGreaterThan(5);
+        });
     });
 });

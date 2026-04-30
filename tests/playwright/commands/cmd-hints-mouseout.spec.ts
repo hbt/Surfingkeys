@@ -9,15 +9,17 @@
  */
 
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_mouseout';
 const FIXTURE_URL = `${FIXTURE_BASE}/mouseout-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers
@@ -105,12 +107,13 @@ test.describe('cmd_hints_mouseout (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
 
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
@@ -120,10 +123,9 @@ test.describe('cmd_hints_mouseout (Playwright)', () => {
 
     test.afterAll(async () => {
         try {
-            if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_mouseout');
-        await cov?.close();
-        await context?.close();
-    } catch (_) {}
+            await covBg?.close();
+            await context?.close();
+        } catch (_) {}
     });
 
     // -----------------------------------------------------------------------
@@ -131,24 +133,30 @@ test.describe('cmd_hints_mouseout (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 should have expected interactive elements on page', async () => {
-        const linkCount = await page.locator('a').count();
-        const buttonCount = await page.locator('button').count();
-        const hoverBoxCount = await page.locator('.hover-box').count();
-        expect(linkCount).toBeGreaterThan(5);
-        expect(buttonCount).toBeGreaterThan(2);
-        expect(hoverBoxCount).toBeGreaterThan(3);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const linkCount = await page.locator('a').count();
+            const buttonCount = await page.locator('button').count();
+            const hoverBoxCount = await page.locator('.hover-box').count();
+            expect(linkCount).toBeGreaterThan(5);
+            expect(buttonCount).toBeGreaterThan(2);
+            expect(hoverBoxCount).toBeGreaterThan(3);
+        });
     });
 
     test('1.2 should have no hints initially', async () => {
-        const snap = await fetchHintSnapshot(page);
-        expect(snap.found).toBe(false);
-        expect(snap.count).toBe(0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const snap = await fetchHintSnapshot(page);
+            expect(snap.found).toBe(false);
+            expect(snap.count).toBe(0);
+        });
     });
 
     test('1.3 should have elements with data-hovered attribute', async () => {
-        const box1State = await getElementHoverState(page, 'box1');
-        expect(box1State.found).toBe(true);
-        expect(box1State.hovered).toBe(false);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const box1State = await getElementHoverState(page, 'box1');
+            expect(box1State.found).toBe(true);
+            expect(box1State.hovered).toBe(false);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -156,30 +164,34 @@ test.describe('cmd_hints_mouseout (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 should create hints when triggering mouseout hints', async () => {
-        await triggerMouseoutHints(page);
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await triggerMouseoutHints(page);
+            await waitForHintCount(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        expect(hintData.found).toBe(true);
-        expect(hintData.count).toBeGreaterThan(5);
+            const hintData = await fetchHintSnapshot(page);
+            expect(hintData.found).toBe(true);
+            expect(hintData.count).toBeGreaterThan(5);
+        });
     });
 
     test('2.2 should have hints in shadowRoot at correct host element', async () => {
-        await triggerMouseoutHints(page);
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await triggerMouseoutHints(page);
+            await waitForHintCount(page, 5);
 
-        const hostInfo = await page.evaluate(() => {
-            const hintsHost = document.querySelector('.surfingkeys_hints_host') as any;
-            return {
-                found: !!hintsHost,
-                hasShadowRoot: !!hintsHost?.shadowRoot,
-                shadowRootChildren: hintsHost?.shadowRoot?.children.length || 0,
-            };
+            const hostInfo = await page.evaluate(() => {
+                const hintsHost = document.querySelector('.surfingkeys_hints_host') as any;
+                return {
+                    found: !!hintsHost,
+                    hasShadowRoot: !!hintsHost?.shadowRoot,
+                    shadowRootChildren: hintsHost?.shadowRoot?.children.length || 0,
+                };
+            });
+
+            expect(hostInfo.found).toBe(true);
+            expect(hostInfo.hasShadowRoot).toBe(true);
+            expect(hostInfo.shadowRootChildren).toBeGreaterThan(0);
         });
-
-        expect(hostInfo.found).toBe(true);
-        expect(hostInfo.hasShadowRoot).toBe(true);
-        expect(hostInfo.shadowRootChildren).toBeGreaterThan(0);
     });
 
     // -----------------------------------------------------------------------
@@ -187,23 +199,27 @@ test.describe('cmd_hints_mouseout (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('3.1 should have properly formatted hint labels (uppercase letters)', async () => {
-        await triggerMouseoutHints(page);
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await triggerMouseoutHints(page);
+            await waitForHintCount(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        expect(hintData.sample.length).toBeGreaterThan(0);
-        for (const hint of hintData.sample) {
-            expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
-        }
+            const hintData = await fetchHintSnapshot(page);
+            expect(hintData.sample.length).toBeGreaterThan(0);
+            for (const hint of hintData.sample) {
+                expect(hint.text).toMatch(/^[A-Z]{1,3}$/);
+            }
+        });
     });
 
     test('3.2 should have unique hint labels', async () => {
-        await triggerMouseoutHints(page);
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await triggerMouseoutHints(page);
+            await waitForHintCount(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        const uniqueHints = new Set(hintData.sortedHints);
-        expect(uniqueHints.size).toBe(hintData.sortedHints.length);
+            const hintData = await fetchHintSnapshot(page);
+            const uniqueHints = new Set(hintData.sortedHints);
+            expect(uniqueHints.size).toBe(hintData.sortedHints.length);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -211,31 +227,33 @@ test.describe('cmd_hints_mouseout (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('4.1 should trigger mouseout on elements when hint selected', async () => {
-        // Create hints and select one to verify the command dispatches a mouseout event
-        await triggerMouseoutHints(page);
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Create hints and select one to verify the command dispatches a mouseout event
+            await triggerMouseoutHints(page);
+            await waitForHintCount(page, 5);
 
-        const snapshot = await fetchHintSnapshot(page);
-        const firstHint: string = snapshot.sortedHints[0];
+            const snapshot = await fetchHintSnapshot(page);
+            const firstHint: string = snapshot.sortedHints[0];
 
-        if (firstHint) {
-            for (const char of firstHint) {
-                await page.keyboard.press(char);
-                await page.waitForTimeout(50);
+            if (firstHint) {
+                for (const char of firstHint) {
+                    await page.keyboard.press(char);
+                    await page.waitForTimeout(50);
+                }
+
+                // Wait for hints to clear (command executed)
+                await waitForHintsCleared(page);
+                await page.waitForTimeout(200);
+
+                // Verify the command ran successfully (hints cleared = mouseout dispatched)
+                const snap = await fetchHintSnapshot(page);
+                expect(snap.count).toBe(0);
+
+                // Verify page is still responsive
+                const linkCount = await page.locator('a').count();
+                expect(linkCount).toBeGreaterThan(5);
             }
-
-            // Wait for hints to clear (command executed)
-            await waitForHintsCleared(page);
-            await page.waitForTimeout(200);
-
-            // Verify the command ran successfully (hints cleared = mouseout dispatched)
-            const snap = await fetchHintSnapshot(page);
-            expect(snap.count).toBe(0);
-
-            // Verify page is still responsive
-            const linkCount = await page.locator('a').count();
-            expect(linkCount).toBeGreaterThan(5);
-        }
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -243,51 +261,57 @@ test.describe('cmd_hints_mouseout (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('5.1 should clear hints when pressing Escape', async () => {
-        await triggerMouseoutHints(page);
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await triggerMouseoutHints(page);
+            await waitForHintCount(page, 5);
 
-        const beforeClear = await fetchHintSnapshot(page);
-        expect(beforeClear.found).toBe(true);
-        expect(beforeClear.count).toBeGreaterThan(5);
+            const beforeClear = await fetchHintSnapshot(page);
+            expect(beforeClear.found).toBe(true);
+            expect(beforeClear.count).toBeGreaterThan(5);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        const afterClear = await fetchHintSnapshot(page);
-        expect(afterClear.count).toBe(0);
+            const afterClear = await fetchHintSnapshot(page);
+            expect(afterClear.count).toBe(0);
+        });
     });
 
     test('5.2 should clear hints after selecting hint by label', async () => {
-        await triggerMouseoutHints(page);
-        await waitForHintCount(page, 5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await triggerMouseoutHints(page);
+            await waitForHintCount(page, 5);
 
-        const snapshot = await fetchHintSnapshot(page);
-        const firstHint: string = snapshot.sortedHints[0];
+            const snapshot = await fetchHintSnapshot(page);
+            const firstHint: string = snapshot.sortedHints[0];
 
-        if (firstHint) {
-            for (const char of firstHint) {
-                await page.keyboard.press(char);
-                await page.waitForTimeout(50);
+            if (firstHint) {
+                for (const char of firstHint) {
+                    await page.keyboard.press(char);
+                    await page.waitForTimeout(50);
+                }
+
+                await waitForHintsCleared(page);
+
+                const afterSnapshot = await fetchHintSnapshot(page);
+                expect(afterSnapshot.count).toBe(0);
             }
-
-            await waitForHintsCleared(page);
-
-            const afterSnapshot = await fetchHintSnapshot(page);
-            expect(afterSnapshot.count).toBe(0);
-        }
+        });
     });
 
     test('5.3 should allow creating hints again after clearing', async () => {
-        await triggerMouseoutHints(page);
-        await waitForHintCount(page, 5);
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await triggerMouseoutHints(page);
+            await waitForHintCount(page, 5);
+            await page.keyboard.press('Escape');
+            await waitForHintsCleared(page);
 
-        await triggerMouseoutHints(page);
-        await waitForHintCount(page, 5);
+            await triggerMouseoutHints(page);
+            await waitForHintCount(page, 5);
 
-        const hintData = await fetchHintSnapshot(page);
-        expect(hintData.found).toBe(true);
-        expect(hintData.count).toBeGreaterThan(5);
+            const hintData = await fetchHintSnapshot(page);
+            expect(hintData.found).toBe(true);
+            expect(hintData.count).toBeGreaterThan(5);
+        });
     });
 });

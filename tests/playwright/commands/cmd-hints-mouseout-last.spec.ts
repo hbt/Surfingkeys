@@ -10,15 +10,17 @@
  */
 
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_hints_mouseout_last';
 const FIXTURE_URL = `${FIXTURE_BASE}/mouseover-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 // ---------------------------------------------------------------------------
 // Hint helpers
@@ -102,12 +104,13 @@ test.describe('cmd_hints_mouseout_last (Playwright)', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
 
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
@@ -117,10 +120,9 @@ test.describe('cmd_hints_mouseout_last (Playwright)', () => {
 
     test.afterAll(async () => {
         try {
-            if (cov) printCoverageDelta(await cov.delta(), 'cmd_hints_mouseout_last');
-        await cov?.close();
-        await context?.close();
-    } catch (_) {}
+            await covBg?.close();
+            await context?.close();
+        } catch (_) {}
     });
 
     // -----------------------------------------------------------------------
@@ -128,12 +130,16 @@ test.describe('cmd_hints_mouseout_last (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('1.1 should have expected elements on page', async () => {
-        const linkCount = await page.locator('a').count();
-        expect(linkCount).toBeGreaterThan(5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const linkCount = await page.locator('a').count();
+            expect(linkCount).toBeGreaterThan(5);
+        });
     });
 
     test('1.2 should have no hints initially', async () => {
-        expect(await areHintsCleared(page)).toBe(true);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            expect(await areHintsCleared(page)).toBe(true);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -141,15 +147,17 @@ test.describe('cmd_hints_mouseout_last (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('2.1 should not error when ;m is pressed without previous hints', async () => {
-        await page.mouse.click(100, 100);
-        await page.keyboard.press(';');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('m');
-        await page.waitForTimeout(200);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press(';');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('m');
+            await page.waitForTimeout(200);
 
-        // Page should still be responsive
-        const linkCount = await page.locator('a').count();
-        expect(linkCount).toBeGreaterThan(5);
+            // Page should still be responsive
+            const linkCount = await page.locator('a').count();
+            expect(linkCount).toBeGreaterThan(5);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -157,59 +165,63 @@ test.describe('cmd_hints_mouseout_last (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('3.1 should trigger mouseout on last hinted element after Ctrl-h hint selection', async () => {
-        await page.mouse.click(100, 100);
-        await triggerMouseoverHints(page);
-        await waitForHintsVisible(page);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await triggerMouseoverHints(page);
+            await waitForHintsVisible(page);
 
-        const snap = await fetchHintSnapshot(page);
-        const hintLabel: string = snap.sortedHints[0];
-        expect(hintLabel).toBeTruthy();
-        expect(hintLabel).toMatch(/^[A-Z]{1,3}$/);
+            const snap = await fetchHintSnapshot(page);
+            const hintLabel: string = snap.sortedHints[0];
+            expect(hintLabel).toBeTruthy();
+            expect(hintLabel).toMatch(/^[A-Z]{1,3}$/);
 
-        // Select the hint to trigger mouseover
-        for (const char of hintLabel) {
-            await page.keyboard.press(char);
+            // Select the hint to trigger mouseover
+            for (const char of hintLabel) {
+                await page.keyboard.press(char);
+                await page.waitForTimeout(50);
+            }
+            await page.waitForTimeout(300);
+
+            // Now trigger mouseout with ';m'
+            await page.keyboard.press(';');
             await page.waitForTimeout(50);
-        }
-        await page.waitForTimeout(300);
+            await page.keyboard.press('m');
+            await page.waitForTimeout(200);
 
-        // Now trigger mouseout with ';m'
-        await page.keyboard.press(';');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('m');
-        await page.waitForTimeout(200);
-
-        // Page should still be responsive
-        const linkCount = await page.locator('a').count();
-        expect(linkCount).toBeGreaterThan(5);
+            // Page should still be responsive
+            const linkCount = await page.locator('a').count();
+            expect(linkCount).toBeGreaterThan(5);
+        });
     });
 
     test('3.2 should not create hints when pressing ;m', async () => {
-        await page.mouse.click(100, 100);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
 
-        // Setup: trigger mouseover
-        await triggerMouseoverHints(page);
-        await waitForHintsVisible(page);
+            // Setup: trigger mouseover
+            await triggerMouseoverHints(page);
+            await waitForHintsVisible(page);
 
-        const snap = await fetchHintSnapshot(page);
-        const hintLabel: string = snap.sortedHints[0];
-        for (const char of hintLabel) {
-            await page.keyboard.press(char);
+            const snap = await fetchHintSnapshot(page);
+            const hintLabel: string = snap.sortedHints[0];
+            for (const char of hintLabel) {
+                await page.keyboard.press(char);
+                await page.waitForTimeout(50);
+            }
+            await page.waitForTimeout(300);
+
+            // Verify hints cleared after selection
+            expect(await areHintsCleared(page)).toBe(true);
+
+            // Press ';m'
+            await page.keyboard.press(';');
             await page.waitForTimeout(50);
-        }
-        await page.waitForTimeout(300);
+            await page.keyboard.press('m');
+            await page.waitForTimeout(200);
 
-        // Verify hints cleared after selection
-        expect(await areHintsCleared(page)).toBe(true);
-
-        // Press ';m'
-        await page.keyboard.press(';');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('m');
-        await page.waitForTimeout(200);
-
-        // Verify hints still cleared (;m should NOT create hints)
-        expect(await areHintsCleared(page)).toBe(true);
+            // Verify hints still cleared (;m should NOT create hints)
+            expect(await areHintsCleared(page)).toBe(true);
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -217,34 +229,36 @@ test.describe('cmd_hints_mouseout_last (Playwright)', () => {
     // -----------------------------------------------------------------------
 
     test('4.1 should increment mouseout counter when ;m is pressed', async () => {
-        await page.mouse.click(100, 100);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
 
-        const initialMouseoutCount = await getMouseoutCount(page, 'link1');
+            const initialMouseoutCount = await getMouseoutCount(page, 'link1');
 
-        await triggerMouseoverHints(page);
-        await waitForHintsVisible(page);
+            await triggerMouseoverHints(page);
+            await waitForHintsVisible(page);
 
-        const snap = await fetchHintSnapshot(page);
-        const hintLabel: string = snap.sortedHints[0];
-        for (const char of hintLabel) {
-            await page.keyboard.press(char);
+            const snap = await fetchHintSnapshot(page);
+            const hintLabel: string = snap.sortedHints[0];
+            for (const char of hintLabel) {
+                await page.keyboard.press(char);
+                await page.waitForTimeout(50);
+            }
+            await page.waitForTimeout(300);
+
+            // Trigger mouseout with ';m'
+            await page.keyboard.press(';');
             await page.waitForTimeout(50);
-        }
-        await page.waitForTimeout(300);
+            await page.keyboard.press('m');
+            await page.waitForTimeout(300);
 
-        // Trigger mouseout with ';m'
-        await page.keyboard.press(';');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('m');
-        await page.waitForTimeout(300);
-
-        const finalMouseoutCount = await getMouseoutCount(page, 'link1');
-        // Either link1 received the mouseout, or another element did.
-        // Verify the command executed without error (page is still responsive).
-        const linkCount = await page.locator('a').count();
-        expect(linkCount).toBeGreaterThan(5);
-        // If link1 was the hinted element, its mouseout count should have increased.
-        // Accept either outcome since hint order can vary.
-        expect(typeof finalMouseoutCount).toBe('number');
+            const finalMouseoutCount = await getMouseoutCount(page, 'link1');
+            // Either link1 received the mouseout, or another element did.
+            // Verify the command executed without error (page is still responsive).
+            const linkCount = await page.locator('a').count();
+            expect(linkCount).toBeGreaterThan(5);
+            // If link1 was the hinted element, its mouseout count should have increased.
+            // Accept either outcome since hint order can vary.
+            expect(typeof finalMouseoutCount).toBe('number');
+        });
     });
 });
