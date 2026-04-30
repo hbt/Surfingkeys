@@ -164,33 +164,21 @@ export class ServiceWorkerCoverage {
             }
             raw = await this.cmd('Profiler.takePreciseCoverage').catch(() => null);
             if (!raw) return null;
-            // Baseline is stale (old SW instance) — clear it so subtraction is a no-op
-            this.baseline = new Map();
         }
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const dir = path.join(outputDir, label);
         fs.mkdirSync(dir, { recursive: true });
 
-        // Subtract baseline so counts reflect only what ran during the test,
-        // not extension startup or page-load initialization.
-        const result = (raw?.result ?? []).map((script: any) => ({
-            ...script,
-            functions: (script.functions ?? []).map((func: any) => ({
-                ...func,
-                ranges: (func.ranges ?? []).map((range: any) => {
-                    const base = this.baseline.get(`${script.scriptId}:${range.startOffset}`) ?? 0;
-                    return { ...range, count: Math.max(0, range.count - base) };
-                }),
-            })),
-        }));
-
+        // Raw counts since the last snapshot() call — isolation is achieved by
+        // calling cov.snapshot() in beforeAll after the page is ready, which
+        // resets the CDP counters past page-load noise. No subtraction needed.
         const filePath = path.join(dir, `${timestamp}.v8.json`);
         const payload = {
             spec: label,
             target: this.swUrl?.includes('background.js') ? 'service_worker' : 'page',
             scriptUrl: this.swUrl,
             timestamp: new Date().toISOString(),
-            result,
+            result: raw?.result ?? [],
         };
         fs.writeFileSync(filePath, JSON.stringify(payload, null, 2));
         console.log(`[Coverage:${label}] saved → ${filePath}`);

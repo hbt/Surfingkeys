@@ -38,6 +38,7 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
+        await cov?.snapshot(); // reset counters past page-load noise
     });
 
     test.afterAll(async () => {
