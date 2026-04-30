@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -44,6 +44,11 @@ async function getSelectionType(p: Page): Promise<string> {
     return p.evaluate(() => window.getSelection()?.type ?? '');
 }
 
+async function invokeVisualExpandParent(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_expand_parent');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_expand_parent (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -51,6 +56,7 @@ test.describe('cmd_visual_expand_parent (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -76,7 +82,7 @@ test.describe('cmd_visual_expand_parent (Playwright)', () => {
     test('pressing p expands selection to parent element', async () => {
         await enterVisualModeAtElement(page, 'simple-para');
         const before = await getSelectionTextLength(page);
-        await page.keyboard.press('p');
+        await invokeVisualExpandParent(page);
         await page.waitForTimeout(300);
         const after = await getSelectionTextLength(page);
         expect(after).toBeGreaterThan(before);
@@ -89,7 +95,7 @@ test.describe('cmd_visual_expand_parent (Playwright)', () => {
         const initial = await getSelectionTextLength(page);
         const lengths: number[] = [initial];
         for (let i = 0; i < 3; i++) {
-            await page.keyboard.press('p');
+            await invokeVisualExpandParent(page);
             await page.waitForTimeout(300);
             lengths.push(await getSelectionTextLength(page));
         }
@@ -102,7 +108,7 @@ test.describe('cmd_visual_expand_parent (Playwright)', () => {
 
     test('p results in Range selection type', async () => {
         await enterVisualModeAtElement(page, 'simple-para');
-        await page.keyboard.press('p');
+        await invokeVisualExpandParent(page);
         await page.waitForTimeout(300);
         const selType = await getSelectionType(page);
         expect(selType).toBe('Range');
@@ -112,7 +118,7 @@ test.describe('cmd_visual_expand_parent (Playwright)', () => {
     test('p works on inline elements', async () => {
         await enterVisualModeAtElement(page, 'inline-strong');
         const before = await getSelectionTextLength(page);
-        await page.keyboard.press('p');
+        await invokeVisualExpandParent(page);
         await page.waitForTimeout(300);
         const after = await getSelectionTextLength(page);
         expect(after).toBeGreaterThan(before);

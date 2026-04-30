@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -32,6 +32,11 @@ async function getSelectionInfo(p: Page) {
     });
 }
 
+async function invokeVisualRepeatFindOpposite(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_repeat_find_opposite');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_repeat_find_opposite (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -39,6 +44,7 @@ test.describe('cmd_visual_repeat_find_opposite (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -59,7 +65,7 @@ test.describe('cmd_visual_repeat_find_opposite (Playwright)', () => {
     test('pressing , without prior find does not error', async () => {
         await enterVisualMode(page, 'Multi-word');
         const before = await getSelectionInfo(page);
-        await page.keyboard.press(',');
+        await invokeVisualRepeatFindOpposite(page);
         await page.waitForTimeout(300);
         const after = await getSelectionInfo(page);
         expect(typeof after.focusOffset).toBe('number');
@@ -73,7 +79,7 @@ test.describe('cmd_visual_repeat_find_opposite (Playwright)', () => {
         await page.keyboard.type('e');
         await page.waitForTimeout(300);
         const afterForward = await getSelectionInfo(page);
-        await page.keyboard.press(',');
+        await invokeVisualRepeatFindOpposite(page);
         await page.waitForTimeout(300);
         const afterComma = await getSelectionInfo(page);
         expect(typeof afterComma.focusOffset).toBe('number');
@@ -87,7 +93,7 @@ test.describe('cmd_visual_repeat_find_opposite (Playwright)', () => {
         await page.keyboard.type('o');
         await page.waitForTimeout(300);
         const afterBackward = await getSelectionInfo(page);
-        await page.keyboard.press(',');
+        await invokeVisualRepeatFindOpposite(page);
         await page.waitForTimeout(300);
         const afterComma = await getSelectionInfo(page);
         expect(typeof afterComma.focusOffset).toBe('number');
@@ -102,7 +108,7 @@ test.describe('cmd_visual_repeat_find_opposite (Playwright)', () => {
         await page.waitForTimeout(300);
         const offsets: number[] = [];
         for (let i = 0; i < 3; i++) {
-            await page.keyboard.press(',');
+            await invokeVisualRepeatFindOpposite(page);
             await page.waitForTimeout(300);
             const sel = await getSelectionInfo(page);
             offsets.push(sel.focusOffset);

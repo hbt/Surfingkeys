@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -31,6 +31,11 @@ async function getSelectionInfo(p: Page) {
     });
 }
 
+async function invokeVisualToggleEnd(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_toggle_end');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_toggle_end (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -38,6 +43,7 @@ test.describe('cmd_visual_toggle_end (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -61,7 +67,7 @@ test.describe('cmd_visual_toggle_end (Playwright)', () => {
 
     test('pressing o in visual mode does not error', async () => {
         await enterVisualMode(page);
-        await page.keyboard.press('o');
+        await invokeVisualToggleEnd(page);
         await page.waitForTimeout(300);
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
@@ -80,7 +86,7 @@ test.describe('cmd_visual_toggle_end (Playwright)', () => {
         const before = await getSelectionInfo(page);
         if (DEBUG) console.log(`Before o: type=${before.type}, anchor=${before.anchorOffset}, focus=${before.focusOffset}`);
 
-        await page.keyboard.press('o');
+        await invokeVisualToggleEnd(page);
         await page.waitForTimeout(300);
         const after = await getSelectionInfo(page);
         if (DEBUG) console.log(`After o: type=${after.type}, anchor=${after.anchorOffset}, focus=${after.focusOffset}`);
@@ -101,7 +107,7 @@ test.describe('cmd_visual_toggle_end (Playwright)', () => {
         const before = await getSelectionInfo(page);
         const textBefore = before.text;
 
-        await page.keyboard.press('o');
+        await invokeVisualToggleEnd(page);
         await page.waitForTimeout(300);
         const after = await getSelectionInfo(page);
 
@@ -118,9 +124,9 @@ test.describe('cmd_visual_toggle_end (Playwright)', () => {
         await page.waitForTimeout(200);
         const initial = await getSelectionInfo(page);
 
-        await page.keyboard.press('o');
+        await invokeVisualToggleEnd(page);
         await page.waitForTimeout(300);
-        await page.keyboard.press('o');
+        await invokeVisualToggleEnd(page);
         await page.waitForTimeout(300);
         const back = await getSelectionInfo(page);
 
@@ -132,7 +138,7 @@ test.describe('cmd_visual_toggle_end (Playwright)', () => {
     test('o in caret mode does not error', async () => {
         await enterVisualMode(page);
         // Don't move — stay in caret mode
-        await page.keyboard.press('o');
+        await invokeVisualToggleEnd(page);
         await page.waitForTimeout(300);
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);

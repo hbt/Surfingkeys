@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -20,6 +20,11 @@ async function enterVisualModeAtText(p: Page, text: string) {
     await p.waitForTimeout(500);
 }
 
+async function invokeVisualClickNode(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_click_node');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_click_node (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -27,6 +32,7 @@ test.describe('cmd_visual_click_node (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -51,7 +57,7 @@ test.describe('cmd_visual_click_node (Playwright)', () => {
     test('pressing Enter in visual mode does not error', async () => {
         await enterVisualModeAtText(page, 'This is a medium');
         await page.waitForTimeout(200);
-        await page.keyboard.press('Enter');
+        await invokeVisualClickNode(page);
         await page.waitForTimeout(300);
         const sel = await page.evaluate(() => typeof window.getSelection());
         expect(sel).toBe('object');
@@ -76,7 +82,7 @@ test.describe('cmd_visual_click_node (Playwright)', () => {
         await page.waitForTimeout(100);
         await page.keyboard.press('v');
         await page.waitForTimeout(500);
-        await page.keyboard.press('Enter');
+        await invokeVisualClickNode(page);
         await page.waitForTimeout(500);
         const newHash = await page.evaluate(() => window.location.hash);
         // Either the link was clicked (hash changed) or command executed without error
@@ -88,7 +94,7 @@ test.describe('cmd_visual_click_node (Playwright)', () => {
     test('Enter on plain text does not error', async () => {
         await enterVisualModeAtText(page, 'Short line');
         await page.waitForTimeout(200);
-        await page.keyboard.press('Enter');
+        await invokeVisualClickNode(page);
         await page.waitForTimeout(300);
         const sel = await page.evaluate(() => typeof window.getSelection());
         expect(sel).toBe('object');
@@ -113,7 +119,7 @@ test.describe('cmd_visual_click_node (Playwright)', () => {
         await page.waitForTimeout(100);
         await page.keyboard.press('v');
         await page.waitForTimeout(500);
-        await page.keyboard.press('Enter');
+        await invokeVisualClickNode(page);
         await page.waitForTimeout(500);
         const hash = await page.evaluate(() => window.location.hash);
         // Either the link was clicked (hash changed) or command executed without error

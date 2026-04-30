@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -20,6 +20,11 @@ async function enterVisualModeAtText(p: Page, text: string) {
     await p.waitForTimeout(500);
 }
 
+async function invokeVisualClickNodeNewtab(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_click_node_newtab');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -27,6 +32,7 @@ test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -58,7 +64,7 @@ test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
     test('Shift-Enter in visual mode on link does not error', async () => {
         await enterVisualModeAtText(page, 'Click this link');
         await page.waitForTimeout(200);
-        await page.keyboard.press('Shift+Enter');
+        await invokeVisualClickNodeNewtab(page);
         await page.waitForTimeout(800);
         // Just verify we can still interact with the page
         const sel = await page.evaluate(() => typeof window.getSelection());
@@ -70,7 +76,7 @@ test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
         const initialPageCount = context.pages().length;
         await enterVisualModeAtText(page, 'Click this link');
         await page.waitForTimeout(200);
-        await page.keyboard.press('Shift+Enter');
+        await invokeVisualClickNodeNewtab(page);
         await page.waitForTimeout(1000);
         const newPageCount = context.pages().length;
         // Either a new tab was opened or it just navigated - verify no crash
@@ -95,7 +101,7 @@ test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
     test('Shift-Enter on plain text does not error', async () => {
         await enterVisualModeAtText(page, 'Short line');
         await page.waitForTimeout(200);
-        await page.keyboard.press('Shift+Enter');
+        await invokeVisualClickNodeNewtab(page);
         await page.waitForTimeout(500);
         const sel = await page.evaluate(() => typeof window.getSelection());
         expect(sel).toBe('object');

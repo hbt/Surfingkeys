@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -32,6 +32,11 @@ async function getSelectionInfo(p: Page) {
     });
 }
 
+async function invokeVisualSelectUnit(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_select_unit');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_select_unit (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -39,6 +44,7 @@ test.describe('cmd_visual_select_unit (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(1000);
     });
 
@@ -66,7 +72,7 @@ test.describe('cmd_visual_select_unit (Playwright)', () => {
         const before = await getSelectionInfo(page);
         await page.keyboard.press('V');
         await page.waitForTimeout(150);
-        await page.keyboard.press('w');
+        await invokeVisualSelectUnit(page);
         await page.waitForTimeout(400);
         const after = await getSelectionInfo(page);
         // Verify command executed without crash
@@ -79,7 +85,7 @@ test.describe('cmd_visual_select_unit (Playwright)', () => {
         const before = await getSelectionInfo(page);
         await page.keyboard.press('V');
         await page.waitForTimeout(150);
-        await page.keyboard.press('l');
+        await invokeVisualSelectUnit(page);
         await page.waitForTimeout(400);
         const after = await getSelectionInfo(page);
         expect(typeof after.focusOffset).toBe('number');
@@ -91,7 +97,7 @@ test.describe('cmd_visual_select_unit (Playwright)', () => {
         const before = await getSelectionInfo(page);
         await page.keyboard.press('V');
         await page.waitForTimeout(150);
-        await page.keyboard.press('p');
+        await invokeVisualSelectUnit(page);
         await page.waitForTimeout(400);
         const after = await getSelectionInfo(page);
         expect(typeof after.focusOffset).toBe('number');
@@ -103,7 +109,7 @@ test.describe('cmd_visual_select_unit (Playwright)', () => {
         const before = await getSelectionInfo(page);
         await page.keyboard.press('V');
         await page.waitForTimeout(150);
-        await page.keyboard.press('s');
+        await invokeVisualSelectUnit(page);
         await page.waitForTimeout(400);
         const after = await getSelectionInfo(page);
         expect(typeof after.focusOffset).toBe('number');

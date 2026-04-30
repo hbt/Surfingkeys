@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -30,6 +30,11 @@ async function getSelectionInfo(p: Page) {
     });
 }
 
+async function invokeVisualBackwardWord(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_backward_word');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_backward_word (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -37,6 +42,7 @@ test.describe('cmd_visual_backward_word (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -60,7 +66,7 @@ test.describe('cmd_visual_backward_word (Playwright)', () => {
 
     test('pressing b in visual mode does not error', async () => {
         await enterVisualMode(page);
-        await page.keyboard.press('b');
+        await invokeVisualBackwardWord(page);
         await page.waitForTimeout(300);
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
@@ -71,7 +77,7 @@ test.describe('cmd_visual_backward_word (Playwright)', () => {
     test('pressing b multiple times does not error', async () => {
         await enterVisualMode(page);
         for (let i = 0; i < 5; i++) {
-            await page.keyboard.press('b');
+            await invokeVisualBackwardWord(page);
             await page.waitForTimeout(150);
         }
         const sel = await getSelectionInfo(page);
@@ -83,7 +89,7 @@ test.describe('cmd_visual_backward_word (Playwright)', () => {
         await enterVisualMode(page);
         await page.keyboard.press('0');
         await page.waitForTimeout(200);
-        await page.keyboard.press('b');
+        await invokeVisualBackwardWord(page);
         await page.waitForTimeout(300);
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
@@ -93,7 +99,7 @@ test.describe('cmd_visual_backward_word (Playwright)', () => {
         await enterVisualMode(page);
         await page.keyboard.press('w');
         await page.waitForTimeout(200);
-        await page.keyboard.press('b');
+        await invokeVisualBackwardWord(page);
         await page.waitForTimeout(300);
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
@@ -102,7 +108,7 @@ test.describe('cmd_visual_backward_word (Playwright)', () => {
 
     test('visual mode remains accessible after pressing b', async () => {
         await enterVisualMode(page);
-        await page.keyboard.press('b');
+        await invokeVisualBackwardWord(page);
         await page.waitForTimeout(300);
         // Verify visual mode active via j
         const before = await page.evaluate(() => {

@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -31,6 +31,11 @@ async function getSelectionInfo(p: Page) {
     });
 }
 
+async function invokeVisualReadText(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_read_text');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_read_text (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -38,6 +43,7 @@ test.describe('cmd_visual_read_text (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -58,9 +64,7 @@ test.describe('cmd_visual_read_text (Playwright)', () => {
     test('gr in visual mode does not error', async () => {
         await enterVisualMode(page, 'Short');
         await page.waitForTimeout(200);
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('r');
+        await invokeVisualReadText(page);
         await page.waitForTimeout(500);
         const sel = await getSelectionInfo(page);
         expect(typeof sel.focusOffset).toBe('number');
@@ -74,9 +78,7 @@ test.describe('cmd_visual_read_text (Playwright)', () => {
         await page.waitForTimeout(200);
         const selBefore = await getSelectionInfo(page);
         if (DEBUG) console.log(`Selected before gr: "${selBefore.text}"`);
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('r');
+        await invokeVisualReadText(page);
         await page.waitForTimeout(500);
         const selAfter = await getSelectionInfo(page);
         // Selection should be preserved
@@ -86,14 +88,10 @@ test.describe('cmd_visual_read_text (Playwright)', () => {
 
     test('gr can be called multiple times', async () => {
         await enterVisualMode(page, 'medium');
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('r');
+        await invokeVisualReadText(page);
         await page.waitForTimeout(300);
         const first = await getSelectionInfo(page);
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('r');
+        await invokeVisualReadText(page);
         await page.waitForTimeout(300);
         const second = await getSelectionInfo(page);
         expect(typeof first.focusOffset).toBe('number');
@@ -104,9 +102,7 @@ test.describe('cmd_visual_read_text (Playwright)', () => {
     test('gr executes without crashing', async () => {
         await enterVisualMode(page, 'medium');
         const before = await getSelectionInfo(page);
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('r');
+        await invokeVisualReadText(page);
         await page.waitForTimeout(500);
         const after = await getSelectionInfo(page);
         // Verify gr executed (selection info is still accessible)

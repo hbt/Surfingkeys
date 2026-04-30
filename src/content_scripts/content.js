@@ -173,6 +173,7 @@ function buildCommandRegistry(modes) {
                     feature_group: meta.feature_group,
                     originalKey: meta.word,
                     mode: mode.name,
+                    modeRef: mode,
                     repeatIgnore: meta.repeatIgnore
                 });
             }
@@ -208,8 +209,30 @@ function _initModules() {
         const unique_id = e.detail;
         const cmd = commandRegistry.get(unique_id);
         if (cmd && typeof cmd.code === 'function') {
-            cmd.code();
-            document.documentElement.dataset.skInvokeResult = 'true';
+            try {
+                // Some commands (for example visual selection commands) read mode.map_node meta.
+                // Reconstruct map context from registered key sequence before invoking directly.
+                const mode = cmd.modeRef;
+                const previousMapNode = mode?.map_node;
+                if (mode?.mappings && cmd.originalKey) {
+                    let node = mode.mappings;
+                    for (const ch of cmd.originalKey) {
+                        node = node?.find(ch);
+                    }
+                    if (node) {
+                        mode.map_node = node;
+                    }
+                }
+
+                cmd.code();
+                document.documentElement.dataset.skInvokeResult = 'true';
+
+                if (mode && previousMapNode) {
+                    mode.map_node = previousMapNode;
+                }
+            } catch (_) {
+                document.documentElement.dataset.skInvokeResult = 'false';
+            }
         } else {
             document.documentElement.dataset.skInvokeResult = 'false';
         }

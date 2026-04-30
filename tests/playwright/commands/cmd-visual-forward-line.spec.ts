@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -38,6 +38,11 @@ async function getCurrentLineNumber(p: Page): Promise<number | null> {
     });
 }
 
+async function invokeVisualForwardLine(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_forward_line');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_forward_line (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -45,6 +50,7 @@ test.describe('cmd_visual_forward_line (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -73,7 +79,7 @@ test.describe('cmd_visual_forward_line (Playwright)', () => {
         if (DEBUG) console.log(`Initial line after entering visual mode: ${initialLine}`);
         expect(initialLine).toBeTruthy();
 
-        await page.keyboard.press('j');
+        await invokeVisualForwardLine(page);
         await page.waitForTimeout(300);
 
         const finalLine = await getCurrentLineNumber(page);
@@ -88,11 +94,11 @@ test.describe('cmd_visual_forward_line (Playwright)', () => {
 
         const startLine = await getCurrentLineNumber(page);
 
-        await page.keyboard.press('j');
+        await invokeVisualForwardLine(page);
         await page.waitForTimeout(300);
         const afterFirst = await getCurrentLineNumber(page);
 
-        await page.keyboard.press('j');
+        await invokeVisualForwardLine(page);
         await page.waitForTimeout(300);
         const afterSecond = await getCurrentLineNumber(page);
 
@@ -110,7 +116,7 @@ test.describe('cmd_visual_forward_line (Playwright)', () => {
         const before = await getCurrentLineNumber(page);
         expect(before).toBeTruthy();
 
-        await page.keyboard.press('j');
+        await invokeVisualForwardLine(page);
         await page.waitForTimeout(300);
 
         const after = await getCurrentLineNumber(page);

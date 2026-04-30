@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -38,6 +38,11 @@ async function getCurrentLineNumber(p: Page): Promise<number | null> {
     });
 }
 
+async function invokeVisualBackwardLine(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_backward_line');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_backward_line (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -45,6 +50,7 @@ test.describe('cmd_visual_backward_line (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -78,7 +84,7 @@ test.describe('cmd_visual_backward_line (Playwright)', () => {
         if (DEBUG) console.log(`Before k: line ${initialLine}`);
         expect(initialLine).toBeGreaterThan(1);
 
-        await page.keyboard.press('k');
+        await invokeVisualBackwardLine(page);
         await page.waitForTimeout(300);
 
         const finalLine = await getCurrentLineNumber(page);
@@ -98,7 +104,7 @@ test.describe('cmd_visual_backward_line (Playwright)', () => {
         if (DEBUG) console.log(`Before k: line ${before}`);
         expect(before).toBeGreaterThan(1);
 
-        await page.keyboard.press('k');
+        await invokeVisualBackwardLine(page);
         await page.waitForTimeout(300);
 
         const after = await getCurrentLineNumber(page);
@@ -118,7 +124,7 @@ test.describe('cmd_visual_backward_line (Playwright)', () => {
         const afterJ = await getCurrentLineNumber(page);
         if (DEBUG) console.log(`After 2x j: line ${afterJ}`);
 
-        await page.keyboard.press('k');
+        await invokeVisualBackwardLine(page);
         await page.waitForTimeout(300);
 
         const afterK = await getCurrentLineNumber(page);

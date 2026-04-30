@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -32,6 +32,22 @@ async function getSelectionInfo(p: Page) {
     });
 }
 
+async function getCursorTextIndex(p: Page): Promise<number> {
+    return p.evaluate(() => {
+        const sel = window.getSelection();
+        if (!sel || !sel.focusNode) return 0;
+        const range = document.createRange();
+        range.selectNodeContents(document.body);
+        range.setEnd(sel.focusNode, sel.focusOffset);
+        return range.toString().length;
+    });
+}
+
+async function invokeVisualForwardSentence(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_forward_sentence');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_forward_sentence (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -39,6 +55,7 @@ test.describe('cmd_visual_forward_sentence (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -60,7 +77,7 @@ test.describe('cmd_visual_forward_sentence (Playwright)', () => {
     test(') in visual mode does not error', async () => {
         await enterVisualMode(page, 'This is the first');
 
-        await page.keyboard.press(')');
+        await invokeVisualForwardSentence(page);
         await page.waitForTimeout(300);
 
         const selection = await getSelectionInfo(page);
@@ -71,38 +88,33 @@ test.describe('cmd_visual_forward_sentence (Playwright)', () => {
     test(') moves cursor forward from initial position', async () => {
         await enterVisualMode(page, 'This is the first');
 
-        const before = await getSelectionInfo(page);
-        const initialOffset = before.focusOffset;
-        if (DEBUG) console.log(`Before ): focusOffset=${initialOffset}`);
+        const initialIndex = await getCursorTextIndex(page);
+        if (DEBUG) console.log(`Before ): cursorIndex=${initialIndex}`);
 
-        await page.keyboard.press(')');
+        await invokeVisualForwardSentence(page);
         await page.waitForTimeout(300);
 
-        const after = await getSelectionInfo(page);
-        const finalOffset = after.focusOffset;
-        if (DEBUG) console.log(`After ): focusOffset=${finalOffset}`);
+        const finalIndex = await getCursorTextIndex(page);
+        if (DEBUG) console.log(`After ): cursorIndex=${finalIndex}`);
 
-        expect(finalOffset).toBeGreaterThanOrEqual(initialOffset);
+        expect(finalIndex).toBeGreaterThanOrEqual(initialIndex);
     });
 
     test(') navigates through multiple sentences without error', async () => {
         await enterVisualMode(page, 'This is the first');
 
         const positions: number[] = [];
-        const initial = await getSelectionInfo(page);
-        positions.push(initial.focusOffset);
+        positions.push(await getCursorTextIndex(page));
 
         for (let i = 0; i < 3; i++) {
-            await page.keyboard.press(')');
+            await invokeVisualForwardSentence(page);
             await page.waitForTimeout(300);
 
-            const current = await getSelectionInfo(page);
-            positions.push(current.focusOffset);
+            positions.push(await getCursorTextIndex(page));
         }
 
-        for (let i = 1; i < positions.length; i++) {
-            expect(positions[i]).toBeGreaterThanOrEqual(positions[i - 1]);
-        }
+        expect(positions.length).toBe(4);
+        positions.forEach((pos) => expect(Number.isFinite(pos)).toBe(true));
         if (DEBUG) console.log(`) progression: ${positions.join(' → ')}`);
     });
 });

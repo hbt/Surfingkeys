@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -32,6 +32,11 @@ async function getSelectionInfo(p: Page) {
     });
 }
 
+async function invokeVisualFindForward(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_find_forward');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_find_forward (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -39,6 +44,7 @@ test.describe('cmd_visual_find_forward (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -58,7 +64,7 @@ test.describe('cmd_visual_find_forward (Playwright)', () => {
 
     test('pressing f in visual mode does not error', async () => {
         await enterVisualMode(page, 'Short');
-        await page.keyboard.press('f');
+        await invokeVisualFindForward(page);
         await page.waitForTimeout(300);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(200);
@@ -70,7 +76,7 @@ test.describe('cmd_visual_find_forward (Playwright)', () => {
     test('f then character finds forward occurrence', async () => {
         await enterVisualMode(page, 'Multi-word line');
         const before = await getSelectionInfo(page);
-        await page.keyboard.press('f');
+        await invokeVisualFindForward(page);
         await page.waitForTimeout(200);
         await page.keyboard.type('o');
         await page.waitForTimeout(300);
@@ -82,12 +88,12 @@ test.describe('cmd_visual_find_forward (Playwright)', () => {
 
     test('f command can be invoked multiple times', async () => {
         await enterVisualMode(page, 'Multi-word line');
-        await page.keyboard.press('f');
+        await invokeVisualFindForward(page);
         await page.waitForTimeout(200);
         await page.keyboard.type('e');
         await page.waitForTimeout(300);
         const first = await getSelectionInfo(page);
-        await page.keyboard.press('f');
+        await invokeVisualFindForward(page);
         await page.waitForTimeout(200);
         await page.keyboard.type('e');
         await page.waitForTimeout(300);
@@ -100,7 +106,7 @@ test.describe('cmd_visual_find_forward (Playwright)', () => {
     test('Escape cancels find mode without moving cursor', async () => {
         await enterVisualMode(page, 'Short');
         const before = await getSelectionInfo(page);
-        await page.keyboard.press('f');
+        await invokeVisualFindForward(page);
         await page.waitForTimeout(200);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(200);

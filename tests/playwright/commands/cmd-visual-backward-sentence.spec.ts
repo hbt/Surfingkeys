@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -32,6 +32,11 @@ async function getSelectionInfo(p: Page) {
     });
 }
 
+async function invokeVisualBackwardSentence(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_backward_sentence');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_backward_sentence (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -39,6 +44,7 @@ test.describe('cmd_visual_backward_sentence (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -60,7 +66,7 @@ test.describe('cmd_visual_backward_sentence (Playwright)', () => {
     test('( in visual mode does not error', async () => {
         await enterVisualMode(page, 'third sentence here');
 
-        await page.keyboard.press('(');
+        await invokeVisualBackwardSentence(page);
         await page.waitForTimeout(300);
 
         const selection = await getSelectionInfo(page);
@@ -75,7 +81,7 @@ test.describe('cmd_visual_backward_sentence (Playwright)', () => {
         const initialOffset = before.focusOffset;
         if (DEBUG) console.log(`Before (: focusOffset=${initialOffset}`);
 
-        await page.keyboard.press('(');
+        await invokeVisualBackwardSentence(page);
         await page.waitForTimeout(300);
 
         const after = await getSelectionInfo(page);
@@ -93,7 +99,7 @@ test.describe('cmd_visual_backward_sentence (Playwright)', () => {
         positions.push(initial.focusOffset);
 
         for (let i = 0; i < 3; i++) {
-            await page.keyboard.press('(');
+            await invokeVisualBackwardSentence(page);
             await page.waitForTimeout(300);
 
             const current = await getSelectionInfo(page);

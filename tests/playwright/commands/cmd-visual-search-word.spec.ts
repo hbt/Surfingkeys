@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -46,6 +46,11 @@ async function getMatchCount(p: Page): Promise<number> {
     return p.evaluate(() => document.querySelectorAll('.surfingkeys_match_mark').length);
 }
 
+async function invokeVisualSearchWord(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_search_word');
+    expect(ok).toBe(true);
+}
+
 test.describe('cmd_visual_search_word (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -53,6 +58,7 @@ test.describe('cmd_visual_search_word (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -76,7 +82,7 @@ test.describe('cmd_visual_search_word (Playwright)', () => {
     test('pressing * in visual mode does not error', async () => {
         await enterVisualModeAtSelector(page, '#line4');
         await page.waitForTimeout(200);
-        await page.keyboard.press('*');
+        await invokeVisualSearchWord(page);
         await page.waitForTimeout(500);
         const sel = await getSelectionInfo(page);
         expect(typeof sel.focusOffset).toBe('number');
@@ -86,7 +92,7 @@ test.describe('cmd_visual_search_word (Playwright)', () => {
     test('* may create match highlights', async () => {
         await enterVisualModeAtSelector(page, '#line4');
         await page.waitForTimeout(200);
-        await page.keyboard.press('*');
+        await invokeVisualSearchWord(page);
         await page.waitForTimeout(500);
         const matchCount = await getMatchCount(page);
         expect(matchCount).toBeGreaterThanOrEqual(0);
@@ -95,7 +101,7 @@ test.describe('cmd_visual_search_word (Playwright)', () => {
 
     test('visual mode still responsive after *', async () => {
         await enterVisualModeAtSelector(page, '#line1');
-        await page.keyboard.press('*');
+        await invokeVisualSearchWord(page);
         await page.waitForTimeout(500);
         const sel = await getSelectionInfo(page);
         expect(typeof sel.focusOffset).toBe('number');
@@ -104,7 +110,7 @@ test.describe('cmd_visual_search_word (Playwright)', () => {
 
     test('* followed by n does not error', async () => {
         await enterVisualModeAtSelector(page, '#line1');
-        await page.keyboard.press('*');
+        await invokeVisualSearchWord(page);
         await page.waitForTimeout(500);
         await page.keyboard.press('n');
         await page.waitForTimeout(400);
