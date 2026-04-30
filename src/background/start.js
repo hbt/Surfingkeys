@@ -1328,6 +1328,44 @@ function start(browser) {
         });
     };
 
+    function tabHandleMagic(magic, currentTab, repeats, allWindowTabs) {
+        switch (magic) {
+            case 'DirectionRight': {
+                var right = allWindowTabs.filter(function(t) { return t.index > currentTab.index; });
+                return right.slice(0, repeats).map(function(t) { return t.id; });
+            }
+            case 'DirectionLeft': {
+                var left = allWindowTabs.filter(function(t) { return t.index < currentTab.index; });
+                left.reverse();
+                return left.slice(0, repeats).map(function(t) { return t.id; });
+            }
+            case 'AllExceptActive':
+                return allWindowTabs.filter(function(t) { return t.id !== currentTab.id; }).map(function(t) { return t.id; });
+            case 'AllInWindow':
+                return allWindowTabs.map(function(t) { return t.id; });
+            case 'AllExceptActiveAllWindows':
+                return allWindowTabs.filter(function(t) { return t.id !== currentTab.id; }).map(function(t) { return t.id; });
+            case 'ChildrenTabs':
+                return allWindowTabs.filter(function(t) { return t.openerTabId === currentTab.id; }).map(function(t) { return t.id; });
+            case 'CurrentTab':
+                return [currentTab.id];
+            default:
+                return [];
+        }
+    }
+
+    self.closeTabMagic = function(message, sender, sendResponse) {
+        chrome.tabs.query({currentWindow: true}, function(tabs) {
+            var repeats = message.repeats || 1;
+            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, tabs);
+            var pinnedIds = new Set(tabs.filter(function(t) { return t.pinned; }).map(function(t) { return t.id; }));
+            tabIds = tabIds.filter(function(id) { return !pinnedIds.has(id); });
+            if (tabIds.length) {
+                chrome.tabs.remove(tabIds);
+            }
+        });
+    };
+
     self.closeAudibleTab = function(message, sender, sendResponse) {
         chrome.tabs.query({audible: true}, function(tabs) {
             if (tabs) {

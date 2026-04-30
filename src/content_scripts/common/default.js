@@ -1429,6 +1429,66 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("tabOnly");
     });
+    mapkey('gxe', {
+        short: "Close 1 tab to the right",
+        unique_id: "cmd_tab_close_magic_right",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close 1 tab to the right of current tab",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'DirectionRight'});
+    });
+    mapkey('gxq', {
+        short: "Close 1 tab to the left",
+        unique_id: "cmd_tab_close_magic_left",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close 1 tab to the left of current tab",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'DirectionLeft'});
+    });
+    mapkey('gxc', {
+        short: "Close all tabs except current",
+        unique_id: "cmd_tab_close_magic_except_active",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close all tabs in current window except the active tab",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'AllExceptActive'});
+    });
+    mapkey('gxC', {
+        short: "Close all tabs in window",
+        unique_id: "cmd_tab_close_magic_all_window",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close all tabs in current window including the active tab",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'AllInWindow'});
+    });
+    mapkey('gxG', {
+        short: "Close all tabs in all windows except current",
+        unique_id: "cmd_tab_close_magic_all_windows",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close all tabs in all windows except the active tab",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'AllExceptActiveAllWindows'});
+    });
+    mapkey('gxk', {
+        short: "Close child tabs",
+        unique_id: "cmd_tab_close_magic_children",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close tabs opened directly from the current tab",
+        tags: ["tabs", "close", "magic"]
+    }, function() {
+        RUNTIME("closeTabMagic", {magic: 'ChildrenTabs'});
+    });
     mapkey('gxp', {
         short: "Close playing tab",
         unique_id: "cmd_tab_close_playing",
