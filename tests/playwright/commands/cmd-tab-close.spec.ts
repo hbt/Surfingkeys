@@ -1,7 +1,6 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
 
@@ -22,7 +21,7 @@ test.describe('cmd_tab_close (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_tab_close');
+        if (cov) await cov.flush('cmd_tab_close');
         await cov?.close();
         await context?.close();
     });

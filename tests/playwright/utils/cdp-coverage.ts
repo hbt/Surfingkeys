@@ -1,5 +1,7 @@
 import WebSocket from 'ws';
 import * as http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // ─── Service Worker Coverage ──────────────────────────────────────────────────
 
@@ -103,6 +105,36 @@ export class ServiceWorkerCoverage {
 
         this.baseline = this.buildCountMap(result);
         return { functions: hit.sort((a, b) => b.calls - a.calls), scriptUrl: this.swUrl };
+    }
+
+    /**
+     * Take a final coverage snapshot and write raw V8 JSON to disk.
+     * Replaces console-heavy printCoverageDelta for file-based persistence.
+     *
+     * Output: `<outputDir>/<label>/<ISO-timestamp>.v8.json`
+     * Schema: { spec, target, scriptUrl, timestamp, result: ScriptCoverage[] }
+     *
+     * Prints a single line to stdout: [Coverage:<label>] saved → <path>
+     * Returns the file path, or null if not connected / COVERAGE not set.
+     */
+    async flush(label: string, outputDir: string = 'coverage-raw'): Promise<string | null> {
+        if (!this.ws) return null;
+        const raw = await this.cmd('Profiler.takePreciseCoverage');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const dir = path.join(outputDir, label);
+        fs.mkdirSync(dir, { recursive: true });
+
+        const filePath = path.join(dir, `${timestamp}.v8.json`);
+        const payload = {
+            spec: label,
+            target: this.swUrl?.includes('background.js') ? 'service_worker' : 'page',
+            scriptUrl: this.swUrl,
+            timestamp: new Date().toISOString(),
+            result: raw?.result ?? [],
+        };
+        fs.writeFileSync(filePath, JSON.stringify(payload, null, 2));
+        console.log(`[Coverage:${label}] saved → ${filePath}`);
+        return filePath;
     }
 
     async close(): Promise<void> {
