@@ -1,12 +1,14 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'unmapallexcept_mapcmdkey';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 let page: Page;
 
 async function callSKApi(page: Page, fn: string, ...args: unknown[]) {
@@ -22,14 +24,14 @@ async function callSKApi(page: Page, fn: string, ...args: unknown[]) {
 
 test.describe('unmapAllExcept + mapcmdkey (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage();
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
-        cov = result.cov;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_unmap_all_except');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -47,25 +49,31 @@ test.describe('unmapAllExcept + mapcmdkey (Playwright)', () => {
     });
 
     test('j scrolls by default', async () => {
-        const result = await sendKeyAndWaitForScroll(page, 'j', { direction: 'down', minDelta: 20 });
-        expect(result.final).toBeGreaterThan(result.baseline);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const result = await sendKeyAndWaitForScroll(page, 'j', { direction: 'down', minDelta: 20 });
+            expect(result.final).toBeGreaterThan(result.baseline);
+        });
     });
 
     test('j silent after unmapAllExcept([])', async () => {
-        await callSKApi(page, 'unmapAllExcept', []);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await callSKApi(page, 'unmapAllExcept', []);
 
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await page.keyboard.press('j').catch(() => {});
-        await page.waitForTimeout(500);
-        const scrollY = await page.evaluate(() => window.scrollY);
-        expect(scrollY).toBe(0);
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await page.keyboard.press('j').catch(() => {});
+            await page.waitForTimeout(500);
+            const scrollY = await page.evaluate(() => window.scrollY);
+            expect(scrollY).toBe(0);
+        });
     });
 
     test('j scrolls after unmapAllExcept([]) + mapcmdkey("j", "cmd_scroll_down")', async () => {
-        await callSKApi(page, 'unmapAllExcept', []);
-        await callSKApi(page, 'mapcmdkey', 'j', 'cmd_scroll_down');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await callSKApi(page, 'unmapAllExcept', []);
+            await callSKApi(page, 'mapcmdkey', 'j', 'cmd_scroll_down');
 
-        const result = await sendKeyAndWaitForScroll(page, 'j', { direction: 'down', minDelta: 20 });
-        expect(result.final).toBeGreaterThan(result.baseline);
+            const result = await sendKeyAndWaitForScroll(page, 'j', { direction: 'down', minDelta: 20 });
+            expect(result.final).toBeGreaterThan(result.baseline);
+        });
     });
 });

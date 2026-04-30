@@ -1,15 +1,17 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_create_tab_group';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getTabGroups(ctx: BrowserContext): Promise<any[]> {
     const sw = ctx.serviceWorkers()[0];
@@ -83,17 +85,17 @@ async function tabGroupsAvailable(ctx: BrowserContext): Promise<boolean> {
 
 test.describe('cmd_create_tab_group (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_create_tab_group');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -107,55 +109,61 @@ test.describe('cmd_create_tab_group (Playwright)', () => {
     });
 
     test('tab groups API is available in service worker', async () => {
-        const available = await tabGroupsAvailable(context);
-        if (DEBUG) console.log(`Tab groups API available: ${available}`);
-        // Just report — don't fail if headless Chrome doesn't support it
-        expect(typeof available).toBe('boolean');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const available = await tabGroupsAvailable(context);
+            if (DEBUG) console.log(`Tab groups API available: ${available}`);
+            // Just report — don't fail if headless Chrome doesn't support it
+            expect(typeof available).toBe('boolean');
+        });
     });
 
     test('creating a tab group adds tab to a group', async () => {
-        const available = await tabGroupsAvailable(context);
-        if (!available) {
-            if (DEBUG) console.log('Tab groups API not available — skipping');
-            test.skip();
-            return;
-        }
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const available = await tabGroupsAvailable(context);
+            if (!available) {
+                if (DEBUG) console.log('Tab groups API not available — skipping');
+                test.skip();
+                return;
+            }
 
-        const tabId = await getActiveTabId(context);
-        expect(tabId).toBeGreaterThan(0);
+            const tabId = await getActiveTabId(context);
+            expect(tabId).toBeGreaterThan(0);
 
-        const initialGroups = await getTabGroups(context);
-        const initialCount = initialGroups.length;
+            const initialGroups = await getTabGroups(context);
+            const initialCount = initialGroups.length;
 
-        const groupId = await createTabGroupForTab(context, tabId);
-        expect(groupId).toBeGreaterThan(-1);
+            const groupId = await createTabGroupForTab(context, tabId);
+            expect(groupId).toBeGreaterThan(-1);
 
-        await page.waitForTimeout(300);
+            await page.waitForTimeout(300);
 
-        const newGroupId = await getTabGroupId(context, tabId);
-        expect(newGroupId).toBeGreaterThan(-1);
-        expect(newGroupId).toBe(groupId);
+            const newGroupId = await getTabGroupId(context, tabId);
+            expect(newGroupId).toBeGreaterThan(-1);
+            expect(newGroupId).toBe(groupId);
 
-        const finalGroups = await getTabGroups(context);
-        expect(finalGroups.length).toBeGreaterThan(initialCount);
-        if (DEBUG) console.log(`Tab grouped: groupId=${groupId}, total groups: ${finalGroups.length}`);
+            const finalGroups = await getTabGroups(context);
+            expect(finalGroups.length).toBeGreaterThan(initialCount);
+            if (DEBUG) console.log(`Tab grouped: groupId=${groupId}, total groups: ${finalGroups.length}`);
+        });
     });
 
     test('grouped tab appears in chrome.tabGroups API', async () => {
-        const available = await tabGroupsAvailable(context);
-        if (!available) {
-            if (DEBUG) console.log('Tab groups API not available — skipping');
-            test.skip();
-            return;
-        }
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const available = await tabGroupsAvailable(context);
+            if (!available) {
+                if (DEBUG) console.log('Tab groups API not available — skipping');
+                test.skip();
+                return;
+            }
 
-        const tabId = await getActiveTabId(context);
-        const groupId = await createTabGroupForTab(context, tabId);
-        await page.waitForTimeout(300);
+            const tabId = await getActiveTabId(context);
+            const groupId = await createTabGroupForTab(context, tabId);
+            await page.waitForTimeout(300);
 
-        const groups = await getTabGroups(context);
-        const ourGroup = groups.find((g: any) => g.id === groupId);
-        expect(ourGroup).toBeDefined();
-        if (DEBUG) console.log(`Group found: id=${ourGroup.id}, color=${ourGroup.color}`);
+            const groups = await getTabGroups(context);
+            const ourGroup = groups.find((g: any) => g.id === groupId);
+            expect(ourGroup).toBeDefined();
+            if (DEBUG) console.log(`Group found: id=${ourGroup.id}, color=${ourGroup.color}`);
+        });
     });
 });
