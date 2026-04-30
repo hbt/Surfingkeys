@@ -1406,10 +1406,13 @@ function start(browser) {
     };
 
     self.goToParentTab = function(message, sender, sendResponse) {
-        var openerTabId = sender.tab.openerTabId;
-        if (openerTabId) {
-            chrome.tabs.update(openerTabId, { active: true });
-        }
+        console.log('[goToParentTab] sender.tab.id=', sender.tab.id, 'sender.tab.openerTabId=', sender.tab.openerTabId);
+        chrome.tabs.get(sender.tab.id, function(tab) {
+            console.log('[goToParentTab] chrome.tabs.get result:', JSON.stringify(tab));
+            if (tab && tab.openerTabId) {
+                chrome.tabs.update(tab.openerTabId, { active: true });
+            }
+        });
     };
 
     self.reloadTabMagic = function(message, sender, sendResponse) {
@@ -1433,6 +1436,73 @@ function start(browser) {
                 if (tabIds.length > 1) {
                     chrome.tabs.move(tabIds.slice(1), { windowId: newWin.id, index: -1 });
                 }
+            });
+        });
+    };
+
+    self.copyTabUrlsMagic = function(message, sender, sendResponse) {
+        chrome.tabs.query({currentWindow: true}, function(tabs) {
+            var repeats = message.repeats || 1;
+            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, tabs);
+            var idSet = new Set(tabIds);
+            var urls = tabs.filter(function(t) { return idSet.has(t.id); }).map(function(t) { return t.url; });
+            if (urls.length) {
+                navigator.clipboard.writeText(urls.join('\n'));
+            }
+        });
+    };
+
+    self.pinTabMagic = function(message, sender, sendResponse) {
+        chrome.tabs.query({currentWindow: true}, function(tabs) {
+            var repeats = message.repeats || 1;
+            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, tabs);
+            var pinStateMap = {};
+            tabs.forEach(function(t) { pinStateMap[t.id] = t.pinned; });
+            tabIds.forEach(function(id) {
+                chrome.tabs.update(id, { pinned: !pinStateMap[id] });
+            });
+        });
+    };
+
+    self.reverseTabMagic = function(message, sender, sendResponse) {
+        chrome.tabs.query({currentWindow: true}, function(tabs) {
+            var tabIds = tabHandleMagic(message.magic, sender.tab, 1, tabs);
+            if (tabIds.length < 2) return;
+            var idSet = new Set(tabIds);
+            var targetTabs = tabs.filter(function(t) { return idSet.has(t.id); });
+            // Collect original indices in order
+            var originalIndices = targetTabs.map(function(t) { return t.index; });
+            // Reversed tab ids
+            var reversedIds = targetTabs.map(function(t) { return t.id; }).reverse();
+            // Move each tab to the corresponding original index sequentially
+            reversedIds.reduce(function(promise, id, i) {
+                return promise.then(function() {
+                    return new Promise(function(resolve) {
+                        chrome.tabs.move(id, { index: originalIndices[i] }, resolve);
+                    });
+                });
+            }, Promise.resolve());
+        });
+    };
+
+    self.bookmarkTabsMagic = function(message, sender, sendResponse) {
+        chrome.tabs.query({currentWindow: true}, function(tabs) {
+            var repeats = message.repeats || 1;
+            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, tabs);
+            var idSet = new Set(tabIds);
+            tabs.filter(function(t) { return idSet.has(t.id); }).forEach(function(t) {
+                chrome.bookmarks.create({ parentId: "1", title: t.title, url: t.url });
+            });
+        });
+    };
+
+    self.unbookmarkTabsMagic = function(message, sender, sendResponse) {
+        chrome.tabs.query({currentWindow: true}, function(tabs) {
+            var repeats = message.repeats || 1;
+            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, tabs);
+            var idSet = new Set(tabIds);
+            tabs.filter(function(t) { return idSet.has(t.id); }).forEach(function(t) {
+                removeBookmark(t.url);
             });
         });
     };
