@@ -390,6 +390,7 @@ function renderFilePage(file: FileReport, labelValue: string, target: string, ar
 function renderIndexPage(labelValue: string, target: string, artifactPath: string, reports: FileReport[]): string {
     const totalMapped = reports.reduce((sum, report) => sum + report.mappedLines, 0);
     const totalCovered = reports.reduce((sum, report) => sum + report.coveredLines, 0);
+    const hasReports = reports.length > 0;
     const rows = reports
         .sort((a, b) => a.displaySource.localeCompare(b.displaySource))
         .map(
@@ -434,14 +435,14 @@ function renderIndexPage(labelValue: string, target: string, artifactPath: strin
       <div class="footer-note">This report is generated directly from raw V8 coverage and source-map segments. It avoids Istanbul statement remapping.</div>
     </section>
     <section class="panel">
-      <table>
+      ${hasReports ? `<table>
         <thead>
           <tr><th>Source File</th><th>Covered</th><th>Coverage</th><th>Max Hit</th></tr>
         </thead>
         <tbody>
           ${rows}
         </tbody>
-      </table>
+      </table>` : `<div class="footer-note">No source-mapped bundle entries were present in this raw coverage artifact. This usually means the target stayed idle during the command window.</div>`}
     </section>
   </div>
 </body>
@@ -566,10 +567,6 @@ fs.rmSync(outputDir, { recursive: true, force: true });
 fs.mkdirSync(outputDir, { recursive: true });
 
 const fileReports = (await Promise.all((payload.result ?? []).map((script: any) => buildFileReport(script)))).flat();
-if (fileReports.length === 0) {
-    console.error(`[Coverage] No source-mapped files found for ${inputFile}`);
-    process.exit(1);
-}
 
 for (const report of fileReports) {
     const outPath = path.join(outputDir, report.outputPath);

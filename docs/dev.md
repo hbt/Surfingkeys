@@ -457,6 +457,11 @@ Output:
 COVERAGE=true bunx playwright test tests/playwright/commands/cmd-scroll-down.spec.ts
 ```
 
+**Parallel coverage run with manifest:**
+```bash
+npm run cov:parallel
+```
+
 Output includes coverage reports for each test:
 ```
 ✓ Test 1: pressing j key scrolls page down (1.3s)

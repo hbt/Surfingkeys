@@ -20,6 +20,7 @@ if (!specFile) {
 // cmd-tab-close-all-left.spec.ts → cmd_tab_close_all_left
 const label = path.basename(specFile, '.spec.ts').replace(/-/g, '_');
 const runStartMs = Date.now();
+const allowBackgroundOnly = label === 'cmd_tab_close';
 
 // 1. Run test with coverage (non-zero exit = test failures, not a fatal error)
 console.log(`\n[cov] 1/2  Running ${path.basename(specFile)} with coverage...`);
@@ -122,11 +123,15 @@ const byTarget = allFiles.reduce(
     { background: [] as string[], content: [] as string[] },
 );
 
-if (byTarget.background.length === 0 || byTarget.content.length === 0) {
+if (byTarget.background.length === 0 || (!allowBackgroundOnly && byTarget.content.length === 0)) {
     console.error('[cov] Missing required dual-target coverage artifacts.');
     console.error(`[cov] background files: ${byTarget.background.length}`);
     console.error(`[cov] content files:   ${byTarget.content.length}`);
-    console.error('[cov] Ensure the spec persists both target sessions (background + content).');
+    if (allowBackgroundOnly) {
+        console.error('[cov] cmd_tab_close is allowed to run background-only because the content target is destroyed by tab close.');
+    } else {
+        console.error('[cov] Ensure the spec persists both target sessions (background + content).');
+    }
     process.exit(1);
 }
 
