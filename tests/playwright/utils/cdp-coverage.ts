@@ -124,13 +124,26 @@ export class ServiceWorkerCoverage {
         const dir = path.join(outputDir, label);
         fs.mkdirSync(dir, { recursive: true });
 
+        // Subtract baseline so counts reflect only what ran during the test,
+        // not extension startup or page-load initialization.
+        const result = (raw?.result ?? []).map((script: any) => ({
+            ...script,
+            functions: (script.functions ?? []).map((func: any) => ({
+                ...func,
+                ranges: (func.ranges ?? []).map((range: any) => {
+                    const base = this.baseline.get(`${script.scriptId}:${range.startOffset}`) ?? 0;
+                    return { ...range, count: Math.max(0, range.count - base) };
+                }),
+            })),
+        }));
+
         const filePath = path.join(dir, `${timestamp}.v8.json`);
         const payload = {
             spec: label,
             target: this.swUrl?.includes('background.js') ? 'service_worker' : 'page',
             scriptUrl: this.swUrl,
             timestamp: new Date().toISOString(),
-            result: raw?.result ?? [],
+            result,
         };
         fs.writeFileSync(filePath, JSON.stringify(payload, null, 2));
         console.log(`[Coverage:${label}] saved → ${filePath}`);
@@ -195,8 +208,10 @@ export class ServiceWorkerCoverage {
         const map = new Map<FuncKey, number>();
         for (const script of result?.result ?? []) {
             for (const func of script.functions ?? []) {
-                const key: FuncKey = `${script.scriptId}:${func.ranges?.[0]?.startOffset ?? 0}`;
-                map.set(key, func.ranges?.[0]?.count ?? 0);
+                for (const range of func.ranges ?? []) {
+                    const key: FuncKey = `${script.scriptId}:${range.startOffset}`;
+                    map.set(key, range.count);
+                }
             }
         }
         return map;
