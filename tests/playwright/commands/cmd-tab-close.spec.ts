@@ -13,11 +13,11 @@ let cov: ServiceWorkerCoverage | undefined;
 
 test.describe('cmd_tab_close (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithCoverage();
         context = result.context;
+        cov = result.cov;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
