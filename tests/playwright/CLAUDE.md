@@ -16,6 +16,10 @@ COVERAGE=true bunx playwright test tests/playwright/commands/cmd-scroll-down.spe
 COVERAGE=true npm run test:playwright:parallel
 ```
 
+## Template
+
+See **[TEMPLATE_TEST.md](TEMPLATE_TEST.md)** for the canonical spec skeleton (page target and SW target variants).
+
 ## Coverage
 
 Output shows functions executed during each test with call counts:
