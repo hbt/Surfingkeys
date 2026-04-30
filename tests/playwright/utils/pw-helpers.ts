@@ -237,6 +237,58 @@ export async function collectCDPCoverage(port: number): Promise<any> {
 }
 
 /**
+ * Drop-in replacement for launchExtensionContext that also initialises a
+ * ServiceWorkerCoverage session when COVERAGE=true.
+ *
+ * @param fixtureUrl  Optional fixture page URL substring (e.g. FIXTURE_BASE + '/scroll-test.html').
+ *   When provided, coverage is NOT connected at launch time (the page doesn't exist yet).
+ *   Instead, call `await covInit()` after `page.goto()` to connect the profiler.
+ *   When omitted, coverage connects immediately to the extension service worker.
+ *
+ * Usage — background commands (SW target, init at launch):
+ *   const { context, cov } = await launchWithCoverage();
+ *
+ * Usage — content-script commands (page target, init after navigation):
+ *   const { context, cov, covInit } = await launchWithCoverage(FIXTURE_URL);
+ *   await page.goto(FIXTURE_URL);
+ *   await covInit();   // connects profiler to the now-existing page target
+ */
+export async function launchWithCoverage(fixtureUrl?: string): Promise<{
+    context: BrowserContext;
+    userDataDir: string;
+    cov: import('./cdp-coverage').ServiceWorkerCoverage | undefined;
+    /** Call after page.goto() when fixtureUrl was supplied, to connect the page-target profiler. */
+    covInit: () => Promise<import('./cdp-coverage').ServiceWorkerCoverage | undefined>;
+}> {
+    const isCoverage = process.env.COVERAGE === 'true';
+    const result = await launchExtensionContext({ enableCoverage: isCoverage });
+
+    let cov: import('./cdp-coverage').ServiceWorkerCoverage | undefined;
+
+    if (isCoverage && result.cdpPort && !fixtureUrl) {
+        // SW target: page exists at launch — init immediately.
+        const { ServiceWorkerCoverage } = require('./cdp-coverage');
+        cov = new ServiceWorkerCoverage();
+        const filter = (t: any) => t.type === 'service_worker' && t.url?.includes('background.js');
+        const ok = await cov!.init(result.cdpPort, filter);
+        if (!ok) cov = undefined;
+    }
+
+    // For page targets the fixture page doesn't exist yet; return a deferred init closure.
+    // covInit() returns the connected ServiceWorkerCoverage (or undefined on failure).
+    const covInit = async (): Promise<import('./cdp-coverage').ServiceWorkerCoverage | undefined> => {
+        if (!isCoverage || !result.cdpPort || !fixtureUrl) return undefined;
+        const { ServiceWorkerCoverage } = require('./cdp-coverage');
+        const instance: import('./cdp-coverage').ServiceWorkerCoverage = new ServiceWorkerCoverage();
+        const filter = (t: any) => t.type === 'page' && t.url?.includes(fixtureUrl);
+        const ok = await instance.init(result.cdpPort, filter);
+        return ok ? instance : undefined;
+    };
+
+    return { context: result.context, userDataDir: result.userDataDir, cov, covInit };
+}
+
+/**
  * Optionally collect and report V8 coverage if COVERAGE=true environment variable is set.
  * This helper encapsulates coverage collection logic so tests don't need separate implementations.
  *

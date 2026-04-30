@@ -1,9 +1,9 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchExtensionContext, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
-import { ServiceWorkerCoverage, printCoverageDelta } from '../utils/cdp-coverage';
+import { launchWithCoverage, sendKeyAndWaitForScroll, FIXTURE_BASE } from '../utils/pw-helpers';
+import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
+import { printCoverageDelta } from '../utils/cdp-coverage';
 
 const DEBUG = !!process.env.DEBUG;
-const COVERAGE = process.env.COVERAGE === 'true';
 
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
@@ -13,22 +13,14 @@ let swCoverage: ServiceWorkerCoverage | undefined;
 
 test.describe('cmd_scroll_up (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchExtensionContext({ enableCoverage: COVERAGE });
+        const result = await launchWithCoverage(FIXTURE_URL);
         context = result.context;
 
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
 
-        if (COVERAGE && result.cdpPort) {
-            swCoverage = new ServiceWorkerCoverage();
-            // Scroll commands execute in the content script (page context), not the service worker.
-            const ok = await swCoverage.init(
-                result.cdpPort,
-                (t) => t.type === 'page' && t.url?.includes('scroll-test.html'),
-            );
-            if (!ok) swCoverage = undefined;
-        }
+        swCoverage = await result.covInit();
     });
 
     test.beforeEach(async () => {
