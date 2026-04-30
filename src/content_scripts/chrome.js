@@ -9,7 +9,7 @@ import { installErrorHandlers } from '../common/errorCollector.js';
 installErrorHandlers('content_script');
 
 function usePdfViewer() {
-    window.location.replace(chrome.runtime.getURL("/pages/pdf_viewer.html") + "?file=" + document.URL);
+    window.location.replace(chrome.runtime.getURL("/pages/pdf_viewer.html") + "?file=" + encodeURIComponent(document.URL));
 }
 
 function readText(text, options) {

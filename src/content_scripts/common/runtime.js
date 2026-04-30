@@ -82,6 +82,7 @@ const runtime = (function() {
             repeatThreshold: 9,
             richHintsForKeystroke: 1000,
             colorfulKeystrokeHints: true,
+            scrollFallback: false,
             scrollStepSize: 70,
             showModeStatus: false,
             showProxyInStatusBar: false,
@@ -149,7 +150,7 @@ const runtime = (function() {
             if (topUrl === "null" || new URL(topUrl).origin === "file://") {
                 topUrl = "*";
             }
-            top.postMessage({surfingkeys_uihost_data: msg}, topUrl);
+            top.postMessage(msg, topUrl);
         });
     };
 

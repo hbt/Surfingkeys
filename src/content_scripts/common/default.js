@@ -1188,12 +1188,22 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         description: "Copy current page URL to clipboard",
         tags: ["clipboard", "yank", "url"]
     }, function() {
-        var url = window.location.href;
-        if (url.indexOf(chrome.runtime.getURL("/pages/pdf_viewer.html")) === 0) {
-            const filePos = window.location.search.indexOf("=") + 1;
-            url = window.location.search.substr(filePos);
+        if (RUNTIME.repeats > 1) {
+            const num = RUNTIME.repeats;
+            RUNTIME('getTabs', null, function (response) {
+                const start = response.tabs.findIndex((t) => t.active);
+                const range = response.tabs.slice(start, start + num);
+                clipboard.write(range.map(tab => tab.url).join('\n'));
+            });
+            RUNTIME.repeats = 1;
+        } else {
+            var url = window.location.href;
+            if (url.indexOf(chrome.runtime.getURL("/pages/pdf_viewer.html")) === 0) {
+                const filePos = window.location.search.indexOf("=") + 1;
+                url = window.location.search.substr(filePos);
+            }
+            clipboard.write(url);
         }
-        clipboard.write(url);
     });
     mapkey('yY', {
         short: "Copy all tabs URLs",
@@ -1374,10 +1384,11 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         unique_id: "cmd_nav_url_root",
         feature_group: 4,
         category: "navigation",
-        description: "Navigate to the root of current URL (origin only)",
+        description: "Navigate to root of current URL hierarchy, supports count prefix",
         tags: ["navigation", "url", "root"]
     }, function() {
-        window.location.href = window.location.origin;
+        window.location.href = window.location.href.replace(new RegExp('(://([^/]+/){'+RUNTIME.repeats+'}).*'), '$1');
+        RUNTIME.repeats = 1;
     });
     mapkey('gxt', {
         short: "Close tab on left",
@@ -2137,6 +2148,13 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             tags: ["omnibar", "bookmarks", "navigation"]
         }, function() {
             front.openOmnibar(({type: "Bookmarks"}));
+        });
+        mapkey(';x', {
+            short: "Close tabs by URL",
+            unique_id: "cmd_close_tabs_by_url",
+            tags: ["omnibar", "tabs"],
+        }, function() {
+            front.openOmnibar({type: "CloseTabs"});
         });
         mapkey('ab', {
             short: "Add bookmark omnibar",

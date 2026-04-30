@@ -41,6 +41,10 @@ const Front = (function() {
     const self = new Mode("Front");
     self._actions = {};
     self.topSize = [0, 0];
+    let destroyListeners = [];
+    self.addDestroyListener = (task) => {
+        destroyListeners.push(task);
+    };
     const omnibar = createOmnibar(self, clipboard);
 
     createCommands(normal, omnibar.command, omnibar);
@@ -269,7 +273,7 @@ const Front = (function() {
     function renderTabs(container, tabs) {
         setSanitizedContent(container, "");
         var hintLabels = hints.genLabels(tabs.length - 1);
-        const unitWidth = window.innerWidth / tabs.length - 2;
+        const unitWidth = (window.innerWidth - 2) / tabs.length - 2;
         const verticalTabs = runtime.conf.verticalTabs;
         container.className = verticalTabs ? "vertical" : "horizontal";
         renderTabTitles(container, tabs);
@@ -662,7 +666,7 @@ const Front = (function() {
         }
         self.flush();
         if (!_bubble.noPointerEvents) {
-            setDisplay(_bubble, {});
+            setDisplay(_bubble);
             self.enter(0, true);
         }
     };
@@ -799,6 +803,15 @@ const Front = (function() {
         self.topOrigin = message.origin;
         self.topSize = message.winSize;
         return new Date().getTime();
+    };
+    _actions['destroyFrontend'] = function(message) {
+        if (_display && _display.style.display !== "none") {
+            return false;
+        }
+        for (const task of destroyListeners) {
+            task();
+        }
+        return true;
     };
 
     window.addEventListener('message', function(event) {
