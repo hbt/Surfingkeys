@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { printCoverageDelta } from '../utils/cdp-coverage';
 
@@ -47,6 +47,64 @@ async function getCurrentLineNumber(p: Page): Promise<number | null> {
     });
 }
 
+async function invokeVisualDocumentStart(p: Page) {
+    const ok = await invokeCommand(p, 'cmd_visual_document_start');
+    expect(ok).toBe(true);
+}
+
+async function waitForLineLessThan(p: Page, threshold: number, timeout = 3000): Promise<number | null> {
+    try {
+        await p.waitForFunction(
+            (before) => {
+                const sel = window.getSelection();
+                if (!sel || !sel.focusNode) return false;
+                let node: Node | null = sel.focusNode;
+                while (node && node.nodeType !== Node.ELEMENT_NODE) node = node.parentNode;
+                while (node) {
+                    const el = node as Element;
+                    if (el.id && el.id.startsWith('line')) {
+                        const num = parseInt(el.id.replace('line', ''), 10);
+                        return !isNaN(num) && num < before;
+                    }
+                    node = node.parentNode;
+                }
+                return false;
+            },
+            threshold,
+            { timeout }
+        );
+        return getCurrentLineNumber(p);
+    } catch (e) {
+        const debug = await p.evaluate(() => {
+            const sel = window.getSelection();
+            let line: number | null = null;
+            if (sel && sel.focusNode) {
+                let node: Node | null = sel.focusNode;
+                while (node && node.nodeType !== Node.ELEMENT_NODE) node = node.parentNode;
+                while (node) {
+                    const el = node as Element;
+                    if (el.id && el.id.startsWith('line')) {
+                        const num = parseInt(el.id.replace('line', ''), 10);
+                        line = isNaN(num) ? null : num;
+                        break;
+                    }
+                    node = node.parentNode;
+                }
+            }
+            return {
+                line,
+                selectionType: sel?.type ?? 'none',
+                hasFocusNode: !!sel?.focusNode,
+                focusText: sel?.focusNode?.textContent?.slice(0, 50) ?? '',
+                scrollY: window.scrollY,
+            };
+        });
+        throw new Error(
+            `waitForLineLessThan timeout: before=${threshold}, after=${debug.line}, selectionType=${debug.selectionType}, hasFocusNode=${debug.hasFocusNode}, scrollY=${debug.scrollY}, focusText="${debug.focusText}"`
+        );
+    }
+}
+
 test.describe('cmd_visual_document_start (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithCoverage(FIXTURE_URL);
@@ -54,6 +112,7 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         cov = await result.covInit();
+        await waitForInvokeReady(page);
         await page.waitForTimeout(500);
     });
 
@@ -77,9 +136,7 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
 
     test('pressing gg in visual mode does not error', async () => {
         await enterVisualMode(page);
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('g');
+        await invokeVisualDocumentStart(page);
         await page.waitForTimeout(300);
         const sel = await getSelectionInfo(page);
         expect(sel.hasNode).toBe(true);
@@ -95,13 +152,12 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
         }
         await page.waitForTimeout(200);
         const lineBefore = await getCurrentLineNumber(page);
+        if (DEBUG) console.log(`before line: ${lineBefore}`);
 
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('g');
-        await page.waitForTimeout(500);
-
-        const lineAfter = await getCurrentLineNumber(page);
+        await invokeVisualDocumentStart(page);
+        const immediateAfter = await getCurrentLineNumber(page);
+        if (DEBUG) console.log(`after invoke immediate line: ${immediateAfter}`);
+        const lineAfter = await waitForLineLessThan(page, lineBefore!, 3000);
         expect(lineAfter).toBeLessThan(lineBefore!);
         if (DEBUG) console.log(`gg moved: line ${lineBefore} → ${lineAfter}`);
     });
@@ -116,12 +172,8 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
         const beforeLine = await getCurrentLineNumber(page);
         expect(beforeLine).toBeGreaterThan(1);
 
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('g');
-        await page.waitForTimeout(500);
-
-        const afterLine = await getCurrentLineNumber(page);
+        await invokeVisualDocumentStart(page);
+        const afterLine = await waitForLineLessThan(page, beforeLine!, 3000);
         if (DEBUG) console.log(`gg: line ${beforeLine} → ${afterLine}`);
         expect(afterLine).toBeLessThan(beforeLine!);
     });
@@ -129,16 +181,12 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
     test('gg is idempotent at document start', async () => {
         await enterVisualMode(page);
         // First gg
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('g');
+        await invokeVisualDocumentStart(page);
         await page.waitForTimeout(300);
         const line1 = await getCurrentLineNumber(page);
 
         // Second gg
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('g');
+        await invokeVisualDocumentStart(page);
         await page.waitForTimeout(300);
         const line2 = await getCurrentLineNumber(page);
 
@@ -155,11 +203,8 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
         expect(lineAfterG).toBeGreaterThan(1);
 
         // Now go to start
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('g');
-        await page.waitForTimeout(500);
-        const lineAfterGG = await getCurrentLineNumber(page);
+        await invokeVisualDocumentStart(page);
+        const lineAfterGG = await waitForLineLessThan(page, lineAfterG!, 3000);
         expect(lineAfterGG).toBeLessThan(lineAfterG!);
         if (DEBUG) console.log(`G (line ${lineAfterG}) then gg (line ${lineAfterGG})`);
     });

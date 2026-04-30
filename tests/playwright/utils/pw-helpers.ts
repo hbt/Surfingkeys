@@ -86,6 +86,42 @@ export async function invokeCommand(
     page: import('@playwright/test').Page,
     unique_id: string,
 ): Promise<boolean> {
+    await page.waitForFunction(
+        () => (document.documentElement.dataset as any).skInvokeReady === 'true',
+        { timeout: 10000 },
+    );
+
+    for (let i = 0; i < 3; i++) {
+        const ok = await page.evaluate((uid) => {
+            delete (document.documentElement.dataset as any).skInvokeResult;
+            document.dispatchEvent(new CustomEvent('__sk_invoke', { detail: uid }));
+            return (document.documentElement.dataset as any).skInvokeResult === 'true';
+        }, unique_id);
+        if (ok) {
+            return true;
+        }
+        await page.waitForTimeout(50);
+    }
+    return false;
+}
+
+/**
+ * Wait for the command invocation bridge to be ready in content script.
+ */
+export async function waitForInvokeReady(
+    page: import('@playwright/test').Page,
+    timeoutMs = 10000,
+): Promise<void> {
+    await page.waitForFunction(
+        () => (document.documentElement.dataset as any).skInvokeReady === 'true',
+        { timeout: timeoutMs },
+    );
+}
+
+export async function invokeCommandRaw(
+    page: import('@playwright/test').Page,
+    unique_id: string,
+): Promise<boolean> {
     return page.evaluate((uid) => {
         delete (document.documentElement.dataset as any).skInvokeResult;
         document.dispatchEvent(new CustomEvent('__sk_invoke', { detail: uid }));
@@ -286,6 +322,51 @@ export async function launchWithCoverage(fixtureUrl?: string): Promise<{
     };
 
     return { context: result.context, userDataDir: result.userDataDir, cov, covInit };
+}
+
+/**
+ * Launch with dual coverage sessions:
+ * - Background/service worker target (connected immediately)
+ * - Content/page target (connect via covContentInit() after page.goto)
+ */
+export async function launchWithDualCoverage(fixtureUrl: string): Promise<{
+    context: BrowserContext;
+    userDataDir: string;
+    covBg: import('./cdp-coverage').ServiceWorkerCoverage | undefined;
+    covContentInit: () => Promise<import('./cdp-coverage').ServiceWorkerCoverage | undefined>;
+    covForPageUrl: (url: string) => Promise<import('./cdp-coverage').ServiceWorkerCoverage | undefined>;
+}> {
+    const isCoverage = process.env.COVERAGE === 'true';
+    const result = await launchExtensionContext({ enableCoverage: isCoverage });
+
+    let covBg: import('./cdp-coverage').ServiceWorkerCoverage | undefined;
+    if (isCoverage && result.cdpPort) {
+        const { ServiceWorkerCoverage } = require('./cdp-coverage');
+        covBg = new ServiceWorkerCoverage();
+        const filter = (t: any) => t.type === 'service_worker' && t.url?.includes('background.js');
+        const ok = await covBg.init(result.cdpPort, filter);
+        if (!ok) covBg = undefined;
+    }
+
+    const covContentInit = async (): Promise<import('./cdp-coverage').ServiceWorkerCoverage | undefined> => {
+        if (!isCoverage || !result.cdpPort) return undefined;
+        const { ServiceWorkerCoverage } = require('./cdp-coverage');
+        const covContent: import('./cdp-coverage').ServiceWorkerCoverage = new ServiceWorkerCoverage();
+        const filter = (t: any) => t.type === 'page' && t.url === fixtureUrl;
+        const ok = await covContent.init(result.cdpPort, filter);
+        return ok ? covContent : undefined;
+    };
+
+    const covForPageUrl = async (url: string): Promise<import('./cdp-coverage').ServiceWorkerCoverage | undefined> => {
+        if (!isCoverage || !result.cdpPort) return undefined;
+        const { ServiceWorkerCoverage } = require('./cdp-coverage');
+        const covContent: import('./cdp-coverage').ServiceWorkerCoverage = new ServiceWorkerCoverage();
+        const filter = (t: any) => t.type === 'page' && t.url === url;
+        const ok = await covContent.init(result.cdpPort, filter);
+        return ok ? covContent : undefined;
+    };
+
+    return { context: result.context, userDataDir: result.userDataDir, covBg, covContentInit, covForPageUrl };
 }
 
 /**

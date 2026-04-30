@@ -319,14 +319,9 @@ function createVisual(clipboard, hints) {
             if (matches.length) {
                 dispatchSKEvent("front", ['showStatus', [undefined, undefined, currentOccurrence + 1 + ' / ' + matches.length]]);
             }
-
-            if (getBrowserName() !== "Firefox") {
-                modifySelection();
-            } else {
-                self.hideCursor();
-                selection.setPosition(document.body.firstChild, 0);
-                self.showCursor();
-            }
+            self.hideCursor();
+            setSelectionToDocumentStart();
+            self.showCursor();
         }
     });
 
@@ -694,6 +689,50 @@ function createVisual(clipboard, hints) {
             selection.modify(alter, sel[0], "word");
         }
         self.showCursor();
+    }
+
+    function setSelectionToDocumentStart() {
+        const lineStart = document.querySelector('[id^="line"]');
+        if (lineStart) {
+            const walker = document.createTreeWalker(lineStart, NodeFilter.SHOW_TEXT);
+            while (walker.nextNode()) {
+                const n = walker.currentNode;
+                if (n.nodeValue && n.nodeValue.trim().length > 0) {
+                    if (state === 2 && selection.anchorNode) {
+                        selection.extend(n, 0);
+                    } else {
+                        selection.setPosition(n, 0);
+                    }
+                    return;
+                }
+            }
+            if (state === 2 && selection.anchorNode) {
+                selection.extend(lineStart, 0);
+            } else {
+                selection.setPosition(lineStart, 0);
+            }
+            return;
+        }
+
+        let firstTextNode = null;
+        let firstAnyTextNode = null;
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+            const n = walker.currentNode;
+            if (!firstAnyTextNode) {
+                firstAnyTextNode = n;
+            }
+            if (n.nodeValue && n.nodeValue.trim().length > 0) {
+                firstTextNode = n;
+                break;
+            }
+        }
+        const startNode = firstTextNode || firstAnyTextNode || document.body.firstChild || document.body;
+        if (state === 2 && selection.anchorNode) {
+            selection.extend(startNode, 0);
+        } else {
+            selection.setPosition(startNode, 0);
+        }
     }
 
     const markHolder_ = document.createElement("div");

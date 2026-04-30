@@ -214,6 +214,7 @@ function _initModules() {
             document.documentElement.dataset.skInvokeResult = 'false';
         }
     });
+    document.documentElement.dataset.skInvokeReady = 'true';
 
     if (typeof(_browser.plugin) === "function") {
         _browser.plugin({ front });
