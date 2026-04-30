@@ -1,15 +1,17 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_yank_all_urls';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getAllTabUrls(ctx: BrowserContext): Promise<string[]> {
     const sw = ctx.serviceWorkers()[0];
@@ -25,55 +27,73 @@ async function getAllTabUrls(ctx: BrowserContext): Promise<string[]> {
 
 test.describe('cmd_yank_all_urls (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         await context.grantPermissions(['clipboard-read', 'clipboard-write']);
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_yank_all_urls');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
     test('background script can query all tab URLs', async () => {
-        const urls = await getAllTabUrls(context);
-        expect(Array.isArray(urls)).toBe(true);
-        expect(urls.length).toBeGreaterThan(0);
-        if (DEBUG) console.log(`Tab URLs: ${urls.join(', ')}`);
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                const urls = await getAllTabUrls(context);
+                expect(Array.isArray(urls)).toBe(true);
+                expect(urls.length).toBeGreaterThan(0);
+                if (DEBUG) console.log(`Tab URLs: ${urls.join(', ')}`);
+            },
+        );
     });
 
     test('pressing yY executes without error', async () => {
-        // yY = yank all tab URLs to clipboard
-        // We verify the command fires without throwing by checking tab count before/after
-        const urlsBefore = await getAllTabUrls(context);
-        expect(urlsBefore.length).toBeGreaterThan(0);
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                // yY = yank all tab URLs to clipboard
+                // We verify the command fires without throwing by checking tab count before/after
+                const urlsBefore = await getAllTabUrls(context);
+                expect(urlsBefore.length).toBeGreaterThan(0);
 
-        await page.keyboard.press('y');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('Y');
-        await page.waitForTimeout(500);
+                await page.keyboard.press('y');
+                await page.waitForTimeout(50);
+                await page.keyboard.press('Y');
+                await page.waitForTimeout(500);
 
-        // Tab count should be unchanged (yY doesn't open new tabs)
-        const urlsAfter = await getAllTabUrls(context);
-        expect(urlsAfter.length).toBe(urlsBefore.length);
-        if (DEBUG) console.log(`yY executed: ${urlsAfter.length} tabs present`);
+                // Tab count should be unchanged (yY doesn't open new tabs)
+                const urlsAfter = await getAllTabUrls(context);
+                expect(urlsAfter.length).toBe(urlsBefore.length);
+                if (DEBUG) console.log(`yY executed: ${urlsAfter.length} tabs present`);
+            },
+        );
     });
 
     test('multiple tabs are accessible for yY command', async () => {
-        // Open an extra tab so we have at least 2
-        const extra = await context.newPage();
-        await extra.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await extra.waitForTimeout(300);
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                // Open an extra tab so we have at least 2
+                const extra = await context.newPage();
+                await extra.goto(FIXTURE_URL, { waitUntil: 'load' });
+                await extra.waitForTimeout(300);
 
-        const urls = await getAllTabUrls(context);
-        expect(urls.length).toBeGreaterThanOrEqual(2);
-        if (DEBUG) console.log(`Multiple tabs accessible: ${urls.length}`);
+                const urls = await getAllTabUrls(context);
+                expect(urls.length).toBeGreaterThanOrEqual(2);
+                if (DEBUG) console.log(`Multiple tabs accessible: ${urls.length}`);
 
-        await extra.close().catch(() => {});
+                await extra.close().catch(() => {});
+            },
+        );
     });
 });

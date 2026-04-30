@@ -1,13 +1,15 @@
 import { test, expect, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_open_session';
 const FIXTURE_URL_1 = `${FIXTURE_BASE}/scroll-test.html`;
 const FIXTURE_URL_2 = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function clearSessions(ctx: BrowserContext): Promise<void> {
     const sw = ctx.serviceWorkers()[0];
@@ -71,17 +73,17 @@ async function openSession(ctx: BrowserContext, name: string): Promise<void> {
 
 test.describe('cmd_open_session (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL_1);
+        const result = await launchWithDualCoverage(FIXTURE_URL_1);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         const page = await context.newPage();
         await page.goto(FIXTURE_URL_1, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_open_session');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -95,42 +97,60 @@ test.describe('cmd_open_session (Playwright)', () => {
     });
 
     test('openSession saves and retrieves session data correctly', async () => {
-        const sessionName = 'test-session-1';
-        const urls = [FIXTURE_URL_1, FIXTURE_URL_2];
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL_1, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                const sessionName = 'test-session-1';
+                const urls = [FIXTURE_URL_1, FIXTURE_URL_2];
 
-        await createSession(context, sessionName, urls);
+                await createSession(context, sessionName, urls);
 
-        const saved = await getSession(context, sessionName);
-        expect(saved).not.toBeNull();
-        expect(saved.tabs).toEqual([urls]);
+                const saved = await getSession(context, sessionName);
+                expect(saved).not.toBeNull();
+                expect(saved.tabs).toEqual([urls]);
+            },
+        );
     });
 
     test('openSession restores tabs from saved session', async () => {
-        const sessionName = 'restore-session';
-        const urls = [FIXTURE_URL_1, FIXTURE_URL_2];
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL_1, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                const sessionName = 'restore-session';
+                const urls = [FIXTURE_URL_1, FIXTURE_URL_2];
 
-        await createSession(context, sessionName, urls);
+                await createSession(context, sessionName, urls);
 
-        const initialCount = context.pages().length;
+                const initialCount = context.pages().length;
 
-        await openSession(context, sessionName);
-        await context.pages()[0].waitForTimeout(1000);
+                await openSession(context, sessionName);
+                await context.pages()[0].waitForTimeout(1000);
 
-        const finalPages = context.pages();
-        expect(finalPages.length).toBeGreaterThan(initialCount);
+                const finalPages = context.pages();
+                expect(finalPages.length).toBeGreaterThan(initialCount);
 
-        const finalUrls = finalPages.map(p => p.url());
-        // At least one session URL should be present
-        const hasSessionUrl = urls.some(u => finalUrls.some(fu => fu === u || fu.includes(u)));
-        expect(hasSessionUrl).toBe(true);
+                const finalUrls = finalPages.map(p => p.url());
+                // At least one session URL should be present
+                const hasSessionUrl = urls.some(u => finalUrls.some(fu => fu === u || fu.includes(u)));
+                expect(hasSessionUrl).toBe(true);
+            },
+        );
     });
 
     test('openSession with non-existent session does nothing', async () => {
-        const initialCount = context.pages().length;
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL_1, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                const initialCount = context.pages().length;
 
-        await openSession(context, 'non-existent-session');
-        await context.pages()[0].waitForTimeout(500);
+                await openSession(context, 'non-existent-session');
+                await context.pages()[0].waitForTimeout(500);
 
-        expect(context.pages().length).toBe(initialCount);
+                expect(context.pages().length).toBe(initialCount);
+            },
+        );
     });
 });

@@ -1,15 +1,17 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_yank_table_columns';
 const FIXTURE_URL = `${FIXTURE_BASE}/table-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getHintSnapshot(p: Page): Promise<{ found: boolean; count: number; hints: { text: string }[]; allHints: string[] }> {
     return p.evaluate(() => {
@@ -61,18 +63,18 @@ async function clearHints(p: Page): Promise<void> {
 
 test.describe('cmd_yank_table_columns (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         await context.grantPermissions(['clipboard-read', 'clipboard-write']);
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_yank_table_columns');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -83,67 +85,91 @@ test.describe('cmd_yank_table_columns (Playwright)', () => {
     });
 
     test('table fixture has expected column counts', async () => {
-        const empCols = await page.evaluate(() => {
-            const row = document.querySelector('#employees thead tr');
-            return row ? row.children.length : 0;
-        });
-        expect(empCols).toBe(5);
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                const empCols = await page.evaluate(() => {
+                    const row = document.querySelector('#employees thead tr');
+                    return row ? row.children.length : 0;
+                });
+                expect(empCols).toBe(5);
 
-        const prodCols = await page.evaluate(() => {
-            const row = document.querySelector('#products thead tr');
-            return row ? row.children.length : 0;
-        });
-        expect(prodCols).toBe(4);
+                const prodCols = await page.evaluate(() => {
+                    const row = document.querySelector('#products thead tr');
+                    return row ? row.children.length : 0;
+                });
+                expect(prodCols).toBe(4);
 
-        const simpleCols = await page.evaluate(() => {
-            const row = document.querySelector('#simple thead tr');
-            return row ? row.children.length : 0;
-        });
-        expect(simpleCols).toBe(3);
+                const simpleCols = await page.evaluate(() => {
+                    const row = document.querySelector('#simple thead tr');
+                    return row ? row.children.length : 0;
+                });
+                expect(simpleCols).toBe(3);
+            },
+        );
     });
 
     test('pressing ymc shows hints for table columns', async () => {
-        await page.keyboard.press('y');
-        await page.waitForTimeout(30);
-        await page.keyboard.press('m');
-        await page.waitForTimeout(30);
-        await page.keyboard.press('c');
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await page.keyboard.press('y');
+                await page.waitForTimeout(30);
+                await page.keyboard.press('m');
+                await page.waitForTimeout(30);
+                await page.keyboard.press('c');
 
-        await waitForHints(page, 1);
+                await waitForHints(page, 1);
 
-        const snap = await getHintSnapshot(page);
-        expect(snap.found).toBe(true);
-        expect(snap.count).toBeGreaterThan(0);
-        if (DEBUG) console.log(`ymc hints: ${snap.count}`);
+                const snap = await getHintSnapshot(page);
+                expect(snap.found).toBe(true);
+                expect(snap.count).toBeGreaterThan(0);
+                if (DEBUG) console.log(`ymc hints: ${snap.count}`);
+            },
+        );
     });
 
     test('pressing Escape cancels ymc hint mode', async () => {
-        await page.keyboard.press('y');
-        await page.waitForTimeout(30);
-        await page.keyboard.press('m');
-        await page.waitForTimeout(30);
-        await page.keyboard.press('c');
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await page.keyboard.press('y');
+                await page.waitForTimeout(30);
+                await page.keyboard.press('m');
+                await page.waitForTimeout(30);
+                await page.keyboard.press('c');
 
-        await waitForHints(page, 1);
+                await waitForHints(page, 1);
 
-        await page.keyboard.press('Escape');
-        await waitForHintsCleared(page);
+                await page.keyboard.press('Escape');
+                await waitForHintsCleared(page);
 
-        const snap = await getHintSnapshot(page);
-        expect(snap.count).toBe(0);
+                const snap = await getHintSnapshot(page);
+                expect(snap.count).toBe(0);
+            },
+        );
     });
 
     test('simple table has correct data for column extraction', async () => {
-        const col1Data = await page.evaluate(() => {
-            return Array.from(document.querySelectorAll('#simple tr')).map((tr) => {
-                return tr.children.length > 0 ? (tr.children[0] as HTMLElement).innerText : '';
-            });
-        });
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                const col1Data = await page.evaluate(() => {
+                    return Array.from(document.querySelectorAll('#simple tr')).map((tr) => {
+                        return tr.children.length > 0 ? (tr.children[0] as HTMLElement).innerText : '';
+                    });
+                });
 
-        expect(col1Data).toHaveLength(4); // 1 header + 3 data
-        expect(col1Data[0]).toBe('Column A');
-        expect(col1Data[1]).toBe('A1');
-        expect(col1Data[2]).toBe('A2');
-        expect(col1Data[3]).toBe('A3');
+                expect(col1Data).toHaveLength(4); // 1 header + 3 data
+                expect(col1Data[0]).toBe('Column A');
+                expect(col1Data[1]).toBe('A1');
+                expect(col1Data[2]).toBe('A2');
+                expect(col1Data[3]).toBe('A3');
+            },
+        );
     });
 });

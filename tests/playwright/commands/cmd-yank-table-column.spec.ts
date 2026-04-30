@@ -1,15 +1,17 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_yank_table_column';
 const FIXTURE_URL = `${FIXTURE_BASE}/table-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getHintSnapshot(p: Page): Promise<{ found: boolean; count: number; hints: { text: string }[] }> {
     return p.evaluate(() => {
@@ -59,18 +61,18 @@ async function clearHints(p: Page): Promise<void> {
 
 test.describe('cmd_yank_table_column (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         await context.grantPermissions(['clipboard-read', 'clipboard-write']);
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_yank_table_column');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -81,53 +83,71 @@ test.describe('cmd_yank_table_column (Playwright)', () => {
     });
 
     test('table fixture loads with expected structure', async () => {
-        const tableCount = await page.evaluate(() => document.querySelectorAll('table').length);
-        expect(tableCount).toBeGreaterThanOrEqual(3);
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                const tableCount = await page.evaluate(() => document.querySelectorAll('table').length);
+                expect(tableCount).toBeGreaterThanOrEqual(3);
 
-        const hasEmployeeTable = await page.evaluate(() => document.querySelector('#employees') !== null);
-        expect(hasEmployeeTable).toBe(true);
+                const hasEmployeeTable = await page.evaluate(() => document.querySelector('#employees') !== null);
+                expect(hasEmployeeTable).toBe(true);
 
-        const employeeCols = await page.evaluate(() => {
-            const row = document.querySelector('#employees tr');
-            return row ? row.children.length : 0;
-        });
-        expect(employeeCols).toBe(5);
+                const employeeCols = await page.evaluate(() => {
+                    const row = document.querySelector('#employees tr');
+                    return row ? row.children.length : 0;
+                });
+                expect(employeeCols).toBe(5);
+            },
+        );
     });
 
     test('pressing yc shows hints for table columns', async () => {
-        await page.keyboard.press('y');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('c');
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await page.keyboard.press('y');
+                await page.waitForTimeout(50);
+                await page.keyboard.press('c');
 
-        await waitForHints(page, 1);
+                await waitForHints(page, 1);
 
-        const snap = await getHintSnapshot(page);
-        expect(snap.found).toBe(true);
-        expect(snap.count).toBeGreaterThan(0);
-        if (DEBUG) console.log(`Hints displayed: ${snap.count}`);
+                const snap = await getHintSnapshot(page);
+                expect(snap.found).toBe(true);
+                expect(snap.count).toBeGreaterThan(0);
+                if (DEBUG) console.log(`Hints displayed: ${snap.count}`);
+            },
+        );
     });
 
     test('selecting a hint clears hints (command executed)', async () => {
-        await page.keyboard.press('y');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('c');
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await page.keyboard.press('y');
+                await page.waitForTimeout(50);
+                await page.keyboard.press('c');
 
-        await waitForHints(page, 1);
+                await waitForHints(page, 1);
 
-        const snap = await getHintSnapshot(page);
-        const firstHint = snap.hints[0]?.text;
-        expect(firstHint).toBeDefined();
-        if (DEBUG) console.log(`Selecting hint: ${firstHint}`);
+                const snap = await getHintSnapshot(page);
+                const firstHint = snap.hints[0]?.text;
+                expect(firstHint).toBeDefined();
+                if (DEBUG) console.log(`Selecting hint: ${firstHint}`);
 
-        for (const char of firstHint) {
-            await page.keyboard.press(char);
-            await page.waitForTimeout(50);
-        }
+                for (const char of firstHint) {
+                    await page.keyboard.press(char);
+                    await page.waitForTimeout(50);
+                }
 
-        await waitForHintsCleared(page);
+                await waitForHintsCleared(page);
 
-        const after = await getHintSnapshot(page);
-        expect(after.count).toBe(0);
-        if (DEBUG) console.log('Hints cleared after column selection');
+                const after = await getHintSnapshot(page);
+                expect(after.count).toBe(0);
+                if (DEBUG) console.log('Hints cleared after column selection');
+            },
+        );
     });
 });

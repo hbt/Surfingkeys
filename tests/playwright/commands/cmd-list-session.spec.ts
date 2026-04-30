@@ -1,12 +1,14 @@
 import { test, expect, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_list_session';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getSessions(ctx: BrowserContext): Promise<Record<string, any>> {
     const sw = ctx.serviceWorkers()[0];
@@ -49,17 +51,17 @@ async function listSessions(ctx: BrowserContext): Promise<string[]> {
 
 test.describe('cmd_list_session (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         const page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_list_session');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -68,41 +70,59 @@ test.describe('cmd_list_session (Playwright)', () => {
     });
 
     test('listSession retrieves empty list when no sessions exist', async () => {
-        const names = await listSessions(context);
-        expect(names.length).toBe(0);
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                const names = await listSessions(context);
+                expect(names.length).toBe(0);
+            },
+        );
     });
 
     test('listSession retrieves multiple sessions from storage', async () => {
-        await createTestSessions(context, {
-            'work': { tabs: [['https://example.com']] },
-            'personal': { tabs: [['https://test.com']] },
-            'shopping': { tabs: [['https://shop.com']] },
-        });
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await createTestSessions(context, {
+                    'work': { tabs: [['https://example.com']] },
+                    'personal': { tabs: [['https://test.com']] },
+                    'shopping': { tabs: [['https://shop.com']] },
+                });
 
-        const names = await listSessions(context);
-        expect(names.length).toBe(3);
-        expect(names).toContain('work');
-        expect(names).toContain('personal');
-        expect(names).toContain('shopping');
+                const names = await listSessions(context);
+                expect(names.length).toBe(3);
+                expect(names).toContain('work');
+                expect(names).toContain('personal');
+                expect(names).toContain('shopping');
+            },
+        );
     });
 
     test('listSession retrieves sessions after modification', async () => {
-        await createTestSessions(context, {
-            'session1': { tabs: [['https://1.com']] },
-            'session2': { tabs: [['https://2.com']] },
-        });
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await createTestSessions(context, {
+                    'session1': { tabs: [['https://1.com']] },
+                    'session2': { tabs: [['https://2.com']] },
+                });
 
-        let names = await listSessions(context);
-        expect(names.length).toBe(2);
+                let names = await listSessions(context);
+                expect(names.length).toBe(2);
 
-        await createTestSessions(context, {
-            'session3': { tabs: [['https://3.com']] },
-        });
+                await createTestSessions(context, {
+                    'session3': { tabs: [['https://3.com']] },
+                });
 
-        names = await listSessions(context);
-        expect(names.length).toBe(3);
-        expect(names).toContain('session1');
-        expect(names).toContain('session2');
-        expect(names).toContain('session3');
+                names = await listSessions(context);
+                expect(names.length).toBe(3);
+                expect(names).toContain('session1');
+                expect(names).toContain('session2');
+                expect(names).toContain('session3');
+            },
+        );
     });
 });
