@@ -1,14 +1,16 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_nav_tab_history_forward';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getActiveTabId(): Promise<number> {
     const sw = context.serviceWorkers()[0];
@@ -54,8 +56,10 @@ test.describe('cmd_nav_tab_history_forward (Playwright)', () => {
     let ids: number[] = [];
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
 
         for (let i = 0; i < 5; i++) {
             const p = await context.newPage();
@@ -63,7 +67,6 @@ test.describe('cmd_nav_tab_history_forward (Playwright)', () => {
             await p.waitForTimeout(200);
             pages.push(p);
         }
-        cov = await result.covInit();
 
         for (const p of pages) {
             const id = await getTabIdForPage(p);
@@ -73,8 +76,7 @@ test.describe('cmd_nav_tab_history_forward (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_nav_tab_history_forward');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -108,52 +110,58 @@ test.describe('cmd_nav_tab_history_forward (Playwright)', () => {
     });
 
     test('pressing F goes forward to next tab in history', async () => {
-        const initialId = await getActiveTabId();
-        expect(initialId).toBe(ids[2]);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialId = await getActiveTabId();
+            expect(initialId).toBe(ids[2]);
 
-        // F should go forward to ids[3]
-        await pages[2].keyboard.press('F');
-        const afterId = await pollForTabChange(initialId);
-        expect(afterId).toBe(ids[3]);
-        if (DEBUG) console.log(`F switched from ids[2]=${initialId} to ids[3]=${afterId}`);
+            // F should go forward to ids[3]
+            await pages[2].keyboard.press('F');
+            const afterId = await pollForTabChange(initialId);
+            expect(afterId).toBe(ids[3]);
+            if (DEBUG) console.log(`F switched from ids[2]=${initialId} to ids[3]=${afterId}`);
+        });
     });
 
     test('pressing F twice goes forward two steps in tab history', async () => {
-        const initialId = await getActiveTabId();
-        expect(initialId).toBe(ids[2]);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialId = await getActiveTabId();
+            expect(initialId).toBe(ids[2]);
 
-        // First F: ids[2] -> ids[3]
-        await pages[2].keyboard.press('F');
-        const afterFirst = await pollForTabChange(initialId);
-        expect(afterFirst).toBe(ids[3]);
+            // First F: ids[2] -> ids[3]
+            await pages[2].keyboard.press('F');
+            const afterFirst = await pollForTabChange(initialId);
+            expect(afterFirst).toBe(ids[3]);
 
-        await pages[3].bringToFront();
-        await pages[3].waitForTimeout(400);
+            await pages[3].bringToFront();
+            await pages[3].waitForTimeout(400);
 
-        // Second F: ids[3] -> ids[4]
-        await pages[3].keyboard.press('F');
-        const afterSecond = await pollForTabChange(afterFirst, 5000);
-        expect(afterSecond).toBe(ids[4]);
-        if (DEBUG) console.log(`Two F presses: ids[2] -> ids[3] -> ids[4]`);
+            // Second F: ids[3] -> ids[4]
+            await pages[3].keyboard.press('F');
+            const afterSecond = await pollForTabChange(afterFirst, 5000);
+            expect(afterSecond).toBe(ids[4]);
+            if (DEBUG) console.log(`Two F presses: ids[2] -> ids[3] -> ids[4]`);
+        });
     });
 
     test('F and B are inverses of each other', async () => {
-        const initialId = await getActiveTabId();
-        expect(initialId).toBe(ids[2]);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialId = await getActiveTabId();
+            expect(initialId).toBe(ids[2]);
 
-        // F: ids[2] -> ids[3]
-        await pages[2].keyboard.press('F');
-        const afterF = await pollForTabChange(initialId);
-        expect(afterF).toBe(ids[3]);
+            // F: ids[2] -> ids[3]
+            await pages[2].keyboard.press('F');
+            const afterF = await pollForTabChange(initialId);
+            expect(afterF).toBe(ids[3]);
 
-        await pages[3].bringToFront();
-        await pages[3].waitForTimeout(400);
+            await pages[3].bringToFront();
+            await pages[3].waitForTimeout(400);
 
-        // B: ids[3] -> ids[2]
-        await pages[3].keyboard.press('B');
-        const afterB = await pollForTabChange(afterF);
-        expect(afterB).toBe(ids[2]);
-        expect(afterB).toBe(initialId);
-        if (DEBUG) console.log(`F and B are inverses: ids[2] -> F -> ids[3] -> B -> ids[2]`);
+            // B: ids[3] -> ids[2]
+            await pages[3].keyboard.press('B');
+            const afterB = await pollForTabChange(afterF);
+            expect(afterB).toBe(ids[2]);
+            expect(afterB).toBe(initialId);
+            if (DEBUG) console.log(`F and B are inverses: ids[2] -> F -> ids[3] -> B -> ids[2]`);
+        });
     });
 });

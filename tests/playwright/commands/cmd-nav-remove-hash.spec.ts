@@ -1,90 +1,98 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_nav_remove_hash';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 test.describe('cmd_nav_remove_hash (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_nav_remove_hash');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
     test('pressing g# removes hash fragment from URL', async () => {
-        // Navigate to URL with hash
-        await page.goto(`${FIXTURE_URL}#test-hash`, { waitUntil: 'load' });
-        await page.waitForTimeout(500);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Navigate to URL with hash
+            await page.goto(`${FIXTURE_URL}#test-hash`, { waitUntil: 'load' });
+            await page.waitForTimeout(500);
 
-        const urlBefore = page.url();
-        expect(urlBefore).toContain('#test-hash');
+            const urlBefore = page.url();
+            expect(urlBefore).toContain('#test-hash');
 
-        // Wait for URL to change to remove hash
-        const hashRemovedPromise = page.waitForURL(FIXTURE_URL, { timeout: 10000 });
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('#');
-        await hashRemovedPromise;
+            // Wait for URL to change to remove hash
+            const hashRemovedPromise = page.waitForURL(FIXTURE_URL, { timeout: 10000 });
+            await page.keyboard.press('g');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('#');
+            await hashRemovedPromise;
 
-        const urlAfter = page.url();
-        expect(urlAfter).not.toContain('#');
-        expect(urlAfter).toBe(FIXTURE_URL);
-        if (DEBUG) console.log(`Remove hash: ${urlBefore} → ${urlAfter}`);
+            const urlAfter = page.url();
+            expect(urlAfter).not.toContain('#');
+            expect(urlAfter).toBe(FIXTURE_URL);
+            if (DEBUG) console.log(`Remove hash: ${urlBefore} → ${urlAfter}`);
+        });
     });
 
     test('g# removes hash while preserving query parameters', async () => {
-        // Navigate to URL with both query and hash
-        const urlWithBoth = `${FIXTURE_URL}?page=1&sort=desc#section2`;
-        await page.goto(urlWithBoth, { waitUntil: 'load' });
-        await page.waitForTimeout(500);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Navigate to URL with both query and hash
+            const urlWithBoth = `${FIXTURE_URL}?page=1&sort=desc#section2`;
+            await page.goto(urlWithBoth, { waitUntil: 'load' });
+            await page.waitForTimeout(500);
 
-        const urlBefore = page.url();
-        expect(urlBefore).toContain('#section2');
-        expect(urlBefore).toContain('?page=1');
+            const urlBefore = page.url();
+            expect(urlBefore).toContain('#section2');
+            expect(urlBefore).toContain('?page=1');
 
-        const hashRemovedPromise = page.waitForURL(`${FIXTURE_URL}?page=1&sort=desc`, { timeout: 10000 });
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('#');
-        await hashRemovedPromise;
+            const hashRemovedPromise = page.waitForURL(`${FIXTURE_URL}?page=1&sort=desc`, { timeout: 10000 });
+            await page.keyboard.press('g');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('#');
+            await hashRemovedPromise;
 
-        const urlAfter = page.url();
-        expect(urlAfter).not.toContain('#');
-        expect(urlAfter).toContain('?page=1&sort=desc');
-        if (DEBUG) console.log(`Remove hash preserves query: ${urlBefore} → ${urlAfter}`);
+            const urlAfter = page.url();
+            expect(urlAfter).not.toContain('#');
+            expect(urlAfter).toContain('?page=1&sort=desc');
+            if (DEBUG) console.log(`Remove hash preserves query: ${urlBefore} → ${urlAfter}`);
+        });
     });
 
     test('g# on URL without hash leaves URL unchanged', async () => {
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await page.waitForTimeout(500);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await page.waitForTimeout(500);
 
-        const urlBefore = page.url();
-        expect(urlBefore).not.toContain('#');
+            const urlBefore = page.url();
+            expect(urlBefore).not.toContain('#');
 
-        // Press g# — no navigation should occur
-        await page.keyboard.press('g');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('#');
-        await page.waitForTimeout(500);
+            // Press g# — no navigation should occur
+            await page.keyboard.press('g');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('#');
+            await page.waitForTimeout(500);
 
-        const urlAfter = page.url();
-        expect(urlAfter).toBe(urlBefore);
-        if (DEBUG) console.log(`No-op g# (no hash): ${urlAfter}`);
+            const urlAfter = page.url();
+            expect(urlAfter).toBe(urlBefore);
+            if (DEBUG) console.log(`No-op g# (no hash): ${urlAfter}`);
+        });
     });
 });

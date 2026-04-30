@@ -1,14 +1,16 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_nav_tab_history_back';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getActiveTabId(): Promise<number> {
     const sw = context.serviceWorkers()[0];
@@ -57,8 +59,10 @@ test.describe('cmd_nav_tab_history_back (Playwright)', () => {
     let ids: number[] = [];  // tab IDs in the same order as pages[]
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
 
         // Create 5 tabs
         for (let i = 0; i < 5; i++) {
@@ -67,7 +71,6 @@ test.describe('cmd_nav_tab_history_back (Playwright)', () => {
             await p.waitForTimeout(200);
             pages.push(p);
         }
-        cov = await result.covInit();
 
         // Map each page to its tab ID by activating each page in turn
         for (const p of pages) {
@@ -78,8 +81,7 @@ test.describe('cmd_nav_tab_history_back (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_nav_tab_history_back');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -97,45 +99,51 @@ test.describe('cmd_nav_tab_history_back (Playwright)', () => {
     });
 
     test('pressing B goes back to previously active tab', async () => {
-        const initialId = await getActiveTabId();
-        expect(initialId).toBe(ids[4]);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialId = await getActiveTabId();
+            expect(initialId).toBe(ids[4]);
 
-        // Press B — should go back to ids[3]
-        await pages[4].keyboard.press('B');
+            // Press B — should go back to ids[3]
+            await pages[4].keyboard.press('B');
 
-        const afterId = await pollForTabChange(initialId);
-        expect(afterId).toBe(ids[3]);
-        if (DEBUG) console.log(`B switched from ids[4]=${initialId} to ids[3]=${afterId}`);
+            const afterId = await pollForTabChange(initialId);
+            expect(afterId).toBe(ids[3]);
+            if (DEBUG) console.log(`B switched from ids[4]=${initialId} to ids[3]=${afterId}`);
+        });
     });
 
     test('pressing B twice goes back two steps in tab history', async () => {
-        const initialId = await getActiveTabId();
-        expect(initialId).toBe(ids[4]);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialId = await getActiveTabId();
+            expect(initialId).toBe(ids[4]);
 
-        // First B: ids[4] -> ids[3]
-        await pages[4].keyboard.press('B');
-        const afterFirst = await pollForTabChange(initialId);
-        expect(afterFirst).toBe(ids[3]);
+            // First B: ids[4] -> ids[3]
+            await pages[4].keyboard.press('B');
+            const afterFirst = await pollForTabChange(initialId);
+            expect(afterFirst).toBe(ids[3]);
 
-        await pages[3].bringToFront();
-        await pages[3].waitForTimeout(400);
+            await pages[3].bringToFront();
+            await pages[3].waitForTimeout(400);
 
-        // Second B: ids[3] -> ids[2]
-        await pages[3].keyboard.press('B');
-        const afterSecond = await pollForTabChange(afterFirst, 5000);
-        expect(afterSecond).toBe(ids[2]);
-        if (DEBUG) console.log(`Two B presses: ids[4] -> ids[3] -> ids[2]`);
+            // Second B: ids[3] -> ids[2]
+            await pages[3].keyboard.press('B');
+            const afterSecond = await pollForTabChange(afterFirst, 5000);
+            expect(afterSecond).toBe(ids[2]);
+            if (DEBUG) console.log(`Two B presses: ids[4] -> ids[3] -> ids[2]`);
+        });
     });
 
     test('B command leaves browser in a valid state', async () => {
-        const initialId = await getActiveTabId();
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialId = await getActiveTabId();
 
-        await pages[4].keyboard.press('B');
-        await pages[4].waitForTimeout(1000);
+            await pages[4].keyboard.press('B');
+            await pages[4].waitForTimeout(1000);
 
-        const afterId = await getActiveTabId();
-        expect(afterId).toBeDefined();
-        expect(ids).toContain(afterId);
-        if (DEBUG) console.log(`After B: still valid tab ${afterId}`);
+            const afterId = await getActiveTabId();
+            expect(afterId).toBeDefined();
+            expect(ids).toContain(afterId);
+            if (DEBUG) console.log(`After B: still valid tab ${afterId}`);
+        });
     });
 });

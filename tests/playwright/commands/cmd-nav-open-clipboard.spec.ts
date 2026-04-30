@@ -1,15 +1,17 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_nav_open_clipboard';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getTabCount(): Promise<number> {
     const sw = context.serviceWorkers()[0];
@@ -39,14 +41,15 @@ test.describe('cmd_nav_open_clipboard (Playwright)', () => {
     let fixtureTabId: number;
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         // Grant clipboard permissions before launching the page
         await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
 
         const sw = context.serviceWorkers()[0];
@@ -60,8 +63,7 @@ test.describe('cmd_nav_open_clipboard (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_nav_open_clipboard');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -72,72 +74,76 @@ test.describe('cmd_nav_open_clipboard (Playwright)', () => {
     });
 
     test('pressing cc with selected URL text opens a new tab', async () => {
-        const initialTabCount = await getTabCount();
-        const selectedUrl = `${FIXTURE_BASE}/scroll-test.html`;
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const initialTabCount = await getTabCount();
+            const selectedUrl = `${FIXTURE_BASE}/scroll-test.html`;
 
-        // Create a div with URL text and select it
-        await page.evaluate((url: string) => {
-            const div = document.createElement('div');
-            div.id = 'test-url-div';
-            div.textContent = url;
-            document.body.appendChild(div);
+            // Create a div with URL text and select it
+            await page.evaluate((url: string) => {
+                const div = document.createElement('div');
+                div.id = 'test-url-div';
+                div.textContent = url;
+                document.body.appendChild(div);
 
-            const range = document.createRange();
-            range.selectNodeContents(div);
-            const sel = window.getSelection()!;
-            sel.removeAllRanges();
-            sel.addRange(range);
-        }, selectedUrl);
+                const range = document.createRange();
+                range.selectNodeContents(div);
+                const sel = window.getSelection()!;
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }, selectedUrl);
 
-        const selectedText = await page.evaluate(() => window.getSelection()?.toString() ?? '');
-        expect(selectedText).toContain('scroll-test.html');
+            const selectedText = await page.evaluate(() => window.getSelection()?.toString() ?? '');
+            expect(selectedText).toContain('scroll-test.html');
 
-        await page.keyboard.press('c');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('c');
+            await page.keyboard.press('c');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('c');
 
-        // Poll for a new tab to appear
-        let newTabCount = initialTabCount;
-        for (let i = 0; i < 30; i++) {
-            await page.waitForTimeout(200);
-            newTabCount = await getTabCount();
-            if (newTabCount > initialTabCount) break;
-        }
+            // Poll for a new tab to appear
+            let newTabCount = initialTabCount;
+            for (let i = 0; i < 30; i++) {
+                await page.waitForTimeout(200);
+                newTabCount = await getTabCount();
+                if (newTabCount > initialTabCount) break;
+            }
 
-        expect(newTabCount).toBeGreaterThan(initialTabCount);
-        if (DEBUG) console.log(`cc created new tab: ${initialTabCount} → ${newTabCount} tabs`);
+            expect(newTabCount).toBeGreaterThan(initialTabCount);
+            if (DEBUG) console.log(`cc created new tab: ${initialTabCount} → ${newTabCount} tabs`);
 
-        // Cleanup test div
-        await page.evaluate(() => {
-            document.getElementById('test-url-div')?.remove();
-            window.getSelection()?.removeAllRanges();
+            // Cleanup test div
+            await page.evaluate(() => {
+                document.getElementById('test-url-div')?.remove();
+                window.getSelection()?.removeAllRanges();
+            });
         });
     });
 
     test('cc command opens clipboard URL in new tab', async () => {
-        // Write a URL to clipboard and open it via cc (no selection needed)
-        const clipboardUrl = `${FIXTURE_BASE}/form-test.html`;
-        await page.evaluate((url: string) => navigator.clipboard.writeText(url), clipboardUrl);
-        await page.waitForTimeout(200);
-
-        // Clear any selection first
-        await page.evaluate(() => window.getSelection()?.removeAllRanges());
-
-        const initialTabCount = await getTabCount();
-
-        await page.keyboard.press('c');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('c');
-
-        // Poll for new tab
-        let newTabCount = initialTabCount;
-        for (let i = 0; i < 30; i++) {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Write a URL to clipboard and open it via cc (no selection needed)
+            const clipboardUrl = `${FIXTURE_BASE}/form-test.html`;
+            await page.evaluate((url: string) => navigator.clipboard.writeText(url), clipboardUrl);
             await page.waitForTimeout(200);
-            newTabCount = await getTabCount();
-            if (newTabCount > initialTabCount) break;
-        }
 
-        expect(newTabCount).toBeGreaterThan(initialTabCount);
-        if (DEBUG) console.log(`cc opened clipboard URL: tab count ${initialTabCount} → ${newTabCount}`);
+            // Clear any selection first
+            await page.evaluate(() => window.getSelection()?.removeAllRanges());
+
+            const initialTabCount = await getTabCount();
+
+            await page.keyboard.press('c');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('c');
+
+            // Poll for new tab
+            let newTabCount = initialTabCount;
+            for (let i = 0; i < 30; i++) {
+                await page.waitForTimeout(200);
+                newTabCount = await getTabCount();
+                if (newTabCount > initialTabCount) break;
+            }
+
+            expect(newTabCount).toBeGreaterThan(initialTabCount);
+            if (DEBUG) console.log(`cc opened clipboard URL: tab count ${initialTabCount} → ${newTabCount}`);
+        });
     });
 });

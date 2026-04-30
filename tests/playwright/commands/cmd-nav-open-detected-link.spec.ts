@@ -1,15 +1,17 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_nav_open_detected_link';
 const FIXTURE_URL = `${FIXTURE_BASE}/detected-links-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getHintsInfo(): Promise<{
     exists: boolean;
@@ -45,17 +47,17 @@ async function getHintsInfo(): Promise<{
 
 test.describe('cmd_nav_open_detected_link (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_nav_open_detected_link');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -73,40 +75,46 @@ test.describe('cmd_nav_open_detected_link (Playwright)', () => {
     });
 
     test('pressing O creates hints for detected URLs in plain text', async () => {
-        await page.keyboard.press('O');
-        await page.waitForTimeout(1500);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.keyboard.press('O');
+            await page.waitForTimeout(1500);
 
-        const hintsInfo = await getHintsInfo();
-        if (DEBUG) console.log(`Hints: ${JSON.stringify(hintsInfo)}`);
+            const hintsInfo = await getHintsInfo();
+            if (DEBUG) console.log(`Hints: ${JSON.stringify(hintsInfo)}`);
 
-        expect(hintsInfo.exists).toBe(true);
-        expect(hintsInfo.hasHolder).toBe(true);
-        expect(hintsInfo.count).toBeGreaterThan(0);
-        if (DEBUG) console.log(`Detected ${hintsInfo.count} URL hints`);
+            expect(hintsInfo.exists).toBe(true);
+            expect(hintsInfo.hasHolder).toBe(true);
+            expect(hintsInfo.count).toBeGreaterThan(0);
+            if (DEBUG) console.log(`Detected ${hintsInfo.count} URL hints`);
+        });
     });
 
     test('pressing O detects multiple URLs (HTTP and HTTPS)', async () => {
-        await page.keyboard.press('O');
-        await page.waitForTimeout(1500);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.keyboard.press('O');
+            await page.waitForTimeout(1500);
 
-        const hintsInfo = await getHintsInfo();
+            const hintsInfo = await getHintsInfo();
 
-        // The fixture has 10+ URLs in plain text
-        expect(hintsInfo.count).toBeGreaterThanOrEqual(3);
-        if (DEBUG) console.log(`Detected ${hintsInfo.count} hints: ${hintsInfo.labels.join(', ')}`);
+            // The fixture has 10+ URLs in plain text
+            expect(hintsInfo.count).toBeGreaterThanOrEqual(3);
+            if (DEBUG) console.log(`Detected ${hintsInfo.count} hints: ${hintsInfo.labels.join(', ')}`);
+        });
     });
 
     test('pressing O does not detect regular HTML anchor links as detected links', async () => {
-        // The fixture has <a href="http://regular-link.com"> in section 9
-        // The 'O' command targets text nodes, not anchor hrefs — so it depends
-        // on the page structure. What matters is that hints appear for text URLs.
-        await page.keyboard.press('O');
-        await page.waitForTimeout(1500);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // The fixture has <a href="http://regular-link.com"> in section 9
+            // The 'O' command targets text nodes, not anchor hrefs — so it depends
+            // on the page structure. What matters is that hints appear for text URLs.
+            await page.keyboard.press('O');
+            await page.waitForTimeout(1500);
 
-        const hintsInfo = await getHintsInfo();
-        // Hints should still appear for other text URLs
-        expect(hintsInfo.exists).toBe(true);
-        expect(hintsInfo.count).toBeGreaterThan(0);
-        if (DEBUG) console.log(`O command produced ${hintsInfo.count} hints as expected`);
+            const hintsInfo = await getHintsInfo();
+            // Hints should still appear for other text URLs
+            expect(hintsInfo.exists).toBe(true);
+            expect(hintsInfo.count).toBeGreaterThan(0);
+            if (DEBUG) console.log(`O command produced ${hintsInfo.count} hints as expected`);
+        });
     });
 });

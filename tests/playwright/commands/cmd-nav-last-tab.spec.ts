@@ -1,14 +1,16 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_nav_last_tab';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function getActiveTabId(): Promise<number> {
     const sw = context.serviceWorkers()[0];
@@ -54,8 +56,10 @@ test.describe('cmd_nav_last_tab (Playwright)', () => {
     let ids: number[] = [];
 
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
 
         // Create 3 tabs
         for (let i = 0; i < 3; i++) {
@@ -64,7 +68,6 @@ test.describe('cmd_nav_last_tab (Playwright)', () => {
             await p.waitForTimeout(200);
             pages.push(p);
         }
-        cov = await result.covInit();
 
         // Map each page to its tab ID
         for (const p of pages) {
@@ -75,73 +78,78 @@ test.describe('cmd_nav_last_tab (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_nav_last_tab');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
     test('pressing Ctrl+6 switches to last used tab', async () => {
-        // Build history: ids[0] -> ids[1] -> ids[2] (current)
-        await activateTabById(ids[0]);
-        await activateTabById(ids[1]);
-        await activateTabById(ids[2]);
-        await pages[2].bringToFront();
-        await pages[2].waitForTimeout(300);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Build history: ids[0] -> ids[1] -> ids[2] (current)
+            await activateTabById(ids[0]);
+            await activateTabById(ids[1]);
+            await activateTabById(ids[2]);
+            await pages[2].bringToFront();
+            await pages[2].waitForTimeout(300);
 
-        const beforeId = await getActiveTabId();
-        expect(beforeId).toBe(ids[2]);
+            const beforeId = await getActiveTabId();
+            expect(beforeId).toBe(ids[2]);
 
-        // Ctrl+6 should switch to ids[1] (last used before ids[2])
-        await pages[2].keyboard.press('Control+6');
+            // Ctrl+6 should switch to ids[1] (last used before ids[2])
+            await pages[2].keyboard.press('Control+6');
 
-        const afterId = await pollForTabChange(beforeId);
-        expect(afterId).toBe(ids[1]);
-        if (DEBUG) console.log(`Ctrl+6 switched from ids[2]=${beforeId} to ids[1]=${afterId}`);
+            const afterId = await pollForTabChange(beforeId);
+            expect(afterId).toBe(ids[1]);
+            if (DEBUG) console.log(`Ctrl+6 switched from ids[2]=${beforeId} to ids[1]=${afterId}`);
+        });
     });
 
     test('pressing Ctrl+6 twice toggles between two tabs', async () => {
-        // Build history: ids[0] -> ids[1] -> ids[2] (current)
-        await activateTabById(ids[0]);
-        await activateTabById(ids[1]);
-        await activateTabById(ids[2]);
-        await pages[2].bringToFront();
-        await pages[2].waitForTimeout(300);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Build history: ids[0] -> ids[1] -> ids[2] (current)
+            await activateTabById(ids[0]);
+            await activateTabById(ids[1]);
+            await activateTabById(ids[2]);
+            await pages[2].bringToFront();
+            await pages[2].waitForTimeout(300);
 
-        const startId = await getActiveTabId();
-        expect(startId).toBe(ids[2]);
+            const startId = await getActiveTabId();
+            expect(startId).toBe(ids[2]);
 
-        // First Ctrl+6 — goes to ids[1]
-        await pages[2].keyboard.press('Control+6');
-        const afterFirst = await pollForTabChange(startId);
-        expect(afterFirst).toBe(ids[1]);
+            // First Ctrl+6 — goes to ids[1]
+            await pages[2].keyboard.press('Control+6');
+            const afterFirst = await pollForTabChange(startId);
+            expect(afterFirst).toBe(ids[1]);
 
-        await pages[1].bringToFront();
-        await pages[1].waitForTimeout(600);
+            await pages[1].bringToFront();
+            await pages[1].waitForTimeout(600);
 
-        // Second Ctrl+6 — should go back to ids[2]
-        await pages[1].keyboard.press('Control+6');
-        const afterSecond = await pollForTabChange(afterFirst, 5000);
-        expect(afterSecond).toBe(ids[2]);
-        if (DEBUG) console.log(`Double Ctrl+6 toggled: ${startId} -> ${afterFirst} -> ${afterSecond}`);
+            // Second Ctrl+6 — should go back to ids[2]
+            await pages[1].keyboard.press('Control+6');
+            const afterSecond = await pollForTabChange(afterFirst, 5000);
+            expect(afterSecond).toBe(ids[2]);
+            if (DEBUG) console.log(`Double Ctrl+6 toggled: ${startId} -> ${afterFirst} -> ${afterSecond}`);
+        });
     });
 
     test('Ctrl+6 navigates to history-based last tab (not position-based)', async () => {
-        // Build history: ids[0] -> ids[2] -> ids[1] (current)
-        // ids[1] is current, last used was ids[2]
-        await activateTabById(ids[0]);
-        await activateTabById(ids[2]);
-        await activateTabById(ids[1]);
-        await pages[1].bringToFront();
-        await pages[1].waitForTimeout(300);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Build history: ids[0] -> ids[2] -> ids[1] (current)
+            // ids[1] is current, last used was ids[2]
+            await activateTabById(ids[0]);
+            await activateTabById(ids[2]);
+            await activateTabById(ids[1]);
+            await pages[1].bringToFront();
+            await pages[1].waitForTimeout(300);
 
-        const beforeId = await getActiveTabId();
-        expect(beforeId).toBe(ids[1]);
+            const beforeId = await getActiveTabId();
+            expect(beforeId).toBe(ids[1]);
 
-        await pages[1].keyboard.press('Control+6');
-        const afterId = await pollForTabChange(beforeId);
+            await pages[1].keyboard.press('Control+6');
+            const afterId = await pollForTabChange(beforeId);
 
-        // Should go to ids[2] (history-based last), not ids[0] (position-based previous)
-        expect(afterId).toBe(ids[2]);
-        if (DEBUG) console.log(`History-based switch: ids[1]=${beforeId} -> ids[2]=${afterId}`);
+            // Should go to ids[2] (history-based last), not ids[0] (position-based previous)
+            expect(afterId).toBe(ids[2]);
+            if (DEBUG) console.log(`History-based switch: ids[1]=${beforeId} -> ids[2]=${afterId}`);
+        });
     });
 });
