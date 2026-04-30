@@ -1,0 +1,13 @@
+{
+  "excluded": [
+    {
+      "sha": "a2f6eb1",
+      "title": "fix: wait for userScripts.register() before responding to settings updates",
+      "upstream": "brookhong/Surfingkeys",
+      "excluded_on": "2026-04-30",
+      "reason": "Solves same race condition as our commit 5c04b8e (ensureSettingsSnippetRegistration promise chain). Our approach is more robust — serialized promise queue vs callback-based.",
+      "our_commit": "5c04b8e",
+      "decision": "keep_ours"
+    }
+  ]
+}
