@@ -1,15 +1,17 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_omnibar_close';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 /**
  * Check if the omnibar iframe is visible via shadow DOM height check.
@@ -44,17 +46,17 @@ async function waitForOmnibarState(p: Page, expected: boolean, timeoutMs = 5000)
 
 test.describe('cmd_omnibar_close (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(800);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_omnibar_close');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -66,60 +68,66 @@ test.describe('cmd_omnibar_close (Playwright)', () => {
     });
 
     test('pressing Escape closes the omnibar', async () => {
-        // Open omnibar with 't' (tab switcher)
-        await page.keyboard.press('Shift+t');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Open omnibar with 't' (tab switcher)
+            await page.keyboard.press('Shift+t');
 
-        const opened = await waitForOmnibarState(page, true);
-        expect(opened).toBe(true);
-        if (DEBUG) console.log('Omnibar opened with T key');
+            const opened = await waitForOmnibarState(page, true);
+            expect(opened).toBe(true);
+            if (DEBUG) console.log('Omnibar opened with T key');
 
-        // Close with Escape
-        await page.keyboard.press('Escape');
-        const closed = await waitForOmnibarState(page, false);
-        expect(closed).toBe(true);
-        if (DEBUG) console.log('Omnibar closed after pressing Escape');
+            // Close with Escape
+            await page.keyboard.press('Escape');
+            const closed = await waitForOmnibarState(page, false);
+            expect(closed).toBe(true);
+            if (DEBUG) console.log('Omnibar closed after pressing Escape');
+        });
     });
 
     test('can open and close omnibar multiple times', async () => {
-        // Cycle 1
-        await page.keyboard.press('Shift+t');
-        const open1 = await waitForOmnibarState(page, true);
-        expect(open1).toBe(true);
-        if (DEBUG) console.log('Cycle 1: omnibar opened');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Cycle 1
+            await page.keyboard.press('Shift+t');
+            const open1 = await waitForOmnibarState(page, true);
+            expect(open1).toBe(true);
+            if (DEBUG) console.log('Cycle 1: omnibar opened');
 
-        await page.keyboard.press('Escape');
-        const closed1 = await waitForOmnibarState(page, false);
-        expect(closed1).toBe(true);
-        if (DEBUG) console.log('Cycle 1: omnibar closed');
+            await page.keyboard.press('Escape');
+            const closed1 = await waitForOmnibarState(page, false);
+            expect(closed1).toBe(true);
+            if (DEBUG) console.log('Cycle 1: omnibar closed');
 
-        await page.waitForTimeout(300);
+            await page.waitForTimeout(300);
 
-        // Cycle 2
-        await page.keyboard.press('Shift+t');
-        const open2 = await waitForOmnibarState(page, true);
-        expect(open2).toBe(true);
-        if (DEBUG) console.log('Cycle 2: omnibar opened');
+            // Cycle 2
+            await page.keyboard.press('Shift+t');
+            const open2 = await waitForOmnibarState(page, true);
+            expect(open2).toBe(true);
+            if (DEBUG) console.log('Cycle 2: omnibar opened');
 
-        await page.keyboard.press('Escape');
-        const closed2 = await waitForOmnibarState(page, false);
-        expect(closed2).toBe(true);
-        if (DEBUG) console.log('Cycle 2: omnibar closed');
+            await page.keyboard.press('Escape');
+            const closed2 = await waitForOmnibarState(page, false);
+            expect(closed2).toBe(true);
+            if (DEBUG) console.log('Cycle 2: omnibar closed');
+        });
     });
 
     test('Escape on already-closed omnibar does not cause errors', async () => {
-        // Ensure omnibar is closed first
-        const initialState = await isOmnibarOpen(page);
-        if (initialState) {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Ensure omnibar is closed first
+            const initialState = await isOmnibarOpen(page);
+            if (initialState) {
+                await page.keyboard.press('Escape');
+                await waitForOmnibarState(page, false);
+            }
+
+            // Pressing Escape when already closed should be a no-op
             await page.keyboard.press('Escape');
-            await waitForOmnibarState(page, false);
-        }
+            await page.waitForTimeout(200);
 
-        // Pressing Escape when already closed should be a no-op
-        await page.keyboard.press('Escape');
-        await page.waitForTimeout(200);
-
-        const stillClosed = await isOmnibarOpen(page);
-        expect(stillClosed).toBe(false);
-        if (DEBUG) console.log('Escape on closed omnibar is a no-op');
+            const stillClosed = await isOmnibarOpen(page);
+            expect(stillClosed).toBe(false);
+            if (DEBUG) console.log('Escape on closed omnibar is a no-op');
+        });
     });
 });

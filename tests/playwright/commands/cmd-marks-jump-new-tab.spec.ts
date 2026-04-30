@@ -1,14 +1,16 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+const SUITE_LABEL = 'cmd_marks_jump_new_tab';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const FIXTURE_URL_2 = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function addVIMark(ctx: BrowserContext, mark: string, url: string): Promise<void> {
     const sw = ctx.serviceWorkers()[0];
@@ -36,17 +38,17 @@ async function clearMarks(ctx: BrowserContext): Promise<void> {
 
 test.describe('cmd_marks_jump_new_tab (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_marks_jump_new_tab');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -71,65 +73,71 @@ test.describe('cmd_marks_jump_new_tab (Playwright)', () => {
     });
 
     test('marks can be stored and retrieved via service worker', async () => {
-        await addVIMark(context, 'a', FIXTURE_URL_2);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await addVIMark(context, 'a', FIXTURE_URL_2);
 
-        const sw = context.serviceWorkers()[0];
-        const marks = await sw.evaluate(() => {
-            return new Promise<any>((resolve) => {
-                chrome.storage.local.get('vimmarks', (data: any) => resolve(data.vimmarks || {}));
-            });
-        });
-
-        expect(marks['a']).toBeDefined();
-        expect(marks['a'].url).toBe(FIXTURE_URL_2);
-    });
-
-    test('multiple marks can be stored independently', async () => {
-        await addVIMark(context, 'a', FIXTURE_URL);
-        await addVIMark(context, 'b', FIXTURE_URL_2);
-
-        const sw = context.serviceWorkers()[0];
-        const marks = await sw.evaluate(() => {
-            return new Promise<any>((resolve) => {
-                chrome.storage.local.get('vimmarks', (data: any) => resolve(data.vimmarks || {}));
-            });
-        });
-
-        expect(marks['a']).toBeDefined();
-        expect(marks['a'].url).toBe(FIXTURE_URL);
-        expect(marks['b']).toBeDefined();
-        expect(marks['b'].url).toBe(FIXTURE_URL_2);
-    });
-
-    test('pressing Ctrl+\' followed by a character triggers mark jump if mark exists', async () => {
-        await addVIMark(context, 'a', FIXTURE_URL_2);
-        await page.waitForTimeout(200);
-
-        const initialCount = context.pages().length;
-
-        // Try to trigger the marks jump in new tab command
-        const newPagePromise = context.waitForEvent('page', { timeout: 3000 }).catch(() => null);
-        await page.keyboard.press("Control+'");
-        await page.waitForTimeout(50);
-        await page.keyboard.press('a');
-
-        const newPage = await newPagePromise;
-
-        if (newPage) {
-            // Mark jump opened a new tab
-            await newPage.waitForTimeout(300);
-            expect(context.pages().length).toBeGreaterThan(initialCount);
-            await newPage.close().catch(() => {});
-        } else {
-            // In some headless environments the Ctrl+' key may not trigger properly.
-            // Verify the mark is still stored (storage-level check).
             const sw = context.serviceWorkers()[0];
             const marks = await sw.evaluate(() => {
                 return new Promise<any>((resolve) => {
                     chrome.storage.local.get('vimmarks', (data: any) => resolve(data.vimmarks || {}));
                 });
             });
+
             expect(marks['a']).toBeDefined();
-        }
+            expect(marks['a'].url).toBe(FIXTURE_URL_2);
+        });
+    });
+
+    test('multiple marks can be stored independently', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await addVIMark(context, 'a', FIXTURE_URL);
+            await addVIMark(context, 'b', FIXTURE_URL_2);
+
+            const sw = context.serviceWorkers()[0];
+            const marks = await sw.evaluate(() => {
+                return new Promise<any>((resolve) => {
+                    chrome.storage.local.get('vimmarks', (data: any) => resolve(data.vimmarks || {}));
+                });
+            });
+
+            expect(marks['a']).toBeDefined();
+            expect(marks['a'].url).toBe(FIXTURE_URL);
+            expect(marks['b']).toBeDefined();
+            expect(marks['b'].url).toBe(FIXTURE_URL_2);
+        });
+    });
+
+    test('pressing Ctrl+\' followed by a character triggers mark jump if mark exists', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await addVIMark(context, 'a', FIXTURE_URL_2);
+            await page.waitForTimeout(200);
+
+            const initialCount = context.pages().length;
+
+            // Try to trigger the marks jump in new tab command
+            const newPagePromise = context.waitForEvent('page', { timeout: 3000 }).catch(() => null);
+            await page.keyboard.press("Control+'");
+            await page.waitForTimeout(50);
+            await page.keyboard.press('a');
+
+            const newPage = await newPagePromise;
+
+            if (newPage) {
+                // Mark jump opened a new tab
+                await newPage.waitForTimeout(300);
+                expect(context.pages().length).toBeGreaterThan(initialCount);
+                await newPage.close().catch(() => {});
+            } else {
+                // In some headless environments the Ctrl+' key may not trigger properly.
+                // Verify the mark is still stored (storage-level check).
+                const sw = context.serviceWorkers()[0];
+                const marks = await sw.evaluate(() => {
+                    return new Promise<any>((resolve) => {
+                        chrome.storage.local.get('vimmarks', (data: any) => resolve(data.vimmarks || {}));
+                    });
+                });
+                expect(marks['a']).toBeDefined();
+            }
+        });
     });
 });

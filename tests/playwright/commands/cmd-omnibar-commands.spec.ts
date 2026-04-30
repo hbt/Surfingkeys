@@ -1,15 +1,17 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_omnibar_commands';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 /**
  * Check if the omnibar iframe is visible via shadow DOM height check.
@@ -42,17 +44,17 @@ async function waitForOmnibarState(p: Page, expected: boolean, timeoutMs = 5000)
 
 test.describe('cmd_omnibar_commands (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(800);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_omnibar_commands');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -64,38 +66,44 @@ test.describe('cmd_omnibar_commands (Playwright)', () => {
     });
 
     test('pressing : opens commands omnibar', async () => {
-        // Colon requires Shift in Playwright keyboard
-        await page.keyboard.press('Shift+Semicolon');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Colon requires Shift in Playwright keyboard
+            await page.keyboard.press('Shift+Semicolon');
 
-        const opened = await waitForOmnibarState(page, true);
-        expect(opened).toBe(true);
-        if (DEBUG) console.log('Commands omnibar opened with : key');
+            const opened = await waitForOmnibarState(page, true);
+            expect(opened).toBe(true);
+            if (DEBUG) console.log('Commands omnibar opened with : key');
+        });
     });
 
     test('commands omnibar closes after pressing Escape', async () => {
-        await page.keyboard.press('Shift+Semicolon');
-        await waitForOmnibarState(page, true);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.keyboard.press('Shift+Semicolon');
+            await waitForOmnibarState(page, true);
 
-        await page.keyboard.press('Escape');
-        const closed = await waitForOmnibarState(page, false);
-        expect(closed).toBe(true);
-        if (DEBUG) console.log('Commands omnibar closed after Escape');
+            await page.keyboard.press('Escape');
+            const closed = await waitForOmnibarState(page, false);
+            expect(closed).toBe(true);
+            if (DEBUG) console.log('Commands omnibar closed after Escape');
+        });
     });
 
     test('can open and close commands omnibar multiple times', async () => {
-        // First cycle
-        await page.keyboard.press('Shift+Semicolon');
-        const firstOpen = await waitForOmnibarState(page, true);
-        expect(firstOpen).toBe(true);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // First cycle
+            await page.keyboard.press('Shift+Semicolon');
+            const firstOpen = await waitForOmnibarState(page, true);
+            expect(firstOpen).toBe(true);
 
-        await page.keyboard.press('Escape');
-        await waitForOmnibarState(page, false);
-        await page.waitForTimeout(300);
+            await page.keyboard.press('Escape');
+            await waitForOmnibarState(page, false);
+            await page.waitForTimeout(300);
 
-        // Second cycle
-        await page.keyboard.press('Shift+Semicolon');
-        const secondOpen = await waitForOmnibarState(page, true);
-        expect(secondOpen).toBe(true);
-        if (DEBUG) console.log('Commands omnibar works multiple times');
+            // Second cycle
+            await page.keyboard.press('Shift+Semicolon');
+            const secondOpen = await waitForOmnibarState(page, true);
+            expect(secondOpen).toBe(true);
+            if (DEBUG) console.log('Commands omnibar works multiple times');
+        });
     });
 });

@@ -1,15 +1,17 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_omnibar_history';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 /**
  * Check if the omnibar iframe is visible via shadow DOM height check.
@@ -56,17 +58,17 @@ async function pressEscapeToCloseOmnibar(p: Page): Promise<void> {
 
 test.describe('cmd_omnibar_history (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(800);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_omnibar_history');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
@@ -78,47 +80,53 @@ test.describe('cmd_omnibar_history (Playwright)', () => {
     });
 
     test('pressing oh opens history omnibar', async () => {
-        await page.keyboard.press('o');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('h');
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.keyboard.press('o');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('h');
 
-        const opened = await waitForOmnibarState(page, true);
-        expect(opened).toBe(true);
-        if (DEBUG) console.log('History omnibar opened with oh key sequence');
+            const opened = await waitForOmnibarState(page, true);
+            expect(opened).toBe(true);
+            if (DEBUG) console.log('History omnibar opened with oh key sequence');
+        });
     });
 
     test('history omnibar closes after pressing Escape', async () => {
-        await page.keyboard.press('o');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('h');
-        await waitForOmnibarState(page, true);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.keyboard.press('o');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('h');
+            await waitForOmnibarState(page, true);
 
-        // History mode steals focus into the frontend iframe - send Escape to all frames
-        await pressEscapeToCloseOmnibar(page);
-        const closed = await waitForOmnibarState(page, false);
-        expect(closed).toBe(true);
-        if (DEBUG) console.log('History omnibar closed after Escape');
+            // History mode steals focus into the frontend iframe - send Escape to all frames
+            await pressEscapeToCloseOmnibar(page);
+            const closed = await waitForOmnibarState(page, false);
+            expect(closed).toBe(true);
+            if (DEBUG) console.log('History omnibar closed after Escape');
+        });
     });
 
     test('oh command can be used multiple times consecutively', async () => {
-        // First cycle
-        await page.keyboard.press('o');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('h');
-        const firstOpen = await waitForOmnibarState(page, true);
-        expect(firstOpen).toBe(true);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // First cycle
+            await page.keyboard.press('o');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('h');
+            const firstOpen = await waitForOmnibarState(page, true);
+            expect(firstOpen).toBe(true);
 
-        await pressEscapeToCloseOmnibar(page);
-        await waitForOmnibarState(page, false);
-        await page.waitForTimeout(300);
+            await pressEscapeToCloseOmnibar(page);
+            await waitForOmnibarState(page, false);
+            await page.waitForTimeout(300);
 
-        // Second cycle
-        await page.keyboard.press('o');
-        await page.waitForTimeout(50);
-        await page.keyboard.press('h');
-        const secondOpen = await waitForOmnibarState(page, true);
-        expect(secondOpen).toBe(true);
-        if (DEBUG) console.log('History omnibar works multiple times');
-        await pressEscapeToCloseOmnibar(page);
+            // Second cycle
+            await page.keyboard.press('o');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('h');
+            const secondOpen = await waitForOmnibarState(page, true);
+            expect(secondOpen).toBe(true);
+            if (DEBUG) console.log('History omnibar works multiple times');
+            await pressEscapeToCloseOmnibar(page);
+        });
     });
 });

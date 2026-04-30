@@ -1,15 +1,17 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
-import { printCoverageDelta } from '../utils/cdp-coverage';
+import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_insert_delete_before_cursor';
 const FIXTURE_URL = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let cov: ServiceWorkerCoverage | undefined;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function clickInput(p: Page) {
     const coords = await p.evaluate(() => {
@@ -38,58 +40,64 @@ async function getInputState(p: Page) {
 
 test.describe('cmd_insert_delete_before_cursor (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithCoverage(FIXTURE_URL);
+        const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
+        covBg = result.covBg;
+        initContentCoverageForUrl = result.covForPageUrl;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        cov = await result.covInit();
         await page.waitForTimeout(500);
         await clickInput(page);
     });
 
     test.afterAll(async () => {
-        if (cov) printCoverageDelta(await cov.delta(), 'cmd_insert_delete_before_cursor');
-        await cov?.close();
+        await covBg?.close();
         await context?.close();
     });
 
     test('Ctrl+u deletes all characters before cursor', async () => {
-        // "hello world" cursor at 5 → delete "hello", keep " world", cursor at 0
-        await setInputState(page, 'hello world', 5);
-        const before = await getInputState(page);
-        expect(before.value).toBe('hello world');
-        expect(before.selectionStart).toBe(5);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // "hello world" cursor at 5 → delete "hello", keep " world", cursor at 0
+            await setInputState(page, 'hello world', 5);
+            const before = await getInputState(page);
+            expect(before.value).toBe('hello world');
+            expect(before.selectionStart).toBe(5);
 
-        await page.keyboard.press('Control+u');
-        await page.waitForTimeout(100);
+            await page.keyboard.press('Control+u');
+            await page.waitForTimeout(100);
 
-        const after = await getInputState(page);
-        expect(after.value).toBe(' world');
-        expect(after.selectionStart).toBe(0);
-        if (DEBUG) console.log(`Delete before cursor: "${before.value}" pos ${before.selectionStart} → "${after.value}"`);
+            const after = await getInputState(page);
+            expect(after.value).toBe(' world');
+            expect(after.selectionStart).toBe(0);
+            if (DEBUG) console.log(`Delete before cursor: "${before.value}" pos ${before.selectionStart} → "${after.value}"`);
+        });
     });
 
     test('Ctrl+u at end deletes entire content', async () => {
-        await setInputState(page, 'hello world', 11);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await setInputState(page, 'hello world', 11);
 
-        await page.keyboard.press('Control+u');
-        await page.waitForTimeout(100);
+            await page.keyboard.press('Control+u');
+            await page.waitForTimeout(100);
 
-        const after = await getInputState(page);
-        expect(after.value).toBe('');
-        expect(after.selectionStart).toBe(0);
-        if (DEBUG) console.log(`Delete all: "${after.value}" (empty)`);
+            const after = await getInputState(page);
+            expect(after.value).toBe('');
+            expect(after.selectionStart).toBe(0);
+            if (DEBUG) console.log(`Delete all: "${after.value}" (empty)`);
+        });
     });
 
     test('Ctrl+u at position 0 leaves input unchanged', async () => {
-        await setInputState(page, 'hello world', 0);
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await setInputState(page, 'hello world', 0);
 
-        await page.keyboard.press('Control+u');
-        await page.waitForTimeout(100);
+            await page.keyboard.press('Control+u');
+            await page.waitForTimeout(100);
 
-        const after = await getInputState(page);
-        expect(after.value).toBe('hello world');
-        expect(after.selectionStart).toBe(0);
-        if (DEBUG) console.log(`Delete at 0: unchanged "${after.value}"`);
+            const after = await getInputState(page);
+            expect(after.value).toBe('hello world');
+            expect(after.selectionStart).toBe(0);
+            if (DEBUG) console.log(`Delete at 0: unchanged "${after.value}"`);
+        });
     });
 });
