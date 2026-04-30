@@ -60,10 +60,10 @@ test.describe('cmd_nav_tab_history_forward (Playwright)', () => {
         for (let i = 0; i < 5; i++) {
             const p = await context.newPage();
             await p.goto(FIXTURE_URL, { waitUntil: 'load' });
-            cov = await result.covInit();
-        await p.waitForTimeout(200);
+            await p.waitForTimeout(200);
             pages.push(p);
         }
+        cov = await result.covInit();
 
         for (const p of pages) {
             const id = await getTabIdForPage(p);

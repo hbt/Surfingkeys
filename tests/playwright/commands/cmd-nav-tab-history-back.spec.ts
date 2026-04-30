@@ -64,10 +64,10 @@ test.describe('cmd_nav_tab_history_back (Playwright)', () => {
         for (let i = 0; i < 5; i++) {
             const p = await context.newPage();
             await p.goto(FIXTURE_URL, { waitUntil: 'load' });
-            cov = await result.covInit();
-        await p.waitForTimeout(200);
+            await p.waitForTimeout(200);
             pages.push(p);
         }
+        cov = await result.covInit();
 
         // Map each page to its tab ID by activating each page in turn
         for (const p of pages) {
