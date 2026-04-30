@@ -90,13 +90,12 @@ git log master..brookhong/master --oneline   # filter against upstream-excluded.
 | File | Purpose |
 |------|---------|
 | docs/dev.md | Full dev workflow: debugging, CDP proxy, sk-cdp, Playwright testing |
-| docs/glossary.md | Terms and acronyms |
 | docs/api.md | General API (generated: `npm run build:doc`) |
 | docs/cmds.md | Keyboard commands (generated: `npm run build:doc-cmds`) |
-| docs/feature-tree.md | Feature tree |
-| docs/ui-flow.md | UI screens and flows |
 | docs/adrs/ | Architecture decision records |
-| docs/migration/ | Current migration process |
-| docs/c4/ | C2 and C3 architecture diagrams |
-| docs/chrome-api/ | Chrome extension + DevTools protocol API reference |
 | docs/cdp/proxy.md | CDP proxy examples and request formats |
+| docs/refs/chrome-api/ | Chrome extension + DevTools protocol API reference |
+| docs/initial-upstream-repo-analysis/glossary.md | Terms and acronyms — initial analysis |
+| docs/initial-upstream-repo-analysis/feature-tree.md | Feature tree — initial analysis |
+| docs/initial-upstream-repo-analysis/ui-flow.md | UI screens and flows — initial analysis |
+| docs/initial-upstream-repo-analysis/c4/ | C2 and C3 architecture diagrams — initial analysis |
