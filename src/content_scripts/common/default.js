@@ -997,6 +997,16 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTab", { nocache: false });
     });
+    mapkey('R', {
+        short: "Hard reload page",
+        unique_id: "cmd_nav_reload_hard",
+        feature_group: 4,
+        category: "navigation",
+        description: "Hard reload the current page, bypassing cache",
+        tags: ["navigation", "reload", "refresh", "cache"]
+    }, function() {
+        RUNTIME("reloadTab", { nocache: true });
+    });
     mapkey('oi', {
         short: "Open incognito window",
         unique_id: "cmd_nav_incognito",
