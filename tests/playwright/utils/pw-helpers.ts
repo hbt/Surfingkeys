@@ -130,6 +130,18 @@ export async function invokeCommandRaw(
 }
 
 /**
+ * Override a runtime.conf value in the content script via the __sk_conf_override DOM bridge.
+ * Returns true if the key existed and was set, false otherwise.
+ */
+export async function setSkConf(page: import('@playwright/test').Page, key: string, value: unknown): Promise<boolean> {
+    return page.evaluate(({ key, value }) => {
+        delete (document.documentElement.dataset as any).skConfOverrideResult;
+        document.dispatchEvent(new CustomEvent('__sk_conf_override', { detail: { key, value } }));
+        return (document.documentElement.dataset as any).skConfOverrideResult === 'true';
+    }, { key, value });
+}
+
+/**
  * Navigate to a URL and wait for Surfingkeys content script to settle.
  */
 export async function waitForSKReady(page: import('@playwright/test').Page, settleMs = 500): Promise<void> {

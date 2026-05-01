@@ -242,6 +242,19 @@ function _initModules() {
             document.documentElement.dataset.skInvokeResult = 'false';
         }
     });
+
+    // Test hook: override runtime.conf values from main world via DOM CustomEvent.
+    // Usage: document.dispatchEvent(new CustomEvent('__sk_conf_override', { detail: { key: 'digitForRepeat', value: false } }))
+    document.addEventListener('__sk_conf_override', (e) => {
+        const { key, value } = e.detail;
+        if (Object.prototype.hasOwnProperty.call(runtime.conf, key)) {
+            runtime.conf[key] = value;
+            document.documentElement.dataset.skConfOverrideResult = 'true';
+        } else {
+            document.documentElement.dataset.skConfOverrideResult = 'false';
+        }
+    });
+
     document.documentElement.dataset.skInvokeReady = 'true';
 
     if (typeof(_browser.plugin) === "function") {
