@@ -4,6 +4,7 @@ dist/
 /coverage-raw/
 /coverage-html/
 /coverage-manifests/
+/test-reports/
 data/gen/
 .DS_Store
 .vscode/

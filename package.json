@@ -34,7 +34,7 @@
     "report:mappings:json": "bun scripts/mappings-json-report.ts",
     "report:audit": "bun scripts/mappings-json-report.ts | bun scripts/audit-report.ts",
     "test:playwright": "bunx playwright test",
-    "test:playwright:parallel": "bunx playwright test --workers=9 --reporter=dot",
+    "test:playwright:parallel": "bun scripts/test-parallel.ts",
     "worktree:setup": "bun scripts/worktree-setup.ts"
   },
   "repository": {
