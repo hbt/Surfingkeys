@@ -30,30 +30,30 @@ function healthResponse(): Response {
   });
 }
 
-function configResponse(): Response {
+function configResponse(origin: string | null): Response | Promise<Response> {
+  // Only serve to chrome-extension:// origins (or no Origin = curl/direct)
+  if (origin !== null && !origin.startsWith('chrome-extension://')) {
+    const body = 'Forbidden';
+    log('GET', '/config', 403, body.length);
+    return new Response(body, { status: 403 });
+  }
+
+  const corsHeaders: Record<string, string> = {
+    'Content-Type': 'application/javascript',
+    ...(origin ? { 'Access-Control-Allow-Origin': origin } : {})
+  };
+
   if (!existsSync(CONFIG_FILE)) {
     const body = `/* Config file not found: ${CONFIG_FILE} */`;
     log('GET', '/config', 404, body.length);
-    return new Response(body, {
-      status: 404,
-      headers: {
-        'Content-Type': 'application/javascript',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
+    return new Response(body, { status: 404, headers: corsHeaders });
   }
 
   const content = Bun.file(CONFIG_FILE);
   return content.text().then((text: string) => {
     log('GET', '/config', 200, text.length);
-    return new Response(text, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/javascript',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
-  }) as unknown as Response;
+    return new Response(text, { status: 200, headers: corsHeaders });
+  });
 }
 
 function notFound(path: string): Response {
@@ -89,7 +89,7 @@ Bun.serve({
     const url = new URL(req.url);
 
     if (url.pathname === '/health') return healthResponse();
-    if (url.pathname === '/config') return configResponse();
+    if (url.pathname === '/config') return configResponse(req.headers.get('Origin'));
     return notFound(url.pathname);
   }
 });
