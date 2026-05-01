@@ -61,7 +61,8 @@ const ACTIONS = {
     'test-coverage-query': 'Query per-function call counts from last coverage run',
     'server-start': 'Start local config server (port 9600)',
     'server-stop': 'Stop local config server',
-    'server-status': 'Check local config server status'
+    'server-status': 'Check local config server status',
+    'config-clear': 'Wipe all config state (localPath, snippets, showAdvanced, savedAt)'
 };
 
 /**

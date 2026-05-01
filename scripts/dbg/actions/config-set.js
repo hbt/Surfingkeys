@@ -300,8 +300,9 @@ async function setConfigInStorage(ws, snippetsContent, localPathUrl) {
     const code = `
         new Promise((resolve, reject) => {
             const toSet = {
-                snippets: \`${snippetsContent.replace(/`/g, '\\`')}\`,
-                localPath: '${localPathUrl.replace(/'/g, "\\'")}'
+                snippets: \`${snippetsContent.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`,
+                localPath: '${localPathUrl.replace(/'/g, "\\'")}',
+                showAdvanced: true
             };
 
             chrome.storage.local.set(toSet, () => {

@@ -56,6 +56,32 @@ function configResponse(origin: string | null): Response | Promise<Response> {
   });
 }
 
+function loadedResponse(req: Request): Promise<Response> {
+  const origin = req.headers.get('Origin');
+  if (origin !== null && !origin.startsWith('chrome-extension://')) {
+    const body = 'Forbidden';
+    log('POST', '/loaded', 403, body.length);
+    return Promise.resolve(new Response(body, { status: 403 }));
+  }
+
+  return req.json().then((data: { snippetsLength?: number }) => {
+    const snippetsLength = data?.snippetsLength ?? '?';
+    const ts = new Date().toISOString();
+    console.log(`[${ts}] POST /loaded ← snippetsLength=${snippetsLength}`);
+    const body = JSON.stringify({ ok: true });
+    log('POST', '/loaded', 200, body.length);
+    const corsHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(origin ? { 'Access-Control-Allow-Origin': origin } : {})
+    };
+    return new Response(body, { status: 200, headers: corsHeaders });
+  }).catch(() => {
+    const body = JSON.stringify({ ok: true });
+    log('POST', '/loaded', 200, body.length);
+    return new Response(body, { status: 200 });
+  });
+}
+
 function notFound(path: string): Response {
   const body = 'Not Found';
   log('GET', path, 404, body.length);
@@ -90,6 +116,7 @@ Bun.serve({
 
     if (url.pathname === '/health') return healthResponse();
     if (url.pathname === '/config') return configResponse(req.headers.get('Origin'));
+    if (url.pathname === '/loaded' && req.method === 'POST') return loadedResponse(req);
     return notFound(url.pathname);
   }
 });

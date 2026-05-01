@@ -13,9 +13,13 @@ function modifyManifest(browser, mode, manifestPath, outputPath) {
     // Inject version from package.json
     manifest.version = package.version;
 
-    // In development mode, append timestamp to description for visual reload verification
+    // In development mode, append build counter as 4th version component so Chrome
+    // always detects an update and re-installs the service worker on extension reload.
+    // Chrome version components max at 65535; use seconds-since-epoch mod that value.
     if (mode === 'development') {
         const timestamp = new Date().toISOString();
+        const buildCounter = Math.floor(Date.now() / 1000) % 65535;
+        manifest.version = `${package.version}.${buildCounter}`;
         const baseDescription = manifest.description.split(' [Built:')[0]; // Remove old timestamp if present
         manifest.description = `${baseDescription} [Built: ${timestamp}]`;
     }

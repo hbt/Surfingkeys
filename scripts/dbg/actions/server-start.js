@@ -59,15 +59,14 @@ async function run(args) {
   }
 
   try {
-    const logStream = fs.createWriteStream(CONFIG_SERVER_LOG_FILE, { flags: 'a' });
+    const logFd = fs.openSync(CONFIG_SERVER_LOG_FILE, 'a');
 
     const server = spawn('bun', [SERVER_SCRIPT], {
       detached: true,
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', logFd, logFd]
     });
 
-    server.stdout.pipe(logStream);
-    server.stderr.pipe(logStream);
+    fs.closeSync(logFd);
 
     server.unref();
 
