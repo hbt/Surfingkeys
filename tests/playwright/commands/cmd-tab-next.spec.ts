@@ -1,5 +1,5 @@
-import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { test, expect, BrowserContext } from '@playwright/test';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -10,40 +10,48 @@ const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
-let page: Page;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
-async function getActiveTabId(): Promise<number> {
-    const sw = context.serviceWorkers()[0];
+async function getActiveTabViaSW(ctx: BrowserContext): Promise<any> {
+    const sw = ctx.serviceWorkers()[0];
     if (!sw) throw new Error('No service worker found');
     return sw.evaluate(() => {
-        return new Promise<number>((resolve) => {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                resolve(tabs[0]?.id ?? -1);
-            });
+        return new Promise<any>((resolve) => {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any[]) => resolve(tabs[0] ?? null));
         });
     });
 }
 
-test.describe('cmd_tab_next (Playwright)', () => {
-    let page2: Page;
+async function getTabsViaSW(ctx: BrowserContext): Promise<any[]> {
+    const sw = ctx.serviceWorkers()[0];
+    if (!sw) throw new Error('No service worker found');
+    return sw.evaluate(() => {
+        return new Promise<any[]>((resolve) => {
+            chrome.tabs.query({ currentWindow: true }, (tabs: any[]) => resolve(tabs));
+        });
+    });
+}
 
+async function activateTabViaSW(ctx: BrowserContext, tabId: number): Promise<void> {
+    const sw = ctx.serviceWorkers()[0];
+    if (!sw) throw new Error('No service worker found');
+    await sw.evaluate((id: number) => {
+        return new Promise<void>((resolve) => {
+            chrome.tabs.update(id, { active: true }, () => resolve());
+        });
+    }, tabId);
+}
+
+test.describe('cmd_tab_next (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
         covBg = result.covBg;
         initContentCoverageForUrl = result.covForPageUrl;
-        page = await context.newPage();
-        await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
-        await page.waitForTimeout(500);
-        // Open a second tab
-        page2 = await context.newPage();
-        await page2.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await page2.waitForTimeout(500);
-        // Focus back on page1
-        await page.bringToFront();
-        await page.waitForTimeout(300);
+        const p = await context.newPage();
+        await p.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+        await p.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
@@ -51,46 +59,73 @@ test.describe('cmd_tab_next (Playwright)', () => {
         await context?.close();
     });
 
-    test('pressing R switches to a different tab', async () => {
+    async function closeAllExcept(keepPage: import('@playwright/test').Page) {
+        for (const p of context.pages()) {
+            if (p !== keepPage) await p.close().catch(() => {});
+        }
+        await keepPage.bringToFront();
+        await keepPage.waitForTimeout(200);
+    }
+
+    test('cmd_tab_next moves active tab from index 0 to index 1', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            const initialTabId = await getActiveTabId();
-            if (DEBUG) console.log(`Initial active tab: ${initialTabId}`);
+            const tab0 = await context.newPage();
+            await tab0.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await closeAllExcept(tab0);
 
-            await page.keyboard.press('R');
-            await page.waitForTimeout(500);
+            const tab1 = await context.newPage();
+            await tab1.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await tab1.waitForTimeout(200);
 
-            const newTabId = await getActiveTabId();
-            if (DEBUG) console.log(`After R: active tab ${newTabId}`);
+            const allTabs = await getTabsViaSW(context);
+            expect(allTabs.length).toBe(2);
+            const tab0Info = allTabs.find((t: any) => t.index === 0);
+            expect(tab0Info).toBeDefined();
 
-            expect(newTabId).not.toBe(initialTabId);
-            if (DEBUG) console.log(`Tab switched: ${initialTabId} → ${newTabId}`);
+            await activateTabViaSW(context, tab0Info!.id);
+            await tab0.bringToFront();
+            await tab0.waitForTimeout(300);
+
+            const before = await getActiveTabViaSW(context);
+            expect(before.index).toBe(0);
+
+            await invokeCommand(tab0, 'cmd_tab_next');
+            await tab0.waitForTimeout(500);
+
+            const after = await getActiveTabViaSW(context);
+            expect(after.index).toBe(1);
+            if (DEBUG) console.log(`cmd_tab_next: index ${before.index} → ${after.index}`);
         });
     });
 
-    test('pressing R twice cycles through tabs', async () => {
+    test('cmd_tab_next wraps from last tab to index 0', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            await page.bringToFront();
-            await page.waitForTimeout(300);
-            const initialTabId = await getActiveTabId();
+            const tab0 = await context.newPage();
+            await tab0.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await closeAllExcept(tab0);
 
-            await page.keyboard.press('R');
-            await page.waitForTimeout(400);
-            const afterFirst = await getActiveTabId();
-            expect(afterFirst).not.toBe(initialTabId);
+            const tab1 = await context.newPage();
+            await tab1.goto(FIXTURE_URL, { waitUntil: 'load' });
+            await tab1.waitForTimeout(200);
 
-            // Press R on the now-active tab (page2)
-            const activePage = context.pages().find(async (p) => {
-                // Find the now-focused page - use the page that's not page
-                return p !== page;
-            }) ?? page2;
-            await activePage.bringToFront();
-            await activePage.keyboard.press('R');
-            await activePage.waitForTimeout(400);
-            const afterSecond = await getActiveTabId();
+            const allTabs = await getTabsViaSW(context);
+            expect(allTabs.length).toBe(2);
+            const lastTabInfo = allTabs.find((t: any) => t.index === 1);
+            expect(lastTabInfo).toBeDefined();
 
-            // After cycling through all tabs, we should be back or at next tab
-            if (DEBUG) console.log(`After 2x R: ${initialTabId} → ${afterFirst} → ${afterSecond}`);
-            expect(afterSecond).toBeDefined();
+            await activateTabViaSW(context, lastTabInfo!.id);
+            await tab1.bringToFront();
+            await tab1.waitForTimeout(300);
+
+            const before = await getActiveTabViaSW(context);
+            expect(before.index).toBe(1);
+
+            await invokeCommand(tab1, 'cmd_tab_next');
+            await tab1.waitForTimeout(500);
+
+            const after = await getActiveTabViaSW(context);
+            expect(after.index).toBe(0);
+            if (DEBUG) console.log(`cmd_tab_next wrap: index ${before.index} → ${after.index}`);
         });
     });
 });
