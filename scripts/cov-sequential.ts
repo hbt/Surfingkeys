@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 /**
- * Run Playwright specs in parallel with coverage enabled, then write a manifest
+ * Run Playwright specs sequentially with coverage enabled, then write a manifest
  * that indexes every raw V8 JSON artifact created during the run.
  *
  * Usage:
- *   npm run cov:parallel
- *   npm run cov:parallel -- tests/playwright/commands/cmd-scroll-down.spec.ts
+ *   npm run cov:sequential
+ *   npm run cov:sequential -- tests/playwright/commands/cmd-scroll-down.spec.ts
  */
 
 import { spawnSync } from 'child_process';
@@ -29,9 +29,9 @@ const reportPath = path.resolve('test-reports', 'runs', `${runId}.json`);
 fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 
 const playwrightArgs = process.argv.slice(2);
-const cmd = ['playwright', 'test', '--workers=3', ...playwrightArgs];
+const cmd = ['playwright', 'test', '--workers=1', ...playwrightArgs];
 
-console.log(`\n[cov:parallel] Running: COVERAGE=true bunx ${cmd.join(' ')}`);
+console.log(`\n[cov:sequential] Running: COVERAGE=true bunx ${cmd.join(' ')}`);
 const run = spawnSync('bunx', cmd, {
     stdio: 'inherit',
     env: { ...process.env, COVERAGE: 'true', COVERAGE_OUTPUT_DIR: coverageRoot, PLAYWRIGHT_JSON_OUTPUT: reportPath },
@@ -95,8 +95,8 @@ const manifest = {
 fs.mkdirSync(manifestDir, { recursive: true });
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 
-console.log(`\n[cov:parallel] Wrote manifest → ${manifestPath}`);
-console.log(`[cov:parallel] Test report  → ${reportPath}`);
-console.log(`[cov:parallel] Indexed ${coverageFiles.length} raw V8 file(s) across ${manifest.entries.length} group(s).`);
+console.log(`\n[cov:sequential] Wrote manifest → ${manifestPath}`);
+console.log(`[cov:sequential] Test report  → ${reportPath}`);
+console.log(`[cov:sequential] Indexed ${coverageFiles.length} raw V8 file(s) across ${manifest.entries.length} group(s).`);
 
 if (run.status !== 0) process.exitCode = run.status ?? 1;

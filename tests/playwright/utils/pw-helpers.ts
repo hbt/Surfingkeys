@@ -387,6 +387,7 @@ export async function collectOptionalCoverage(
     page?: import('@playwright/test').Page,
 ): Promise<void> {
     const shouldCollect = process.env.COVERAGE === 'true';
+    const DEBUG = !!process.env.DEBUG;
 
     if (!shouldCollect || !cdpPort || !page) {
         return;
@@ -415,13 +416,17 @@ export async function collectOptionalCoverage(
 
         // Report coverage
         const stats = calculateCoverageStats(coverage);
-        console.log('\n--- V8 Coverage Report ---');
-        console.log(`Coverage: ${stats.percentage}% (${stats.coveredBytes}/${stats.totalBytes} bytes)`);
-        Object.entries(stats.byUrl).forEach(([url, data]: any) => {
-            const pct = data.total > 0 ? ((data.covered / data.total) * 100).toFixed(1) : '0';
-            console.log(`  ${pct}% | ${url.substring(0, 70)}`);
-        });
+        if (DEBUG) {
+            console.log('\n--- V8 Coverage Report ---');
+            console.log(`Coverage: ${stats.percentage}% (${stats.coveredBytes}/${stats.totalBytes} bytes)`);
+            Object.entries(stats.byUrl).forEach(([url, data]: any) => {
+                const pct = data.total > 0 ? ((data.covered / data.total) * 100).toFixed(1) : '0';
+                console.log(`  ${pct}% | ${url.substring(0, 70)}`);
+            });
+        }
     } catch (err) {
-        console.error('Failed to collect coverage:', err);
+        if (DEBUG) {
+            console.error('Failed to collect coverage:', err);
+        }
     }
 }

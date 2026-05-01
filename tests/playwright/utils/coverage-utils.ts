@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import type { ServiceWorkerCoverage } from './cdp-coverage';
 
+const DEBUG = !!process.env.DEBUG;
+
 export type CoverageStats = {
     total: number;
     zero: number;
@@ -107,7 +109,7 @@ export async function withPersistedDualCoverage<T>(
     content: CoverageStats | null;
 }> {
     const covContent = await opts.initContentCoverageForUrl?.(opts.coverageUrl);
-    if (process.env.COVERAGE === 'true' && !covContent) {
+    if (process.env.COVERAGE === 'true' && !covContent && DEBUG) {
         console.warn(`[Coverage] Content coverage unavailable for ${opts.suiteLabel}/${coverageSlug(testTitle)} (target not found)`);
     }
 
@@ -123,7 +125,9 @@ export async function withPersistedDualCoverage<T>(
                 throw new Error(`Missing background coverage artifacts for ${opts.suiteLabel}/${coverageSlug(testTitle)}`);
             }
             if (coverage.bg.total > 0 && coverage.bg.zero <= 0) {
-                console.warn(`[Coverage] Background coverage lacked uncovered functions for ${opts.suiteLabel}/${coverageSlug(testTitle)} (heavy setup may have warmed all functions)`);
+                if (DEBUG) {
+                    console.warn(`[Coverage] Background coverage lacked uncovered functions for ${opts.suiteLabel}/${coverageSlug(testTitle)} (heavy setup may have warmed all functions)`);
+                }
             }
             if (opts.requireBackgroundHits && coverage.bg.gt0 <= 0) {
                 throw new Error(`Background coverage had no executed functions for ${opts.suiteLabel}/${coverageSlug(testTitle)}`);

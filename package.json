@@ -24,6 +24,7 @@
     "debug:cdp:headless": "bun debug/run-headless.js",
     "debug:cdp:live": "bun debug/run-live.js",
     "cov:html": "bun scripts/cov.ts",
+    "cov:sequential": "bun scripts/cov-sequential.ts",
     "cov:parallel": "bun scripts/cov-parallel.ts",
     "lint": "bun scripts/run-lint.js",
     "lint:js": "eslint --config config/eslint.config.js src tests debug scripts --ext .js,.ts",

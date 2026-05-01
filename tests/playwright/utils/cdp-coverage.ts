@@ -5,6 +5,16 @@ import * as path from 'path';
 
 // ─── Service Worker Coverage ──────────────────────────────────────────────────
 
+const DEBUG = !!process.env.DEBUG;
+
+function debugLog(...args: unknown[]): void {
+    if (DEBUG) console.log(...args);
+}
+
+function debugWarn(...args: unknown[]): void {
+    if (DEBUG) console.warn(...args);
+}
+
 type FuncKey = string; // `${scriptId}:${startOffset}`
 
 export interface CoverageDeltaEntry {
@@ -55,7 +65,7 @@ export class ServiceWorkerCoverage {
             const targets = await this.fetchTargets(cdpPort);
             const sw = targets.find(this.targetFilter);
             if (!sw?.webSocketDebuggerUrl) {
-                console.warn(
+                debugWarn(
                     '[Coverage] Target not found. Available targets:\n' +
                         targets.map((t: any) => `  ${t.type}: ${t.url}`).join('\n'),
                 );
@@ -71,7 +81,7 @@ export class ServiceWorkerCoverage {
             await this.snapshot();
             return true;
         } catch (err) {
-            console.error('[Coverage] init failed:', err);
+            debugWarn('[Coverage] init failed:', err);
             return false;
         }
     }
@@ -146,7 +156,7 @@ export class ServiceWorkerCoverage {
      * Output: `<outputDir>/<label>/<ISO-timestamp>.v8.json`
      * Schema: { spec, target, scriptUrl, timestamp, result: ScriptCoverage[] }
      *
-     * Prints a single line to stdout: [Coverage:<label>] saved → <path>
+     * Prints a single line to stdout only when DEBUG is set: [Coverage:<label>] saved → <path>
      * Returns the file path, or null if not connected / COVERAGE not set.
      */
     async flush(label: string, outputDir: string = 'coverage-raw'): Promise<string | null> {
@@ -156,10 +166,10 @@ export class ServiceWorkerCoverage {
             raw = await this.cmd('Profiler.takePreciseCoverage');
         } catch {
             // SW was likely terminated by aggressive tab-closing — try to reconnect
-            console.warn(`[Coverage:${label}] CDP lost, reconnecting...`);
+            debugWarn(`[Coverage:${label}] CDP lost, reconnecting...`);
             const ok = await this.reconnect();
             if (!ok) {
-                console.warn(`[Coverage:${label}] Reconnect failed — no coverage written.`);
+                debugWarn(`[Coverage:${label}] Reconnect failed — no coverage written.`);
                 return null;
             }
             raw = await this.cmd('Profiler.takePreciseCoverage').catch(() => null);
@@ -182,7 +192,7 @@ export class ServiceWorkerCoverage {
                 (e: any) => typeof e.url === 'string' && e.url.endsWith('content.js'),
             );
             if (!hasContentScript) {
-                if (process.env.DEBUG) console.log(`[Coverage:${label}] skipped (no content.js in page result — content scripts not capturable via CDP)`);
+                debugLog(`[Coverage:${label}] skipped (no content.js in page result — content scripts not capturable via CDP)`);
                 return null;
             }
         }
@@ -196,7 +206,7 @@ export class ServiceWorkerCoverage {
             result: resultEntries,
         };
         fs.writeFileSync(filePath, JSON.stringify(payload, null, 2));
-        if (process.env.DEBUG) console.log(`[Coverage:${label}] saved → ${filePath}`);
+        debugLog(`[Coverage:${label}] saved → ${filePath}`);
         return filePath;
     }
 
@@ -269,22 +279,22 @@ export class ServiceWorkerCoverage {
 }
 
 /**
- * Print a coverage delta to stdout in a compact, human-readable format.
+ * Print a coverage delta only when DEBUG is set.
  * Shows only functions that were actually called, sorted by call count.
  * If the data is meaningful, you will see extension-specific function names.
  */
 export function printCoverageDelta(delta: CoverageDelta, label: string): void {
     if (delta.functions.length === 0) {
-        console.log(`[Coverage:${label}] ⚠ No service worker functions executed`);
+        debugLog(`[Coverage:${label}] ⚠ No service worker functions executed`);
         return;
     }
     // Show script URL once (truncated to extension ID + filename)
     const scriptLabel = delta.scriptUrl
         ? delta.scriptUrl.replace(/chrome-extension:\/\/[^/]+\//, 'ext://')
         : 'unknown';
-    console.log(`\n[Coverage:${label}] ${delta.functions.length} functions hit — ${scriptLabel}`);
+    debugLog(`\n[Coverage:${label}] ${delta.functions.length} functions hit — ${scriptLabel}`);
     delta.functions.slice(0, 30).forEach((f) => {
-        console.log(`  x${String(f.calls).padStart(3)}  ${f.name}`);
+        debugLog(`  x${String(f.calls).padStart(3)}  ${f.name}`);
     });
 }
 
@@ -336,14 +346,14 @@ function sendCDPCommand(ws: WebSocket, id: number, method: string, params?: any)
                     }
                 }
             } catch (err) {
-                console.error('Error parsing CDP response:', err);
+                debugWarn('Error parsing CDP response:', err);
                 reject(err);
             }
         };
 
         ws.on('message', handler);
         const cmd = { id, method, ...(params ? { params } : {}) };
-        console.log(`[CDP] Sending: ${method}`);
+        debugLog(`[CDP] Sending: ${method}`);
         ws.send(JSON.stringify(cmd));
     });
 }
@@ -359,7 +369,7 @@ export async function getScriptsInTarget(wsUrl: string): Promise<any[]> {
         const scripts: any[] = [];
 
         const timeout = setTimeout(() => {
-            console.log('Timeout getting scripts');
+            debugLog('Timeout getting scripts');
             ws.close();
             resolve(scripts);
         }, 5000);
@@ -367,17 +377,17 @@ export async function getScriptsInTarget(wsUrl: string): Promise<any[]> {
         ws.on('open', async () => {
             try {
                 // Enable Debugger domain
-                console.log('Enabling Debugger domain...');
+                debugLog('Enabling Debugger domain...');
                 await sendCDPCommand(ws, messageId++, 'Debugger.enable');
 
-                console.log('✅ Debugger enabled - waiting for Debugger.scriptParsed events...');
+                debugLog('✅ Debugger enabled - waiting for Debugger.scriptParsed events...');
 
                 // Set up listener for script parsed events
                 const scriptListener = (data: Buffer) => {
                     const msg = JSON.parse(data.toString());
                     if (msg.method === 'Debugger.scriptParsed') {
                         const script = msg.params;
-                        console.log(`  Found script: ${script.url}`);
+                        debugLog(`  Found script: ${script.url}`);
                         scripts.push(script);
                     }
                 };
@@ -391,7 +401,7 @@ export async function getScriptsInTarget(wsUrl: string): Promise<any[]> {
                 ws.close();
                 resolve(scripts);
             } catch (err) {
-                console.error('Error getting scripts:', err);
+                debugWarn('Error getting scripts:', err);
                 clearTimeout(timeout);
                 ws.close();
                 resolve(scripts);
@@ -399,7 +409,7 @@ export async function getScriptsInTarget(wsUrl: string): Promise<any[]> {
         });
 
         ws.on('error', (err) => {
-            console.error('WebSocket error:', err);
+            debugWarn('WebSocket error:', err);
             clearTimeout(timeout);
             resolve(scripts);
         });
@@ -416,55 +426,55 @@ export async function collectV8Coverage(wsUrl: string, timeoutMs = 15000): Promi
         let messageId = 1;
 
         const timeoutHandle = setTimeout(() => {
-            console.log('Coverage collection timeout');
+            debugLog('Coverage collection timeout');
             ws.close();
             resolve(null);
         }, timeoutMs);
 
         ws.on('open', async () => {
             try {
-                console.log('CDP WebSocket connected');
+                debugLog('CDP WebSocket connected');
 
                 // Enable Debugger domain
-                console.log('[Step 1] Enabling Debugger...');
+                debugLog('[Step 1] Enabling Debugger...');
                 await sendCDPCommand(ws, messageId++, 'Debugger.enable');
 
                 // Enable Profiler domain
-                console.log('[Step 2] Enabling Profiler...');
+                debugLog('[Step 2] Enabling Profiler...');
                 await sendCDPCommand(ws, messageId++, 'Profiler.enable');
 
                 // Enable Runtime to monitor code execution
-                console.log('[Step 3] Enabling Runtime...');
+                debugLog('[Step 3] Enabling Runtime...');
                 await sendCDPCommand(ws, messageId++, 'Runtime.enable');
 
                 // Start precise coverage
-                console.log('[Step 4] Starting precise coverage...');
+                debugLog('[Step 4] Starting precise coverage...');
                 await sendCDPCommand(ws, messageId++, 'Profiler.startPreciseCoverage', {
                     callCount: true,
                     detailed: true,
                 });
 
                 // Wait for code to execute during coverage collection
-                console.log('[Step 5] Waiting for code execution (coverage active)...');
+                debugLog('[Step 5] Waiting for code execution (coverage active)...');
                 await new Promise(r => setTimeout(r, 1000));
 
                 // Take coverage
-                console.log('[Step 6] Taking coverage...');
+                debugLog('[Step 6] Taking coverage...');
                 const coverageResult = await sendCDPCommand(ws, messageId++, 'Profiler.takePreciseCoverage');
                 coverage = coverageResult?.result || [];
 
-                console.log(`Collected coverage for ${coverage.length} scripts`);
+                debugLog(`Collected coverage for ${coverage.length} scripts`);
                 if (coverage.length > 0) {
-                    console.log('\nCoverage summary:');
+                    debugLog('\nCoverage summary:');
                     coverage.forEach((c: any, idx: number) => {
-                        console.log(`  Script ${idx + 1}: url=${c.url || '(anonymous)'}, scriptId=${c.scriptId}, functions=${c.functions?.length || 0}`);
+                        debugLog(`  Script ${idx + 1}: url=${c.url || '(anonymous)'}, scriptId=${c.scriptId}, functions=${c.functions?.length || 0}`);
                     });
                 }
                 clearTimeout(timeoutHandle);
                 ws.close();
                 resolve(coverage.length > 0 ? coverage : null);
             } catch (err) {
-                console.error('Coverage collection error:', err);
+                debugWarn('Coverage collection error:', err);
                 clearTimeout(timeoutHandle);
                 ws.close();
                 resolve(null);
@@ -472,7 +482,7 @@ export async function collectV8Coverage(wsUrl: string, timeoutMs = 15000): Promi
         });
 
         ws.on('error', (err) => {
-            console.error('CDP WebSocket error:', err);
+            debugWarn('CDP WebSocket error:', err);
             clearTimeout(timeoutHandle);
             resolve(null);
         });
