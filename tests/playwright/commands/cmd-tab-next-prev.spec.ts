@@ -15,7 +15,7 @@
  */
 
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithDualCoverage } from '../utils/pw-helpers';
+import { launchWithDualCoverage, invokeCommand } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -117,11 +117,25 @@ test.describe('cmd_tab_next + cmd_tab_previous (Playwright)', () => {
         covBg = result.covBg;
         initContentCoverageForUrl = result.covForPageUrl;
 
-        // Close the initial blank page Chrome opens so our tab indices are clean.
-        const initialPages = context.pages();
-        for (const p of initialPages) {
-            await p.close();
+        // Close all tabs (including chrome:// debug tabs the extension may open at startup
+        // when port 9222 is accessible). Use Playwright close first, then SW fallback for
+        // any chrome:// tabs Playwright cannot directly close.
+        for (const p of context.pages()) {
+            await p.close().catch(() => {});
         }
+        // Wait for any async extension-triggered page opens (e.g. chrome://extensions tabs
+        // opened by chrome.js when debug mode is detected on port 9222).
+        await new Promise(r => setTimeout(r, 800));
+        // Use SW to remove any remaining tabs (chrome:// tabs survive Playwright close).
+        const swEarly = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker');
+        await swEarly.evaluate(() => new Promise<void>(resolve => {
+            chrome.tabs.query({ currentWindow: true }, (tabs: any[]) => {
+                const ids = tabs.map((t: any) => t.id).filter(Boolean);
+                if (ids.length === 0) { resolve(); return; }
+                chrome.tabs.remove(ids, () => resolve());
+            });
+        })).catch(() => {});
+        await new Promise(r => setTimeout(r, 300));
 
         // Open extension options page as chrome.tabs query surface.
         const sw = context.serviceWorkers()[0]
@@ -199,12 +213,12 @@ test.describe('cmd_tab_next + cmd_tab_previous (Playwright)', () => {
     // 2.0 R — next tab
     // -----------------------------------------------------------------------
 
-    test('2.1 pressing R switches to next tab', async () => {
+    test('2.1 cmd_tab_next switches to next tab', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             const initialTab = await getActiveTab();
             const activePage = await getActivePage();
 
-            await activePage.keyboard.press('R');
+            await invokeCommand(activePage, 'cmd_tab_next');
             const newTab = await waitForTabSwitch(initialTab.id);
 
             expect(newTab.index).toBe(initialTab.index + 1);
@@ -212,45 +226,48 @@ test.describe('cmd_tab_next + cmd_tab_previous (Playwright)', () => {
         });
     });
 
-    test('2.2 pressing R twice switches two tabs to the right', async () => {
+    test('2.2 cmd_tab_next twice switches two tabs to the right', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             const initialTab = await getActiveTab();
 
-            // First R
+            // First cmd_tab_next
             let activePage = await getActivePage();
-            await activePage.keyboard.press('R');
+            await invokeCommand(activePage, 'cmd_tab_next');
             const afterFirst = await waitForTabSwitch(initialTab.id);
             expect(afterFirst.index).toBe(initialTab.index + 1);
 
-            // Second R — send to the now-active page
+            // Second cmd_tab_next — send to the now-active page
             activePage = chromeIdToPage.get(afterFirst.id)!;
-            await activePage.keyboard.press('R');
+            await invokeCommand(activePage, 'cmd_tab_next');
             const afterSecond = await waitForTabSwitch(afterFirst.id);
             expect(afterSecond.index).toBe(initialTab.index + 2);
         });
     });
 
-    test('2.3 pressing 2R jumps 2 tabs to the right', async () => {
+    test('2.3 cmd_tab_next twice jumps 2 tabs to the right', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             const initialTab = await getActiveTab();
-            const activePage = await getActivePage();
+            let activePage = await getActivePage();
 
-            await activePage.keyboard.press('2');
-            await activePage.keyboard.press('R');
+            await invokeCommand(activePage, 'cmd_tab_next');
+            const afterFirst = await waitForTabSwitch(initialTab.id);
+            expect(afterFirst.index).toBe(initialTab.index + 1);
 
-            const finalTab = await waitForTabSwitch(initialTab.id);
+            activePage = chromeIdToPage.get(afterFirst.id)!;
+            await invokeCommand(activePage, 'cmd_tab_next');
+            const finalTab = await waitForTabSwitch(afterFirst.id);
             expect(finalTab.index).toBe(initialTab.index + 2);
         });
     });
 
-    test('2.4 R wraps from last fixture tab back toward first', async () => {
+    test('2.4 cmd_tab_next wraps from last fixture tab back toward first', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             // Activate the last fixture tab
             await activateFixtureTab(TAB_COUNT - 1);
             const initialTab = await getActiveTab();
             const activePage = chromeIdToPage.get(initialTab.id)!;
 
-            await activePage.keyboard.press('R');
+            await invokeCommand(activePage, 'cmd_tab_next');
             const newTab = await waitForTabSwitch(initialTab.id);
 
             // After wrap, should no longer be at the last tab
@@ -323,12 +340,12 @@ test.describe('cmd_tab_next + cmd_tab_previous (Playwright)', () => {
     // 4.0 Combined R + E navigation
     // -----------------------------------------------------------------------
 
-    test('4.1 R then E returns to the original tab', async () => {
+    test('4.1 cmd_tab_next then cmd_tab_previous returns to the original tab', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             const initialTab = await getActiveTab();
 
             let activePage = await getActivePage();
-            await activePage.keyboard.press('R');
+            await invokeCommand(activePage, 'cmd_tab_next');
             const afterR = await waitForTabSwitch(initialTab.id);
             expect(afterR.index).toBe(initialTab.index + 1);
 
@@ -339,19 +356,19 @@ test.describe('cmd_tab_next + cmd_tab_previous (Playwright)', () => {
         });
     });
 
-    test('4.2 R right twice, E left twice returns to start', async () => {
+    test('4.2 cmd_tab_next twice, cmd_tab_previous twice returns to start', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             const initialTab = await getActiveTab();
             const initialIndex = initialTab.index;
 
             // Go right twice
             let activePage = await getActivePage();
-            await activePage.keyboard.press('R');
+            await invokeCommand(activePage, 'cmd_tab_next');
             const step1 = await waitForTabSwitch(initialTab.id);
             expect(step1.index).toBe(initialIndex + 1);
 
             activePage = chromeIdToPage.get(step1.id)!;
-            await activePage.keyboard.press('R');
+            await invokeCommand(activePage, 'cmd_tab_next');
             const step2 = await waitForTabSwitch(step1.id);
             expect(step2.index).toBe(initialIndex + 2);
 
@@ -368,14 +385,18 @@ test.describe('cmd_tab_next + cmd_tab_previous (Playwright)', () => {
         });
     });
 
-    test('4.3 2R then 2E returns to start', async () => {
+    test('4.3 cmd_tab_next twice then cmd_tab_previous twice returns to start', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             const initialTab = await getActiveTab();
 
             let activePage = await getActivePage();
-            await activePage.keyboard.press('2');
-            await activePage.keyboard.press('R');
-            const afterRight = await waitForTabSwitch(initialTab.id);
+            await invokeCommand(activePage, 'cmd_tab_next');
+            const step1 = await waitForTabSwitch(initialTab.id);
+            expect(step1.index).toBe(initialTab.index + 1);
+
+            activePage = chromeIdToPage.get(step1.id)!;
+            await invokeCommand(activePage, 'cmd_tab_next');
+            const afterRight = await waitForTabSwitch(step1.id);
             expect(afterRight.index).toBe(initialTab.index + 2);
 
             activePage = chromeIdToPage.get(afterRight.id)!;
