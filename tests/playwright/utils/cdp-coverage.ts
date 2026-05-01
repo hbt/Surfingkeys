@@ -170,16 +170,30 @@ export class ServiceWorkerCoverage {
         const dir = path.join(baseOutputDir, label);
         fs.mkdirSync(dir, { recursive: true });
 
-        // Raw counts since the last snapshot() call — isolation is achieved by
-        // calling cov.snapshot() in beforeAll after the page is ready, which
-        // resets the CDP counters past page-load noise. No subtraction needed.
+        const isPageTarget = !this.swUrl?.includes('background.js');
+
+        const resultEntries: any[] = raw?.result ?? [];
+
+        // Content scripts run in V8 isolated worlds and cannot be captured by the CDP
+        // page-target profiler. When the result has no content.js entry for a page target,
+        // skip writing the file so callers can treat a null path as "no content coverage available".
+        if (isPageTarget) {
+            const hasContentScript = resultEntries.some(
+                (e: any) => typeof e.url === 'string' && e.url.endsWith('content.js'),
+            );
+            if (!hasContentScript) {
+                if (process.env.DEBUG) console.log(`[Coverage:${label}] skipped (no content.js in page result — content scripts not capturable via CDP)`);
+                return null;
+            }
+        }
+
         const filePath = path.join(dir, `${timestamp}.v8.json`);
         const payload = {
             spec: label,
-            target: this.swUrl?.includes('background.js') ? 'service_worker' : 'page',
+            target: isPageTarget ? 'page' : 'service_worker',
             scriptUrl: this.swUrl,
             timestamp: new Date().toISOString(),
-            result: raw?.result ?? [],
+            result: resultEntries,
         };
         fs.writeFileSync(filePath, JSON.stringify(payload, null, 2));
         if (process.env.DEBUG) console.log(`[Coverage:${label}] saved → ${filePath}`);
