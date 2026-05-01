@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -29,35 +29,33 @@ test.describe('cmd_nav_reload (Playwright)', () => {
         await context?.close();
     });
 
-    test('pressing r reloads the page (clears injected window variable)', async () => {
+    test('cmd_nav_reload clears injected window variable', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            // Inject a unique marker
             const marker = Date.now();
             await page.evaluate((m) => { (window as any).__reloadTestMarker = m; }, marker);
             const markerCheck = await page.evaluate(() => (window as any).__reloadTestMarker);
             expect(markerCheck).toBe(marker);
 
-            // Wait for load BEFORE pressing key
-            const loadPromise = page.waitForLoadState('load');
-            await page.keyboard.press('r');
-            await loadPromise;
+            // waitForEvent('load') must be set up before invokeCommand triggers the async reload
+            const loadEvent = page.waitForEvent('load', { timeout: 10000 });
+            await invokeCommand(page, 'cmd_nav_reload');
+            await loadEvent;
             await page.waitForTimeout(500); // SK re-injection settle
 
-            // Marker should be gone after reload
             const markerAfter = await page.evaluate(() => (window as any).__reloadTestMarker);
             expect(markerAfter).toBeUndefined();
             if (DEBUG) console.log(`Marker after reload: ${markerAfter} (expected: undefined)`);
         });
     });
 
-    test('page content is preserved after reload', async () => {
+    test('cmd_nav_reload preserves page content', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             const titleBefore = await page.evaluate(() => document.title);
             expect(titleBefore).toBeTruthy();
 
-            const loadPromise = page.waitForLoadState('load');
-            await page.keyboard.press('r');
-            await loadPromise;
+            const loadEvent = page.waitForEvent('load', { timeout: 10000 });
+            await invokeCommand(page, 'cmd_nav_reload');
+            await loadEvent;
             await page.waitForTimeout(500);
 
             const titleAfter = await page.evaluate(() => document.title);

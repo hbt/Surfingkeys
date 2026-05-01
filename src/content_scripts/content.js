@@ -224,6 +224,11 @@ function _initModules() {
                     }
                 }
 
+                // Mirror _handleMapKey: ensure RUNTIME.repeats defaults to 1
+                // so background actions (reloadTab, closeTab, etc.) get a valid repeat count.
+                if (RUNTIME.repeats === undefined || RUNTIME.repeats === null) {
+                    RUNTIME.repeats = 1;
+                }
                 cmd.code();
                 document.documentElement.dataset.skInvokeResult = 'true';
 
