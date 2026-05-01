@@ -39,6 +39,32 @@ function log(message) {
     logStream.write(`${new Date().toISOString()} ${message}\n`);
 }
 
+const CONFIG_SERVER_PORT = 9600;
+const CONFIG_SERVER_URL = `http://localhost:${CONFIG_SERVER_PORT}`;
+
+/**
+ * Check if the local config server is running on port 9600
+ * Returns { running: true, file: '...' } or { running: false }
+ */
+function checkConfigServer() {
+    return new Promise((resolve) => {
+        const req = http.get(`${CONFIG_SERVER_URL}/health`, (res) => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+                try {
+                    const data = JSON.parse(body);
+                    resolve({ running: res.statusCode === 200 && data.status === 'ok', file: data.file || null });
+                } catch (_) {
+                    resolve({ running: false });
+                }
+            });
+        });
+        req.on('error', () => resolve({ running: false }));
+        req.setTimeout(1000, () => { req.abort(); resolve({ running: false }); });
+    });
+}
+
 /**
  * Check if fixtures server is running on port 9873
  */
@@ -1055,6 +1081,10 @@ async function checkExtensionHealth() {
 
     const ws = new WebSocket(swWsUrl);
 
+    // Check config server before opening WebSocket
+    const configServer = await checkConfigServer();
+    log(`Config server running: ${configServer.running}`);
+
     return new Promise((resolve) => {
         ws.on('open', async () => {
             try {
@@ -1092,61 +1122,119 @@ async function checkExtensionHealth() {
 
                 ws.close();
 
-                // Now check if file exists and compare hashes
-                let fileHash = null;
-                let fileExists = false;
-                let hashMatch = false;
-                let fileSize = null;
+                // Build health object conditionally based on config server status
+                let fileHashCheck;
+                let configServerCheck;
 
-                if (storageData.localPathValue) {
+                if (configServer.running) {
+                    // Server is active — fetch config bytes and compare to disk
+                    let serverBytes = null;
+                    let diskBytes = null;
+                    let sizeMatch = false;
+
                     try {
-                        let filePath = storageData.localPathValue;
-                        if (filePath.startsWith('file://')) {
-                            filePath = decodeURIComponent(new URL(filePath).pathname);
-                        }
+                        const configContent = await new Promise((res, rej) => {
+                            const req = http.get(`${CONFIG_SERVER_URL}/config`, (r) => {
+                                let body = '';
+                                r.on('data', c => body += c);
+                                r.on('end', () => res(body));
+                            });
+                            req.on('error', rej);
+                            req.setTimeout(2000, () => { req.abort(); rej(new Error('timeout')); });
+                        });
+                        serverBytes = configContent.length;
 
-                        log(`Comparing file at: ${filePath}`);
-                        log(`Stored snippets hash: ${storageData.storedSnippetsHash}`);
-                        log(`Stored snippets size: ${storageData.snippetsLength} bytes`);
+                        const diskContent = fs.readFileSync(configServer.file, 'utf-8');
+                        diskBytes = diskContent.length;
+                        sizeMatch = serverBytes === diskBytes;
 
-                        if (fs.existsSync(filePath)) {
-                            fileExists = true;
-                            try {
-                                const fileContent = fs.readFileSync(filePath, 'utf-8');
-                                fileHash = calculateFileHash(fileContent);
-                                fileSize = fileContent.length;
-                                hashMatch = fileHash === storageData.storedSnippetsHash;
-
-                                log(`File hash:           ${fileHash}`);
-                                log(`File size:           ${fileSize} bytes`);
-                                log(`Stored hash:         ${storageData.storedSnippetsHash}`);
-                                log(`Hash match:          ${hashMatch}`);
-
-                                if (!hashMatch) {
-                                    log(`⚠ Hash mismatch! File and storage differ.`);
-                                    log(`  First 100 chars of file: ${fileContent.substring(0, 100)}`);
-                                }
-                            } catch (err) {
-                                log(`✗ Error reading/hashing file: ${err.message}`);
-                                log(`Stack: ${err.stack}`);
-                                fileHash = 'error';
-                            }
-                        } else {
-                            log(`✗ Config file not found: ${filePath}`);
-                        }
+                        log(`Config server bytes: ${serverBytes}, disk bytes: ${diskBytes}, match: ${sizeMatch}`);
                     } catch (err) {
-                        log(`✗ Error during file comparison: ${err.message}`);
-                        log(`Stack: ${err.stack}`);
-                        fileHash = 'error';
+                        log(`✗ Error comparing server vs disk: ${err.message}`);
                     }
+
+                    configServerCheck = {
+                        running: true,
+                        file: configServer.file,
+                        server_bytes: serverBytes,
+                        disk_bytes: diskBytes,
+                        match: sizeMatch
+                    };
+
+                    fileHashCheck = { skipped: true, reason: 'config_server_active' };
                 } else {
-                    log(`No localPath stored - skipping file comparison`);
+                    // Server not running — use existing file-vs-storage hash check
+                    configServerCheck = { running: false };
+
+                    let fileHash = null;
+                    let fileExists = false;
+                    let hashMatch = false;
+                    let fileSize = null;
+
+                    if (storageData.localPathValue) {
+                        try {
+                            let filePath = storageData.localPathValue;
+                            if (filePath.startsWith('file://')) {
+                                filePath = decodeURIComponent(new URL(filePath).pathname);
+                            }
+
+                            log(`Comparing file at: ${filePath}`);
+                            log(`Stored snippets hash: ${storageData.storedSnippetsHash}`);
+                            log(`Stored snippets size: ${storageData.snippetsLength} bytes`);
+
+                            if (fs.existsSync(filePath)) {
+                                fileExists = true;
+                                try {
+                                    const fileContent = fs.readFileSync(filePath, 'utf-8');
+                                    fileHash = calculateFileHash(fileContent);
+                                    fileSize = fileContent.length;
+                                    hashMatch = fileHash === storageData.storedSnippetsHash;
+
+                                    log(`File hash:           ${fileHash}`);
+                                    log(`File size:           ${fileSize} bytes`);
+                                    log(`Stored hash:         ${storageData.storedSnippetsHash}`);
+                                    log(`Hash match:          ${hashMatch}`);
+
+                                    if (!hashMatch) {
+                                        log(`⚠ Hash mismatch! File and storage differ.`);
+                                        log(`  First 100 chars of file: ${fileContent.substring(0, 100)}`);
+                                    }
+                                } catch (err) {
+                                    log(`✗ Error reading/hashing file: ${err.message}`);
+                                    log(`Stack: ${err.stack}`);
+                                    fileHash = 'error';
+                                }
+                            } else {
+                                log(`✗ Config file not found: ${filePath}`);
+                            }
+                        } catch (err) {
+                            log(`✗ Error during file comparison: ${err.message}`);
+                            log(`Stack: ${err.stack}`);
+                            fileHash = 'error';
+                        }
+                    } else {
+                        log(`No localPath stored - skipping file comparison`);
+                    }
+
+                    fileHashCheck = {
+                        file_exists: fileExists,
+                        file_size: fileSize,
+                        stored_size: storageData.snippetsLength,
+                        file_hash: fileHash,
+                        stored_snippets_hash: storageData.storedSnippetsHash,
+                        match: hashMatch
+                    };
                 }
+
+                const source = configServer.running ? 'config_server'
+                    : storageData.localPathValue ? 'local_path'
+                    : 'none';
 
                 const health = {
                     advanced_mode_enabled: {
                         value: storageData.showAdvanced
                     },
+                    config_server: configServerCheck,
                     snippets_present: {
                         stored: storageData.snippetsLength > 0,
                         length: storageData.snippetsLength,
@@ -1154,16 +1242,10 @@ async function checkExtensionHealth() {
                     },
                     localPath_present: {
                         stored: !!storageData.localPathValue,
-                        value: storageData.localPathValue
+                        value: storageData.localPathValue,
+                        source
                     },
-                    file_hash_match: {
-                        file_exists: fileExists,
-                        file_size: fileSize,
-                        stored_size: storageData.snippetsLength,
-                        file_hash: fileHash,
-                        stored_snippets_hash: storageData.storedSnippetsHash,
-                        match: hashMatch
-                    }
+                    file_hash_match: fileHashCheck
                 };
 
                 logStream.write(`${new Date().toISOString()} ✓ Extension health checked\n`);
