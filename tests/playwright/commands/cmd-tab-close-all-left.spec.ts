@@ -134,8 +134,10 @@ test.describe('cmd_tab_close_all_left (Playwright)', () => {
         if (DEBUG) console.log(`gx0: ${beforeCount} → ${finalCount} pages (expected ${expectedCount})`);
         const bgPath = await covBg?.flush('cmd_tab_close_all_left/gx0_closes_all_tabs_to_the_left_of_current_tab/command_window/background');
         const contentPath = await covContent?.flush('cmd_tab_close_all_left/gx0_closes_all_tabs_to_the_left_of_current_tab/content');
+        if (process.env.COVERAGE === 'true') {
         expect(bgPath).toBeTruthy();
         expect(contentPath).toBeTruthy();
+        }
         if (bgPath) {
             const bg = readCoverageStats(bgPath, 'service_worker', 'background.js');
             expect(bg.total).toBeGreaterThan(0);

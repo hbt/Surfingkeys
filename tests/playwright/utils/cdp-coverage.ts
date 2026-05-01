@@ -182,7 +182,7 @@ export class ServiceWorkerCoverage {
             result: raw?.result ?? [],
         };
         fs.writeFileSync(filePath, JSON.stringify(payload, null, 2));
-        console.log(`[Coverage:${label}] saved → ${filePath}`);
+        if (process.env.DEBUG) console.log(`[Coverage:${label}] saved → ${filePath}`);
         return filePath;
     }
 

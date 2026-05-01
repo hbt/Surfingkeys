@@ -21,7 +21,7 @@ import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const FIXTURE_BASE = 'http://127.0.0.1:9873/scroll-test.html';
 const SUITE_LABEL = 'cmd_tab_next_prev';
-const CONTENT_COVERAGE_URL = `${FIXTURE_BASE}#cov_content_anchor`;
+const CONTENT_COVERAGE_URL = `${FIXTURE_BASE}?tab=0`;
 const TAB_COUNT = 5;
 const START_INDEX = 2; // middle tab — 2 tabs left, 2 tabs right
 
@@ -152,10 +152,6 @@ test.describe('cmd_tab_next + cmd_tab_previous (Playwright)', () => {
         // Let Surfingkeys settle in the active tab.
         await fixtureTabs[START_INDEX].waitForTimeout(500);
 
-        // Anchor page for content coverage — must exist at CONTENT_COVERAGE_URL
-        const anchorPage = await context.newPage();
-        await anchorPage.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
-        await anchorPage.waitForTimeout(500);
     });
 
     test.beforeEach(async () => {

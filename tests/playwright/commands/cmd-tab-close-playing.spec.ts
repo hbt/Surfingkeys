@@ -20,6 +20,7 @@ function assertBasicCoverage(
     contentPath: string | null,
     opts?: { expectedBackgroundFunctions?: string[]; requireContent?: boolean },
 ): void {
+    if (process.env.COVERAGE !== 'true') return;
     expect(bgPath).toBeTruthy();
     if (bgPath) {
         const bg = readCoverageStats(bgPath, 'service_worker', 'background.js');
