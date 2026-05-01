@@ -25,13 +25,16 @@ const coverageRoot = path.resolve('coverage-raw', 'runs', runId);
 const manifestDir = path.resolve('coverage-manifests');
 const manifestPath = path.join(manifestDir, `${runId}.json`);
 
+const reportPath = path.resolve('test-reports', 'runs', `${runId}.json`);
+fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+
 const playwrightArgs = process.argv.slice(2);
-const cmd = ['playwright', 'test', '--workers=9', '--reporter=dot', ...playwrightArgs];
+const cmd = ['playwright', 'test', '--workers=9', ...playwrightArgs];
 
 console.log(`\n[cov:parallel] Running: COVERAGE=true bunx ${cmd.join(' ')}`);
 const run = spawnSync('bunx', cmd, {
     stdio: 'inherit',
-    env: { ...process.env, COVERAGE: 'true', COVERAGE_OUTPUT_DIR: coverageRoot },
+    env: { ...process.env, COVERAGE: 'true', COVERAGE_OUTPUT_DIR: coverageRoot, PLAYWRIGHT_JSON_OUTPUT: reportPath },
 });
 
 function listV8JsonFiles(dir: string): string[] {
@@ -83,6 +86,7 @@ const manifest = {
     signal: run.signal,
     success: run.status === 0,
     coverageRoot: path.relative(process.cwd(), coverageRoot),
+    testReportPath: path.relative(process.cwd(), reportPath),
     artifactCount: coverageFiles.length,
     groupCount: new Set(coverageFiles.map((f) => path.dirname(path.relative(coverageRoot, f)))).size,
     entries: buildEntries(coverageFiles),
@@ -92,6 +96,7 @@ fs.mkdirSync(manifestDir, { recursive: true });
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 
 console.log(`\n[cov:parallel] Wrote manifest → ${manifestPath}`);
+console.log(`[cov:parallel] Test report  → ${reportPath}`);
 console.log(`[cov:parallel] Indexed ${coverageFiles.length} raw V8 file(s) across ${manifest.entries.length} group(s).`);
 
 if (run.status !== 0) process.exitCode = run.status ?? 1;
