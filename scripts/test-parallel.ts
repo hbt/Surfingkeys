@@ -11,7 +11,8 @@ import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const runId = new Date().toISOString().replace(/[:.]/g, '-');
+const gitHash = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf-8' }).stdout.trim();
+const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${gitHash}`;
 const reportPath = path.resolve('test-reports', 'runs', `${runId}.json`);
 fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 
