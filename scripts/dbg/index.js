@@ -58,7 +58,10 @@ const ACTIONS = {
     'test-allp': 'Run all CDP tests in parallel (configurable limit), aggregate results to JSON',
     'vtest-allp': 'Run all CDP tests in parallel, aggregate results to visual markdown report',
     'vtest-sample': 'Run a sample of N tests with per-test wall/overhead timing (default: 10)',
-    'test-coverage-query': 'Query per-function call counts from last coverage run'
+    'test-coverage-query': 'Query per-function call counts from last coverage run',
+    'server-start': 'Start local config server (port 9600)',
+    'server-stop': 'Stop local config server',
+    'server-status': 'Check local config server status'
 };
 
 /**

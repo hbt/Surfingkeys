@@ -443,11 +443,24 @@ function start(browser) {
             proxy: []
         };
 
-        browser.loadRawSettings(keys, function(set) {
+        browser.loadRawSettings(keys, async function(set) {
             if (typeof(set.proxy) === "string") {
                 set.proxy = [set.proxy];
                 set.autoproxy_hosts = [set.autoproxy_hosts];
             }
+
+            // Try local config server first (zero-CDP approach)
+            const LOCAL_SERVER = 'http://localhost:9600/config';
+            try {
+                const resp = await fetch(LOCAL_SERVER);
+                if (resp.ok) {
+                    const snippets = await resp.text();
+                    return cb({ ...set, snippets, localPath: LOCAL_SERVER });
+                }
+            } catch (_) {
+                // server not running, fall through
+            }
+
             if (set.localPath) {
                 request(appendNonce(set.localPath), function(resp) {
                     set.snippets = resp;
