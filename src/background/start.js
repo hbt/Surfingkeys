@@ -450,24 +450,21 @@ function start(browser) {
             }
 
             const LOCAL_SERVER = 'http://localhost:9600/config';
-            if (set.localPath === LOCAL_SERVER) {
-                // localPath already points to the config server — use fast fetch path
-                try {
-                    const resp = await fetch(LOCAL_SERVER);
-                    if (resp.ok) {
-                        const snippets = await resp.text();
-                        cb({ ...set, snippets, showAdvanced: true });
-                        // Confirm delivery to server (fire-and-forget, non-blocking)
-                        fetch('http://localhost:9600/loaded', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ snippetsLength: snippets.length })
-                        }).catch(() => {});
-                        return;
-                    }
-                } catch (_) {
-                    // server not running, fall through to normal localPath handling
+            try {
+                const resp = await fetch(LOCAL_SERVER);
+                if (resp.ok) {
+                    const snippets = await resp.text();
+                    cb({ ...set, snippets, localPath: LOCAL_SERVER, showAdvanced: true });
+                    // Confirm delivery to server (fire-and-forget, non-blocking)
+                    fetch('http://localhost:9600/loaded', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ snippetsLength: snippets.length })
+                    }).catch(() => {});
+                    return;
                 }
+            } catch (_) {
+                // server not running, fall through to normal localPath handling
             }
 
             if (set.localPath) {
