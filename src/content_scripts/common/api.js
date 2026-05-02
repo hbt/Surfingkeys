@@ -73,6 +73,18 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
             }
             var keybound = createKeyTarget(jscode, {annotation: annotation, feature_group: ((mode === visual) ? 9 :14)}, options.repeatIgnore);
             mode.mappings.add(keys, keybound);
+            // If caller provided a unique_id, register directly in the live command registry
+            // so the command is accessible via invokeCommand (e.g. from snippet-defined mappings).
+            if (options.unique_id && commandRegistry) {
+                commandRegistry.set(options.unique_id, {
+                    code: jscode,
+                    annotation: { unique_id: options.unique_id, short: annotation },
+                    originalKey: keys,
+                    mode: mode.name,
+                    modeRef: mode,
+                    repeatIgnore: options.repeatIgnore,
+                });
+            }
         }
     }
 
