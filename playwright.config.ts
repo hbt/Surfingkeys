@@ -14,9 +14,16 @@ export default defineConfig({
     use: {
         trace: 'off',
     },
-    webServer: {
-        command: 'node tests/fixtures-server.js',
-        port: 9873,
-        reuseExistingServer: true,
-    },
+    webServer: [
+        {
+            command: 'node tests/fixtures-server.js',
+            port: 9873,
+            reuseExistingServer: true,
+        },
+        {
+            command: 'bun scripts/server.ts',
+            port: 9600,
+            reuseExistingServer: true,
+        },
+    ],
 });

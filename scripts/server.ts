@@ -16,7 +16,9 @@ const DEBUG_LOG_FILE = '/tmp/sk-debug.log';
 
 const PORT = 9600;
 const PID_FILE = '/tmp/sk-config-server.pid';
-const CONFIG_FILE = resolve(import.meta.dir, '../.surfingkeysrc.js');
+const CONFIG_FILE = process.env.CONFIG_FILE
+    ? resolve(process.cwd(), process.env.CONFIG_FILE)
+    : resolve(import.meta.dir, '../.surfingkeysrc.js');
 
 function log(method: string, path: string, status: number, bytes: number): void {
   const ts = new Date().toISOString();
