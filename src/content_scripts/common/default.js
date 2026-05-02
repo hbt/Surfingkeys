@@ -1425,20 +1425,20 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         unique_id: "cmd_tab_close_all_left",
         feature_group: 3,
         category: "tabs",
-        description: "Close all tabs to the left of current tab",
+        description: "Close all tabs to the left of current tab (N with repeat, all by default)",
         tags: ["tabs", "close", "management"]
     }, function() {
-        RUNTIME("closeTabsToLeft");
+        RUNTIME("closeTabMagic", {magic: 'DirectionLeftAll'});
     });
     mapkey('gx$', {
         short: "Close all tabs on right",
         unique_id: "cmd_tab_close_all_right",
         feature_group: 3,
         category: "tabs",
-        description: "Close all tabs to the right of current tab",
+        description: "Close all tabs to the right of current tab (N with repeat, all by default)",
         tags: ["tabs", "close", "management"]
     }, function() {
-        RUNTIME("closeTabsToRight");
+        RUNTIME("closeTabMagic", {magic: 'DirectionRightAll'});
     });
     mapkey('gxx', {
         short: "Close all tabs except current",
@@ -1603,6 +1603,16 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         tags: ["tabs", "reload", "magic"]
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionRight'});
+    });
+    mapkey('grxE', {
+        short: "Reload all tabs to the right",
+        unique_id: "cmd_tab_reload_magic_right_all",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload all tabs to the right of current tab",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'DirectionRightAll'});
     });
     mapkey('grxq', {
         short: "Reload tabs to the left",

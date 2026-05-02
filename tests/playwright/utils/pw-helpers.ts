@@ -85,6 +85,7 @@ export async function launchExtensionContext(opts?: { headless?: boolean; enable
 export async function invokeCommand(
     page: import('@playwright/test').Page,
     unique_id: string,
+    repeats?: number,
 ): Promise<boolean> {
     await page.waitForFunction(
         () => (document.documentElement.dataset as any).skInvokeReady === 'true',
@@ -92,11 +93,12 @@ export async function invokeCommand(
     );
 
     for (let i = 0; i < 3; i++) {
-        const ok = await page.evaluate((uid) => {
+        const ok = await page.evaluate(({ uid, reps }) => {
             delete (document.documentElement.dataset as any).skInvokeResult;
-            document.dispatchEvent(new CustomEvent('__sk_invoke', { detail: uid }));
+            const detail = reps !== undefined ? { unique_id: uid, repeats: reps } : uid;
+            document.dispatchEvent(new CustomEvent('__sk_invoke', { detail }));
             return (document.documentElement.dataset as any).skInvokeResult === 'true';
-        }, unique_id);
+        }, { uid: unique_id, reps: repeats });
         if (ok) {
             return true;
         }

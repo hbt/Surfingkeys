@@ -206,7 +206,9 @@ function _initModules() {
     //   document.dispatchEvent(new CustomEvent('__sk_invoke', {detail: 'cmd_insert_cursor_end'}))
     //   document.documentElement.dataset.skInvokeResult  // 'true' | 'false'
     document.addEventListener('__sk_invoke', (e) => {
-        const unique_id = e.detail;
+        const detail = e.detail;
+        const unique_id = typeof detail === 'string' ? detail : detail.unique_id;
+        const repeatsOverride = typeof detail === 'object' && detail.repeats !== undefined ? detail.repeats : undefined;
         const cmd = commandRegistry.get(unique_id);
         if (cmd && typeof cmd.code === 'function') {
             try {
@@ -226,7 +228,9 @@ function _initModules() {
 
                 // Mirror _handleMapKey: ensure RUNTIME.repeats defaults to 1
                 // so background actions (reloadTab, closeTab, etc.) get a valid repeat count.
-                if (RUNTIME.repeats === undefined || RUNTIME.repeats === null) {
+                if (repeatsOverride !== undefined) {
+                    RUNTIME.repeats = repeatsOverride;
+                } else if (RUNTIME.repeats === undefined || RUNTIME.repeats === null) {
                     RUNTIME.repeats = 1;
                 }
                 cmd.code();
