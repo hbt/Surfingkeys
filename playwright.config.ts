@@ -20,10 +20,11 @@ export default defineConfig({
             port: 9873,
             reuseExistingServer: true,
         },
-        {
+        // Set CONFIG_SERVER=false to test the server-down path (e.g. banner warning)
+        ...(process.env.CONFIG_SERVER !== 'false' ? [{
             command: 'bun scripts/server.ts',
             port: 9600,
             reuseExistingServer: true,
-        },
+        }] : []),
     ],
 });

@@ -488,7 +488,20 @@ function start(browser) {
                     return;
                 }
             } catch (_) {
-                debugLog('config-fetch', 'failed or server down');
+                console.warn('[config-server] Server unreachable at', LOCAL_SERVER, '— user config not loaded');
+                // Try to send the banner to the currently active tab immediately.
+                // _tabActivated may have already fired before this catch ran (race condition),
+                // so we can't rely solely on the deferred flag.
+                chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+                    if (tabs && tabs.length > 0) {
+                        sendTabMessage(tabs[0].id, 0, {
+                            subject: 'showBanner',
+                            message: 'Config server unreachable (localhost:9600) — user config not loaded. Run: ./bin/dbg server-start',
+                        });
+                    } else {
+                        _configServerWarningPending = true;
+                    }
+                });
                 // server not running, fall through to normal localPath handling
             }
 
@@ -553,7 +566,15 @@ function start(browser) {
         }
     }
     var _lastActiveTabId = null;
+    let _configServerWarningPending = false;
     function _tabActivated(tabId) {
+        if (_configServerWarningPending) {
+            _configServerWarningPending = false;
+            sendTabMessage(tabId, 0, {
+                subject: 'showBanner',
+                message: 'Config server unreachable (localhost:9600) — user config not loaded. Run: ./bin/dbg server-start',
+            });
+        }
         if (_lastActiveTabId !== tabId) {
             if (_lastActiveTabId !== null) {
                 sendTabMessage(_lastActiveTabId, 0, {
