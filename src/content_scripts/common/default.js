@@ -1554,56 +1554,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     });
 
     // Group B — Reload Magic
-    mapkey('g-002', {
-        short: "Reload tabs to the right",
-        unique_id: "cmd_tab_reload_magic_right",
-        feature_group: 3,
-        category: "tabs",
-        description: "Reload 1 tab to the right of current tab",
-        tags: ["tabs", "reload", "magic"]
-    }, function() {
-        RUNTIME("reloadTabMagic", {magic: 'DirectionRight'});
-    });
-    mapkey('g-003', {
-        short: "Reload all tabs to the right",
-        unique_id: "cmd_tab_reload_magic_right_all",
-        feature_group: 3,
-        category: "tabs",
-        description: "Reload all tabs to the right of current tab",
-        tags: ["tabs", "reload", "magic"]
-    }, function() {
-        RUNTIME("reloadTabMagic", {magic: 'DirectionRightAll'});
-    });
-    mapkey('g-004', {
-        short: "Reload tabs to the left",
-        unique_id: "cmd_tab_reload_magic_left",
-        feature_group: 3,
-        category: "tabs",
-        description: "Reload 1 tab to the left of current tab",
-        tags: ["tabs", "reload", "magic"]
-    }, function() {
-        RUNTIME("reloadTabMagic", {magic: 'DirectionLeft'});
-    });
-    mapkey('g-005', {
-        short: "Reload all tabs except active",
-        unique_id: "cmd_tab_reload_magic_except_active",
-        feature_group: 3,
-        category: "tabs",
-        description: "Reload all tabs in current window except the active tab",
-        tags: ["tabs", "reload", "magic"]
-    }, function() {
-        RUNTIME("reloadTabMagic", {magic: 'AllExceptActive'});
-    });
-    mapkey('g-006', {
-        short: "Reload children tabs",
-        unique_id: "cmd_tab_reload_magic_children",
-        feature_group: 3,
-        category: "tabs",
-        description: "Reload tabs opened directly from the current tab",
-        tags: ["tabs", "reload", "magic"]
-    }, function() {
-        RUNTIME("reloadTabMagic", {magic: 'ChildrenTabs'});
-    });
 
     // Group C — Detach
     mapkey('g-001', {
@@ -1873,6 +1823,128 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         tags: ["tabs", "copy", "magic"]
     }, function() {
         copyTabUrlsMagic('AllIncognitoTabs');
+    });
+
+    // Group G — Reload Magic
+    mapkey('g-029', {
+        short: "Reload tabs to the right",
+        unique_id: "cmd_tab_reload_magic_right",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload all tabs to the right of the current tab",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'DirectionRight'});
+    });
+    mapkey('g-030', {
+        short: "Reload tabs to the left",
+        unique_id: "cmd_tab_reload_magic_left",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload all tabs to the left of the current tab",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'DirectionLeft'});
+    });
+    mapkey('g-031', {
+        short: "Reload all except current",
+        unique_id: "cmd_tab_reload_magic_except_active",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload all tabs in current window except the active tab",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'AllExceptActive'});
+    });
+    mapkey('g-032', {
+        short: "Reload all tabs in window",
+        unique_id: "cmd_tab_reload_magic_all_window",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload all tabs in current window including the active tab",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'AllInWindow'});
+    });
+    mapkey('g-033', {
+        short: "Reload all tabs in all windows except current",
+        unique_id: "cmd_tab_reload_magic_all_windows",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload all tabs in all windows except the active tab",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'AllExceptActiveAllWindows'});
+    });
+    mapkey('g-034', {
+        short: "Reload child tabs",
+        unique_id: "cmd_tab_reload_magic_children",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload tabs opened directly from the current tab",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'ChildrenTabs'});
+    });
+    mapkey('g-035', {
+        short: "Reload current and all to the right",
+        unique_id: "cmd_tab_reload_magic_right_inclusive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload the current tab and all tabs to its right",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'DirectionRightInclusive'});
+    });
+    mapkey('g-036', {
+        short: "Reload current and all to the left",
+        unique_id: "cmd_tab_reload_magic_left_inclusive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload the current tab and all tabs to its left",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'DirectionLeftInclusive'});
+    });
+    mapkey('g-037', {
+        short: "Reload descendant tabs recursively",
+        unique_id: "cmd_tab_reload_magic_children_recursive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload all descendant tabs opened from the current tab (recursive)",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'ChildrenTabsRecursively'});
+    });
+    mapkey('g-038', {
+        short: "Reload all tabs in other windows",
+        unique_id: "cmd_tab_reload_magic_other_windows",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload all tabs in windows other than the current window",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'AllOtherWindowsTabs'});
+    });
+    mapkey('g-039', {
+        short: "Reload other windows without pinned tabs",
+        unique_id: "cmd_tab_reload_magic_other_windows_no_pinned",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload all tabs in other windows that contain no pinned tabs",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'OtherWindowsNoPinned'});
+    });
+    mapkey('g-040', {
+        short: "Reload all incognito tabs",
+        unique_id: "cmd_tab_reload_magic_incognito",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload all tabs across all incognito windows",
+        tags: ["tabs", "reload", "magic"]
+    }, function() {
+        RUNTIME("reloadTabMagic", {magic: 'AllIncognitoTabs'});
     });
 
     // Group F — Reverse Tab Order Magic

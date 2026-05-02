@@ -1460,9 +1460,10 @@ function start(browser) {
     };
 
     self.reloadTabMagic = function(message, sender, sendResponse) {
-        chrome.tabs.query({currentWindow: true}, function(tabs) {
-            var repeats = message.repeats || 1;
-            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, tabs);
+        chrome.tabs.query({}, function(allTabs) {
+            var windowTabs = allTabs.filter(function(t) { return t.windowId === sender.tab.windowId; });
+            var repeats = message.repeats;
+            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, windowTabs, allTabs);
             tabIds.forEach(function(id) {
                 chrome.tabs.reload(id, { bypassCache: false });
             });
