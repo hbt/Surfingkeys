@@ -1,7 +1,7 @@
 /**
  * Config server debug — step by step.
  *
- * Port 9600: fixture config (neutral, used by all other tests)
+ * Port 9602: fixture config (neutral, used by all other tests)
  * Port 9601: real .surfingkeysrc.js (used only by debug/real-config tests)
  *
  * Run with:
@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test';
 import { launchWithCoverage, invokeCommand, FIXTURE_BASE } from '../utils/pw-helpers';
 import { readCoverageStats } from '../utils/coverage-utils';
 
-const FIXTURE_CONFIG_URL = 'http://localhost:9600/config';
+const FIXTURE_CONFIG_URL = 'http://localhost:9602/config';
 const REAL_CONFIG_URL    = 'http://localhost:9601/config';
 
 const FIXTURE_MARKER = 'cmd_config_server_test_marker'; // defined in data/fixtures/test-config-server.js
@@ -19,12 +19,12 @@ const REAL_MARKER    = 'settings.newTabUrl';             // defined in .surfingk
 
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
-// ─── 9600: fixture config ─────────────────────────────────────────────────────
-test('port 9600 — GET /config returns fixture config content', async ({ request }) => {
+// ─── 9602: fixture config ─────────────────────────────────────────────────────
+test('port 9602 — GET /config returns fixture config content', async ({ request }) => {
     const resp = await request.get(FIXTURE_CONFIG_URL);
-    expect(resp.status(), '9600 should respond 200').toBe(200);
+    expect(resp.status(), '9602 should respond 200').toBe(200);
     const body = await resp.text();
-    expect(body, `9600 body should contain "${FIXTURE_MARKER}"`).toContain(FIXTURE_MARKER);
+    expect(body, `9602 body should contain "${FIXTURE_MARKER}"`).toContain(FIXTURE_MARKER);
 });
 
 // ─── 9601: real config ────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ test('SW startup — which background.js functions ran', async () => {
     expect(key('loadSettings'), 'loadSettings should run on startup').toBeGreaterThan(0);
 });
 
-// ─── Fixture config applied via 9600 ─────────────────────────────────────────
+// ─── Fixture config applied via 9602 ─────────────────────────────────────────
 test('fixture config applied — cmd_config_server_test_marker registered', async () => {
     const { context, cov } = await launchWithCoverage();
     await new Promise(r => setTimeout(r, 2000));

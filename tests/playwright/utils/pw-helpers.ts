@@ -20,7 +20,7 @@ async function findFreePort(): Promise<number> {
     });
 }
 
-export const EXTENSION_PATH = path.resolve(__dirname, '../../../dist/development/chrome');
+export const EXTENSION_PATH = path.resolve(__dirname, '../../../dist/development/chrome-test');
 export const FIXTURE_BASE = 'http://127.0.0.1:9873';
 
 /**

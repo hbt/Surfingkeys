@@ -443,7 +443,7 @@ function start(browser) {
     }
 
     function debugLog(context, message, data) {
-        fetch('http://localhost:9600/log', {
+        fetch(`http://localhost:${__CONFIG_SERVER_PORT__}/log`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ context, message, data, timestamp: Date.now() })
@@ -469,7 +469,7 @@ function start(browser) {
                 set.autoproxy_hosts = [set.autoproxy_hosts];
             }
 
-            const LOCAL_SERVER = 'http://localhost:9600/config';
+            const LOCAL_SERVER = `http://localhost:${__CONFIG_SERVER_PORT__}/config`;
             try {
                 const resp = await fetch(LOCAL_SERVER);
                 if (!resp.ok) {
@@ -480,7 +480,7 @@ function start(browser) {
                     debugLog('config-fetch', `ok snippetsLength=${snippets.length}`); console.log(`[config-fetch] ok snippetsLength=${snippets.length}`);
                     cb({ ...set, snippets, localPath: LOCAL_SERVER, showAdvanced: true });
                     // Confirm delivery to server (fire-and-forget, non-blocking)
-                    fetch('http://localhost:9600/loaded', {
+                    fetch(`http://localhost:${__CONFIG_SERVER_PORT__}/loaded`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ snippetsLength: snippets.length })
@@ -496,7 +496,7 @@ function start(browser) {
                     if (tabs && tabs.length > 0) {
                         sendTabMessage(tabs[0].id, 0, {
                             subject: 'showBanner',
-                            message: 'Config server unreachable (localhost:9600) — user config not loaded. Run: ./bin/dbg server-start',
+                            message: `Config server unreachable (localhost:${__CONFIG_SERVER_PORT__}) — user config not loaded. Run: ./bin/dbg server-start`,
                         });
                     } else {
                         _configServerWarningPending = true;
@@ -572,7 +572,7 @@ function start(browser) {
             _configServerWarningPending = false;
             sendTabMessage(tabId, 0, {
                 subject: 'showBanner',
-                message: 'Config server unreachable (localhost:9600) — user config not loaded. Run: ./bin/dbg server-start',
+                message: `Config server unreachable (localhost:${__CONFIG_SERVER_PORT__}) — user config not loaded. Run: ./bin/dbg server-start`,
             });
         }
         if (_lastActiveTabId !== tabId) {

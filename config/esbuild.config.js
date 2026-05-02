@@ -95,7 +95,8 @@ async function build() {
     const mode = process.argv[2] || 'development';
     const isWatch = process.argv.includes('--watch');
     const browser = process.env.browser || 'chrome';
-    const buildPath = path.resolve(__dirname, `../dist/${mode}/${browser}`);
+    const buildSuffix = process.env.BUILD_SUFFIX || '';
+    const buildPath = path.resolve(__dirname, `../dist/${mode}/${browser}${buildSuffix}`);
 
     console.log(`Building for ${browser} in ${mode} mode${isWatch ? ' (watch)' : ''}...`);
     console.log(`Output: ${buildPath}`);
@@ -199,6 +200,9 @@ async function build() {
             '.js': 'js',
         },
         external: ['./neovim_lib.js', './pages/options.js', './ace.js'],
+        define: {
+            '__CONFIG_SERVER_PORT__': JSON.stringify(process.env.CONFIG_SERVER_PORT || '9600'),
+        },
         logLevel: 'info',
     };
 
@@ -215,6 +219,9 @@ async function build() {
         loader: {
             '.ts': 'ts',
             '.js': 'js',
+        },
+        define: {
+            '__CONFIG_SERVER_PORT__': JSON.stringify(process.env.CONFIG_SERVER_PORT || '9600'),
         },
         logLevel: 'info',
     };

@@ -37,8 +37,8 @@
     "report:migration": "bun scripts/find-migrated-commands.js",
     "report:mappings:json": "bun scripts/mappings-json-report.ts",
     "report:audit": "bun scripts/mappings-json-report.ts | bun scripts/audit-report.ts",
-    "test:playwright": "bunx playwright test",
-    "test:playwright:parallel": "bun scripts/test-parallel.ts",
+    "test:playwright": "CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test npm run build:dev && bunx playwright test",
+    "test:playwright:parallel": "CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test npm run build:dev && bun scripts/test-parallel.ts",
     "worktree:setup": "bun scripts/worktree-setup.ts"
   },
   "repository": {
