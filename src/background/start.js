@@ -400,6 +400,7 @@ function start(browser) {
 
     var conf = {
         llm: { },
+        focusAfterClosed: "right",
         tabsMRUOrder: true,
         newTabPosition: 'default',
         newTabUrl: browser._setNewTabUrl(),
@@ -686,6 +687,11 @@ function start(browser) {
                         index = ((index % tabs.length) + tabs.length) % tabs.length;
                         chrome.tabs.update(tabs[index].id, { active: true });
                     });
+                });
+                break;
+            case 'closeTab':
+                getActiveTab(function(tab) {
+                    chrome.tabs.remove(tab.id);
                 });
                 break;
             case 'proxyThis':
@@ -1352,6 +1358,17 @@ function start(browser) {
                 chrome.tabs.reload(tabId, {
                     bypassCache: message.nocache
                 });
+            });
+        });
+    };
+    self.closeTab = function(message, sender, sendResponse) {
+        _roundRepeatTabs(sender.tab, message.repeats, function(tabIds) {
+            chrome.tabs.remove(tabIds, function() {
+                if ( conf.focusAfterClosed === "left" ) {
+                    _nextTab(sender.tab, -1);
+                } else if ( conf.focusAfterClosed === "last" ) {
+                    self.historyTab({backward: true});
+                }
             });
         });
     };

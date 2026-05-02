@@ -1085,6 +1085,16 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             clipboard.write(element.value);
         });
     });
+    mapkey('x', {
+        short: "Close current tab",
+        unique_id: "cmd_tab_close",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close the current tab",
+        tags: ["tabs", "close", "management"]
+    }, function() {
+        RUNTIME("closeTab");
+    });
     mapkey(';w', {
         short: "Focus top window",
         unique_id: "cmd_frame_focus_top",
