@@ -986,11 +986,11 @@ function scanDirectoryForSettings(dir: string, basePath: string, usages: Setting
 // ============================================================================
 
 /**
- * Scan the tests/cdp/commands directory for test files
- * Returns a map of test names (without .test.ts extension) and their paths
+ * Scan the tests/playwright/commands directory for test files
+ * Returns a map of test names (without .spec.ts extension) and their paths
  */
 function scanTestFiles(projectRoot: string): Map<string, string> {
-    const testDir = path.join(projectRoot, 'tests', 'cdp', 'commands');
+    const testDir = path.join(projectRoot, 'tests', 'playwright', 'commands');
     const testMap = new Map<string, string>();
 
     if (!fs.existsSync(testDir)) {
@@ -999,9 +999,9 @@ function scanTestFiles(projectRoot: string): Map<string, string> {
 
     const files = fs.readdirSync(testDir);
     for (const file of files) {
-        if (file.endsWith('.test.ts')) {
-            // Extract test name without .test.ts extension
-            const testName = file.substring(0, file.length - 8); // Remove '.test.ts'
+        if (file.endsWith('.spec.ts')) {
+            // Extract test name without .spec.ts extension
+            const testName = file.substring(0, file.length - 8); // Remove '.spec.ts'
             const testPath = path.join(testDir, file);
             testMap.set(testName, testPath);
         }
@@ -1012,9 +1012,10 @@ function scanTestFiles(projectRoot: string): Map<string, string> {
 
 /**
  * Match test files with mapping entries and generate test coverage stats
- * Supports two test naming patterns:
+ * Supports three test naming patterns:
  * 1. Direct mapping: cmd-scroll-down -> cmd_scroll_down (exact unique_id match)
  * 2. With setting: cmd-scroll-down.scrollStepSize -> tests cmd_scroll_down with scrollStepSize setting
+ * 3. Qualifier variant: cmd-hints-link-background-tab.minimal -> variant test for cmd_hints_link_background_tab
  *
  * This function mutates the mappings array by adding test_coverage field to each mapping
  */
@@ -1054,23 +1055,20 @@ function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string
             if (!uniqueIdToTests.has(normalizedTestName)) {
                 uniqueIdToTests.set(normalizedTestName, []);
             }
-            uniqueIdToTests.get(normalizedTestName)!.push(testName + '.test.ts');
+            uniqueIdToTests.get(normalizedTestName)!.push(testName + '.spec.ts');
             isValid = true;
         } else {
-            // Try pattern: cmd-scroll-down.scrollStepSize
-            // Split on the last dot to separate command from setting
+            // Try pattern with last dot: cmd-scroll-down.scrollStepSize or cmd-foo.minimal
             const lastDotIndex = testName.lastIndexOf('.');
             if (lastDotIndex !== -1) {
                 const commandPart = testName.substring(0, lastDotIndex);
-                const settingPart = testName.substring(lastDotIndex + 1);
                 const normalizedCommandPart = commandPart.replace(/-/g, '_');
 
-                // Check if both the command and setting are valid
-                if (mappingsByUniqueId.has(normalizedCommandPart) && validSettings.has(settingPart)) {
+                if (mappingsByUniqueId.has(normalizedCommandPart)) {
                     if (!uniqueIdToTests.has(normalizedCommandPart)) {
                         uniqueIdToTests.set(normalizedCommandPart, []);
                     }
-                    uniqueIdToTests.get(normalizedCommandPart)!.push(testName + '.test.ts');
+                    uniqueIdToTests.get(normalizedCommandPart)!.push(testName + '.spec.ts');
                     isValid = true;
                 }
             }
