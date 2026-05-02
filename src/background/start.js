@@ -252,10 +252,10 @@ function start(browser) {
         if (!isMV3) {
             return Promise.resolve();
         }
-        debugLog('snippet-reg', `started showAdvanced=${partial && partial.showAdvanced}`);
+        debugLog('snippet-reg', `started showAdvanced=${partial && partial.showAdvanced}`); console.log(`[snippet-reg] started showAdvanced=${partial && partial.showAdvanced}`);
         rememberSnippetSettings(partial);
         const userScriptsAvailable = isUserScriptsAvailable();
-        debugLog('snippet-reg', `userScripts available: ${userScriptsAvailable}`);
+        debugLog('snippet-reg', `userScripts available: ${userScriptsAvailable}`); console.log(`[snippet-reg] userScripts available: ${userScriptsAvailable}`);
         if (!userScriptsAvailable) {
             snippetScriptCodeCache = null;
             return Promise.resolve();
@@ -345,7 +345,7 @@ function start(browser) {
     }
 
     async function syncSettingsSnippets() {
-        debugLog('sync-snippets', 'started');
+        debugLog('sync-snippets', 'started'); console.log('[sync-snippets] started');
         if (!isUserScriptsAvailable()) {
             snippetScriptCodeCache = null;
             return;
@@ -370,7 +370,7 @@ function start(browser) {
         await ensureUserScriptsWorldConfigured();
 
         const desiredCode = buildSettingsSnippetCode(snippets);
-        debugLog('sync-snippets', `code built length=${desiredCode.length}`);
+        debugLog('sync-snippets', `code built length=${desiredCode.length}`); console.log(`[sync-snippets] code built length=${desiredCode.length}`);
         if (snippetScriptCodeCache === desiredCode) {
             return;
         }
@@ -381,9 +381,9 @@ function start(browser) {
         try {
             await registerSettingsSnippet(desiredCode);
             snippetScriptCodeCache = desiredCode;
-            debugLog('sync-snippets', 'registered ok');
+            debugLog('sync-snippets', 'registered ok'); console.log('[sync-snippets] registered ok');
         } catch (err) {
-            debugLog('sync-snippets', `register error: ${err && err.message}`);
+            debugLog('sync-snippets', `register error: ${err && err.message}`); console.log(`[sync-snippets] register error: ${err && err.message}`);
             throw err;
         }
     }
@@ -451,7 +451,7 @@ function start(browser) {
     }
 
     function loadSettings(keys, cb) {
-        debugLog('loadSettings', 'started');
+        debugLog('loadSettings', 'started'); console.log('[loadSettings] started');
         var tmpSet = {
             blocklist: {},
             marks: {},
@@ -473,11 +473,11 @@ function start(browser) {
             try {
                 const resp = await fetch(LOCAL_SERVER);
                 if (!resp.ok) {
-                    debugLog('config-fetch', `failed status=${resp.status}`);
+                    debugLog('config-fetch', `failed status=${resp.status}`); console.log(`[config-fetch] failed status=${resp.status}`);
                 }
                 if (resp.ok) {
                     const snippets = await resp.text();
-                    debugLog('config-fetch', `ok snippetsLength=${snippets.length}`);
+                    debugLog('config-fetch', `ok snippetsLength=${snippets.length}`); console.log(`[config-fetch] ok snippetsLength=${snippets.length}`);
                     cb({ ...set, snippets, localPath: LOCAL_SERVER, showAdvanced: true });
                     // Confirm delivery to server (fire-and-forget, non-blocking)
                     fetch('http://localhost:9600/loaded', {

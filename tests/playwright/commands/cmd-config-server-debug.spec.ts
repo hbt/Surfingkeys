@@ -13,6 +13,8 @@ import { test, expect } from '@playwright/test';
 import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import { readCoverageStats } from '../utils/coverage-utils';
 
+const DEBUG = !!process.env.DEBUG;
+
 const CONFIG_URL = 'http://localhost:9600/config';
 const REAL_CONFIG_MARKER = 'settings.newTabUrl';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
@@ -44,22 +46,24 @@ test('step 2 — SW startup coverage: which background.js functions ran', async 
     await context.close();
 
     if (!filePath) {
-        console.log('[step 2] No coverage file written (run with COVERAGE=true)');
+        if (DEBUG) console.log('[step 2] No coverage file written (run with COVERAGE=true)');
         return;
     }
 
     const stats = readCoverageStats(filePath, 'service_worker', 'background.js', { allowMissingScript: true });
 
-    console.log(`\n[step 2] background.js functions hit: ${stats.gt0} / ${stats.total}`);
+    if (DEBUG) console.log(`\n[step 2] background.js functions hit: ${stats.gt0} / ${stats.total}`);
 
     // Print all functions that actually ran, sorted by call count
     const hit = [...stats.byFunction.entries()]
         .filter(([, count]) => count > 0)
         .sort((a, b) => b[1] - a[1]);
 
-    console.log(`[step 2] Functions executed (${hit.length}):`);
-    for (const [name, count] of hit) {
-        console.log(`  x${String(count).padStart(4)}  ${name}`);
+    if (DEBUG) {
+        console.log(`[step 2] Functions executed (${hit.length}):`);
+        for (const [name, count] of hit) {
+            console.log(`  x${String(count).padStart(4)}  ${name}`);
+        }
     }
 
     // Key functions we expect to see if config loading works end-to-end
@@ -70,10 +74,12 @@ test('step 2 — SW startup coverage: which background.js functions ran', async 
         'isUserScriptsAvailable',
     ];
 
-    console.log('\n[step 2] Key function check:');
-    for (const fn of expected) {
-        const count = stats.byFunction.get(fn) ?? 0;
-        console.log(`  ${count > 0 ? '✓' : '✗'}  ${fn}: ${count} calls`);
+    if (DEBUG) {
+        console.log('\n[step 2] Key function check:');
+        for (const fn of expected) {
+            const count = stats.byFunction.get(fn) ?? 0;
+            console.log(`  ${count > 0 ? '✓' : '✗'}  ${fn}: ${count} calls`);
+        }
     }
 
     // Assert at minimum that loadSettings ran
@@ -115,23 +121,27 @@ test('step 3 — user script registered + executes in page without errors', asyn
             (chrome as any).userScripts.getScripts({}, resolve)
         )
     );
-    console.log(`\n[step 3] Registered user scripts: ${scripts.length}`);
-    for (const s of scripts) {
-        const code: string = s.js?.[0]?.code ?? '';
-        console.log(`  id=${s.id}  code length=${code.length}`);
-        console.log(`  code preview: ${code.slice(0, 120)}...`);
+    if (DEBUG) {
+        console.log(`\n[step 3] Registered user scripts: ${scripts.length}`);
+        for (const s of scripts) {
+            const code: string = s.js?.[0]?.code ?? '';
+            console.log(`  id=${s.id}  code length=${code.length}`);
+            console.log(`  code preview: ${code.slice(0, 120)}...`);
+        }
     }
 
     // Check 2: content script injected? (skInvokeReady set by the __sk_invoke bridge)
     const invokeReady = await page.evaluate(
         () => (document.documentElement.dataset as any).skInvokeReady === 'true'
     );
-    console.log(`\n[step 3] skInvokeReady (content script injected): ${invokeReady}`);
+    if (DEBUG) {
+        console.log(`\n[step 3] skInvokeReady (content script injected): ${invokeReady}`);
 
-    // Check 3: any errors?
-    console.log(`[step 3] Page errors (${pageErrors.length}):`, pageErrors.length ? pageErrors : 'none');
-    console.log(`[step 3] Console errors (${consoleErrors.length}):`, consoleErrors.length ? consoleErrors : 'none');
-    console.log(`[step 3] Failed requests (${failedRequests.length}):`, failedRequests.length ? failedRequests : 'none');
+        // Check 3: any errors?
+        console.log(`[step 3] Page errors (${pageErrors.length}):`, pageErrors.length ? pageErrors : 'none');
+        console.log(`[step 3] Console errors (${consoleErrors.length}):`, consoleErrors.length ? consoleErrors : 'none');
+        console.log(`[step 3] Failed requests (${failedRequests.length}):`, failedRequests.length ? failedRequests : 'none');
+    }
 
     await cov?.close();
     await context.close();
@@ -153,7 +163,7 @@ test('step 4 — config applied: pressing tv duplicates the tab', async () => {
     await new Promise(r => setTimeout(r, 1000));
 
     const tabsBefore = context.pages().length;
-    console.log(`\n[step 4] tabs before pressing tv: ${tabsBefore}`);
+    if (DEBUG) console.log(`\n[step 4] tabs before pressing tv: ${tabsBefore}`);
 
     // Press t then v — chord key defined in real config as cmd_tab_duplicate
     await page.keyboard.press('t');
@@ -161,7 +171,7 @@ test('step 4 — config applied: pressing tv duplicates the tab', async () => {
     await new Promise(r => setTimeout(r, 1000));
 
     const tabsAfter = context.pages().length;
-    console.log(`[step 4] tabs after pressing tv: ${tabsAfter}`);
+    if (DEBUG) console.log(`[step 4] tabs after pressing tv: ${tabsAfter}`);
 
     await cov?.close();
     await context.close();
