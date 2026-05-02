@@ -1470,14 +1470,24 @@ function start(browser) {
     };
 
     self.copyTabUrlsMagic = function(message, sender, sendResponse) {
-        chrome.tabs.query({currentWindow: true}, function(tabs) {
-            var repeats = message.repeats || 1;
-            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, tabs);
-            var idSet = new Set(tabIds);
-            var urls = tabs.filter(function(t) { return idSet.has(t.id); }).map(function(t) { return t.url; });
-            if (urls.length) {
-                navigator.clipboard.writeText(urls.join('\n'));
+        chrome.tabs.query({}, function(allTabs) {
+            var windowTabs = allTabs.filter(function(t) { return t.windowId === sender.tab.windowId; });
+            var repeats = message.repeats;
+            if (repeats == null && (message.magic === 'DirectionRight' || message.magic === 'DirectionLeft')) {
+                repeats = 1;
             }
+            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, windowTabs, allTabs);
+            var tabMap = {};
+            allTabs.forEach(function(t) {
+                tabMap[t.id] = t;
+            });
+            var urls = tabIds.map(function(id) {
+                var tab = tabMap[id];
+                return tab && tab.url;
+            }).filter(Boolean);
+            _response(message, sendResponse, {
+                urls: urls
+            });
         });
     };
 
