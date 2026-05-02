@@ -22,9 +22,15 @@ export default defineConfig({
         },
         // Set CONFIG_SERVER=false to test the server-down path (e.g. banner warning)
         ...(process.env.CONFIG_SERVER !== 'false' ? [{
-            command: 'bun scripts/server.ts',
+            command: 'CONFIG_FILE=data/fixtures/test-config-server.js bun scripts/server.ts',
             port: 9600,
             reuseExistingServer: true,
         }] : []),
+        // Port 9601: real .surfingkeysrc.js — used by config-server-debug tests only
+        {
+            command: 'PORT=9601 bun scripts/server.ts',
+            port: 9601,
+            reuseExistingServer: true,
+        },
     ],
 });
