@@ -11,6 +11,8 @@ import { test, expect } from '@playwright/test';
 import { launchWithCoverage, invokeCommand, FIXTURE_BASE } from '../utils/pw-helpers';
 import { readCoverageStats } from '../utils/coverage-utils';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_CONFIG_URL = 'http://localhost:9602/config';
 const REAL_CONFIG_URL    = 'http://localhost:9601/config';
 
@@ -49,20 +51,24 @@ test('SW startup — which background.js functions ran', async () => {
     await context.close();
 
     if (!filePath) {
-        console.log('[SW startup] No coverage (run with COVERAGE=true)');
+        if (DEBUG) console.log('[SW startup] No coverage (run with COVERAGE=true)');
         return;
     }
 
     const stats = readCoverageStats(filePath, 'service_worker', 'background.js', { allowMissingScript: true });
     const hit = [...stats.byFunction.entries()].filter(([, c]) => c > 0).sort((a, b) => b[1] - a[1]);
-    console.log(`\n[SW startup] ${stats.gt0}/${stats.total} functions hit:`);
-    for (const [name, count] of hit) {
-        console.log(`  x${String(count).padStart(4)}  ${name}`);
+    if (DEBUG) console.log(`\n[SW startup] ${stats.gt0}/${stats.total} functions hit:`);
+    if (DEBUG) {
+        for (const [name, count] of hit) {
+            console.log(`  x${String(count).padStart(4)}  ${name}`);
+        }
     }
 
     const key = (fn: string) => stats.byFunction.get(fn) ?? 0;
-    for (const fn of ['loadSettings', 'ensureSettingsSnippetRegistration', 'syncSettingsSnippets', 'isUserScriptsAvailable']) {
-        console.log(`  ${key(fn) > 0 ? '✓' : '✗'}  ${fn}: ${key(fn)} calls`);
+    if (DEBUG) {
+        for (const fn of ['loadSettings', 'ensureSettingsSnippetRegistration', 'syncSettingsSnippets', 'isUserScriptsAvailable']) {
+            console.log(`  ${key(fn) > 0 ? '✓' : '✗'}  ${fn}: ${key(fn)} calls`);
+        }
     }
 
     expect(key('loadSettings'), 'loadSettings should run on startup').toBeGreaterThan(0);
@@ -78,7 +84,7 @@ test('fixture config applied — cmd_config_server_test_marker registered', asyn
     await new Promise(r => setTimeout(r, 1000));
 
     const ok = await invokeCommand(page, 'cmd_config_server_test_marker');
-    console.log(`\n[fixture applied] cmd_config_server_test_marker invokable: ${ok}`);
+    if (DEBUG) console.log(`\n[fixture applied] cmd_config_server_test_marker invokable: ${ok}`);
 
     await cov?.close();
     await context.close();

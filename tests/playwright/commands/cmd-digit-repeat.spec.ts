@@ -2,6 +2,8 @@ import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { launchWithDualCoverage, setSkConf, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 
+const DEBUG = !!process.env.DEBUG;
+
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
@@ -114,7 +116,7 @@ test.describe('cmd_digit_repeat (Playwright)', () => {
         await page2.waitForTimeout(1500);
 
         const p2Keys = await page2.evaluate(() => (window as any).__p2Keys);
-        console.log(`[diag] page2 capturedKeys: ${JSON.stringify(p2Keys)}, new tabs: ${context.pages().length - beforeCount2}`);
+        if (DEBUG) console.log(`[diag] page2 capturedKeys: ${JSON.stringify(p2Keys)}, new tabs: ${context.pages().length - beforeCount2}`);
 
         // 3 tabs should now open (repeat works normally on page2)
         expect(context.pages().length).toBe(beforeCount2 + 3);
