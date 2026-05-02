@@ -243,6 +243,13 @@ function validateConfig(report: Report, configPath: string): number {
 
     console.log(`User bindings: ${rawKeys.size} (mapkey: ${[...rawKeys.values()].filter(v => v.type === 'mapkey').length}, mapcmdkey: ${[...rawKeys.values()].filter(v => v.type === 'mapcmdkey').length}, map: ${[...rawKeys.values()].filter(v => v.type === 'map').length}, unmap: ${[...rawKeys.values()].filter(v => v.type === 'unmap').length})\n`);
 
+    // Build valid unique_id set from report
+    const validIds = new Set<string>(
+        report.mappings.list
+            .map(e => e.annotation?.unique_id)
+            .filter(Boolean) as string[]
+    );
+
     // Prefix conflicts among user-mapped keys
     const conflicts = findPrefixConflicts(keyEntries);
     if (conflicts.length === 0) {
@@ -251,6 +258,23 @@ function validateConfig(report: Report, configPath: string): number {
         console.log(`\x1b[31m✗ ${conflicts.length} prefix conflict(s) among user mappings:\x1b[0m`);
         for (const { blocked, blockedBy } of conflicts) {
             console.log(`  "${blocked.key}" blocked by \x1b[33m${blockedBy.key}\x1b[0m (${blockedBy.short})`);
+        }
+    }
+
+    // Invalid unique_ids from mapcmdkey calls
+    const invalidIds: Array<{ key: string; id: string }> = [];
+    for (const [key, info] of rawKeys.entries()) {
+        if (info.type === 'mapcmdkey' && !validIds.has(info.target)) {
+            invalidIds.push({ key, id: info.target });
+        }
+    }
+
+    if (invalidIds.length === 0) {
+        console.log('\x1b[32m✓ All mapcmdkey unique_ids are valid.\x1b[0m');
+    } else {
+        console.log(`\x1b[31m✗ ${invalidIds.length} mapcmdkey unique_id(s) not found in report:\x1b[0m`);
+        for (const { key, id } of invalidIds) {
+            console.log(`  \x1b[31m"${key}" → "${id}" (unknown unique_id)\x1b[0m`);
         }
     }
 
@@ -270,7 +294,7 @@ function validateConfig(report: Report, configPath: string): number {
         console.log('  (use --verbose to list unmapped ids)\n');
     }
 
-    return conflicts.length;
+    return conflicts.length + invalidIds.length;
 }
 
 // Prefix analysis — grouped by first key character, mode-aware
