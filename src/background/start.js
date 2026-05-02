@@ -400,7 +400,6 @@ function start(browser) {
 
     var conf = {
         llm: { },
-        focusAfterClosed: "right",
         tabsMRUOrder: true,
         newTabPosition: 'default',
         newTabUrl: browser._setNewTabUrl(),
@@ -687,11 +686,6 @@ function start(browser) {
                         index = ((index % tabs.length) + tabs.length) % tabs.length;
                         chrome.tabs.update(tabs[index].id, { active: true });
                     });
-                });
-                break;
-            case 'closeTab':
-                getActiveTab(function(tab) {
-                    chrome.tabs.remove(tab.id);
                 });
                 break;
             case 'proxyThis':
@@ -1361,42 +1355,6 @@ function start(browser) {
             });
         });
     };
-    self.closeTab = function(message, sender, sendResponse) {
-        _roundRepeatTabs(sender.tab, message.repeats, function(tabIds) {
-            chrome.tabs.remove(tabIds, function() {
-                if ( conf.focusAfterClosed === "left" ) {
-                    _nextTab(sender.tab, -1);
-                } else if ( conf.focusAfterClosed === "last" ) {
-                    self.historyTab({backward: true});
-                }
-            });
-        });
-    };
-
-    function _closeTab(s, n) {
-        chrome.tabs.query({currentWindow: true}, function(tabs) {
-            tabs = tabs.map(function(e) { return e.id; });
-            chrome.tabs.remove(tabs.slice(s.tab.index + (n < 0 ? n : 1),
-                                          s.tab.index + (n < 0 ? 0 : 1 + n)));
-        });
-    };
-
-    self.closeTabLeft  = function(message, sender, senderResponse) { _closeTab(sender, -message.repeats);};
-    self.closeTabRight = function(message, sender, senderResponse) { _closeTab(sender, message.repeats); };
-    self.closeTabsToLeft = function(message, sender, senderResponse) { _closeTab(sender, -sender.tab.index); };
-    self.closeTabsToRight = function(message, sender, senderResponse) {
-        chrome.tabs.query({currentWindow: true},
-                          function(tabs) { _closeTab(sender, tabs.length - sender.tab.index - 1); });
-    };
-    self.tabOnly = function(message, sender, sendResponse) {
-        chrome.tabs.query({currentWindow: true}, function(tabs) {
-            tabs = tabs.filter(function(t) {
-                return t.id != sender.tab.id && !t.pinned;
-            }).map(function(t) { return t.id; });
-            chrome.tabs.remove(tabs);
-        });
-    };
-
     function getChildrenTabsRecursively(tabId, allTabs) {
         var direct = allTabs.filter(function(t) { return t.openerTabId === tabId; });
         var result = direct.slice();
