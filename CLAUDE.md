@@ -49,7 +49,7 @@ curl -s -X POST http://localhost:9600/eval \
   -d '{"target":"page","code":"document.title"}' | jq .
 ```
 
-See **[docs/devtools.md](docs/devtools.md)** for full reference, troubleshooting, and more examples.
+See **[.claude/commands/devtools.md](.claude/commands/devtools.md)** for full reference, troubleshooting, and more examples.
 
 
 ## Development Commands
