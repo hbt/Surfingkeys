@@ -1736,6 +1736,13 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'AllIncognitoTabs'});
     });
+    function copyTabUrlsMagic(magic) {
+        RUNTIME("copyTabUrlsMagic", {magic: magic}, function(response) {
+            if (response && response.urls && response.urls.length) {
+                clipboard.write(response.urls.join('\n'));
+            }
+        });
+    }
     // Group D — Copy Tab URLs Magic
     mapkey('gyce', {
         short: "Copy URLs of tabs to the right",
@@ -1745,7 +1752,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         description: "Copy URLs of 1 tab to the right of current tab to clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        RUNTIME("copyTabUrlsMagic", {magic: 'DirectionRight'});
+        copyTabUrlsMagic('DirectionRight');
     });
     mapkey('gycc', {
         short: "Copy URLs of all tabs except active",
@@ -1755,7 +1762,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         description: "Copy URLs of all tabs in current window except the active tab to clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        RUNTIME("copyTabUrlsMagic", {magic: 'AllExceptActive'});
+        copyTabUrlsMagic('AllExceptActive');
     });
     mapkey('gyck', {
         short: "Copy URLs of children tabs",
@@ -1765,7 +1772,107 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         description: "Copy URLs of tabs opened directly from the current tab to clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        RUNTIME("copyTabUrlsMagic", {magic: 'ChildrenTabs'});
+        copyTabUrlsMagic('ChildrenTabs');
+    });
+    mapkey('g-019', {
+        short: "Copy current tab URL",
+        unique_id: "cmd_tab_copy_urls_magic_current",
+        feature_group: 3,
+        category: "tabs",
+        description: "Copy the current tab URL to the clipboard",
+        tags: ["tabs", "copy", "magic"]
+    }, function() {
+        copyTabUrlsMagic('CurrentTab');
+    });
+    mapkey('g-020', {
+        short: "Copy URLs of all tabs in current window",
+        unique_id: "cmd_tab_copy_urls_magic_all_window",
+        feature_group: 3,
+        category: "tabs",
+        description: "Copy URLs of all tabs in the current window to the clipboard",
+        tags: ["tabs", "copy", "magic"]
+    }, function() {
+        copyTabUrlsMagic('AllInWindow');
+    });
+    mapkey('g-021', {
+        short: "Copy URLs of all tabs except current across all windows",
+        unique_id: "cmd_tab_copy_urls_magic_all_windows",
+        feature_group: 3,
+        category: "tabs",
+        description: "Copy URLs of all tabs in all windows except the active tab to the clipboard",
+        tags: ["tabs", "copy", "magic"]
+    }, function() {
+        copyTabUrlsMagic('AllExceptActiveAllWindows');
+    });
+    mapkey('g-022', {
+        short: "Copy URLs of tabs to the left",
+        unique_id: "cmd_tab_copy_urls_magic_left",
+        feature_group: 3,
+        category: "tabs",
+        description: "Copy URLs of tabs to the left of the current tab to the clipboard",
+        tags: ["tabs", "copy", "magic"]
+    }, function() {
+        copyTabUrlsMagic('DirectionLeft');
+    });
+    mapkey('g-023', {
+        short: "Copy URLs of current tab and tabs to the left",
+        unique_id: "cmd_tab_copy_urls_magic_left_inclusive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Copy URLs of the current tab and tabs to the left to the clipboard",
+        tags: ["tabs", "copy", "magic"]
+    }, function() {
+        copyTabUrlsMagic('DirectionLeftInclusive');
+    });
+    mapkey('g-024', {
+        short: "Copy URLs of current tab and tabs to the right",
+        unique_id: "cmd_tab_copy_urls_magic_right_inclusive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Copy URLs of the current tab and tabs to the right to the clipboard",
+        tags: ["tabs", "copy", "magic"]
+    }, function() {
+        copyTabUrlsMagic('DirectionRightInclusive');
+    });
+    mapkey('g-025', {
+        short: "Copy URLs of descendant tabs recursively",
+        unique_id: "cmd_tab_copy_urls_magic_children_recursive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Copy URLs of all descendant tabs opened from the current tab to the clipboard",
+        tags: ["tabs", "copy", "magic"]
+    }, function() {
+        copyTabUrlsMagic('ChildrenTabsRecursively');
+    });
+    mapkey('g-026', {
+        short: "Copy URLs of all tabs in other windows",
+        unique_id: "cmd_tab_copy_urls_magic_other_windows",
+        feature_group: 3,
+        category: "tabs",
+        description: "Copy URLs of all tabs in windows other than the current window to the clipboard",
+        tags: ["tabs", "copy", "magic"]
+    }, function() {
+        copyTabUrlsMagic('AllOtherWindowsTabs');
+    });
+    mapkey('g-027', {
+        short: "Copy URLs from other windows without pinned tabs",
+        unique_id: "cmd_tab_copy_urls_magic_other_windows_no_pinned",
+        feature_group: 3,
+        category: "tabs",
+        description: "Copy URLs of tabs in other windows that contain no pinned tabs to the clipboard",
+        tags: ["tabs", "copy", "magic"]
+    }, function() {
+        copyTabUrlsMagic('OtherWindowsNoPinned');
+    });
+    mapkey('g-028', {
+        short: "Copy URLs of all incognito tabs",
+        unique_id: "cmd_tab_copy_urls_magic_incognito",
+        feature_group: 3,
+        category: "tabs",
+        description: "Copy URLs of all incognito tabs across all windows to the clipboard",
+        tags: ["tabs", "copy", "magic"]
+    }, function() {
+        copyTabUrlsMagic('AllIncognitoTabs');
     });
 
     // Group F — Reverse Tab Order Magic
