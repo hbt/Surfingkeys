@@ -196,6 +196,20 @@ Full architecture and implementation details: `docs/devtools.md`
 
 ---
 
+## reference.config-files
+
+Two `.surfingkeysrc.js` symlinks exist. They resolve to **different files** with different roles.
+
+| Symlink | Resolves to | Role |
+|---------|-------------|------|
+| `~/.surfingkeysrc.js` | `~/.surfingkeysrc` | **Reference only** — old pre-2026 config. Do NOT edit. |
+| `/home/hassen/workspace/surfingkeys/.surfingkeysrc.js` | `/home/hassen/.surfingkeys-2026.js` | **Edit this** — active config loaded by gchrb. |
+
+**Rule:** When fixing or adding a keybinding in the user config, always edit `/home/hassen/.surfingkeys-2026.js`.
+Use `~/.surfingkeysrc` only to look up old behavior or ported mappings — never modify it.
+
+---
+
 ## reference.archive
 
 **`/home/hassen/workspace/surfingkeys-archive`** — old fork baseline (pre-rewrite).
