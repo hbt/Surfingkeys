@@ -9,8 +9,10 @@
  * PID file: /tmp/sk-config-server.pid
  */
 
-import { existsSync } from 'fs';
+import { existsSync, appendFileSync } from 'fs';
 import { resolve } from 'path';
+
+const DEBUG_LOG_FILE = '/tmp/sk-debug.log';
 
 const PORT = 9600;
 const PID_FILE = '/tmp/sk-config-server.pid';
@@ -82,6 +84,33 @@ function loadedResponse(req: Request): Promise<Response> {
   });
 }
 
+function logEntryResponse(req: Request): Promise<Response> {
+  const origin = req.headers.get('Origin');
+  if (origin !== null && !origin.startsWith('chrome-extension://')) {
+    const body = 'Forbidden';
+    log('POST', '/log', 403, body.length);
+    return Promise.resolve(new Response(body, { status: 403 }));
+  }
+
+  const corsHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(origin ? { 'Access-Control-Allow-Origin': origin } : {})
+  };
+
+  return req.json().then((data: { context?: string; message?: string; data?: unknown; timestamp?: number }) => {
+    const line = JSON.stringify(data) + '\n';
+    try {
+      appendFileSync(DEBUG_LOG_FILE, line);
+    } catch (_) {}
+    const body = JSON.stringify({ ok: true });
+    log('POST', '/log', 200, body.length);
+    return new Response(body, { status: 200, headers: corsHeaders });
+  }).catch(() => {
+    const body = JSON.stringify({ ok: true });
+    return new Response(body, { status: 200, headers: corsHeaders });
+  });
+}
+
 function notFound(path: string): Response {
   const body = 'Not Found';
   log('GET', path, 404, body.length);
@@ -117,6 +146,7 @@ Bun.serve({
     if (url.pathname === '/health') return healthResponse();
     if (url.pathname === '/config') return configResponse(req.headers.get('Origin'));
     if (url.pathname === '/loaded' && req.method === 'POST') return loadedResponse(req);
+    if (url.pathname === '/log' && req.method === 'POST') return logEntryResponse(req);
     return notFound(url.pathname);
   }
 });

@@ -252,8 +252,11 @@ function start(browser) {
         if (!isMV3) {
             return Promise.resolve();
         }
+        debugLog('snippet-reg', `started showAdvanced=${partial && partial.showAdvanced}`);
         rememberSnippetSettings(partial);
-        if (!isUserScriptsAvailable()) {
+        const userScriptsAvailable = isUserScriptsAvailable();
+        debugLog('snippet-reg', `userScripts available: ${userScriptsAvailable}`);
+        if (!userScriptsAvailable) {
             snippetScriptCodeCache = null;
             return Promise.resolve();
         }
@@ -342,6 +345,7 @@ function start(browser) {
     }
 
     async function syncSettingsSnippets() {
+        debugLog('sync-snippets', 'started');
         if (!isUserScriptsAvailable()) {
             snippetScriptCodeCache = null;
             return;
@@ -366,6 +370,7 @@ function start(browser) {
         await ensureUserScriptsWorldConfigured();
 
         const desiredCode = buildSettingsSnippetCode(snippets);
+        debugLog('sync-snippets', `code built length=${desiredCode.length}`);
         if (snippetScriptCodeCache === desiredCode) {
             return;
         }
@@ -373,8 +378,14 @@ function start(browser) {
         if (snippetScriptCodeCache) {
             await unregisterSettingsSnippet();
         }
-        await registerSettingsSnippet(desiredCode);
-        snippetScriptCodeCache = desiredCode;
+        try {
+            await registerSettingsSnippet(desiredCode);
+            snippetScriptCodeCache = desiredCode;
+            debugLog('sync-snippets', 'registered ok');
+        } catch (err) {
+            debugLog('sync-snippets', `register error: ${err && err.message}`);
+            throw err;
+        }
     }
 
     var tabHistory = [],
@@ -431,7 +442,16 @@ function start(browser) {
         }
     }
 
+    function debugLog(context, message, data) {
+        fetch('http://localhost:9600/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ context, message, data, timestamp: Date.now() })
+        }).catch(() => {});
+    }
+
     function loadSettings(keys, cb) {
+        debugLog('loadSettings', 'started');
         var tmpSet = {
             blocklist: {},
             marks: {},
@@ -452,8 +472,12 @@ function start(browser) {
             const LOCAL_SERVER = 'http://localhost:9600/config';
             try {
                 const resp = await fetch(LOCAL_SERVER);
+                if (!resp.ok) {
+                    debugLog('config-fetch', `failed status=${resp.status}`);
+                }
                 if (resp.ok) {
                     const snippets = await resp.text();
+                    debugLog('config-fetch', `ok snippetsLength=${snippets.length}`);
                     cb({ ...set, snippets, localPath: LOCAL_SERVER, showAdvanced: true });
                     // Confirm delivery to server (fire-and-forget, non-blocking)
                     fetch('http://localhost:9600/loaded', {
@@ -464,6 +488,7 @@ function start(browser) {
                     return;
                 }
             } catch (_) {
+                debugLog('config-fetch', 'failed or server down');
                 // server not running, fall through to normal localPath handling
             }
 
