@@ -143,29 +143,96 @@ function validateSource(report: Report): number {
 
     if (conflicts.length === 0) {
         console.log('\x1b[32m✓ No prefix conflicts in default mappings.\x1b[0m\n');
+    } else {
+        // Group by mode for display
+        const byMode = new Map<string, Conflict[]>();
+        for (const c of conflicts) {
+            const mode = c.blocked.mode;
+            if (!byMode.has(mode)) byMode.set(mode, []);
+            byMode.get(mode)!.push(c);
+        }
+
+        for (const [mode, modeConflicts] of byMode) {
+            console.log(`\x1b[36m${mode} mode (${modeConflicts.length} conflicts):\x1b[0m`);
+            for (const { blocked, blockedBy } of modeConflicts) {
+                const blockedId = blocked.id ? ` [${blocked.id}]` : '';
+                const blockerKey = `\x1b[33m${blockedBy.key}\x1b[0m`;
+                console.log(`  \x1b[31m✗ "${blocked.key}"${blockedId} blocked by ${blockerKey} (${blockedBy.short})`);
+            }
+            console.log('');
+        }
+
+        console.log(`\x1b[31m${conflicts.length} prefix conflict(s) found in default mappings.\x1b[0m\n`);
+    }
+
+    const gIssues = validateGPlaceholders(report);
+    return conflicts.length + gIssues;
+}
+
+// Validate that all g-XXX placeholder keys are unique and sequential (no gaps, starting at 001)
+function validateGPlaceholders(report: Report): number {
+    console.log('g-XXX Placeholder Validation');
+    console.log('─────────────────────────────');
+
+    const G_PATTERN = /^g-(\d+)$/;
+
+    // Collect all g-XXX keys with their associated unique_ids
+    const keyToIds = new Map<string, string[]>();
+    for (const entry of report.mappings.list) {
+        if (!entry.key) continue;
+        if (!G_PATTERN.test(entry.key)) continue;
+        const id = entry.annotation?.unique_id ?? '(unknown)';
+        if (!keyToIds.has(entry.key)) keyToIds.set(entry.key, []);
+        keyToIds.get(entry.key)!.push(id);
+    }
+
+    if (keyToIds.size === 0) {
+        console.log('\x1b[33m✓ No g-XXX keys found in source mappings.\x1b[0m\n');
         return 0;
     }
 
-    // Group by mode for display
-    const byMode = new Map<string, Conflict[]>();
-    for (const c of conflicts) {
-        const mode = c.blocked.mode;
-        if (!byMode.has(mode)) byMode.set(mode, []);
-        byMode.get(mode)!.push(c);
-    }
+    let issues = 0;
 
-    for (const [mode, modeConflicts] of byMode) {
-        console.log(`\x1b[36m${mode} mode (${modeConflicts.length} conflicts):\x1b[0m`);
-        for (const { blocked, blockedBy } of modeConflicts) {
-            const blockedId = blocked.id ? ` [${blocked.id}]` : '';
-            const blockerKey = `\x1b[33m${blockedBy.key}\x1b[0m`;
-            console.log(`  \x1b[31m✗ "${blocked.key}"${blockedId} blocked by ${blockerKey} (${blockedBy.short})`);
+    // Check for duplicates (same g-XXX key used by more than one command)
+    for (const [key, ids] of keyToIds) {
+        if (ids.length > 1) {
+            console.log(`\x1b[31m✗ Duplicate g-XXX key: ${key} (used by ${ids.join(', ')})\x1b[0m`);
+            issues++;
         }
-        console.log('');
     }
 
-    console.log(`\x1b[31m${conflicts.length} prefix conflict(s) found in default mappings.\x1b[0m\n`);
-    return conflicts.length;
+    // Extract numeric suffixes and sort
+    const nums = [...keyToIds.keys()]
+        .map(k => parseInt(G_PATTERN.exec(k)![1], 10))
+        .sort((a, b) => a - b);
+
+    // Check starts at 001
+    if (nums[0] !== 1) {
+        console.log(`\x1b[31m✗ g-XXX sequence does not start at g-001 (first key is g-${String(nums[0]).padStart(3, '0')})\x1b[0m`);
+        issues++;
+    }
+
+    // Check for gaps
+    for (let i = 1; i < nums.length; i++) {
+        if (nums[i] !== nums[i - 1] + 1) {
+            const prev = `g-${String(nums[i - 1]).padStart(3, '0')}`;
+            const curr = `g-${String(nums[i]).padStart(3, '0')}`;
+            for (let missing = nums[i - 1] + 1; missing < nums[i]; missing++) {
+                const missingKey = `g-${String(missing).padStart(3, '0')}`;
+                console.log(`\x1b[31m✗ Gap in g-XXX sequence: missing ${missingKey} (sequence jumps ${prev} → ${curr})\x1b[0m`);
+                issues++;
+            }
+        }
+    }
+
+    if (issues === 0) {
+        const first = `g-${String(nums[0]).padStart(3, '0')}`;
+        const last = `g-${String(nums[nums.length - 1]).padStart(3, '0')}`;
+        console.log(`\x1b[32m✓ ${keyToIds.size} g-XXX keys, all unique and sequential (${first}..${last}).\x1b[0m`);
+    }
+
+    console.log('');
+    return issues;
 }
 
 // Extract user mappings from config file
