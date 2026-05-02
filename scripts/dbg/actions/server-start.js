@@ -12,7 +12,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const http = require('http');
 
-const CONFIG_SERVER_PID_FILE = '/tmp/sk-config-server.pid';
+const CONFIG_SERVER_PID_FILE = '/tmp/sk-config-server-9600.pid';
 const CONFIG_SERVER_LOG_FILE = '/tmp/sk-config-server.log';
 const SERVER_SCRIPT = path.join(__dirname, '../../server.ts');
 const PORT = 9600;

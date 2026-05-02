@@ -256,6 +256,52 @@ function evalResultResponse(req: Request): Promise<Response> {
   });
 }
 
+function evalModuleResponse(req: Request): Response {
+  // Wraps arbitrary code as an ES module so the SW can import() it from localhost
+  // (localhost is in script-src by default; import() doesn't require unsafe-eval)
+  const url = new URL(req.url);
+  const origin = req.headers.get('Origin');
+  const code = url.searchParams.get('code') ?? 'undefined';
+  const body = `const __r = await (async () => { return (${code}); })();\nexport { __r as result };\n`;
+  log('GET', '/eval-module', 200, body.length);
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/javascript',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': origin ?? '*',
+    },
+  });
+}
+
+function evalScriptResponse(req: Request): Response {
+  // Classic (non-module) script loaded via importScripts() in the SW.
+  // Evaluates `code` synchronously in SW global scope and stores result in
+  // self.__sk_eval_result so the caller can read it after importScripts() returns.
+  const url = new URL(req.url);
+  const code = url.searchParams.get('code') ?? 'undefined';
+  // Wrap in try/catch so a runtime error sets __sk_eval_error instead of throwing
+  const body = [
+    'try {',
+    `  self.__sk_eval_result = (${code});`,
+    '  self.__sk_eval_error = undefined;',
+    '} catch (e) {',
+    '  self.__sk_eval_result = undefined;',
+    '  self.__sk_eval_error = e.message;',
+    '}',
+  ].join('\n') + '\n';
+  const origin = req.headers.get('Origin');
+  log('GET', '/eval-script', 200, body.length);
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/javascript',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': origin ?? '*',
+    },
+  });
+}
+
 // Write PID file
 Bun.write(PID_FILE, String(process.pid));
 console.log(`[${new Date().toISOString()}] Config server starting on port ${PORT}`);
@@ -279,6 +325,7 @@ process.on('SIGINT', shutdown);
 
 Bun.serve({
   port: PORT,
+  idleTimeout: 0,  // disable timeout — SSE connections must stay open indefinitely
   fetch(req: Request): Response | Promise<Response> {
     const url = new URL(req.url);
 
@@ -290,6 +337,8 @@ Bun.serve({
     if (url.pathname === '/eval-subscribe') return evalSubscribeResponse(req);
     if (url.pathname === '/eval' && req.method === 'POST') return evalResponse(req);
     if (url.pathname === '/eval-result' && req.method === 'POST') return evalResultResponse(req);
+    if (url.pathname === '/eval-module') return evalModuleResponse(req);
+    if (url.pathname === '/eval-script') return evalScriptResponse(req);
     return notFound(url.pathname);
   }
 });

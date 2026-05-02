@@ -1412,6 +1412,10 @@ function start(browser) {
                 var right = windowTabs.filter(function(t) { return t.index > currentTab.index; });
                 return right.slice(0, repeats || 1).map(function(t) { return t.id; });
             }
+            case 'DirectionRightAll': {
+                var right = windowTabs.filter(function(t) { return t.index > currentTab.index; });
+                return right.map(function(t) { return t.id; });
+            }
             case 'DirectionRightInclusive': {
                 var right = windowTabs.filter(function(t) { return t.index >= currentTab.index; });
                 // no repeat = close all; explicit N = close current + N to the right
@@ -2521,6 +2525,12 @@ function start(browser) {
         }
     };
 }
+
+// sk-devtools: keep port open for the DevTools panel.
+// Eval is handled in the panel via chrome.debugger (Runtime.evaluate) — no eval in SW needed.
+chrome.runtime.onConnect.addListener(port => {
+    if (port.name !== 'sk-devtools') return;
+});
 
 export {
     _save,

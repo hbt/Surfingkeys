@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 
-const CONFIG_SERVER_PID_FILE = '/tmp/sk-config-server.pid';
+const CONFIG_SERVER_PID_FILE = '/tmp/sk-config-server-9600.pid';
 const PORT = 9600;
 
 function outputJSON(data, exitCode = 0) {

@@ -104,6 +104,7 @@ git log master..brookhong/master --oneline   # filter against upstream-excluded.
 | File | Purpose |
 |------|---------|
 | docs/dev.md | Full dev workflow: debugging, CDP proxy, sk-cdp, Playwright testing |
+| docs/devtools.md | sk-devtools eval relay — run JS in gchrb SW/page via DevTools panel |
 | docs/api.md | General API (generated: `npm run build:doc`) |
 | docs/cmds.md | Keyboard commands (generated: `npm run build:doc-cmds`) |
 | docs/adrs/ | Architecture decision records |
