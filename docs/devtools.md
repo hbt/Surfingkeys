@@ -27,7 +27,13 @@ POST /eval  ────────►  SSE relay ─────────�
 npm run build:dev
 ```
 
-Reload extension in gchrb: `chrome://extensions` → find Surfingkeys → click ↺
+**Manual reload in gchrb:** `chrome://extensions` → find Surfingkeys → click ↺
+
+**Agent-automated reload in gchrb:**
+```bash
+xdotool key alt+shift+r
+```
+(Simulates Alt+Shift+R to reload the extension via Surfingkeys' built-in shortcut)
 
 ### 2. Start config server
 
