@@ -506,4 +506,54 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         assertBasicCoverage(bgPath, contentPath);
         await covContent?.close();
     });
+
+    // ---- cmd_tab_close_current ----
+
+    test('cmd_tab_close_current closes only the active tab', async () => {
+        const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/current`)}`;
+
+        // 3 real navigated pages: left | anchor | right
+        const left = await context.newPage();
+        await left.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await closeAllExcept(left);
+
+        const anchor = await context.newPage();
+        await anchor.goto(anchorUrl, { waitUntil: 'load' });
+        await anchor.waitForTimeout(200);
+
+        const right = await context.newPage();
+        await right.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await right.waitForTimeout(200);
+
+        await anchor.bringToFront();
+        await anchor.waitForTimeout(300);
+        const covContent = await initContentCoverageForUrl?.(anchorUrl);
+
+        const tabsBefore = await getTabsViaSW(context);
+        const anchorTab = tabsBefore.find(t => t.active);
+        expect(anchorTab).toBeTruthy();
+        expect(tabsBefore.length).toBeGreaterThanOrEqual(3);
+
+        await covBg?.snapshot();
+        await covContent?.snapshot();
+
+        const closePromise = anchor.waitForEvent('close');
+        await anchor.keyboard.press('g');
+        await anchor.waitForTimeout(50);
+        await anchor.keyboard.press('x');
+        await anchor.waitForTimeout(50);
+        await anchor.keyboard.press('t').catch(() => {});
+        await closePromise;
+
+        const tabsAfter = await getTabsViaSW(context);
+        expect(tabsAfter.some(t => t.id === anchorTab!.id)).toBe(false);
+        expect(tabsAfter.length).toBe(tabsBefore.length - 1);
+        if (DEBUG) console.log(`current: ${tabsBefore.length} → ${tabsAfter.length}`);
+
+        const label = `${SUITE_LABEL}/${coverageSlug(test.info().title)}`;
+        const bgPath = await covBg?.flush(`${label}/command_window/background`) ?? null;
+        const contentPath = await covContent?.flush(`${label}/content`).catch(() => null) ?? null;
+        assertBasicCoverage(bgPath, contentPath);
+        await covContent?.close().catch(() => {});
+    });
 });
