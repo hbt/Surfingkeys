@@ -15,6 +15,9 @@
  *   errors-clear        Clear all stored extension errors (alias)
  *   errors-list         List all stored extension errors
  *   open-background     Open background service worker DevTools console
+ *   proxy-start         Start CDP proxy for stateless WebSocket CLI interface
+ *   proxy-stop          Stop the running CDP proxy server
+ *   proxy-status        Check if CDP proxy is running
  *
  * Examples:
  *   bin/dbg reload
@@ -49,16 +52,6 @@ const ACTIONS = {
     'proxy-start': 'Start CDP proxy for stateless WebSocket CLI interface',
     'proxy-stop': 'Stop the running CDP proxy server',
     'proxy-status': 'Check if CDP proxy is running',
-    'test-server-start': 'Start fixtures server for CDP tests (port 9873)',
-    'test-server-stop': 'Stop the running fixtures server',
-    'test-run': 'Run Jest tests with JSON output (no npm noise)',
-    'vtest-run': 'Run Jest tests with visual table output (human-readable)',
-    'test-all': 'Run all CDP tests sequentially, aggregate results to JSON',
-    'vtest-all': 'Run all CDP tests sequentially, aggregate results to visual markdown report',
-    'test-allp': 'Run all CDP tests in parallel (configurable limit), aggregate results to JSON',
-    'vtest-allp': 'Run all CDP tests in parallel, aggregate results to visual markdown report',
-    'vtest-sample': 'Run a sample of N tests with per-test wall/overhead timing (default: 10)',
-    'test-coverage-query': 'Query per-function call counts from last coverage run',
     'server-start': 'Start local config server (port 9600)',
     'server-stop': 'Stop local config server',
     'server-status': 'Check local config server status',
