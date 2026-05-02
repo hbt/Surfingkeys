@@ -16,6 +16,14 @@ import path from "path";
 // Read JSON from stdin
 // ---------------------------------------------------------------------------
 
+if (process.stdin.isTTY) {
+  process.stderr.write("Error: stdin is required (cannot run interactively).\n");
+  process.stderr.write(
+    "Usage: bun scripts/mappings-json-report.ts | bun scripts/audit-report.ts\n"
+  );
+  process.exit(1);
+}
+
 const inputJson = await Bun.stdin.text();
 let report: any;
 try {
