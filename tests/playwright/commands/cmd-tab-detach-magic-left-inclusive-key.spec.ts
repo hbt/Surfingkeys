@@ -118,7 +118,7 @@ test.describe('cmd_tab_detach_magic_left_inclusive_key (Playwright)', () => {
                     w.tabs.some((t: any) => t.url.includes(anchorUrl)),
                 );
                 expect(movedWindow).toBeDefined();
-                expect(movedWindow!.tabs.length).toBe(2);
+                expect(movedWindow!.tabs.length).toBe(3);
                 expect(afterWindows.length).toBeLessThanOrEqual(beforeWindows.length + 1);
 
                 if (DEBUG) console.log(`cmd_tab_detach_magic_left_inclusive_key: windows ${beforeWindows.length} → ${afterWindows.length}`);

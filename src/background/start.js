@@ -1390,9 +1390,9 @@ function start(browser) {
             }
             case 'DirectionRightInclusive': {
                 var right = windowTabs.filter(function(t) { return t.index >= currentTab.index; });
-                // no repeat = close all; explicit N = close current + N to the right
-                if (repeats == null) return right.map(function(t) { return t.id; });
-                return right.slice(0, repeats + 1).map(function(t) { return t.id; });
+                // no repeat = all inclusive; explicit N > 1 = current + N to the right
+                if (repeats > 1) return right.slice(0, repeats + 1).map(function(t) { return t.id; });
+                return right.map(function(t) { return t.id; });
             }
             case 'DirectionLeft': {
                 var left = windowTabs.filter(function(t) { return t.index < currentTab.index; });
@@ -1403,9 +1403,9 @@ function start(browser) {
             case 'DirectionLeftInclusive': {
                 var left = windowTabs.filter(function(t) { return t.index <= currentTab.index; });
                 left.reverse();
-                // no repeat = close all; explicit N = close current + N to the left
-                if (repeats == null) return left.map(function(t) { return t.id; });
-                return left.slice(0, repeats + 1).map(function(t) { return t.id; });
+                // no repeat = all inclusive; explicit N > 1 = current + N to the left
+                if (repeats > 1) return left.slice(0, repeats + 1).map(function(t) { return t.id; });
+                return left.map(function(t) { return t.id; });
             }
             case 'AllExceptActive':
                 return windowTabs.filter(function(t) { return t.id !== currentTab.id; }).map(function(t) { return t.id; });
@@ -1615,7 +1615,7 @@ function start(browser) {
     self.moveToWindowMagic = function(message, sender, sendResponse) {
         chrome.tabs.query({}, function(allTabs) {
             var windowTabs = allTabs.filter(function(t) { return t.windowId === sender.tab.windowId; });
-            var repeats = message.repeats || 1;
+            var repeats = message.repeats;
             var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, windowTabs, allTabs);
             if (!tabIds.length) return;
             chrome.windows.create({tabId: tabIds[0]}, function(newWindow) {

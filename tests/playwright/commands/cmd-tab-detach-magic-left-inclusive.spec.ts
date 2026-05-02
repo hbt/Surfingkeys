@@ -129,8 +129,8 @@ test.describe('cmd_tab_detach_magic_left_inclusive (Playwright)', () => {
 
                 expect(originalWindow).toBeDefined();
                 expect(newWindow).toBeDefined();
-                expect(originalWindow!.tabs.length).toBe(2);
-                expect(newWindow!.tabs.length).toBe(2);
+                expect(originalWindow!.tabs.length).toBe(1);
+                expect(newWindow!.tabs.length).toBe(3);
                 expect(newWindow!.tabs.some((t: any) => t.url.includes(anchorUrl))).toBe(true);
 
                 if (DEBUG) console.log(`cmd_tab_detach_magic_left_inclusive: windows ${beforeCount} → ${afterWindows.length}`);
