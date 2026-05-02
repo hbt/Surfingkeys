@@ -1400,16 +1400,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         window.location.href = window.location.href.replace(new RegExp('(://([^/]+/){'+RUNTIME.repeats+'}).*'), '$1');
         RUNTIME.repeats = 1;
     });
-    mapkey('gxt', {
-        short: "Close tab on left",
-        unique_id: "cmd_tab_close_left",
-        feature_group: 3,
-        category: "tabs",
-        description: "Close the tab to the left of current tab",
-        tags: ["tabs", "close", "management"]
-    }, function() {
-        RUNTIME("closeTabLeft");
-    });
     mapkey('gxT', {
         short: "Close tab on right",
         unique_id: "cmd_tab_close_right",
@@ -1420,25 +1410,15 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("closeTabRight");
     });
-    mapkey('gx0', {
-        short: "Close all tabs on left",
-        unique_id: "cmd_tab_close_all_left",
+    mapkey('gxt', {
+        short: "Close current tab",
+        unique_id: "cmd_tab_close_current",
         feature_group: 3,
         category: "tabs",
-        description: "Close all tabs to the left of current tab (N with repeat, all by default)",
-        tags: ["tabs", "close", "management"]
+        description: "Close the current tab",
+        tags: ["tabs", "close", "magic"]
     }, function() {
-        RUNTIME("closeTabMagic", {magic: 'DirectionLeftAll'});
-    });
-    mapkey('gx$', {
-        short: "Close all tabs on right",
-        unique_id: "cmd_tab_close_all_right",
-        feature_group: 3,
-        category: "tabs",
-        description: "Close all tabs to the right of current tab (N with repeat, all by default)",
-        tags: ["tabs", "close", "management"]
-    }, function() {
-        RUNTIME("closeTabMagic", {magic: 'DirectionRightAll'});
+        RUNTIME("closeTabMagic", {magic: 'CurrentTab'});
     });
     mapkey('gxx', {
         short: "Close all tabs except current",
@@ -1451,21 +1431,21 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         RUNTIME("tabOnly");
     });
     mapkey('gxe', {
-        short: "Close 1 tab to the right",
+        short: "Close tabs to the right",
         unique_id: "cmd_tab_close_magic_right",
         feature_group: 3,
         category: "tabs",
-        description: "Close 1 tab to the right of current tab",
+        description: "Close tabs to the right (all by default, N with repeat)",
         tags: ["tabs", "close", "magic"]
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'DirectionRight'});
     });
     mapkey('gxq', {
-        short: "Close 1 tab to the left",
+        short: "Close tabs to the left",
         unique_id: "cmd_tab_close_magic_left",
         feature_group: 3,
         category: "tabs",
-        description: "Close 1 tab to the left of current tab",
+        description: "Close tabs to the left (all by default, N with repeat)",
         tags: ["tabs", "close", "magic"]
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'DirectionLeft'});
@@ -1490,7 +1470,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'AllInWindow'});
     });
-    mapkey('gxG', {
+    mapkey('gxg', {
         short: "Close all tabs in all windows except current",
         unique_id: "cmd_tab_close_magic_all_windows",
         feature_group: 3,

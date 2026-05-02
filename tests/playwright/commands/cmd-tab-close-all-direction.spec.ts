@@ -85,9 +85,9 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await keepPage.waitForTimeout(200);
     }
 
-    // ---- cmd_tab_close_all_right ----
+    // ---- cmd_tab_close_magic_right ----
 
-    test('cmd_tab_close_all_right closes all tabs to the right', async () => {
+    test('cmd_tab_close_magic_right closes all tabs to the right', async () => {
         const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/right_all`)}`;
         const anchor = await context.newPage();
         await anchor.goto(anchorUrl, { waitUntil: 'load' });
@@ -113,7 +113,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
-        await invokeCommand(anchor, 'cmd_tab_close_all_right');
+        await invokeCommand(anchor, 'cmd_tab_close_magic_right');
 
         await waitForHttpPageCount(context, tabsBefore.length - rightCount);
 
@@ -130,7 +130,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
     });
 
     // Repeat count test: invokeCommand with repeats=2 closes exactly 2 tabs to the right
-    test('cmd_tab_close_all_right with repeat=2 closes 2 tabs to the right', async () => {
+    test('cmd_tab_close_magic_right with repeat=2 closes 2 tabs to the right', async () => {
         const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/right_repeat2`)}`;
         const anchor = await context.newPage();
         await anchor.goto(anchorUrl, { waitUntil: 'load' });
@@ -157,7 +157,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
-        await invokeCommand(anchor, 'cmd_tab_close_all_right', 2);
+        await invokeCommand(anchor, 'cmd_tab_close_magic_right', 2);
 
         await waitForHttpPageCount(context, tabsBefore.length - 2);
 
@@ -174,7 +174,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covContent?.close();
     });
 
-    test('cmd_tab_close_all_right preserves pinned tabs to the right', async () => {
+    test('cmd_tab_close_magic_right preserves pinned tabs to the right', async () => {
         const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/right_pinned`)}`;
         const anchor = await context.newPage();
         await anchor.goto(anchorUrl, { waitUntil: 'load' });
@@ -204,7 +204,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
-        await invokeCommand(anchor, 'cmd_tab_close_all_right');
+        await invokeCommand(anchor, 'cmd_tab_close_magic_right');
 
         await waitForHttpPageCount(context, tabsBefore.length - 1);
 
@@ -221,7 +221,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covContent?.close();
     });
 
-    test('cmd_tab_close_all_right is no-op when active is rightmost', async () => {
+    test('cmd_tab_close_magic_right is no-op when active is rightmost', async () => {
         const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/right_noop`)}`;
         const anchor = await context.newPage();
         await anchor.goto(anchorUrl, { waitUntil: 'load' });
@@ -246,7 +246,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
-        await invokeCommand(anchor2, 'cmd_tab_close_all_right');
+        await invokeCommand(anchor2, 'cmd_tab_close_magic_right');
 
         // No tabs should close — wait briefly then check
         await anchor2.waitForTimeout(500);
@@ -262,7 +262,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covContent?.close();
     });
 
-    test('cmd_tab_close_all_right closes all right when active is leftmost', async () => {
+    test('cmd_tab_close_magic_right closes all right when active is leftmost', async () => {
         const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/right_leftmost`)}`;
         const anchor = await context.newPage();
         await anchor.goto(anchorUrl, { waitUntil: 'load' });
@@ -290,7 +290,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
-        await invokeCommand(anchor, 'cmd_tab_close_all_right');
+        await invokeCommand(anchor, 'cmd_tab_close_magic_right');
 
         await waitForHttpPageCount(context, tabsBefore.length - rightCount);
 
@@ -306,9 +306,9 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covContent?.close();
     });
 
-    // ---- cmd_tab_close_all_left ----
+    // ---- cmd_tab_close_magic_left ----
 
-    test('cmd_tab_close_all_left closes all tabs to the left', async () => {
+    test('cmd_tab_close_magic_left closes all tabs to the left', async () => {
         const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/left_all`)}`;
         const anchor = await context.newPage();
         await anchor.goto(anchorUrl, { waitUntil: 'load' });
@@ -345,7 +345,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
-        await invokeCommand(anchor2, 'cmd_tab_close_all_left');
+        await invokeCommand(anchor2, 'cmd_tab_close_magic_left');
 
         await waitForHttpPageCount(context, tabsBefore.length - leftCount);
 
@@ -362,7 +362,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
     });
 
     // Repeat count test: invokeCommand with repeats=2 closes exactly 2 closest tabs to the left
-    test('cmd_tab_close_all_left with repeat=2 closes 2 closest tabs to the left', async () => {
+    test('cmd_tab_close_magic_left with repeat=2 closes 2 closest tabs to the left', async () => {
         const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/left_repeat2`)}`;
         const anchor = await context.newPage();
         await anchor.goto(anchorUrl, { waitUntil: 'load' });
@@ -401,7 +401,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
-        await invokeCommand(anchor2, 'cmd_tab_close_all_left', 2);
+        await invokeCommand(anchor2, 'cmd_tab_close_magic_left', 2);
 
         await waitForHttpPageCount(context, tabsBefore.length - 2);
 
@@ -418,7 +418,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covContent?.close();
     });
 
-    test('cmd_tab_close_all_left preserves pinned tabs to the left', async () => {
+    test('cmd_tab_close_magic_left preserves pinned tabs to the left', async () => {
         const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/left_pinned`)}`;
         const anchor = await context.newPage();
         await anchor.goto(anchorUrl, { waitUntil: 'load' });
@@ -454,7 +454,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
-        await invokeCommand(anchor2, 'cmd_tab_close_all_left');
+        await invokeCommand(anchor2, 'cmd_tab_close_magic_left');
 
         await waitForHttpPageCount(context, tabsBefore.length - 1);
 
@@ -471,7 +471,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covContent?.close();
     });
 
-    test('cmd_tab_close_all_left is no-op when active is leftmost', async () => {
+    test('cmd_tab_close_magic_left is no-op when active is leftmost', async () => {
         const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/left_noop`)}`;
         const anchor = await context.newPage();
         await anchor.goto(anchorUrl, { waitUntil: 'load' });
@@ -491,7 +491,7 @@ test.describe('cmd_tab_close_all_direction (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
-        await invokeCommand(anchor, 'cmd_tab_close_all_left');
+        await invokeCommand(anchor, 'cmd_tab_close_magic_left');
 
         // No tabs should close — wait briefly then check
         await anchor.waitForTimeout(500);

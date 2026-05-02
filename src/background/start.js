@@ -1410,18 +1410,8 @@ function start(browser) {
         switch (magic) {
             case 'DirectionRight': {
                 var right = windowTabs.filter(function(t) { return t.index > currentTab.index; });
-                return right.slice(0, repeats || 1).map(function(t) { return t.id; });
-            }
-            case 'DirectionRightAll': {
-                var right = windowTabs.filter(function(t) { return t.index > currentTab.index; });
                 if (repeats > 1) return right.slice(0, repeats).map(function(t) { return t.id; });
                 return right.map(function(t) { return t.id; });
-            }
-            case 'DirectionLeftAll': {
-                var left = windowTabs.filter(function(t) { return t.index < currentTab.index; });
-                left.reverse();
-                if (repeats > 1) return left.slice(0, repeats).map(function(t) { return t.id; });
-                return left.map(function(t) { return t.id; });
             }
             case 'DirectionRightInclusive': {
                 var right = windowTabs.filter(function(t) { return t.index >= currentTab.index; });
@@ -1432,7 +1422,8 @@ function start(browser) {
             case 'DirectionLeft': {
                 var left = windowTabs.filter(function(t) { return t.index < currentTab.index; });
                 left.reverse();
-                return left.slice(0, repeats || 1).map(function(t) { return t.id; });
+                if (repeats > 1) return left.slice(0, repeats).map(function(t) { return t.id; });
+                return left.map(function(t) { return t.id; });
             }
             case 'DirectionLeftInclusive': {
                 var left = windowTabs.filter(function(t) { return t.index <= currentTab.index; });
