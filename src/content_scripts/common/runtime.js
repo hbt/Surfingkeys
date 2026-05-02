@@ -19,7 +19,7 @@ function dispatchSKEvent(type, args, target) {
  * });
  */
 function RUNTIME(action, args, callback) {
-    var actionsRepeatBackground = ['closeTab', 'nextTab', 'previousTab', 'moveTab', 'reloadTab', 'setZoom', 'focusTabByIndex', 'closeTabMagic', 'reloadTabMagic', 'detachTabMagic'];
+    var actionsRepeatBackground = ['closeTab', 'nextTab', 'previousTab', 'moveTab', 'reloadTab', 'setZoom', 'focusTabByIndex', 'closeTabMagic', 'reloadTabMagic'];
     (args = args || {}).action = action;
     if (actionsRepeatBackground.indexOf(action) !== -1) {
         // if the action can only be repeated in background, pass repeats to background with args,

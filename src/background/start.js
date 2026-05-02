@@ -1469,21 +1469,6 @@ function start(browser) {
         });
     };
 
-    self.detachTabMagic = function(message, sender, sendResponse) {
-        chrome.tabs.query({currentWindow: true}, function(tabs) {
-            var repeats = message.repeats || 1;
-            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, tabs);
-            var pinnedIds = new Set(tabs.filter(function(t) { return t.pinned; }).map(function(t) { return t.id; }));
-            tabIds = tabIds.filter(function(id) { return !pinnedIds.has(id); });
-            if (!tabIds.length) return;
-            chrome.windows.create({ tabId: tabIds[0] }, function(newWin) {
-                if (tabIds.length > 1) {
-                    chrome.tabs.move(tabIds.slice(1), { windowId: newWin.id, index: -1 });
-                }
-            });
-        });
-    };
-
     self.copyTabUrlsMagic = function(message, sender, sendResponse) {
         chrome.tabs.query({currentWindow: true}, function(tabs) {
             var repeats = message.repeats || 1;

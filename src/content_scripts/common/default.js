@@ -1616,36 +1616,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("moveToWindow", {windowId: -1});
     });
-    mapkey('gXe', {
-        short: "Detach tabs to the right to new window",
-        unique_id: "cmd_tab_detach_magic_right",
-        feature_group: 3,
-        category: "tabs",
-        description: "Move 1 tab to the right of current tab to a new window",
-        tags: ["tabs", "detach", "magic"]
-    }, function() {
-        RUNTIME("detachTabMagic", {magic: 'DirectionRight'});
-    });
-    mapkey('gXc', {
-        short: "Detach all tabs except active to new window",
-        unique_id: "cmd_tab_detach_magic_except_active",
-        feature_group: 3,
-        category: "tabs",
-        description: "Move all tabs except the active tab to a new window",
-        tags: ["tabs", "detach", "magic"]
-    }, function() {
-        RUNTIME("detachTabMagic", {magic: 'AllExceptActive'});
-    });
-    mapkey('gXk', {
-        short: "Detach children tabs to new window",
-        unique_id: "cmd_tab_detach_magic_children",
-        feature_group: 3,
-        category: "tabs",
-        description: "Move tabs opened directly from the current tab to a new window",
-        tags: ["tabs", "detach", "magic"]
-    }, function() {
-        RUNTIME("detachTabMagic", {magic: 'ChildrenTabs'});
-    });
 
     // Group D — Copy Tab URLs Magic
     mapkey('gyce', {
