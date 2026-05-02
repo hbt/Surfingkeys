@@ -19,6 +19,13 @@ const server = http.createServer((req, res) => {
     // Remove query string and decode URL
     let urlPath = decodeURIComponent(req.url.split('?')[0]);
 
+    // Silence browser's automatic favicon request
+    if (urlPath === '/favicon.ico') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
     // Health check endpoint (lightweight, fast response)
     if (urlPath === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
