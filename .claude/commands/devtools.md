@@ -193,3 +193,19 @@ curl -s -X POST http://localhost:9600/eval \
 ## reference
 
 Full architecture and implementation details: `docs/devtools.md`
+
+---
+
+## reference.archive
+
+**`/home/hassen/workspace/surfingkeys-archive`** — old fork baseline (pre-rewrite).
+
+| File | Role |
+|------|------|
+| `content_scripts/hbt.js` | HBT content-script fork — defines `amap`, `MyCustomMapping`, `indexByAnnotation`, and other custom helpers injected into every page |
+| `pages/bg.js` | HBT background-script fork — custom background actions registered before the upstream rewrite |
+
+Use this archive when:
+- Tracing a config helper (`amap`, `MyCustomMapping`) that no longer exists in the current source
+- Understanding what a `.surfingkeysrc.js` call used to resolve to before the migration
+- Comparing old command annotations/IDs against current `unique_id` values

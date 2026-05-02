@@ -153,6 +153,18 @@ curl -s -X POST http://localhost:9600/eval \
 
 ---
 
+## system.userconfig
+
+| File | Role |
+|------|------|
+| `/home/hassen/.surfingkeys-2026.js` | **Active config** — this is the file agents read and fix when keybindings are broken or missing |
+| `/home/hassen/.surfingkeysrc` | Archive reference only — old fork config, do not edit |
+| `/home/hassen/.surfingkeysrc.js` | Same archive file (symlink or copy) |
+
+When a user reports a broken key or asks to add a binding, **always edit `.surfingkeys-2026.js`**. Check `.surfingkeysrc` only to understand what the old `amap`/`MyCustomMapping` call was supposed to do.
+
+---
+
 ## system.implementation
 
 | File | Role |
