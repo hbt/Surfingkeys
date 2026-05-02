@@ -1594,7 +1594,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     });
 
     // Group B — Reload Magic
-    mapkey('grxe', {
+    mapkey('g-002', {
         short: "Reload tabs to the right",
         unique_id: "cmd_tab_reload_magic_right",
         feature_group: 3,
@@ -1604,7 +1604,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionRight'});
     });
-    mapkey('grxE', {
+    mapkey('g-003', {
         short: "Reload all tabs to the right",
         unique_id: "cmd_tab_reload_magic_right_all",
         feature_group: 3,
@@ -1614,7 +1614,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionRightAll'});
     });
-    mapkey('grxq', {
+    mapkey('g-004', {
         short: "Reload tabs to the left",
         unique_id: "cmd_tab_reload_magic_left",
         feature_group: 3,
@@ -1624,7 +1624,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionLeft'});
     });
-    mapkey('grxc', {
+    mapkey('g-005', {
         short: "Reload all tabs except active",
         unique_id: "cmd_tab_reload_magic_except_active",
         feature_group: 3,
@@ -1634,7 +1634,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'AllExceptActive'});
     });
-    mapkey('grxk', {
+    mapkey('g-006', {
         short: "Reload children tabs",
         unique_id: "cmd_tab_reload_magic_children",
         feature_group: 3,
@@ -1719,38 +1719,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         RUNTIME("copyTabUrlsMagic", {magic: 'ChildrenTabs'});
     });
 
-    // Group E — Pin Tab Magic
-    mapkey('gpe', {
-        short: "Toggle pin on tab to the right",
-        unique_id: "cmd_tab_pin_magic_right",
-        feature_group: 3,
-        category: "tabs",
-        description: "Toggle pin state of 1 tab to the right of current tab",
-        tags: ["tabs", "pin", "magic"]
-    }, function() {
-        RUNTIME("pinTabMagic", {magic: 'DirectionRight'});
-    });
-    mapkey('gpc', {
-        short: "Toggle pin on all tabs except active",
-        unique_id: "cmd_tab_pin_magic_except_active",
-        feature_group: 3,
-        category: "tabs",
-        description: "Toggle pin state of all tabs in current window except the active tab",
-        tags: ["tabs", "pin", "magic"]
-    }, function() {
-        RUNTIME("pinTabMagic", {magic: 'AllExceptActive'});
-    });
-    mapkey('gpk', {
-        short: "Toggle pin on children tabs",
-        unique_id: "cmd_tab_pin_magic_children",
-        feature_group: 3,
-        category: "tabs",
-        description: "Toggle pin state of tabs opened directly from the current tab",
-        tags: ["tabs", "pin", "magic"]
-    }, function() {
-        RUNTIME("pinTabMagic", {magic: 'ChildrenTabs'});
-    });
-
     // Group F — Reverse Tab Order Magic
     mapkey('gRc', {
         short: "Reverse order of all tabs except active",
@@ -1771,38 +1739,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         tags: ["tabs", "reverse", "magic"]
     }, function() {
         RUNTIME("reverseTabMagic", {magic: 'DirectionRight'});
-    });
-
-    // Group G — Bookmark Tab Magic
-    mapkey('gbae', {
-        short: "Bookmark tabs to the right",
-        unique_id: "cmd_tab_bookmark_magic_right",
-        feature_group: 3,
-        category: "tabs",
-        description: "Add bookmarks for 1 tab to the right of current tab",
-        tags: ["tabs", "bookmark", "magic"]
-    }, function() {
-        RUNTIME("bookmarkTabsMagic", {magic: 'DirectionRight'});
-    });
-    mapkey('gbac', {
-        short: "Bookmark all tabs except active",
-        unique_id: "cmd_tab_bookmark_magic_except_active",
-        feature_group: 3,
-        category: "tabs",
-        description: "Add bookmarks for all tabs in current window except the active tab",
-        tags: ["tabs", "bookmark", "magic"]
-    }, function() {
-        RUNTIME("bookmarkTabsMagic", {magic: 'AllExceptActive'});
-    });
-    mapkey('gbrc', {
-        short: "Remove bookmarks for all tabs except active",
-        unique_id: "cmd_tab_unbookmark_magic_except_active",
-        feature_group: 3,
-        category: "tabs",
-        description: "Remove bookmarks for all tabs in current window except the active tab",
-        tags: ["tabs", "bookmark", "magic"]
-    }, function() {
-        RUNTIME("unbookmarkTabsMagic", {magic: 'AllExceptActive'});
     });
 
     mapkey(';e', {

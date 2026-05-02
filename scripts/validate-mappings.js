@@ -1,242 +1,269 @@
 #!/usr/bin/env node
 /**
- * Validates SurfingKeys user configuration for mapping conflicts.
- * Detects when a key mapping blocks access to other commands.
+ * Validates SurfingKeys mappings for prefix conflicts and user config coverage.
  *
- * Usage: node scripts/validate-mappings.js [config-file]
- * Default config: ~/.surfingkeys-2026.js
+ * Usage:
+ *   node scripts/validate-mappings.js              # Run both source + config validation
+ *   node scripts/validate-mappings.js --source     # Source-level prefix conflict check only
+ *   node scripts/validate-mappings.js --config [file]  # User config checks only
+ *   node scripts/validate-mappings.js --prefixes   # Prefix analysis (mode-aware)
  */
 
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-// Extract all default mappings from docs/cmds.md
-function extractDefaultMappings(cmdsPath) {
-    const content = fs.readFileSync(cmdsPath, 'utf-8');
-    const mappings = new Map(); // key -> description
+const ROOT = path.join(__dirname, '..');
 
-    // Match table rows: | `key` | description |
-    const keyPattern = /\|\s*`([^`]+)`\s*\|\s*([^|]+)\|/g;
-    let match;
-
-    while ((match = keyPattern.exec(content)) !== null) {
-        let key = match[1];
-        const desc = match[2].trim();
-
-        // Decode HTML entities
-        key = key
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&amp;/g, '&');
-
-        // Skip if it's a command (starts with `:`)
-        if (key.startsWith(':')) continue;
-
-        mappings.set(key, desc);
-    }
-
-    return mappings;
+// Load JSON report via npm run report:mappings:json
+function loadJsonReport() {
+    const json = execSync('npm run --silent report:mappings:json', { cwd: ROOT, timeout: 30000 });
+    return JSON.parse(json);
 }
 
-// Extract user mappings from config file
-function extractUserMappings(configPath) {
-    if (!fs.existsSync(configPath)) {
-        return new Map();
-    }
-
-    const content = fs.readFileSync(configPath, 'utf-8');
-    const mappings = new Map(); // key -> { type, description }
-
-    // Match api.mapkey('key', ...) or api.map('key', ...)
-    // Also match mapkey/map/unmap without api prefix
-    const patterns = [
-        /(?:api\.)?mapkey\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]*)['"]/g,
-        /(?:api\.)?map\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]*)['"]/g,
-        /(?:api\.)?unmap\s*\(\s*['"]([^'"]+)['"]/g,
-    ];
-
-    for (const pattern of patterns) {
-        let match;
-        while ((match = pattern.exec(content)) !== null) {
-            const key = match[1];
-            const target = match[2] || '(unmapped)';
-            const type = pattern.source.includes('unmap') ? 'unmap' :
-                         pattern.source.includes('mapkey') ? 'mapkey' : 'map';
-            mappings.set(key, { type, target });
-        }
-    }
-
-    return mappings;
-}
-
-// Normalize key for comparison (handle modifier key variations)
+// Normalize key for comparison (handle modifier key variations, case-sensitive)
 function normalizeKey(key) {
     return key
         .replace(/<Ctrl-/gi, '<C-')
         .replace(/<Alt-/gi, '<A-')
-        .replace(/<Shift-/gi, '<S-')
-        .toLowerCase();
+        .replace(/<Shift-/gi, '<S-');
 }
 
-// Check if key1 is a prefix of key2
+// Check if key1 is a strict prefix of key2
 function isPrefix(key1, key2) {
     if (key1 === key2) return false;
-
-    // For special keys like <Ctrl-x>, treat as atomic
-    if (key1.startsWith('<') && key1.endsWith('>')) {
-        return key2.startsWith(key1);
-    }
-
     return key2.startsWith(key1);
 }
 
-// Find all commands blocked by a given key mapping
-function findBlockedCommands(mappedKey, defaultMappings) {
-    const blocked = [];
-    const normalizedMapped = normalizeKey(mappedKey);
+// Find prefix conflicts within a list of {key, mode, id, short} entries
+// Returns: [{ blocked: entry, blockedBy: entry }]
+function findPrefixConflicts(entries) {
+    const conflicts = [];
 
-    for (const [defaultKey, desc] of defaultMappings) {
-        const normalizedDefault = normalizeKey(defaultKey);
-        if (isPrefix(normalizedMapped, normalizedDefault)) {
-            blocked.push({ key: defaultKey, description: desc });
+    // Group by mode
+    const byMode = new Map();
+    for (const entry of entries) {
+        if (!byMode.has(entry.mode)) byMode.set(entry.mode, []);
+        byMode.get(entry.mode).push(entry);
+    }
+
+    for (const [, modeEntries] of byMode) {
+        for (let i = 0; i < modeEntries.length; i++) {
+            for (let j = 0; j < modeEntries.length; j++) {
+                if (i === j) continue;
+                const a = modeEntries[i];
+                const b = modeEntries[j];
+                const normA = normalizeKey(a.key);
+                const normB = normalizeKey(b.key);
+                if (isPrefix(normA, normB)) {
+                    conflicts.push({ blocked: b, blockedBy: a });
+                }
+            }
         }
     }
 
-    return blocked;
+    return conflicts;
 }
 
-// Find all commands that would block the given key
-function findBlockingCommands(targetKey, defaultMappings) {
-    const blocking = [];
-    const normalizedTarget = normalizeKey(targetKey);
-
-    for (const [defaultKey, desc] of defaultMappings) {
-        const normalizedDefault = normalizeKey(defaultKey);
-        if (isPrefix(normalizedDefault, normalizedTarget)) {
-            blocking.push({ key: defaultKey, description: desc });
-        }
-    }
-
-    return blocking;
+// Build entries list from JSON report mappings.list
+function reportToEntries(report) {
+    return report.mappings.list
+        .filter(e => e.key && e.mode)
+        // Skip command-mode keys (they are word commands, not key sequences)
+        .filter(e => e.mode !== 'Command')
+        .map(e => ({
+            key: e.key,
+            mode: e.mode,
+            id: e.annotation?.unique_id || null,
+            short: e.annotation?.short || e.key,
+        }));
 }
 
-// Count migrated commands (those with unique_id in metadata)
-function countMigratedCommands() {
-    try {
-        const srcDir = path.join(__dirname, '..', 'src');
-        // Use grep to find unique_id definitions in JS/TS files
-        const grepCmd = `grep -r "unique_id" ${srcDir} --include="*.js" --include="*.ts" 2>/dev/null | grep -c "cmd_"`;
-        const migratedCount = parseInt(execSync(grepCmd, { encoding: 'utf-8' }).trim()) || 0;
+// Source-level prefix conflict check
+function validateSource(report) {
+    console.log('Source Validation — Default Mapping Prefix Conflicts');
+    console.log('=====================================================\n');
 
-        return migratedCount;
-    } catch (e) {
+    const entries = reportToEntries(report);
+    const conflicts = findPrefixConflicts(entries);
+
+    if (conflicts.length === 0) {
+        console.log('\x1b[32m✓ No prefix conflicts in default mappings.\x1b[0m\n');
         return 0;
     }
+
+    // Group by mode for display
+    const byMode = new Map();
+    for (const c of conflicts) {
+        const mode = c.blocked.mode;
+        if (!byMode.has(mode)) byMode.set(mode, []);
+        byMode.get(mode).push(c);
+    }
+
+    for (const [mode, modeConflicts] of byMode) {
+        console.log(`\x1b[36m${mode} mode (${modeConflicts.length} conflicts):\x1b[0m`);
+        for (const { blocked, blockedBy } of modeConflicts) {
+            const blockedId = blocked.id ? ` [${blocked.id}]` : '';
+            const blockerKey = `\x1b[33m${blockedBy.key}\x1b[0m`;
+            console.log(`  \x1b[31m✗ "${blocked.key}"${blockedId} blocked by ${blockerKey} (${blockedBy.short})`);
+        }
+        console.log('');
+    }
+
+    console.log(`\x1b[31m${conflicts.length} prefix conflict(s) found in default mappings.\x1b[0m\n`);
+    return conflicts.length;
 }
 
-// Main validation
-function validate(configPath, cmdsPath) {
-    console.log('SurfingKeys Mapping Validator');
-    console.log('=============================\n');
-
-    // Load mappings
-    const defaultMappings = extractDefaultMappings(cmdsPath);
-    const userMappings = extractUserMappings(configPath);
-
-    console.log(`Default mappings (unique keys): ${defaultMappings.size}`);
-    console.log(`  Note: SurfingKeys supports multiple modes (Normal/Visual/Insert)`);
-    console.log(`  Use: npm run report:migration for mode-based breakdown`);
-    console.log(`User mappings: ${userMappings.size}`);
-
-    // Show migration status
-    const migratedCount = countMigratedCommands();
-    const totalMappings = defaultMappings.size;
-    const migrationPercent = totalMappings > 0 ? ((migratedCount / totalMappings) * 100).toFixed(1) : 0;
-    console.log(`\nCommand Metadata Migration:`);
-    console.log(`  Migrated (with unique_id): ${migratedCount}`);
-    console.log(`  Percentage of unique keys: ${migrationPercent}%\n`);
-
-    if (userMappings.size === 0) {
-        console.log('No user mappings found. Your config is clean!\n');
-        return { blocked: 0, warnings: [] };
+// Extract user mappings from config file
+// Returns: { keyEntries: [{key, mode, id, short}], mappedIds: Set<string>, rawKeys: Map<key, info> }
+function extractUserMappings(configPath) {
+    if (!fs.existsSync(configPath)) {
+        console.error(`Config file not found: ${configPath}`);
+        return { keyEntries: [], mappedIds: new Set(), rawKeys: new Map() };
     }
 
-    let totalBlocked = 0;
-    const warnings = [];
+    // Strip single-line comments before parsing to avoid false positives
+    const raw = fs.readFileSync(configPath, 'utf-8');
+    const content = raw.split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+    const mappedIds = new Set();
+    const rawKeys = new Map();
 
-    // Check each user mapping
-    for (const [userKey, userInfo] of userMappings) {
-        const blocked = findBlockedCommands(userKey, defaultMappings);
-
-        if (blocked.length > 0) {
-            totalBlocked += blocked.length;
-            const warning = {
-                key: userKey,
-                type: userInfo.type,
-                target: userInfo.target,
-                blocked: blocked
-            };
-            warnings.push(warning);
-
-            console.log(`\x1b[31m✗ "${userKey}" (${userInfo.type}) blocks ${blocked.length} command(s):\x1b[0m`);
-            for (const cmd of blocked) {
-                console.log(`    \x1b[33m${cmd.key}\x1b[0m - ${cmd.description}`);
-            }
-            console.log('');
-        }
+    // mapcmdkey(key, unique_id) — maps a key to a command by unique_id
+    const mapcmdkeyPattern = /(?:api\.)?mapcmdkey\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]/g;
+    let match;
+    while ((match = mapcmdkeyPattern.exec(content)) !== null) {
+        const [, key, uniqueId] = match;
+        mappedIds.add(uniqueId);
+        rawKeys.set(key, { type: 'mapcmdkey', target: uniqueId });
     }
 
-    // Summary
-    console.log('─'.repeat(50));
-    if (totalBlocked === 0) {
-        console.log('\x1b[32m✓ No conflicts detected. All commands are reachable.\x1b[0m');
+    // mapkey(key, description, ...) — creates a new key binding
+    const mapkeyPattern = /(?:api\.)?mapkey\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]*)['"]/g;
+    while ((match = mapkeyPattern.exec(content)) !== null) {
+        const [, key, desc] = match;
+        if (!rawKeys.has(key)) rawKeys.set(key, { type: 'mapkey', target: desc });
+    }
+
+    // map(newKey, existingKey) — remaps an existing key; negative lookbehind avoids matching amap/unmap
+    const mapPattern = /(?<![a-zA-Z])(?:api\.)?map\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]*)['"]/g;
+    while ((match = mapPattern.exec(content)) !== null) {
+        const [, key, target] = match;
+        if (!rawKeys.has(key)) rawKeys.set(key, { type: 'map', target });
+    }
+
+    // unmap(key) — removes a key binding
+    const unmapPattern = /(?:api\.)?unmap\s*\(\s*['"]([^'"]+)['"]/g;
+    while ((match = unmapPattern.exec(content)) !== null) {
+        const [, key] = match;
+        if (!rawKeys.has(key)) rawKeys.set(key, { type: 'unmap', target: '(unmapped)' });
+    }
+
+    // Build key entries (mode unknown for user config, use 'Normal' as default)
+    const keyEntries = [...rawKeys.entries()].map(([key, info]) => ({
+        key,
+        mode: 'Normal',
+        id: info.type === 'mapcmdkey' ? info.target : null,
+        short: info.target,
+    }));
+
+    return { keyEntries, mappedIds, rawKeys };
+}
+
+// Coverage stats: how many unique_ids from report have a user mapping
+function coverageStats(report, mappedIds) {
+    const allIds = report.mappings.list
+        .map(e => e.annotation?.unique_id)
+        .filter(Boolean);
+    const uniqueIds = [...new Set(allIds)];
+    const mapped = uniqueIds.filter(id => mappedIds.has(id));
+    const unmapped = uniqueIds.filter(id => !mappedIds.has(id));
+    return { total: uniqueIds.length, mapped: mapped.length, unmapped: unmapped.length, unmappedIds: unmapped };
+}
+
+// User config validation
+function validateConfig(report, configPath) {
+    console.log('User Config Validation');
+    console.log('======================\n');
+    console.log(`Config: ${configPath}\n`);
+
+    const { keyEntries, mappedIds, rawKeys } = extractUserMappings(configPath);
+
+    if (rawKeys.size === 0) {
+        console.log('No user mappings found.\n');
+        return 0;
+    }
+
+    console.log(`User bindings: ${rawKeys.size} (mapkey: ${[...rawKeys.values()].filter(v => v.type === 'mapkey').length}, mapcmdkey: ${[...rawKeys.values()].filter(v => v.type === 'mapcmdkey').length}, map: ${[...rawKeys.values()].filter(v => v.type === 'map').length}, unmap: ${[...rawKeys.values()].filter(v => v.type === 'unmap').length})\n`);
+
+    // Prefix conflicts among user-mapped keys
+    const conflicts = findPrefixConflicts(keyEntries);
+    if (conflicts.length === 0) {
+        console.log('\x1b[32m✓ No prefix conflicts among user mappings.\x1b[0m');
     } else {
-        console.log(`\x1b[31m✗ ${totalBlocked} command(s) blocked by ${warnings.length} mapping(s).\x1b[0m`);
-        console.log('\nSuggestion: Use longer key sequences or unmap defaults first.');
+        console.log(`\x1b[31m✗ ${conflicts.length} prefix conflict(s) among user mappings:\x1b[0m`);
+        for (const { blocked, blockedBy } of conflicts) {
+            console.log(`  "${blocked.key}" blocked by \x1b[33m${blockedBy.key}\x1b[0m (${blockedBy.short})`);
+        }
     }
 
-    return { blocked: totalBlocked, warnings };
+    // Coverage stats
+    const stats = coverageStats(report, mappedIds);
+    const pct = stats.total > 0 ? ((stats.mapped / stats.total) * 100).toFixed(1) : '0.0';
+    console.log(`\nCoverage: ${stats.mapped}/${stats.total} unique_ids mapped (${pct}%)`);
+    console.log(`Unmapped: ${stats.unmapped} commands have no user binding\n`);
+
+    if (stats.unmapped > 0 && process.argv.includes('--verbose')) {
+        console.log('Unmapped unique_ids:');
+        for (const id of stats.unmappedIds) {
+            console.log(`  ${id}`);
+        }
+        console.log('');
+    } else if (stats.unmapped > 0) {
+        console.log('  (use --verbose to list unmapped ids)\n');
+    }
+
+    return conflicts.length;
 }
 
-// Show which keys have multi-key commands (useful for planning)
-function showPrefixKeys(cmdsPath) {
-    const defaultMappings = extractDefaultMappings(cmdsPath);
+// Prefix analysis — grouped by first key character, mode-aware
+function showPrefixKeys(report) {
+    const entries = reportToEntries(report);
 
-    // Group by first character/key
-    const prefixGroups = new Map();
+    // Group by mode, then by prefix char
+    const byMode = new Map();
+    for (const entry of entries) {
+        if (!byMode.has(entry.mode)) byMode.set(entry.mode, new Map());
+        const modeMap = byMode.get(entry.mode);
 
-    for (const [key, desc] of defaultMappings) {
-        // Get the prefix (first char or first special key)
         let prefix;
-        if (key.startsWith('<')) {
-            const endIdx = key.indexOf('>');
-            prefix = key.slice(0, endIdx + 1);
+        if (entry.key.startsWith('<')) {
+            const endIdx = entry.key.indexOf('>');
+            prefix = entry.key.slice(0, endIdx + 1);
         } else {
-            prefix = key[0];
+            prefix = entry.key[0];
         }
 
-        if (!prefixGroups.has(prefix)) {
-            prefixGroups.set(prefix, []);
-        }
-        prefixGroups.get(prefix).push({ key, desc });
+        if (!modeMap.has(prefix)) modeMap.set(prefix, []);
+        modeMap.get(prefix).push(entry);
     }
 
-    console.log('\nKey Prefix Analysis');
-    console.log('===================\n');
-    console.log('Keys with multiple commands (risky to override):\n');
+    console.log('\nKey Prefix Analysis (mode-aware)');
+    console.log('=================================\n');
 
-    const sorted = [...prefixGroups.entries()]
-        .filter(([_, cmds]) => cmds.length > 1)
-        .sort((a, b) => b[1].length - a[1].length);
+    for (const [mode, prefixMap] of byMode) {
+        const multiKey = [...prefixMap.entries()].filter(([, cmds]) => cmds.length > 1);
+        if (multiKey.length === 0) continue;
 
-    for (const [prefix, cmds] of sorted) {
-        console.log(`\x1b[36m${prefix}\x1b[0m (${cmds.length} commands):`);
-        for (const cmd of cmds.slice(0, 5)) {
-            console.log(`    ${cmd.key} - ${cmd.desc}`);
-        }
-        if (cmds.length > 5) {
-            console.log(`    ... and ${cmds.length - 5} more`);
+        console.log(`\x1b[36m${mode} mode:\x1b[0m`);
+        const sorted = multiKey.sort((a, b) => b[1].length - a[1].length);
+
+        for (const [prefix, cmds] of sorted) {
+            console.log(`  \x1b[33m${prefix}\x1b[0m (${cmds.length} commands):`);
+            for (const cmd of cmds.slice(0, 5)) {
+                const idStr = cmd.id ? ` [${cmd.id}]` : '';
+                console.log(`    ${cmd.key}${idStr} — ${cmd.short}`);
+            }
+            if (cmds.length > 5) console.log(`    ... and ${cmds.length - 5} more`);
         }
         console.log('');
     }
@@ -244,20 +271,40 @@ function showPrefixKeys(cmdsPath) {
 
 // CLI
 const args = process.argv.slice(2);
+const showSource = args.includes('--source');
+const showConfig = args.includes('--config');
 const showPrefixes = args.includes('--prefixes') || args.includes('-p');
-const configArg = args.find(a => !a.startsWith('-'));
+const runBoth = !showSource && !showConfig && !showPrefixes;
 
-const configPath = configArg || path.join(process.env.HOME, '.surfingkeys-2026.js');
-const cmdsPath = path.join(__dirname, '..', 'docs', 'cmds.md');
+// Config path: arg after --config, or first non-flag arg, or default
+const configIdx = args.indexOf('--config');
+const configArg = (configIdx !== -1 && args[configIdx + 1] && !args[configIdx + 1].startsWith('-'))
+    ? args[configIdx + 1]
+    : args.find(a => !a.startsWith('-'));
+const configPath = configArg || path.join(ROOT, '.surfingkeysrc.js');
 
-if (!fs.existsSync(cmdsPath)) {
-    console.error(`Error: docs/cmds.md not found. Run 'npm run build:doc-cmds' first.`);
+console.log('Loading JSON report...');
+let report;
+try {
+    report = loadJsonReport();
+} catch (e) {
+    console.error('Error loading JSON report:', e.message);
     process.exit(1);
 }
+console.log(`  ${report.mappings.summary.total} mappings loaded\n`);
 
-if (showPrefixes) {
-    showPrefixKeys(cmdsPath);
-} else {
-    const result = validate(configPath, cmdsPath);
-    process.exit(result.blocked > 0 ? 1 : 0);
+let exitCode = 0;
+
+if (showPrefixes || runBoth) {
+    showPrefixKeys(report);
 }
+
+if (showSource || runBoth) {
+    exitCode += validateSource(report);
+}
+
+if (showConfig || runBoth) {
+    exitCode += validateConfig(report, configPath);
+}
+
+process.exit(exitCode > 0 ? 1 : 0);
