@@ -1606,7 +1606,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     });
 
     // Group C — Detach
-    mapkey('gxd', {
+    mapkey('g-001', {
         short: "Detach current tab to new window",
         unique_id: "cmd_tab_detach",
         feature_group: 3,
@@ -1616,7 +1616,126 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("moveToWindow", {windowId: -1});
     });
-
+    mapkey('g-009', {
+        short: "Detach tabs except current into new window",
+        unique_id: "cmd_tab_detach_magic_except_active",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move all tabs in current window except the active tab into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'AllExceptActive'});
+    });
+    mapkey('g-010', {
+        short: "Detach all tabs in current window into new window",
+        unique_id: "cmd_tab_detach_magic_all_window",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move all tabs in current window into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'AllInWindow'});
+    });
+    mapkey('g-011', {
+        short: "Detach all tabs in all windows except current",
+        unique_id: "cmd_tab_detach_magic_all_windows",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move all tabs in all windows except the active tab into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'AllExceptActiveAllWindows'});
+    });
+    mapkey('g-012', {
+        short: "Detach child tabs",
+        unique_id: "cmd_tab_detach_magic_children",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move tabs opened directly from the current tab into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'ChildrenTabs'});
+    });
+    mapkey('g-007', {
+        short: "Detach tabs to the right into new window",
+        unique_id: "cmd_tab_detach_magic_right",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move tabs to the right of the current tab into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'DirectionRight'});
+    });
+    mapkey('g-013', {
+        short: "Detach tabs to the right and current into new window",
+        unique_id: "cmd_tab_detach_magic_right_inclusive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move the current tab and all tabs to the right into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'DirectionRightInclusive'});
+    });
+    mapkey('g-008', {
+        short: "Detach tabs to the left into new window",
+        unique_id: "cmd_tab_detach_magic_left",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move tabs to the left of the current tab into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'DirectionLeft'});
+    });
+    mapkey('g-014', {
+        short: "Detach tabs to the left and current into new window",
+        unique_id: "cmd_tab_detach_magic_left_inclusive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move the current tab and all tabs to the left into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'DirectionLeftInclusive'});
+    });
+    mapkey('g-015', {
+        short: "Detach descendant tabs recursively",
+        unique_id: "cmd_tab_detach_magic_children_recursive",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move all descendant tabs opened from the current tab into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'ChildrenTabsRecursively'});
+    });
+    mapkey('g-016', {
+        short: "Detach all tabs in other windows",
+        unique_id: "cmd_tab_detach_magic_other_windows",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move all tabs in windows other than the current window into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'AllOtherWindowsTabs'});
+    });
+    mapkey('g-017', {
+        short: "Detach other windows without pinned tabs",
+        unique_id: "cmd_tab_detach_magic_other_windows_no_pinned",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move tabs in other windows that contain no pinned tabs into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'OtherWindowsNoPinned'});
+    });
+    mapkey('g-018', {
+        short: "Detach all incognito tabs",
+        unique_id: "cmd_tab_detach_magic_incognito",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move all tabs across all incognito windows into a new window",
+        tags: ["tabs", "detach", "magic", "window"]
+    }, function() {
+        RUNTIME("moveToWindowMagic", {magic: 'AllIncognitoTabs'});
+    });
     // Group D — Copy Tab URLs Magic
     mapkey('gyce', {
         short: "Copy URLs of tabs to the right",

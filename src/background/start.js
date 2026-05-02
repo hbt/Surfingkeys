@@ -1602,6 +1602,20 @@ function start(browser) {
         }
         previousWindowChoice = message.windowId;
     };
+    self.moveToWindowMagic = function(message, sender, sendResponse) {
+        chrome.tabs.query({}, function(allTabs) {
+            var windowTabs = allTabs.filter(function(t) { return t.windowId === sender.tab.windowId; });
+            var repeats = message.repeats || 1;
+            var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, windowTabs, allTabs);
+            if (!tabIds.length) return;
+            chrome.windows.create({tabId: tabIds[0]}, function(newWindow) {
+                if (!newWindow || !newWindow.id) return;
+                tabIds.slice(1).forEach(function(tabId) {
+                    chrome.tabs.move(tabId, {windowId: newWindow.id, index: -1});
+                });
+            });
+        });
+    };
     self.gatherWindows = function(message, sender, sendResponse) {
         const windowId = sender.tab.windowId;
         chrome.tabs.query({currentWindow: false}, function(tabs) {
