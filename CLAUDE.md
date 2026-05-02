@@ -7,19 +7,64 @@
 
 **NEVER suggest using CDP/remote debug port against `gchrb` (the main browser profile).**
 
-| Profile | Remote Debug Port | CDP / dbg proxy / sk-cdp |
-|---------|------------------|--------------------------|
-| `gchrb` | ❌ None | ❌ Not available |
-| `gchrb-dev` | ✅ Yes | ✅ Works |
+| Profile | Remote Debug Port | CDP / dbg proxy / sk-cdp | sk-devtools eval relay |
+|---------|------------------|--------------------------|------------------------|
+| `gchrb` | ❌ None | ❌ Not available | ✅ Works (requires F12 setup) |
+| `gchrb-dev` | ✅ Yes | ✅ Works | ✅ Works |
 
 - `gchrb` is the regular daily-use Chrome. Chrome does not allow attaching a remote debug port to an existing profile that wasn't launched with one.
 - `gchrb-dev` is a separate profile launched with `--remote-debugging-port`. All CDP tooling (`./bin/sk-cdp`, `./bin/dbg proxy-*`) only works there.
 - When the user says "I reloaded the extension in my browser" they mean `gchrb`. There is no debug port there. Do not suggest `sk-cdp eval` or CDP inspection as a debugging step for `gchrb`.
+- **When you need to run JS in `gchrb`**, use the sk-devtools eval relay instead (see section below).
+
+
+## gchrb Debugging — sk-devtools Eval Relay
+
+When CDP is unavailable (i.e. the user is on `gchrb`), use the eval relay: a local HTTP server on `:9600` that forwards JS to the extension's DevTools panel via SSE.
+
+**Setup (one-time per session):**
+```bash
+./bin/dbg server-start          # Start relay server on :9600
+./bin/dbg server-status         # Verify: { "running": true }
+```
+Then in gchrb: press **F12** → click the **"Surfingkeys"** tab in DevTools. Badge shows `sk-devtools | ● Connected`.
+
+**Check panel is ready:**
+```bash
+curl -s http://localhost:9600/eval-status | jq .
+# Must show: { "panelConnected": true }
+```
+
+**Run JS in the service worker:**
+```bash
+curl -s -X POST http://localhost:9600/eval \
+  -H 'Content-Type: application/json' \
+  -d '{"target":"bg","code":"chrome.runtime.id"}' | jq .
+```
+
+**Run JS in the inspected page:**
+```bash
+curl -s -X POST http://localhost:9600/eval \
+  -H 'Content-Type: application/json' \
+  -d '{"target":"page","code":"document.title"}' | jq .
+```
+
+See **[docs/devtools.md](docs/devtools.md)** for full reference, troubleshooting, and more examples.
 
 
 ## Development Commands
 
-**Quick CDP inspection:**
+### Build vs Reload
+
+| Command | What it does | Use when |
+|---------|-------------|----------|
+| `npm run build:dev` | Build only (no Chrome interaction) | gchrb manual reload, worktree setup, CI |
+| `./bin/dbg reload` | Build + reload extension in `gchrb-dev` | Active dev loop with CDP tooling |
+
+After `./bin/dbg reload`, the extension is live in `gchrb-dev`. If the user reloads manually in `gchrb`, run `npm run build:dev` first.
+
+### CDP inspection (gchrb-dev only)
+
 ```bash
 ./bin/sk-cdp eval --target bg "chrome.runtime.id"        # Service worker
 ./bin/sk-cdp eval --target google.com "document.title"   # Any matching tab
@@ -27,17 +72,30 @@
 ./bin/sk-cdp targets --json                               # Machine-readable
 ```
 
-**Proxy & logging:**
+### CDP proxy & logging (gchrb-dev only)
+
 ```bash
 ./bin/dbg proxy-start   # Captures all console & exceptions → /tmp/dbg-proxy.log
 ./bin/dbg proxy-stop
 ./bin/dbg proxy-status
 ```
 
-**Reload & build:**
+### Full bin/dbg reference
+
 ```bash
-./bin/dbg reload        # Build + reload extension (returns JSON with build.timestamp)
-./bin/dbg --help        # Full reference
+./bin/dbg reload              # Build + reload extension in gchrb-dev
+./bin/dbg proxy-start         # Start CDP proxy → /tmp/dbg-proxy.log
+./bin/dbg proxy-stop
+./bin/dbg proxy-status
+./bin/dbg server-start        # Start sk-devtools relay server on :9600
+./bin/dbg server-stop
+./bin/dbg server-status
+./bin/dbg open-background     # Open SW DevTools console
+./bin/dbg errors-list         # List stored extension errors
+./bin/dbg errors-clear        # Clear stored extension errors
+./bin/dbg config-set          # Set external config file path in storage
+./bin/dbg config-clear        # Wipe all config state
+./bin/dbg --help              # Full reference
 ```
 
 See **[docs/dev.md](docs/dev.md)** for the full debugging guide (CDP proxy, debug scripts, sk-cdp).
@@ -51,11 +109,39 @@ Use Playwright for all new tests. Legacy CDP/Jest tests in `tests/cdp/` are not 
 # Single test
 bunx playwright test tests/playwright/commands/cmd-scroll-down.spec.ts
 
+# Single test with V8 coverage
+COVERAGE=true bunx playwright test tests/playwright/commands/cmd-scroll-down.spec.ts
+
 # Full suite
 npm run test:playwright:parallel
 ```
 
-See **[tests/playwright/CLAUDE.md](tests/playwright/CLAUDE.md)** for coverage, instrumentation, fixtures, and conventions.
+### Playwright conventions (enforce strictly)
+
+| Rule | Detail |
+|------|--------|
+| One command per file | Never put two `unique_id`s in one spec |
+| File naming | `cmd-<unique_id-with-dashes>.spec.ts` |
+| SW vs page target | Tab/bookmark/session commands → SW target; scroll/hints/nav → page target |
+| Fixtures | Self-contained — inline styles, no external URLs |
+| Known flaky | `cmd-hints-learn-element`, `cmd-visual-document-start`, `cmd-nav-next-link`, `cmd-scroll-half-page-down` — ignore first failure |
+
+See **[tests/playwright/CLAUDE.md](tests/playwright/CLAUDE.md)** for coverage, instrumentation, fixtures, and full template.
+
+
+## Tab Command Architecture
+
+New tab commands go through the `tabHandleMagic` dispatch system — **not** legacy handlers like `tabOnly`, `tabCloseM`, etc.
+
+Pattern: `closeTabMagic` → `reloadTabMagic` → any new `*TabMagic`
+
+- Handler receives a `direction` (e.g. `CurrentTab`, `DirectionRight`, `DirectionLeft`, `DirectionRightAll`) and `repeats`
+- Registered via `mapkey(key, desc, () => RUNTIME(unique_id, { direction, repeats: R }))` in `default.js`
+- Dispatched in `start.js` via `commandRegistry`
+- Use `var repeats = message.repeats` (not `|| 1` fallback)
+- Use `chrome.tabs.query({})` (not `{currentWindow: true}`) to support cross-window magic
+
+When adding a new tab magic command, read `closeTabMagic` as the canonical reference.
 
 
 ## Git Worktrees
