@@ -3,6 +3,20 @@
 - User uses voice-to-text (expect typos: "Doc db" → DuckDB)
 
 
+## Browser Profiles — CRITICAL LIMITATION
+
+**NEVER suggest using CDP/remote debug port against `gchrb` (the main browser profile).**
+
+| Profile | Remote Debug Port | CDP / dbg proxy / sk-cdp |
+|---------|------------------|--------------------------|
+| `gchrb` | ❌ None | ❌ Not available |
+| `gchrb-dev` | ✅ Yes | ✅ Works |
+
+- `gchrb` is the regular daily-use Chrome. Chrome does not allow attaching a remote debug port to an existing profile that wasn't launched with one.
+- `gchrb-dev` is a separate profile launched with `--remote-debugging-port`. All CDP tooling (`./bin/sk-cdp`, `./bin/dbg proxy-*`) only works there.
+- When the user says "I reloaded the extension in my browser" they mean `gchrb`. There is no debug port there. Do not suggest `sk-cdp eval` or CDP inspection as a debugging step for `gchrb`.
+
+
 ## Development Commands
 
 **Quick CDP inspection:**
