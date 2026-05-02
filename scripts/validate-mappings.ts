@@ -63,6 +63,12 @@ interface Report {
   };
 }
 
+// unique_ids intentionally not mapped by the user — excluded from coverage/unmapped reports
+const EXCLUDED_IDS: string[] = [
+    'cmd_tab_new',
+    'cmd_tab_close',
+];
+
 // Load JSON report via bun run report:mappings:json
 function loadJsonReport(): Report {
     const json = execSync('bun run --silent report:mappings:json', { cwd: ROOT, timeout: 30000 });
@@ -222,7 +228,7 @@ function coverageStats(report: Report, mappedIds: Set<string>): CoverageStats {
     const allIds = report.mappings.list
         .map(e => e.annotation?.unique_id)
         .filter(Boolean) as string[];
-    const uniqueIds = [...new Set(allIds)];
+    const uniqueIds = [...new Set(allIds)].filter(id => !EXCLUDED_IDS.includes(id));
     const mapped = uniqueIds.filter(id => mappedIds.has(id));
     const unmapped = uniqueIds.filter(id => !mappedIds.has(id));
     return { total: uniqueIds.length, mapped: mapped.length, unmapped: unmapped.length, unmappedIds: unmapped };
@@ -343,6 +349,29 @@ function showPrefixKeys(report: Report): void {
 
 // CLI
 const args = process.argv.slice(2);
+
+// Help flag
+if (args.includes('--help') || args.includes('-h')) {
+    console.log(`Validates SurfingKeys mappings for prefix conflicts and user config coverage.
+
+Usage:
+  bun scripts/validate-mappings.ts              # Run both source + config validation
+  bun scripts/validate-mappings.ts --source     # Source-level prefix conflict check only
+  bun scripts/validate-mappings.ts --config [file]  # User config checks only
+  bun scripts/validate-mappings.ts --prefixes   # Prefix analysis (mode-aware)
+  bun scripts/validate-mappings.ts --verbose    # Show unmapped command IDs
+  bun scripts/validate-mappings.ts --help       # Show this help
+
+Options:
+  --source              Check default mappings for prefix conflicts
+  --config [file]       Validate user config (defaults to .surfingkeysrc.js)
+  --prefixes, -p        Show key prefix analysis grouped by mode
+  --verbose             List all unmapped command IDs
+  --help, -h            Show this help message
+`);
+    process.exit(0);
+}
+
 const showSource = args.includes('--source');
 const showConfig = args.includes('--config');
 const showPrefixes = args.includes('--prefixes') || args.includes('-p');
