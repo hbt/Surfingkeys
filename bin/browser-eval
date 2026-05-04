@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# browser-eval — eval JS in browser via sk-devtools eval relay
+# Usage:
+#   browser-eval 'document.title'
+#   browser-eval --target bg 'chrome.runtime.id'
+#   browser-eval <<'JS'
+#     document.querySelectorAll('form').length
+#   JS
+
+set -euo pipefail
+
+TARGET="page"
+CODE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --target|-t) TARGET="$2"; shift 2 ;;
+    *) CODE="$1"; shift ;;
+  esac
+done
+
+# Read from stdin if no positional arg
+if [[ -z "$CODE" ]]; then
+  CODE=$(cat)
+fi
+
+PAYLOAD=$(printf '%s' "$CODE" | jq -Rs --arg t "$TARGET" '{target: $t, code: .}')
+
+RESPONSE=$(curl -sf -X POST http://localhost:9600/eval \
+  -H 'Content-Type: application/json' \
+  --data-binary "$PAYLOAD")
+
+# Check for error
+ERROR=$(echo "$RESPONSE" | jq -r '.error // empty')
+if [[ -n "$ERROR" ]]; then
+  echo "browser-eval error: $ERROR" >&2
+  exit 1
+fi
+
+# Extract result — after the panel fix, result is no longer double-encoded
+echo "$RESPONSE" | jq -r '.result'

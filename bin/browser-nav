@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# browser-nav — navigate active tab and wait for page load
+# Usage:
+#   browser-nav https://example.com
+#   browser-nav https://example.com 15    # custom timeout in seconds
+
+set -euo pipefail
+
+URL="$1"
+TIMEOUT="${2:-10}"
+
+# Navigate via background target
+browser-eval --target bg \
+  "new Promise(r => chrome.tabs.query({active:true,currentWindow:true},
+    tabs => chrome.tabs.update(tabs[0].id, {url: $(printf '%s' "$URL" | jq -Rs '.')}, r)))" \
+  > /dev/null
+
+# Poll until readyState=complete AND href matches URL prefix
+DEADLINE=$(( SECONDS + TIMEOUT ))
+while [[ $SECONDS -lt $DEADLINE ]]; do
+  STATE=$(browser-eval "document.readyState + '||' + window.location.href" 2>/dev/null || true)
+  if [[ "$STATE" == "complete||"* ]]; then
+    exit 0
+  fi
+  sleep 0.3
+done
+
+echo "browser-nav: timeout waiting for $URL" >&2
+exit 1

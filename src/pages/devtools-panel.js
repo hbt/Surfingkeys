@@ -83,7 +83,7 @@ async function evalInBG(code) {
           || 'unknown exception';
         reject(new Error(msg));
       } else {
-        resolve({ result: JSON.stringify(res.result?.value) });
+        resolve({ result: res.result?.value });
       }
     });
   });
@@ -97,7 +97,7 @@ function evalInPage(code) {
       if (exceptionInfo && exceptionInfo.isException) {
         reject(new Error(exceptionInfo.value || exceptionInfo.description));
       } else {
-        resolve({ result: JSON.stringify(result) });
+        resolve({ result });
       }
     });
   });
