@@ -42,9 +42,9 @@ const CHECKS: Check[] = [
         group: 'fast',
     },
     {
-        id: 'validate',
-        label: 'Mapping prefix conflicts',
-        cmd: ['bun', 'scripts/validate-mappings.ts'],
+        id: 'issues',
+        label: 'Mappings issues',
+        cmd: ['bun', 'scripts/check-issues.ts'],
         group: 'fast',
     },
     {
