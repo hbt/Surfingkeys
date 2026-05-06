@@ -49,7 +49,7 @@ async function waitForWindowCount(ctx: BrowserContext, expected: number, maxWait
     }
 }
 
-test.describe('cmd_tab_detach_current (Playwright)', () => {
+test.describe('cmd_tab_detach (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;
