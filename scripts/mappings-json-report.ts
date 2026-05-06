@@ -197,6 +197,296 @@ const FEATURE_GROUP_DESCRIPTIONS: Record<number, string> = {
 };
 
 // ============================================================================
+// JSON SCHEMA
+// ============================================================================
+
+const REPORT_JSON_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "MappingsReport",
+    "description": "Output schema for scripts/mappings-json-report.ts",
+    "type": "object",
+    "required": ["mappings", "settings"],
+    "properties": {
+        "mappings": {
+            "type": "object",
+            "required": ["summary", "list"],
+            "properties": {
+                "summary": { "$ref": "#/$defs/Summary" },
+                "list": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/MappingEntry" }
+                }
+            }
+        },
+        "settings": {
+            "type": "object",
+            "required": ["summary", "excluded", "list"],
+            "properties": {
+                "summary": {
+                    "type": "object",
+                    "required": ["total_usages", "unique_settings", "runtime_conf_settings", "settings_api", "excluded_count"],
+                    "properties": {
+                        "total_usages": { "type": "integer" },
+                        "unique_settings": { "type": "integer" },
+                        "runtime_conf_settings": { "type": "integer" },
+                        "settings_api": { "type": "integer" },
+                        "excluded_count": { "type": "integer" }
+                    }
+                },
+                "excluded": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/ExcludedSetting" }
+                },
+                "list": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/SettingEntry" }
+                }
+            }
+        },
+        "custom_configuration": { "$ref": "#/$defs/CustomConfiguration" }
+    },
+    "$defs": {
+        "AnnotationObject": {
+            "type": "object",
+            "required": ["short", "unique_id", "category", "description", "tags"],
+            "properties": {
+                "short": { "type": "string" },
+                "unique_id": { "type": "string" },
+                "category": { "type": "string" },
+                "description": { "type": "string" },
+                "tags": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "minItems": 1
+                }
+            }
+        },
+        "MappingEntry": {
+            "type": "object",
+            "required": ["key", "mode", "annotation", "source", "mappingType"],
+            "properties": {
+                "key": { "type": "string" },
+                "mode": { "type": "string" },
+                "annotation": {
+                    "oneOf": [
+                        { "type": "string" },
+                        { "$ref": "#/$defs/AnnotationObject" }
+                    ]
+                },
+                "source": {
+                    "type": "object",
+                    "required": ["file", "line"],
+                    "properties": {
+                        "file": { "type": "string" },
+                        "line": { "type": "integer" }
+                    }
+                },
+                "mappingType": {
+                    "type": "string",
+                    "enum": ["mapkey", "direct", "search_alias", "command"]
+                },
+                "handler_type": {
+                    "type": "string",
+                    "enum": ["inline", "named", "bound", "method", "uncaptured", "synthetic", "unknown"]
+                },
+                "handler_name": { "type": "string" },
+                "mapping_options": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "runtime_options": {
+                    "type": "object",
+                    "required": ["accepts_count"],
+                    "properties": {
+                        "accepts_count": { "type": "boolean" }
+                    }
+                },
+                "validationStatus": {
+                    "type": "string",
+                    "enum": ["valid", "invalid", "not_migrated"]
+                },
+                "validationErrors": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "test_coverage": {
+                    "type": "object",
+                    "required": ["hasTest"],
+                    "properties": {
+                        "hasTest": { "type": "boolean" },
+                        "testFiles": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                        }
+                    }
+                },
+                "custom_mapping": {
+                    "type": "object",
+                    "required": ["hasMapping"],
+                    "properties": {
+                        "hasMapping": { "type": "boolean" },
+                        "mappings": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": ["key", "type"],
+                                "properties": {
+                                    "key": { "type": "string" },
+                                    "type": { "type": "string" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "Summary": {
+            "type": "object",
+            "required": ["total", "by_mode", "by_type", "by_handler_type", "migrated", "not_migrated", "validation", "config_options"],
+            "properties": {
+                "total": { "type": "integer" },
+                "by_mode": { "type": "object", "additionalProperties": { "type": "integer" } },
+                "by_type": { "type": "object", "additionalProperties": { "type": "integer" } },
+                "by_handler_type": { "type": "object", "additionalProperties": { "type": "integer" } },
+                "migrated": { "type": "integer" },
+                "not_migrated": { "type": "integer" },
+                "validation": {
+                    "type": "object",
+                    "required": ["valid", "invalid", "not_migrated"],
+                    "properties": {
+                        "valid": { "type": "integer" },
+                        "invalid": { "type": "integer" },
+                        "not_migrated": { "type": "integer" }
+                    }
+                },
+                "config_options": {
+                    "type": "object",
+                    "additionalProperties": { "$ref": "#/$defs/ConfigOption" }
+                },
+                "tests": {
+                    "type": "object",
+                    "required": ["total_with_tests", "total_without_tests", "invalid_test_names"],
+                    "properties": {
+                        "total_with_tests": { "type": "integer" },
+                        "total_without_tests": { "type": "integer" },
+                        "invalid_test_names": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                        }
+                    }
+                },
+                "custom_mapping_coverage": {
+                    "type": "object",
+                    "required": ["mapped", "unmapped"],
+                    "properties": {
+                        "mapped": { "type": "integer" },
+                        "unmapped": { "type": "integer" }
+                    }
+                }
+            }
+        },
+        "ConfigOption": {
+            "type": "object",
+            "required": ["count", "percentage", "sample_values"],
+            "properties": {
+                "count": { "type": "integer" },
+                "percentage": { "type": "string" },
+                "sample_values": { "type": "array" },
+                "value_descriptions": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" }
+                }
+            }
+        },
+        "ExcludedSetting": {
+            "type": "object",
+            "required": ["name", "reason"],
+            "properties": {
+                "name": { "type": "string" },
+                "reason": { "type": "string" }
+            }
+        },
+        "SettingEntry": {
+            "type": "object",
+            "required": ["setting", "type", "frequency", "files", "functions", "usages"],
+            "properties": {
+                "setting": { "type": "string" },
+                "type": {
+                    "type": "string",
+                    "enum": ["runtime.conf", "settings"]
+                },
+                "frequency": { "type": "integer" },
+                "files": { "type": "array", "items": { "type": "string" } },
+                "functions": { "type": "array", "items": { "type": "string" } },
+                "usages": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/SettingUsageDetail" }
+                },
+                "annotation": { "$ref": "#/$defs/SettingsAnnotation" }
+            }
+        },
+        "SettingsAnnotation": {
+            "type": "object",
+            "required": ["short", "unique_id", "category", "description", "tags", "valueType"],
+            "properties": {
+                "short": { "type": "string" },
+                "unique_id": { "type": "string" },
+                "category": { "type": "string" },
+                "description": { "type": "string" },
+                "tags": { "type": "array", "items": { "type": "string" } },
+                "valueType": { "type": "string" },
+                "valueDescription": { "type": "string" },
+                "values": { "type": "array" },
+                "default": {}
+            }
+        },
+        "SettingUsageDetail": {
+            "type": "object",
+            "required": ["file", "line", "function", "context"],
+            "properties": {
+                "file": { "type": "string" },
+                "line": { "type": "integer" },
+                "function": { "type": "string" },
+                "context": {
+                    "type": "string",
+                    "enum": ["read", "write"]
+                }
+            }
+        },
+        "CustomConfiguration": {
+            "type": "object",
+            "required": ["summary", "mappings"],
+            "properties": {
+                "summary": {
+                    "type": "object",
+                    "required": ["total"],
+                    "properties": {
+                        "total": { "type": "integer" }
+                    }
+                },
+                "mappings": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/CustomConfigMapping" }
+                }
+            }
+        },
+        "CustomConfigMapping": {
+            "type": "object",
+            "required": ["key", "type"],
+            "properties": {
+                "key": { "type": "string" },
+                "type": {
+                    "type": "string",
+                    "enum": ["mapkey", "vmapkey", "imapkey", "cmapkey", "map", "unmap"]
+                },
+                "unique_id": { "type": "string" },
+                "description": { "type": "string" }
+            }
+        }
+    }
+} as const;
+
+// ============================================================================
 // EXCLUSION LIST
 // ============================================================================
 
@@ -1545,7 +1835,7 @@ function parseCustomConfigAST(configPath: string): CustomConfiguration {
 // MAIN
 // ============================================================================
 
-function main(): void {
+function buildReport(): Report {
     const srcDir = path.join(__dirname, '..', 'src');
     const mappings: MappingEntry[] = [];
 
@@ -1581,8 +1871,7 @@ function main(): void {
     const customMappingCoverage = generateCustomMappingStats(mappings, customConfig);
     summary.custom_mapping_coverage = customMappingCoverage;
 
-    // Create report
-    const report: Report = {
+    return {
         mappings: {
             summary,
             list: mappings
@@ -1590,8 +1879,36 @@ function main(): void {
         settings: settingsStats,
         ...(customConfig.mappings.length > 0 && { custom_configuration: customConfig })
     };
+}
 
-    // Output JSON
+async function runIntegrityCheck(): Promise<void> {
+    const report = buildReport();
+
+    const Ajv = (await import('ajv/dist/2020')).default;
+    const ajv = new Ajv({ strict: false });
+    const validate = ajv.compile(REPORT_JSON_SCHEMA);
+    const valid = validate(report);
+
+    const result = {
+        integrity: valid ? 'ok' : 'fail',
+        errors: validate.errors?.map(e => `${e.instancePath} ${e.message}`) ?? []
+    };
+    process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+    process.exit(valid ? 0 : 1);
+}
+
+function main(): void {
+    if (process.argv.includes('--schema')) {
+        process.stdout.write(JSON.stringify(REPORT_JSON_SCHEMA, null, 2) + '\n');
+        return;
+    }
+
+    if (process.argv.includes('--integrity')) {
+        runIntegrityCheck();
+        return;
+    }
+
+    const report = buildReport();
     process.stdout.write(JSON.stringify(report, null, 2) + '\n');
 }
 
