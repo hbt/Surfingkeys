@@ -57,7 +57,7 @@ export function buildReport(): Report {
     summary.code_coverage = coverageSummary;
 
     // Generate actionable issues (must run after all per-mapping fields are populated)
-    const issues = generateIssues(mappings, summary.tests?.invalid_test_names);
+    const issues = generateIssues(mappings, customConfig, summary.tests?.invalid_test_names);
 
     return {
         mappings: {

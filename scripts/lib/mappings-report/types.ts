@@ -114,6 +114,34 @@ export interface Issues {
     code_coverage: {
         missing: string[];          // unique_ids with hasData=false
     };
+    source_validation: {
+        prefix_conflicts: Array<{
+            mode: string;
+            blocked_key: string;
+            blocked_id: string | null;
+            blocked_short: string;
+            blocker_key: string;
+            blocker_id: string | null;
+            blocker_short: string;
+        }>;
+        g_placeholder_issues: Array<{
+            type: 'duplicate' | 'gap' | 'wrong_start';
+            key: string;
+            message: string;
+            affected_ids?: string[];
+        }>;
+    };
+    config_validation: {
+        prefix_conflicts: Array<{
+            blocked_key: string;
+            blocker_key: string;
+            blocker_target: string;
+        }>;
+        invalid_mapcmdkey_targets: Array<{
+            key: string;
+            unique_id: string;
+        }>;
+    };
 }
 
 export interface SettingUsage {
@@ -153,7 +181,7 @@ export interface SettingsAnnotation {
 
 export interface CustomConfigMapping {
     key: string;
-    type: 'mapkey' | 'vmapkey' | 'imapkey' | 'cmapkey' | 'map' | 'unmap';
+    type: 'mapkey' | 'vmapkey' | 'imapkey' | 'cmapkey' | 'map' | 'unmap' | 'mapcmdkey';
     unique_id?: string;
     description?: string;
 }
