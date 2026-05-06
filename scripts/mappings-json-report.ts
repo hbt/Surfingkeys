@@ -64,6 +64,22 @@ interface MappingEntry {
         hasMapping: boolean;
         mappings?: Array<{ key: string; type: string }>;
     };
+    code_coverage?: {
+        hasData: boolean;
+        testCaseCount: number;
+        targets: {
+            content?: {
+                totalFunctions: number;
+                coveredFunctions: number;
+                pct: string;
+            };
+            background?: {
+                totalFunctions: number;
+                coveredFunctions: number;
+                pct: string;
+            };
+        };
+    };
 }
 
 interface Summary {
@@ -96,6 +112,13 @@ interface Summary {
     custom_mapping_coverage?: {
         mapped: number;
         unmapped: number;
+    };
+    code_coverage?: {
+        with_data: number;
+        without_data: number;
+        content_only: number;
+        background_only: number;
+        both: number;
     };
 }
 
@@ -359,6 +382,23 @@ const REPORT_JSON_SCHEMA = {
                             }
                         }
                     }
+                },
+                "code_coverage": {
+                    "type": "object",
+                    "description": "V8 code coverage data collected by Playwright tests for this mapping",
+                    "required": ["hasData", "testCaseCount", "targets"],
+                    "properties": {
+                        "hasData": { "type": "boolean", "description": "Whether any V8 coverage artifacts exist for this mapping's unique_id" },
+                        "testCaseCount": { "type": "integer", "description": "Number of distinct test case directories found" },
+                        "targets": {
+                            "type": "object",
+                            "description": "Per-target function coverage aggregated across all test cases",
+                            "properties": {
+                                "content": { "$ref": "#/$defs/TargetCoverage" },
+                                "background": { "$ref": "#/$defs/TargetCoverage" }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -409,6 +449,18 @@ const REPORT_JSON_SCHEMA = {
                     "properties": {
                         "mapped": { "type": "integer", "description": "Number of unique_ids that appear in the user's custom config" },
                         "unmapped": { "type": "integer", "description": "Number of unique_ids with no custom config entry" }
+                    }
+                },
+                "code_coverage": {
+                    "type": "object",
+                    "description": "Aggregate V8 code coverage presence across all mappings",
+                    "required": ["with_data", "without_data", "content_only", "background_only", "both"],
+                    "properties": {
+                        "with_data": { "type": "integer", "description": "Mappings with any V8 coverage data" },
+                        "without_data": { "type": "integer", "description": "Mappings with no V8 coverage data" },
+                        "content_only": { "type": "integer", "description": "Mappings with content target coverage only" },
+                        "background_only": { "type": "integer", "description": "Mappings with background target coverage only" },
+                        "both": { "type": "integer", "description": "Mappings with both content and background coverage" }
                     }
                 }
             }
@@ -522,6 +574,16 @@ const REPORT_JSON_SCHEMA = {
                 },
                 "unique_id": { "type": "string", "description": "unique_id of the built-in mapping being referenced; present for mapcmdkey variants" },
                 "description": { "type": "string", "description": "Description extracted from the annotation argument; present when available" }
+            }
+        },
+        "TargetCoverage": {
+            "type": "object",
+            "description": "Function coverage stats for one target (content or background)",
+            "required": ["totalFunctions", "coveredFunctions", "pct"],
+            "properties": {
+                "totalFunctions": { "type": "integer", "description": "Total functions instrumented in this target" },
+                "coveredFunctions": { "type": "integer", "description": "Functions with at least one execution (count > 0)" },
+                "pct": { "type": "string", "description": "Coverage percentage string, e.g. \"88.2%\"" }
             }
         }
     }
@@ -1444,6 +1506,168 @@ function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string
 }
 
 // ============================================================================
+// CODE COVERAGE STATS
+// ============================================================================
+
+interface TargetStats {
+    totalFunctions: number;
+    coveredFunctions: number;
+    pct: string;
+}
+
+function loadCoverageStats(uniqueId: string, coverageRawDir: string): {
+    hasData: boolean;
+    testCaseCount: number;
+    targets: { content?: TargetStats; background?: TargetStats };
+} {
+    const idDir = path.join(coverageRawDir, uniqueId);
+    if (!fs.existsSync(idDir)) {
+        return { hasData: false, testCaseCount: 0, targets: {} };
+    }
+
+    // Collect all .v8.json files, grouped by target type and test case (first-level subdir)
+    // Structure: <idDir>/<test_case>/<...>/<target_path>/<timestamp>.v8.json
+    // Target is determined by path segment: "content" or "background"
+    const contentFiles: Map<string, string[]> = new Map();
+    const backgroundFiles: Map<string, string[]> = new Map();
+
+    function walkDir(dir: string, testCaseKey: string): void {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const fp = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                walkDir(fp, testCaseKey);
+            } else if (entry.name.endsWith('.v8.json')) {
+                const rel = path.relative(idDir, fp);
+                // Determine target from path segments
+                if (rel.includes('/content/') || rel.startsWith('content/')) {
+                    if (!contentFiles.has(testCaseKey)) contentFiles.set(testCaseKey, []);
+                    contentFiles.get(testCaseKey)!.push(fp);
+                } else if (rel.includes('/background/') || rel.startsWith('background/')) {
+                    if (!backgroundFiles.has(testCaseKey)) backgroundFiles.set(testCaseKey, []);
+                    backgroundFiles.get(testCaseKey)!.push(fp);
+                }
+            }
+        }
+    }
+
+    // Each first-level subdir of idDir is a test case
+    for (const entry of fs.readdirSync(idDir, { withFileTypes: true })) {
+        if (entry.isDirectory()) {
+            walkDir(path.join(idDir, entry.name), entry.name);
+        }
+    }
+
+    // Count distinct test cases (subdirs that have any v8.json)
+    const allTestCaseDirs = new Set([...contentFiles.keys(), ...backgroundFiles.keys()]);
+    const testCaseCount = allTestCaseDirs.size;
+
+    if (testCaseCount === 0) {
+        return { hasData: false, testCaseCount: 0, targets: {} };
+    }
+
+    // Helper: pick latest file per test case (sort by filename, take last)
+    function pickLatest(filesMap: Map<string, string[]>): string[] {
+        const result: string[] = [];
+        for (const [, files] of filesMap) {
+            const sorted = [...files].sort();
+            result.push(sorted[sorted.length - 1]);
+        }
+        return result;
+    }
+
+    // Helper: parse V8 JSON and count functions
+    function countFunctions(filePath: string): { total: number; covered: number } {
+        try {
+            const raw = fs.readFileSync(filePath, 'utf-8');
+            const data = JSON.parse(raw);
+            // V8 coverage format: array of script coverage objects
+            const scripts: any[] = Array.isArray(data) ? data : (data.result ?? []);
+            let total = 0;
+            let covered = 0;
+            for (const script of scripts) {
+                const functions: any[] = script.functions ?? [];
+                for (const fn of functions) {
+                    total++;
+                    const ranges: any[] = fn.ranges ?? [];
+                    if (ranges.length > 0 && ranges[0].count > 0) {
+                        covered++;
+                    }
+                }
+            }
+            return { total, covered };
+        } catch {
+            return { total: 0, covered: 0 };
+        }
+    }
+
+    // Helper: aggregate stats across files
+    function aggregateStats(files: string[]): TargetStats | undefined {
+        if (files.length === 0) return undefined;
+        let totalFunctions = 0;
+        let coveredFunctions = 0;
+        for (const f of files) {
+            const { total, covered } = countFunctions(f);
+            totalFunctions += total;
+            coveredFunctions += covered;
+        }
+        const pct = totalFunctions > 0
+            ? `${((coveredFunctions / totalFunctions) * 100).toFixed(1)}%`
+            : '0.0%';
+        return { totalFunctions, coveredFunctions, pct };
+    }
+
+    const contentLatest = pickLatest(contentFiles);
+    const backgroundLatest = pickLatest(backgroundFiles);
+
+    const targets: { content?: TargetStats; background?: TargetStats } = {};
+    const contentStats = aggregateStats(contentLatest);
+    if (contentStats) targets.content = contentStats;
+    const backgroundStats = aggregateStats(backgroundLatest);
+    if (backgroundStats) targets.background = backgroundStats;
+
+    return { hasData: true, testCaseCount, targets };
+}
+
+function generateCoverageStats(mappings: MappingEntry[], coverageRawDir: string): {
+    with_data: number;
+    without_data: number;
+    content_only: number;
+    background_only: number;
+    both: number;
+} {
+    let with_data = 0;
+    let without_data = 0;
+    let content_only = 0;
+    let background_only = 0;
+    let both = 0;
+
+    for (const mapping of mappings) {
+        const uniqueId = (mapping.annotation as any)?.unique_id;
+        if (!uniqueId) continue;
+
+        const stats = loadCoverageStats(uniqueId, coverageRawDir);
+        mapping.code_coverage = {
+            hasData: stats.hasData,
+            testCaseCount: stats.testCaseCount,
+            targets: stats.targets,
+        };
+
+        if (!stats.hasData) {
+            without_data++;
+        } else {
+            with_data++;
+            const hasContent = !!stats.targets.content;
+            const hasBackground = !!stats.targets.background;
+            if (hasContent && hasBackground) both++;
+            else if (hasContent) content_only++;
+            else if (hasBackground) background_only++;
+        }
+    }
+
+    return { with_data, without_data, content_only, background_only, both };
+}
+
+// ============================================================================
 // CUSTOM MAPPING COVERAGE
 // ============================================================================
 
@@ -1911,6 +2135,11 @@ function buildReport(): Report {
     // Add custom_mapping field to each mapping and get coverage counts
     const customMappingCoverage = generateCustomMappingStats(mappings, customConfig);
     summary.custom_mapping_coverage = customMappingCoverage;
+
+    // Add code_coverage field to each mapping
+    const coverageRawDir = path.join(projectRoot, 'coverage-raw');
+    const coverageSummary = generateCoverageStats(mappings, coverageRawDir);
+    summary.code_coverage = coverageSummary;
 
     return {
         mappings: {
