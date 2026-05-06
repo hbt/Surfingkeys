@@ -32,6 +32,8 @@
     "report:audit": "bun scripts/mappings-json-report.ts | bun scripts/audit-report.ts",
     "test:playwright": "CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test npm run build:dev && bunx playwright test",
     "test:playwright:parallel": "CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test npm run build:dev && bun scripts/test-parallel.ts",
+    "verify": "bun scripts/verify.ts",
+    "verify:full": "bun scripts/verify.ts --full",
     "worktree:setup": "bun scripts/worktree-setup.ts"
   },
   "repository": {
@@ -49,6 +51,7 @@
     "@babel/traverse": "^7.28.6",
     "@babel/types": "^7.28.6",
     "@playwright/test": "^1.58.2",
+    "@types/bun": "^1.3.13",
     "@types/chrome": "^0.1.35",
     "@types/events": "^3.0.0",
     "@types/lodash": "^4.14.172",
