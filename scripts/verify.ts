@@ -69,17 +69,21 @@ Usage:
   bun scripts/verify.ts [flags]
 
 Flags:
-  (none)          Run fast checks: lint, integrity, validate
-  --tests   -t    Also run Playwright tests (no coverage)
-  --coverage -c   Also run Playwright tests with V8 coverage
-  --full          All checks: fast + coverage (tests skipped, coverage subsumes them)
+  (none)          Run fast checks (default): lint, integrity, validate
+  --fast    -f    Run fast checks: lint, integrity, validate
+  --slow    -s    Run slow checks: tests, coverage
+  --full          Run all checks: fast + slow
   --only <id>     Run a single check by ID
   --help    -h    Print this usage message
 
 Check IDs:
 `);
-    for (const c of CHECKS) {
-        console.log(`  ${c.id.padEnd(12)} [${c.group}]  ${c.label}`);
+    const groups = ['fast', 'slow'] as const;
+    for (const g of groups) {
+        console.log(`  [${g}]`);
+        for (const c of CHECKS.filter(x => x.group === g)) {
+            console.log(`    ${c.id.padEnd(12)} ${c.label}`);
+        }
     }
     console.log();
 }
@@ -166,19 +170,13 @@ function selectChecks(argv: string[]): Check[] | null {
     }
 
     const wantFull = argv.includes('--full');
-    const wantCoverage = argv.includes('--coverage') || argv.includes('-c') || wantFull;
-    const wantTests = (argv.includes('--tests') || argv.includes('-t')) && !wantCoverage;
+    const wantSlow = argv.includes('--slow') || argv.includes('-s') || wantFull;
+    const wantFast = !wantSlow || wantFull || argv.includes('--fast') || argv.includes('-f');
 
-    const fast = CHECKS.filter(c => c.group === 'fast');
-    const selected: Check[] = [...fast];
-
-    if (wantCoverage) {
-        selected.push(CHECKS.find(c => c.id === 'coverage')!);
-    } else if (wantTests) {
-        selected.push(CHECKS.find(c => c.id === 'tests')!);
-    }
-
-    return selected;
+    return CHECKS.filter(c =>
+        (c.group === 'fast' && wantFast) ||
+        (c.group === 'slow' && wantSlow)
+    );
 }
 
 async function main() {
