@@ -1,10 +1,16 @@
-import type { MappingEntry, Issues } from './types';
+import type { MappingEntry, CustomConfiguration, Issues } from './types';
+import { generateSourceValidation } from './source-validation';
+import { generateConfigValidation } from './config-validation';
 
 // ============================================================================
 // ISSUES GENERATION
 // ============================================================================
 
-export function generateIssues(mappings: MappingEntry[], invalidTestFiles?: string[]): Issues {
+export function generateIssues(
+    mappings: MappingEntry[],
+    customConfig: CustomConfiguration,
+    invalidTestFiles?: string[]
+): Issues {
     const annotationsInvalid: Array<{ key: string; unique_id?: string; file: string; line: number; errors: string[] }> = [];
     const annotationsNotMigrated: Array<{ key: string; file: string; line: number }> = [];
     const testsMissing: string[] = [];
@@ -45,6 +51,14 @@ export function generateIssues(mappings: MappingEntry[], invalidTestFiles?: stri
         }
     }
 
+    // Build validIds from all structured annotation unique_ids
+    const validIds = new Set<string>();
+    for (const mapping of mappings) {
+        if (typeof mapping.annotation === 'object' && mapping.annotation.unique_id) {
+            validIds.add(mapping.annotation.unique_id);
+        }
+    }
+
     return {
         annotations: {
             invalid: annotationsInvalid,
@@ -59,6 +73,8 @@ export function generateIssues(mappings: MappingEntry[], invalidTestFiles?: stri
         },
         code_coverage: {
             missing: codeCoverageMissing.sort()
-        }
+        },
+        source_validation: generateSourceValidation(mappings),
+        config_validation: generateConfigValidation(customConfig, validIds),
     };
 }

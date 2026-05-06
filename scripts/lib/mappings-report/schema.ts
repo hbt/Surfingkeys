@@ -372,7 +372,7 @@ export const REPORT_JSON_SCHEMA = {
         "Issues": {
             "type": "object",
             "description": "Actionable problem lists — items that need attention, surfaced from all checks. Design principle: list=full data, summary=aggregate counts, issues=actionable problem lists",
-            "required": ["annotations", "tests", "custom_mappings", "code_coverage"],
+            "required": ["annotations", "tests", "custom_mappings", "code_coverage", "source_validation", "config_validation"],
             "properties": {
                 "annotations": {
                     "type": "object",
@@ -447,6 +447,76 @@ export const REPORT_JSON_SCHEMA = {
                             "type": "array",
                             "description": "unique_ids of migrated mappings with no V8 coverage data (hasData=false)",
                             "items": { "type": "string" }
+                        }
+                    }
+                },
+                "source_validation": {
+                    "type": "object",
+                    "description": "Source-level key binding validation issues",
+                    "required": ["prefix_conflicts", "g_placeholder_issues"],
+                    "properties": {
+                        "prefix_conflicts": {
+                            "type": "array",
+                            "description": "Pairs of default mappings where one key is a strict prefix of another in the same mode",
+                            "items": {
+                                "type": "object",
+                                "required": ["mode", "blocked_key", "blocked_id", "blocked_short", "blocker_key", "blocker_id", "blocker_short"],
+                                "properties": {
+                                    "mode": { "type": "string", "description": "Input mode in which the conflict occurs" },
+                                    "blocked_key": { "type": "string", "description": "Key that is blocked (longer key sequence)" },
+                                    "blocked_id": { "type": ["string", "null"], "description": "unique_id of the blocked mapping, or null if not migrated" },
+                                    "blocked_short": { "type": "string", "description": "Short label of the blocked mapping" },
+                                    "blocker_key": { "type": "string", "description": "Key that blocks (shorter key sequence, strict prefix)" },
+                                    "blocker_id": { "type": ["string", "null"], "description": "unique_id of the blocker mapping, or null if not migrated" },
+                                    "blocker_short": { "type": "string", "description": "Short label of the blocker mapping" }
+                                }
+                            }
+                        },
+                        "g_placeholder_issues": {
+                            "type": "array",
+                            "description": "Problems with g-XXX placeholder key numbering (duplicates, gaps, wrong start)",
+                            "items": {
+                                "type": "object",
+                                "required": ["type", "key", "message"],
+                                "properties": {
+                                    "type": { "type": "string", "enum": ["duplicate", "gap", "wrong_start"], "description": "Category of g-XXX issue" },
+                                    "key": { "type": "string", "description": "The g-XXX key involved in the issue" },
+                                    "message": { "type": "string", "description": "Human-readable description of the issue" },
+                                    "affected_ids": { "type": "array", "items": { "type": "string" }, "description": "unique_ids sharing the duplicate key; present for duplicate type only" }
+                                }
+                            }
+                        }
+                    }
+                },
+                "config_validation": {
+                    "type": "object",
+                    "description": "User config file validation issues",
+                    "required": ["prefix_conflicts", "invalid_mapcmdkey_targets"],
+                    "properties": {
+                        "prefix_conflicts": {
+                            "type": "array",
+                            "description": "Pairs of user config mappings where one key is a strict prefix of another",
+                            "items": {
+                                "type": "object",
+                                "required": ["blocked_key", "blocker_key", "blocker_target"],
+                                "properties": {
+                                    "blocked_key": { "type": "string", "description": "Key that is blocked (longer sequence)" },
+                                    "blocker_key": { "type": "string", "description": "Key that blocks (shorter sequence, strict prefix)" },
+                                    "blocker_target": { "type": "string", "description": "Target (unique_id or key) of the blocker entry" }
+                                }
+                            }
+                        },
+                        "invalid_mapcmdkey_targets": {
+                            "type": "array",
+                            "description": "mapcmdkey entries referencing a unique_id not found in the default mappings",
+                            "items": {
+                                "type": "object",
+                                "required": ["key", "unique_id"],
+                                "properties": {
+                                    "key": { "type": "string", "description": "Key sequence used in the mapcmdkey call" },
+                                    "unique_id": { "type": "string", "description": "The unrecognised unique_id that was referenced" }
+                                }
+                            }
                         }
                     }
                 }
