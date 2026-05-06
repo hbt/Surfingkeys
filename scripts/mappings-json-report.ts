@@ -122,6 +122,23 @@ interface Summary {
     };
 }
 
+interface Issues {
+    annotations: {
+        invalid: Array<{ key: string; unique_id?: string; file: string; line: number; errors: string[] }>;
+        not_migrated: Array<{ key: string; file: string; line: number }>;
+    };
+    tests: {
+        missing: string[];          // unique_ids with no test file
+        invalid_files: string[];    // test file names matching no known unique_id
+    };
+    custom_mappings: {
+        unmapped: string[];         // unique_ids with no entry in custom config
+    };
+    code_coverage: {
+        missing: string[];          // unique_ids with hasData=false
+    };
+}
+
 interface SettingUsage {
     setting: string;           // e.g., "scrollStepSize"
     type: 'runtime.conf' | 'settings';
@@ -187,6 +204,7 @@ interface Report {
         excluded: ExcludedSetting[];
         list: any[];
     };
+    issues: Issues;
     custom_configuration?: CustomConfiguration;
 }
 
@@ -228,7 +246,7 @@ const REPORT_JSON_SCHEMA = {
     "title": "MappingsReport",
     "description": "Output schema for scripts/mappings-json-report.ts",
     "type": "object",
-    "required": ["mappings", "settings"],
+    "required": ["mappings", "settings", "issues"],
     "properties": {
         "mappings": {
             "type": "object",
@@ -273,6 +291,10 @@ const REPORT_JSON_SCHEMA = {
         "custom_configuration": {
             "$ref": "#/$defs/CustomConfiguration",
             "description": "Mappings parsed from the user's custom config file (~/.surfingkeys-2026.js); omitted if the file has no mappings"
+        },
+        "issues": {
+            "$ref": "#/$defs/Issues",
+            "description": "Actionable problem lists surfacing items that need attention; design principle: list=full data, summary=aggregate counts, issues=actionable problem lists"
         }
     },
     "$defs": {
@@ -411,8 +433,8 @@ const REPORT_JSON_SCHEMA = {
                 "by_mode": { "type": "object", "description": "Count of mappings per input mode", "additionalProperties": { "type": "integer" } },
                 "by_type": { "type": "object", "description": "Count of mappings per mappingType value", "additionalProperties": { "type": "integer" } },
                 "by_handler_type": { "type": "object", "description": "Count of mappings per handler_type value", "additionalProperties": { "type": "integer" } },
-                "migrated": { "type": "integer", "description": "Mappings whose annotation has been converted to the structured AnnotationObject format" },
-                "not_migrated": { "type": "integer", "description": "Mappings still using a plain string annotation" },
+                "migrated": { "type": "integer", "description": "Deprecated — equals validation.valid + validation.invalid. Mappings whose annotation has been converted to the structured AnnotationObject format" },
+                "not_migrated": { "type": "integer", "description": "Deprecated — equals validation.not_migrated. Mappings still using a plain string annotation" },
                 "validation": {
                     "type": "object",
                     "description": "Annotation validation counts",
@@ -569,8 +591,8 @@ const REPORT_JSON_SCHEMA = {
                 "key": { "type": "string", "description": "Key sequence being mapped" },
                 "type": {
                     "type": "string",
-                    "description": "Mapping function used: mapkey, vmapkey, imapkey, cmapkey, map, or unmap",
-                    "enum": ["mapkey", "vmapkey", "imapkey", "cmapkey", "map", "unmap"]
+                    "description": "Mapping function used: mapkey, vmapkey, imapkey, cmapkey, map, unmap, or mapcmdkey",
+                    "enum": ["mapkey", "vmapkey", "imapkey", "cmapkey", "map", "unmap", "mapcmdkey"]
                 },
                 "unique_id": { "type": "string", "description": "unique_id of the built-in mapping being referenced; present for mapcmdkey variants" },
                 "description": { "type": "string", "description": "Description extracted from the annotation argument; present when available" }
@@ -584,6 +606,89 @@ const REPORT_JSON_SCHEMA = {
                 "totalFunctions": { "type": "integer", "description": "Total functions instrumented in this target" },
                 "coveredFunctions": { "type": "integer", "description": "Functions with at least one execution (count > 0)" },
                 "pct": { "type": "string", "description": "Coverage percentage string, e.g. \"88.2%\"" }
+            }
+        },
+        "Issues": {
+            "type": "object",
+            "description": "Actionable problem lists — items that need attention, surfaced from all checks. Design principle: list=full data, summary=aggregate counts, issues=actionable problem lists",
+            "required": ["annotations", "tests", "custom_mappings", "code_coverage"],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "description": "Annotation validation issues",
+                    "required": ["invalid", "not_migrated"],
+                    "properties": {
+                        "invalid": {
+                            "type": "array",
+                            "description": "Mappings with a structured annotation that fails validation (missing fields or duplicate unique_id)",
+                            "items": {
+                                "type": "object",
+                                "required": ["key", "file", "line", "errors"],
+                                "properties": {
+                                    "key": { "type": "string", "description": "Key sequence that triggers this mapping" },
+                                    "unique_id": { "type": "string", "description": "unique_id from the annotation; present when the annotation is a structured object" },
+                                    "file": { "type": "string", "description": "Relative path from src/ to the source file" },
+                                    "line": { "type": "integer", "description": "Line number in the source file" },
+                                    "errors": { "type": "array", "items": { "type": "string" }, "description": "Validation error messages" }
+                                }
+                            }
+                        },
+                        "not_migrated": {
+                            "type": "array",
+                            "description": "Mappings still using a plain string annotation instead of a structured AnnotationObject",
+                            "items": {
+                                "type": "object",
+                                "required": ["key", "file", "line"],
+                                "properties": {
+                                    "key": { "type": "string", "description": "Key sequence that triggers this mapping" },
+                                    "file": { "type": "string", "description": "Relative path from src/ to the source file" },
+                                    "line": { "type": "integer", "description": "Line number in the source file" }
+                                }
+                            }
+                        }
+                    }
+                },
+                "tests": {
+                    "type": "object",
+                    "description": "Test coverage issues",
+                    "required": ["missing", "invalid_files"],
+                    "properties": {
+                        "missing": {
+                            "type": "array",
+                            "description": "unique_ids of migrated mappings with no matching Playwright test file",
+                            "items": { "type": "string" }
+                        },
+                        "invalid_files": {
+                            "type": "array",
+                            "description": "Test file names that don't match any known unique_id or valid naming pattern",
+                            "items": { "type": "string" }
+                        }
+                    }
+                },
+                "custom_mappings": {
+                    "type": "object",
+                    "description": "Custom config coverage issues",
+                    "required": ["unmapped"],
+                    "properties": {
+                        "unmapped": {
+                            "type": "array",
+                            "description": "unique_ids of migrated mappings with no entry in the user's custom config",
+                            "items": { "type": "string" }
+                        }
+                    }
+                },
+                "code_coverage": {
+                    "type": "object",
+                    "description": "V8 code coverage issues",
+                    "required": ["missing"],
+                    "properties": {
+                        "missing": {
+                            "type": "array",
+                            "description": "unique_ids of migrated mappings with no V8 coverage data (hasData=false)",
+                            "items": { "type": "string" }
+                        }
+                    }
+                }
             }
         }
     }
@@ -2096,6 +2201,65 @@ function parseCustomConfigAST(configPath: string): CustomConfiguration {
     };
 }
 
+function generateIssues(mappings: MappingEntry[], invalidTestFiles?: string[]): Issues {
+    const annotationsInvalid: Array<{ key: string; unique_id?: string; file: string; line: number; errors: string[] }> = [];
+    const annotationsNotMigrated: Array<{ key: string; file: string; line: number }> = [];
+    const testsMissing: string[] = [];
+    const customMappingsUnmapped: string[] = [];
+    const codeCoverageMissing: string[] = [];
+
+    for (const mapping of mappings) {
+        if (mapping.validationStatus === 'invalid') {
+            annotationsInvalid.push({
+                key: mapping.key,
+                ...(typeof mapping.annotation === 'object' && mapping.annotation.unique_id
+                    ? { unique_id: mapping.annotation.unique_id }
+                    : {}),
+                file: mapping.source.file,
+                line: mapping.source.line,
+                errors: mapping.validationErrors ?? []
+            });
+        } else if (mapping.validationStatus === 'not_migrated') {
+            annotationsNotMigrated.push({
+                key: mapping.key,
+                file: mapping.source.file,
+                line: mapping.source.line
+            });
+        }
+
+        const uid = typeof mapping.annotation === 'object' ? mapping.annotation.unique_id : undefined;
+
+        if (uid) {
+            if (mapping.test_coverage && !mapping.test_coverage.hasTest) {
+                testsMissing.push(uid);
+            }
+            if (mapping.custom_mapping && !mapping.custom_mapping.hasMapping) {
+                customMappingsUnmapped.push(uid);
+            }
+            if (mapping.code_coverage && !mapping.code_coverage.hasData) {
+                codeCoverageMissing.push(uid);
+            }
+        }
+    }
+
+    return {
+        annotations: {
+            invalid: annotationsInvalid,
+            not_migrated: annotationsNotMigrated
+        },
+        tests: {
+            missing: testsMissing.sort(),
+            invalid_files: (invalidTestFiles ?? []).slice().sort()
+        },
+        custom_mappings: {
+            unmapped: customMappingsUnmapped.sort()
+        },
+        code_coverage: {
+            missing: codeCoverageMissing.sort()
+        }
+    };
+}
+
 // ============================================================================
 // MAIN
 // ============================================================================
@@ -2141,12 +2305,16 @@ function buildReport(): Report {
     const coverageSummary = generateCoverageStats(mappings, coverageRawDir);
     summary.code_coverage = coverageSummary;
 
+    // Generate actionable issues (must run after all per-mapping fields are populated)
+    const issues = generateIssues(mappings, summary.tests?.invalid_test_names);
+
     return {
         mappings: {
             summary,
             list: mappings
         },
         settings: settingsStats,
+        issues,
         ...(customConfig.mappings.length > 0 && { custom_configuration: customConfig })
     };
 }
