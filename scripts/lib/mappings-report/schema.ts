@@ -14,9 +14,10 @@ export const REPORT_JSON_SCHEMA = {
             "description": "All keyboard mappings extracted from source files, with aggregate statistics and a flat list of entries",
             "required": ["summary", "list"],
             "properties": {
-                "summary": { "$ref": "#/$defs/Summary" },
+                "summary": { "$ref": "#/$defs/Summary", "description": "Aggregate statistics for all mappings" },
                 "list": {
                     "type": "array",
+                    "description": "Flat list of all mapping entries extracted from source files",
                     "items": { "$ref": "#/$defs/MappingEntry" }
                 }
             }
@@ -28,6 +29,7 @@ export const REPORT_JSON_SCHEMA = {
             "properties": {
                 "summary": {
                     "type": "object",
+                    "description": "Aggregate statistics for all settings usages found across source files",
                     "required": ["total_usages", "unique_settings", "runtime_conf_settings", "settings_api", "excluded_count"],
                     "properties": {
                         "total_usages": { "type": "integer", "description": "Total number of individual setting accesses found across all source files, after excluded settings are filtered out" },
@@ -177,8 +179,8 @@ export const REPORT_JSON_SCHEMA = {
                             "type": "object",
                             "description": "Per-target function coverage aggregated across all test cases",
                             "properties": {
-                                "content": { "$ref": "#/$defs/TargetCoverage" },
-                                "background": { "$ref": "#/$defs/TargetCoverage" }
+                                "content": { "$ref": "#/$defs/TargetCoverage", "description": "Coverage stats for the content script target" },
+                                "background": { "$ref": "#/$defs/TargetCoverage", "description": "Coverage stats for the service worker (background) target" }
                             }
                         }
                     }
@@ -332,6 +334,7 @@ export const REPORT_JSON_SCHEMA = {
             "properties": {
                 "summary": {
                     "type": "object",
+                    "description": "Aggregate statistics for the custom config file",
                     "required": ["total"],
                     "properties": {
                         "total": { "type": "integer", "description": "Total number of mapping calls found in the custom config file" }

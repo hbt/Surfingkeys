@@ -70,17 +70,50 @@ export function buildReport(): Report {
     };
 }
 
+function findMissingDescriptions(node: unknown, path: string, requireDesc: boolean): string[] {
+    if (typeof node !== 'object' || node === null) return [];
+    const obj = node as Record<string, unknown>;
+    const missing: string[] = [];
+
+    if (requireDesc && !('description' in obj)) {
+        missing.push(path);
+    }
+
+    if (typeof obj.properties === 'object' && obj.properties !== null) {
+        for (const [key, val] of Object.entries(obj.properties)) {
+            missing.push(...findMissingDescriptions(val, `${path}/properties/${key}`, true));
+        }
+    }
+
+    if (typeof obj.$defs === 'object' && obj.$defs !== null) {
+        for (const [key, val] of Object.entries(obj.$defs)) {
+            missing.push(...findMissingDescriptions(val, `$defs/${key}`, true));
+        }
+    }
+
+    if (typeof obj.items === 'object' && obj.items !== null) {
+        missing.push(...findMissingDescriptions(obj.items, `${path}/items`, false));
+    }
+
+    return missing;
+}
+
 export function runIntegrityCheck(): void {
     const report = buildReport();
 
     const ajv = new Ajv({ strict: false });
     const validate = ajv.compile(REPORT_JSON_SCHEMA);
     const valid = validate(report);
+    const schemaErrors = validate.errors?.map(e => `${e.instancePath} ${e.message}`) ?? [];
 
+    const missingDescriptions = findMissingDescriptions(REPORT_JSON_SCHEMA, '', false);
+
+    const ok = valid && missingDescriptions.length === 0;
     const result = {
-        integrity: valid ? 'ok' : 'fail',
-        errors: validate.errors?.map(e => `${e.instancePath} ${e.message}`) ?? []
+        integrity: ok ? 'ok' : 'fail',
+        errors: schemaErrors,
+        missing_descriptions: missingDescriptions,
     };
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
-    process.exit(valid ? 0 : 1);
+    process.exit(ok ? 0 : 1);
 }
