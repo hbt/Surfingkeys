@@ -1,0 +1,192 @@
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+export interface AnnotationObject {
+    short: string;
+    unique_id: string;
+    category: string;
+    description: string;
+    tags: string[]; // Must have at least one tag
+}
+
+export interface MappingEntry {
+    key: string;
+    mode: string;
+    annotation: string | AnnotationObject;
+    source: {
+        file: string;
+        line: number;
+    };
+    mappingType: 'mapkey' | 'direct' | 'search_alias' | 'command';
+    handler_type?: 'inline' | 'named' | 'bound' | 'method' | 'uncaptured' | 'synthetic' | 'unknown';
+    handler_name?: string;  // present when handler_type is named/bound/method
+    mapping_options?: {
+        feature_group?: number;
+        repeatIgnore?: boolean;
+        code?: any;
+        stopPropagation?: any;
+        [key: string]: any;  // Allow other discovered options
+    };
+    runtime_options?: {
+        accepts_count: boolean;
+    };
+    validationStatus?: 'valid' | 'invalid' | 'not_migrated';
+    validationErrors?: string[];
+    test_coverage?: {
+        hasTest: boolean;
+        testFiles?: string[];
+    };
+    custom_mapping?: {
+        hasMapping: boolean;
+        mappings?: Array<{ key: string; type: string }>;
+    };
+    code_coverage?: {
+        hasData: boolean;
+        testCaseCount: number;
+        targets: {
+            content?: {
+                totalFunctions: number;
+                coveredFunctions: number;
+                pct: string;
+            };
+            background?: {
+                totalFunctions: number;
+                coveredFunctions: number;
+                pct: string;
+            };
+        };
+    };
+}
+
+export interface Summary {
+    total: number;
+    by_mode: Record<string, number>;
+    by_type: Record<string, number>;
+    by_handler_type: Record<string, number>;
+    migrated: number;
+    not_migrated: number;
+    validation: {
+        valid: number;
+        invalid: number;
+        not_migrated: number;
+    };
+    // Configuration options discovery
+    config_options: {
+        [optionName: string]: {
+            count: number;
+            percentage: string;
+            sample_values: any[];
+        };
+    };
+    // Test coverage tracking
+    tests?: {
+        total_with_tests: number;
+        total_without_tests: number;
+        invalid_test_names: string[];
+    };
+    // Custom mapping coverage
+    custom_mapping_coverage?: {
+        mapped: number;
+        unmapped: number;
+    };
+    code_coverage?: {
+        with_data: number;
+        without_data: number;
+        content_only: number;
+        background_only: number;
+        both: number;
+    };
+}
+
+export interface Issues {
+    annotations: {
+        invalid: Array<{ key: string; unique_id?: string; file: string; line: number; errors: string[] }>;
+        not_migrated: Array<{ key: string; file: string; line: number }>;
+    };
+    tests: {
+        missing: string[];          // unique_ids with no test file
+        invalid_files: string[];    // test file names matching no known unique_id
+    };
+    custom_mappings: {
+        unmapped: string[];         // unique_ids with no entry in custom config
+    };
+    code_coverage: {
+        missing: string[];          // unique_ids with hasData=false
+    };
+}
+
+export interface SettingUsage {
+    setting: string;           // e.g., "scrollStepSize"
+    type: 'runtime.conf' | 'settings';
+    file: string;
+    line: number;
+    functionName: string;      // Function where it's used
+    context: 'read' | 'write'; // Whether it's being read or written
+}
+
+export interface SettingStats {
+    setting: string;
+    type: 'runtime.conf' | 'settings';
+    count: number;
+    files: Set<string>;
+    functions: Set<string>;
+    usages: SettingUsage[];
+}
+
+export interface ExcludedSetting {
+    name: string;
+    reason: string;
+}
+
+export interface SettingsAnnotation {
+    short: string;
+    unique_id: string;
+    category: string;
+    description: string;
+    tags: string[];
+    valueType: string;
+    valueDescription?: string;
+    values?: any[];
+    default?: any;
+}
+
+export interface CustomConfigMapping {
+    key: string;
+    type: 'mapkey' | 'vmapkey' | 'imapkey' | 'cmapkey' | 'map' | 'unmap';
+    unique_id?: string;
+    description?: string;
+}
+
+export interface CustomConfiguration {
+    summary: {
+        total: number;
+    };
+    mappings: CustomConfigMapping[];
+}
+
+export interface Report {
+    mappings: {
+        summary: Summary;
+        list: MappingEntry[];
+    };
+    settings: {
+        summary: {
+            total_usages: number;
+            unique_settings: number;
+            runtime_conf_settings: number;
+            settings_api: number;
+            excluded_count: number;
+        };
+        excluded: ExcludedSetting[];
+        list: any[];
+    };
+    issues: Issues;
+    custom_configuration?: CustomConfiguration;
+}
+
+export interface TargetStats {
+    totalFunctions: number;
+    coveredFunctions: number;
+    pct: string;
+}
