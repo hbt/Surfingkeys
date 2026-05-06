@@ -90,11 +90,14 @@ Check IDs:
 
 async function runCheck(check: Check): Promise<CheckResult> {
     const start = Date.now();
+    const binPath = `${process.cwd()}/node_modules/.bin`;
+    const env = { ...process.env, PATH: `${binPath}:${process.env.PATH}` };
     const proc = Bun.spawn({
         cmd: check.cmd,
         stdout: 'pipe',
         stderr: 'pipe',
         cwd: process.cwd(),
+        env,
     });
 
     const [stdout, stderr, exitCode] = await Promise.all([
