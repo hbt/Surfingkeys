@@ -2336,6 +2336,8 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         mapkey(';x', {
             short: "Close tabs by URL",
             unique_id: "cmd_close_tabs_by_url",
+            category: "omnibar",
+            description: "Open omnibar to close tabs whose URL matches a pattern",
             tags: ["omnibar", "tabs"],
         }, function() {
             front.openOmnibar({type: "CloseTabs"});
