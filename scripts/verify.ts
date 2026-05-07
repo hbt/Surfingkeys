@@ -17,7 +17,7 @@ interface Check {
     id: string;
     label: string;
     cmd: string[];
-    group: 'fast' | 'slow';
+    group: 'fast' | 'slow' | 'personal';
 }
 
 interface CheckResult {
@@ -59,6 +59,12 @@ const CHECKS: Check[] = [
         cmd: ['bun', 'scripts/cov-parallel.ts'],
         group: 'slow',
     },
+    {
+        id: 'custom-mappings',
+        label: 'Custom mappings audit',
+        cmd: ['bun', 'scripts/audit-custom-mappings.ts'],
+        group: 'personal',
+    },
 ];
 
 function printHelp() {
@@ -69,16 +75,17 @@ Usage:
   bun scripts/verify.ts [flags]
 
 Flags:
-  (none)          Run fast checks (default): lint, integrity, validate
-  --fast    -f    Run fast checks: lint, integrity, validate
-  --slow    -s    Run slow checks: tests, coverage
-  --full          Run all checks: fast + slow
-  --only <id>     Run a single check by ID
-  --help    -h    Print this usage message
+  (none)            Run fast checks (default): lint, integrity, issues
+  --fast    -f      Run fast checks: lint, integrity, issues
+  --slow    -s      Run slow checks: tests, coverage
+  --personal  -p    Run personal checks: custom-mappings audit
+  --full            Run all checks: fast + slow + personal
+  --only <id>       Run a single check by ID
+  --help    -h      Print this usage message
 
 Check IDs:
 `);
-    const groups = ['fast', 'slow'] as const;
+    const groups = ['fast', 'slow', 'personal'] as const;
     for (const g of groups) {
         console.log(`  [${g}]`);
         for (const c of CHECKS.filter(x => x.group === g)) {
@@ -130,7 +137,7 @@ function printResult(result: CheckResult) {
 }
 
 async function runAll(checks: Check[]): Promise<CheckResult[]> {
-    const fast = checks.filter(c => c.group === 'fast');
+    const fast = checks.filter(c => c.group === 'fast' || c.group === 'personal');
     const slow = checks.filter(c => c.group === 'slow');
     const results: CheckResult[] = [];
 
@@ -174,11 +181,13 @@ function selectChecks(argv: string[]): Check[] | null {
 
     const wantFull = argv.includes('--full');
     const wantSlow = argv.includes('--slow') || argv.includes('-s') || wantFull;
-    const wantFast = !wantSlow || wantFull || argv.includes('--fast') || argv.includes('-f');
+    const wantPersonal = argv.includes('--personal') || argv.includes('-p') || wantFull;
+    const wantFast = (!wantSlow && !wantPersonal) || wantFull || argv.includes('--fast') || argv.includes('-f');
 
     return CHECKS.filter(c =>
         (c.group === 'fast' && wantFast) ||
-        (c.group === 'slow' && wantSlow)
+        (c.group === 'slow' && wantSlow) ||
+        (c.group === 'personal' && wantPersonal)
     );
 }
 
@@ -196,18 +205,30 @@ async function main() {
 
     console.log('\n' + '═'.repeat(50));
 
-    if (failed.length === 0) {
+    // Personal checks are informational — always show their output, never count as failures
+    const personalIds = new Set(checks.filter(c => c.group === 'personal').map(c => c.id));
+    const personalResults = results.filter(r => personalIds.has(r.id));
+    const blockingFailed = failed.filter(r => !personalIds.has(r.id));
+
+    if (blockingFailed.length === 0) {
         console.log(`  ✅ All ${results.length} check${results.length === 1 ? '' : 's'} passed (${fmtDuration(totalMs)} total)\n`);
     } else {
-        console.log(`  ❌ ${failed.length} of ${results.length} check${results.length === 1 ? '' : 's'} failed\n`);
-        for (const r of failed) {
+        console.log(`  ❌ ${blockingFailed.length} of ${results.length} check${results.length === 1 ? '' : 's'} failed\n`);
+        for (const r of blockingFailed) {
             console.log(`\n--- ${r.id} output ---`);
             console.log(r.output || '(no output)');
         }
         console.log();
     }
 
-    process.exit(failed.length > 0 ? 1 : 0);
+    // Always print personal check output (informational)
+    for (const r of personalResults) {
+        if (r.output) {
+            console.log(r.output);
+        }
+    }
+
+    process.exit(blockingFailed.length > 0 ? 1 : 0);
 }
 
 main().catch(err => {
