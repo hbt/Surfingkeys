@@ -29,6 +29,12 @@ const { issues } = report;
 // Commands excluded from tests.missing / code_coverage.missing:
 // - cmd_chrome_*: Chrome internal pages (chrome://) inaccessible to Playwright
 // - Global mode commands: state side-effects break parallel test suite
+// - TTS/Voice: requires audio / speech synthesis API
+// - Proxy: requires system proxy configuration
+// - Markdown viewer: sk-internal extension page, not a standard URL
+// - Quit Chrome: terminates the browser mid-test
+// - LLM/AI: external API dependency
+// - Incognito: opens new incognito window (separate context)
 const EXCLUDED_IDS = new Set([
     // Chrome internal pages
     'cmd_chrome_about',
@@ -47,6 +53,31 @@ const EXCLUDED_IDS = new Set([
     'cmd_passthrough_ephemeral',
     'cmd_lurk_enter_normal',
     'cmd_lurk_ephemeral_normal',
+    // TTS / Voice — requires audio / speech synthesis API
+    'cmd_list_voices',
+    'cmd_test_voices',
+    'cmd_stop_reading',
+    'cmd_tools_read_text',
+    // Proxy — requires system proxy configuration
+    'cmd_paste_proxy',
+    'cmd_proxy_copy_info',
+    'cmd_proxy_toggle_site',
+    'cmd_set_proxy',
+    'cmd_set_proxy_mode',
+    // Markdown viewer — sk-internal extension page
+    'cmd_markdown_copy_html',
+    'cmd_markdown_edit_source',
+    'cmd_markdown_open_file',
+    'cmd_markdown_switch_parser',
+    'cmd_markdown_toggle_section',
+    // Quit Chrome — terminates the browser
+    'cmd_quit_chrome',
+    'cmd_session_save_quit',
+    // LLM / AI — external API dependency
+    'cmd_omnibar_llm_chat',
+    'cmd_visual_llm_chat',
+    // Incognito — opens new incognito window (separate context)
+    'cmd_nav_incognito',
 ]);
 
 const excluded = (id: string) => EXCLUDED_IDS.has(id);
