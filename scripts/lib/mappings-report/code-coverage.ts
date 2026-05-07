@@ -11,16 +11,23 @@ export function loadCoverageStats(uniqueId: string, coverageRawDir: string): {
     testCaseCount: number;
     targets: { content?: TargetStats; background?: TargetStats };
 } {
-    // Collect all candidate idDirs: direct path + runs/*/<uniqueId>
+    // Collect candidate idDirs: direct path + latest run/*/<uniqueId> only
     const candidateDirs: string[] = [];
     const directDir = path.join(coverageRawDir, uniqueId);
     if (fs.existsSync(directDir)) candidateDirs.push(directDir);
     const runsDir = path.join(coverageRawDir, 'runs');
     if (fs.existsSync(runsDir)) {
-        for (const runEntry of fs.readdirSync(runsDir, { withFileTypes: true })) {
-            if (!runEntry.isDirectory()) continue;
-            const runIdDir = path.join(runsDir, runEntry.name, uniqueId);
-            if (fs.existsSync(runIdDir)) candidateDirs.push(runIdDir);
+        const sortedRuns = fs.readdirSync(runsDir, { withFileTypes: true })
+            .filter(e => e.isDirectory())
+            .map(e => e.name)
+            .sort()
+            .reverse(); // latest first (ISO timestamp dirs sort lexicographically)
+        for (const runName of sortedRuns) {
+            const runIdDir = path.join(runsDir, runName, uniqueId);
+            if (fs.existsSync(runIdDir)) {
+                candidateDirs.push(runIdDir);
+                break; // use only the most recent run that has data for this id
+            }
         }
     }
     if (candidateDirs.length === 0) {
@@ -52,12 +59,11 @@ export function loadCoverageStats(uniqueId: string, coverageRawDir: string): {
         }
     }
 
-    // Walk each candidate dir; prefix testCaseKey with the candidate dir index to avoid collisions
-    for (let i = 0; i < candidateDirs.length; i++) {
-        const idDir = candidateDirs[i];
+    // Walk each candidate dir
+    for (const idDir of candidateDirs) {
         for (const entry of fs.readdirSync(idDir, { withFileTypes: true })) {
             if (entry.isDirectory()) {
-                walkDir(path.join(idDir, entry.name), idDir, `${i}:${entry.name}`);
+                walkDir(path.join(idDir, entry.name), idDir, entry.name);
             }
         }
     }
