@@ -35,6 +35,7 @@ const { issues } = report;
 // - Quit Chrome: terminates the browser mid-test
 // - LLM/AI: external API dependency
 // - Incognito: opens new incognito window (separate context)
+// - Neovim: requires native messaging host + nvim --headless + WebSocket
 const EXCLUDED_IDS = new Set([
     // Chrome internal pages
     'cmd_chrome_about',
@@ -78,6 +79,10 @@ const EXCLUDED_IDS = new Set([
     'cmd_visual_llm_chat',
     // Incognito — opens new incognito window (separate context)
     'cmd_nav_incognito',
+    // Neovim — requires native messaging host + nvim --headless + WebSocket + PIXI.js renderer
+    'cmd_neovim_enable_input',
+    'cmd_insert_neovim_editor',
+    'cmd_tools_neovim',
 ]);
 
 const excluded = (id: string) => EXCLUDED_IDS.has(id);
