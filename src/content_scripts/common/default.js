@@ -1587,16 +1587,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         RUNTIME("moveToWindowMagic", {magic: 'AllInWindow'});
     });
     mapkey('g-006', {
-        short: "Detach all tabs in all windows except current",
-        unique_id: "cmd_tab_detach_magic_all_windows",
-        feature_group: 3,
-        category: "tabs",
-        description: "Move all tabs in all windows except the active tab into a new window",
-        tags: ["tabs", "detach", "magic", "window"]
-    }, function() {
-        RUNTIME("moveToWindowMagic", {magic: 'AllExceptActiveAllWindows'});
-    });
-    mapkey('g-007', {
         short: "Detach child tabs",
         unique_id: "cmd_tab_detach_magic_children",
         feature_group: 3,
@@ -1616,7 +1606,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'DirectionRight'});
     });
-    mapkey('g-008', {
+    mapkey('g-007', {
         short: "Detach tabs to the right and current into new window",
         unique_id: "cmd_tab_detach_magic_right_inclusive",
         feature_group: 3,
@@ -1636,7 +1626,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'DirectionLeft'});
     });
-    mapkey('g-009', {
+    mapkey('g-008', {
         short: "Detach tabs to the left and current into new window",
         unique_id: "cmd_tab_detach_magic_left_inclusive",
         feature_group: 3,
@@ -1646,7 +1636,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'DirectionLeftInclusive'});
     });
-    mapkey('g-010', {
+    mapkey('g-009', {
         short: "Detach descendant tabs recursively",
         unique_id: "cmd_tab_detach_magic_children_recursive",
         feature_group: 3,
@@ -1656,7 +1646,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'ChildrenTabsRecursively'});
     });
-    mapkey('g-011', {
+    mapkey('g-010', {
         short: "Detach all tabs in other windows",
         unique_id: "cmd_tab_detach_magic_other_windows",
         feature_group: 3,
@@ -1666,7 +1656,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'AllOtherWindowsTabs'});
     });
-    mapkey('g-012', {
+    mapkey('g-011', {
         short: "Detach other windows without pinned tabs",
         unique_id: "cmd_tab_detach_magic_other_windows_no_pinned",
         feature_group: 3,
@@ -1676,7 +1666,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'OtherWindowsNoPinned'});
     });
-    mapkey('g-013', {
+    mapkey('g-012', {
         short: "Detach all incognito tabs",
         unique_id: "cmd_tab_detach_magic_incognito",
         feature_group: 3,
@@ -1724,7 +1714,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         copyTabUrlsMagic('ChildrenTabs');
     });
-    mapkey('g-014', {
+    mapkey('g-013', {
         short: "Copy current tab URL",
         unique_id: "cmd_tab_copy_urls_magic_current",
         feature_group: 3,
@@ -1734,7 +1724,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         copyTabUrlsMagic('CurrentTab');
     });
-    mapkey('g-015', {
+    mapkey('g-014', {
         short: "Copy URLs of all tabs in current window",
         unique_id: "cmd_tab_copy_urls_magic_all_window",
         feature_group: 3,
@@ -1744,7 +1734,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         copyTabUrlsMagic('AllInWindow');
     });
-    mapkey('g-016', {
+    mapkey('g-015', {
         short: "Copy URLs of all tabs except current across all windows",
         unique_id: "cmd_tab_copy_urls_magic_all_windows",
         feature_group: 3,
@@ -1754,7 +1744,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         copyTabUrlsMagic('AllExceptActiveAllWindows');
     });
-    mapkey('g-017', {
+    mapkey('g-016', {
         short: "Copy URLs of tabs to the left",
         unique_id: "cmd_tab_copy_urls_magic_left",
         feature_group: 3,
@@ -1764,7 +1754,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         copyTabUrlsMagic('DirectionLeft');
     });
-    mapkey('g-018', {
+    mapkey('g-017', {
         short: "Copy URLs of current tab and tabs to the left",
         unique_id: "cmd_tab_copy_urls_magic_left_inclusive",
         feature_group: 3,
@@ -1774,7 +1764,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         copyTabUrlsMagic('DirectionLeftInclusive');
     });
-    mapkey('g-019', {
+    mapkey('g-018', {
         short: "Copy URLs of current tab and tabs to the right",
         unique_id: "cmd_tab_copy_urls_magic_right_inclusive",
         feature_group: 3,
@@ -1784,7 +1774,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         copyTabUrlsMagic('DirectionRightInclusive');
     });
-    mapkey('g-020', {
+    mapkey('g-019', {
         short: "Copy URLs of descendant tabs recursively",
         unique_id: "cmd_tab_copy_urls_magic_children_recursive",
         feature_group: 3,
@@ -1794,7 +1784,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         copyTabUrlsMagic('ChildrenTabsRecursively');
     });
-    mapkey('g-021', {
+    mapkey('g-020', {
         short: "Copy URLs of all tabs in other windows",
         unique_id: "cmd_tab_copy_urls_magic_other_windows",
         feature_group: 3,
@@ -1804,7 +1794,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         copyTabUrlsMagic('AllOtherWindowsTabs');
     });
-    mapkey('g-022', {
+    mapkey('g-021', {
         short: "Copy URLs from other windows without pinned tabs",
         unique_id: "cmd_tab_copy_urls_magic_other_windows_no_pinned",
         feature_group: 3,
@@ -1814,7 +1804,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         copyTabUrlsMagic('OtherWindowsNoPinned');
     });
-    mapkey('g-023', {
+    mapkey('g-022', {
         short: "Copy URLs of all incognito tabs",
         unique_id: "cmd_tab_copy_urls_magic_incognito",
         feature_group: 3,
@@ -1826,7 +1816,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     });
 
     // Group G — Reload Magic
-    mapkey('g-024', {
+    mapkey('g-023', {
         short: "Reload tabs to the right",
         unique_id: "cmd_tab_reload_magic_right",
         feature_group: 3,
@@ -1836,7 +1826,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionRight'});
     });
-    mapkey('g-025', {
+    mapkey('g-024', {
         short: "Reload tabs to the left",
         unique_id: "cmd_tab_reload_magic_left",
         feature_group: 3,
@@ -1846,7 +1836,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionLeft'});
     });
-    mapkey('g-026', {
+    mapkey('g-025', {
         short: "Reload all except current",
         unique_id: "cmd_tab_reload_magic_except_active",
         feature_group: 3,
@@ -1856,7 +1846,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'AllExceptActive'});
     });
-    mapkey('g-027', {
+    mapkey('g-026', {
         short: "Reload all tabs in window",
         unique_id: "cmd_tab_reload_magic_all_window",
         feature_group: 3,
@@ -1866,7 +1856,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'AllInWindow'});
     });
-    mapkey('g-028', {
+    mapkey('g-027', {
         short: "Reload all tabs in all windows except current",
         unique_id: "cmd_tab_reload_magic_all_windows",
         feature_group: 3,
@@ -1876,7 +1866,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'AllExceptActiveAllWindows'});
     });
-    mapkey('g-029', {
+    mapkey('g-028', {
         short: "Reload child tabs",
         unique_id: "cmd_tab_reload_magic_children",
         feature_group: 3,
@@ -1886,7 +1876,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'ChildrenTabs'});
     });
-    mapkey('g-030', {
+    mapkey('g-029', {
         short: "Reload current and all to the right",
         unique_id: "cmd_tab_reload_magic_right_inclusive",
         feature_group: 3,
@@ -1896,7 +1886,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionRightInclusive'});
     });
-    mapkey('g-031', {
+    mapkey('g-030', {
         short: "Reload current and all to the left",
         unique_id: "cmd_tab_reload_magic_left_inclusive",
         feature_group: 3,
@@ -1906,7 +1896,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionLeftInclusive'});
     });
-    mapkey('g-032', {
+    mapkey('g-031', {
         short: "Reload descendant tabs recursively",
         unique_id: "cmd_tab_reload_magic_children_recursive",
         feature_group: 3,
@@ -1916,7 +1906,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'ChildrenTabsRecursively'});
     });
-    mapkey('g-033', {
+    mapkey('g-032', {
         short: "Reload all tabs in other windows",
         unique_id: "cmd_tab_reload_magic_other_windows",
         feature_group: 3,
@@ -1926,7 +1916,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'AllOtherWindowsTabs'});
     });
-    mapkey('g-034', {
+    mapkey('g-033', {
         short: "Reload other windows without pinned tabs",
         unique_id: "cmd_tab_reload_magic_other_windows_no_pinned",
         feature_group: 3,
@@ -1936,7 +1926,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'OtherWindowsNoPinned'});
     });
-    mapkey('g-035', {
+    mapkey('g-034', {
         short: "Reload all incognito tabs",
         unique_id: "cmd_tab_reload_magic_incognito",
         feature_group: 3,
@@ -1945,28 +1935,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         tags: ["tabs", "reload", "magic"]
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'AllIncognitoTabs'});
-    });
-
-    // Group F — Reverse Tab Order Magic
-    mapkey('gRc', {
-        short: "Reverse order of all tabs except active",
-        unique_id: "cmd_tab_reverse_magic_all",
-        feature_group: 3,
-        category: "tabs",
-        description: "Reverse the order of all tabs in current window except the active tab",
-        tags: ["tabs", "reverse", "magic"]
-    }, function() {
-        RUNTIME("reverseTabMagic", {magic: 'AllExceptActive'});
-    });
-    mapkey('gRe', {
-        short: "Reverse order of tabs to the right",
-        unique_id: "cmd_tab_reverse_magic_right",
-        feature_group: 3,
-        category: "tabs",
-        description: "Reverse the order of tabs to the right of the current tab",
-        tags: ["tabs", "reverse", "magic"]
-    }, function() {
-        RUNTIME("reverseTabMagic", {magic: 'DirectionRight'});
     });
 
     mapkey(';e', {

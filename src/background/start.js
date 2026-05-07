@@ -1504,27 +1504,6 @@ function start(browser) {
         });
     };
 
-    self.reverseTabMagic = function(message, sender, sendResponse) {
-        chrome.tabs.query({currentWindow: true}, function(tabs) {
-            var tabIds = tabHandleMagic(message.magic, sender.tab, 1, tabs);
-            if (tabIds.length < 2) return;
-            var idSet = new Set(tabIds);
-            var targetTabs = tabs.filter(function(t) { return idSet.has(t.id); });
-            // Collect original indices in order
-            var originalIndices = targetTabs.map(function(t) { return t.index; });
-            // Reversed tab ids
-            var reversedIds = targetTabs.map(function(t) { return t.id; }).reverse();
-            // Move each tab to the corresponding original index sequentially
-            reversedIds.reduce(function(promise, id, i) {
-                return promise.then(function() {
-                    return new Promise(function(resolve) {
-                        chrome.tabs.move(id, { index: originalIndices[i] }, resolve);
-                    });
-                });
-            }, Promise.resolve());
-        });
-    };
-
     self.bookmarkTabsMagic = function(message, sender, sendResponse) {
         chrome.tabs.query({currentWindow: true}, function(tabs) {
             var repeats = message.repeats || 1;
