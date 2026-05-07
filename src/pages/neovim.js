@@ -37,7 +37,13 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
                 document.body.classList.add("neovim-disabled");
             } else {
                 normal.exit();
-                api.mapkey('<Alt-i>', '', function() {
+                api.mapkey('<Alt-i>', {
+                    short: 'Enable Neovim input',
+                    unique_id: 'cmd_neovim_enable_input',
+                    category: 'Neovim',
+                    description: 'Enable Neovim input mode and remove the disabled state',
+                    tags: ['neovim'],
+                }, function() {
                     document.body.classList.remove("neovim-disabled");
                     normal.exit();
                 });

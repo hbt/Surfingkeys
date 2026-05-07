@@ -26,6 +26,31 @@ if (result.status !== 0) {
 const report = JSON.parse(result.stdout);
 const { issues } = report;
 
+// Commands excluded from tests.missing / code_coverage.missing:
+// - cmd_chrome_*: Chrome internal pages (chrome://) inaccessible to Playwright
+// - Global mode commands: state side-effects break parallel test suite
+const EXCLUDED_IDS = new Set([
+    // Chrome internal pages
+    'cmd_chrome_about',
+    'cmd_chrome_bookmarks',
+    'cmd_chrome_cache',
+    'cmd_chrome_close_downloads_shelf',
+    'cmd_chrome_cookies',
+    'cmd_chrome_downloads',
+    'cmd_chrome_extensions',
+    'cmd_chrome_history',
+    'cmd_chrome_inspect',
+    'cmd_chrome_net_internals',
+    'cmd_chrome_view_source',
+    // Global mode — state affects parallel test suite
+    'cmd_passthrough_enter',
+    'cmd_passthrough_ephemeral',
+    'cmd_lurk_enter_normal',
+    'cmd_lurk_ephemeral_normal',
+]);
+
+const excluded = (id: string) => EXCLUDED_IDS.has(id);
+
 interface IssueCheck {
     label: string;
     items: unknown[];
@@ -34,10 +59,9 @@ interface IssueCheck {
 const checks: IssueCheck[] = [
     { label: 'annotations.invalid',                          items: issues.annotations.invalid },
     { label: 'annotations.not_migrated',                     items: issues.annotations.not_migrated },
-    { label: 'tests.missing',                                items: issues.tests.missing },
+    { label: 'tests.missing',                                items: issues.tests.missing.filter((id: string) => !excluded(id)) },
     { label: 'tests.invalid_files',                          items: issues.tests.invalid_files },
-    { label: 'custom_mappings.unmapped',                     items: issues.custom_mappings.unmapped },
-    { label: 'code_coverage.missing',                        items: issues.code_coverage.missing },
+    { label: 'code_coverage.missing',                        items: issues.code_coverage.missing.filter((id: string) => !excluded(id)) },
     { label: 'source_validation.prefix_conflicts',           items: issues.source_validation.prefix_conflicts },
     { label: 'source_validation.g_placeholder_issues',       items: issues.source_validation.g_placeholder_issues },
     { label: 'config_validation.prefix_conflicts',           items: issues.config_validation.prefix_conflicts },

@@ -29,6 +29,10 @@ export function generateIssues(
                 errors: mapping.validationErrors ?? []
             });
         } else if (mapping.validationStatus === 'not_migrated') {
+            // Skip search_alias auto-generated keys (addSearchAlias dynamic entries)
+            if (mapping.mappingType === 'search_alias') continue;
+            // Skip scanner artifacts from api.js where key couldn't be resolved
+            if (mapping.key?.startsWith('<Identifier:')) continue;
             annotationsNotMigrated.push({
                 key: mapping.key,
                 file: mapping.source.file,

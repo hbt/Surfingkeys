@@ -19,7 +19,14 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
 
     var desc, content;
 
-    mapkey(';h', '#99Toggle this section', function() {
+    mapkey(';h', {
+        short: 'Toggle section',
+        unique_id: 'cmd_markdown_toggle_section',
+        category: 'Markdown',
+        description: 'Toggle the header description panel in the markdown viewer',
+        tags: ['markdown'],
+        feature_group: 99,
+    }, function() {
         if (desc.style.display !== "none") {
             content.style.height = "100vh";
             desc.style.display = "none";
@@ -33,8 +40,12 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
         var words = normal.mappings.getWords().map(function(w) {
             var meta = normal.mappings.find(w).meta;
             w = KeyboardUtils.decodeKeystroke(w);
-            if (meta.annotation && meta.annotation.length && meta.feature_group === 99) {
-                return `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${meta.annotation}</span></div>`;
+            if (meta.feature_group === 99) {
+                var annotText = typeof meta.annotation === 'object' && meta.annotation !== null
+                    ? meta.annotation.short
+                    : (Array.isArray(meta.annotation) ? meta.annotation[0] : meta.annotation);
+                if (!annotText) return null;
+                return `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotText}</span></div>`;
             }
             return null;
         }).filter(function(w) {
@@ -68,16 +79,37 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
         }
     }
 
-    mapkey('sm', '#99Edit markdown source', function() {
+    mapkey('sm', {
+        short: 'Edit markdown source',
+        unique_id: 'cmd_markdown_edit_source',
+        category: 'Markdown',
+        description: 'Open the markdown source in a vim editor for editing',
+        tags: ['markdown', 'editor'],
+        feature_group: 99,
+    }, function() {
         Front.showEditor(_source, previewMarkdown, 'markdown');
     });
 
-    mapkey(';s', '#99Switch markdown parser', function() {
+    mapkey(';s', {
+        short: 'Switch markdown parser',
+        unique_id: 'cmd_markdown_switch_parser',
+        category: 'Markdown',
+        description: 'Toggle between local and GitHub API markdown rendering',
+        tags: ['markdown'],
+        feature_group: 99,
+    }, function() {
         runtime.conf.useLocalMarkdownAPI = !runtime.conf.useLocalMarkdownAPI;
         previewMarkdown(_source);
     });
 
-    mapkey('cc', '#99Copy generated html code', function() {
+    mapkey('cc', {
+        short: 'Copy generated HTML',
+        unique_id: 'cmd_markdown_copy_html',
+        category: 'Markdown',
+        description: 'Copy the generated HTML code from the markdown preview to clipboard',
+        tags: ['markdown', 'clipboard'],
+        feature_group: 99,
+    }, function() {
         Clipboard.write(markdownBody.innerHTML);
     });
 
@@ -108,7 +140,14 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
         previewMarkdownFile();
     };
 
-    mapkey('of', '#99Open local file.', function() {
+    mapkey('of', {
+        short: 'Open local file',
+        unique_id: 'cmd_markdown_open_file',
+        category: 'Markdown',
+        description: 'Open a local markdown file for preview',
+        tags: ['markdown', 'file'],
+        feature_group: 99,
+    }, function() {
         inputFileDiv.click();
     });
 
