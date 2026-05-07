@@ -10,6 +10,14 @@ export interface AnnotationObject {
     tags: string[]; // Must have at least one tag
 }
 
+export interface CategoryStats {
+    total: number;          // all migrated mappings in this category
+    has_test: number;       // mappings with at least one test
+    missing: number;        // mappings with no test (= missing_ids.length)
+    coverage_pct: number;   // has_test / total * 100, rounded to 1 decimal
+    missing_ids: string[];  // sorted unique_ids with no test
+}
+
 export interface MappingEntry {
     key: string;
     mode: string;
@@ -107,12 +115,14 @@ export interface Issues {
     tests: {
         missing: string[];          // unique_ids with no test file
         invalid_files: string[];    // test file names matching no known unique_id
+        by_category: Record<string, CategoryStats>;
     };
     custom_mappings: {
         unmapped: string[];         // unique_ids with no entry in custom config
     };
     code_coverage: {
         missing: string[];          // unique_ids with hasData=false
+        by_category: Record<string, CategoryStats>;
     };
     source_validation: {
         prefix_conflicts: Array<{

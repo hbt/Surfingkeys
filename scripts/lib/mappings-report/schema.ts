@@ -372,6 +372,18 @@ export const REPORT_JSON_SCHEMA = {
                 "pct": { "type": "string", "description": "Coverage percentage string, e.g. \"88.2%\"" }
             }
         },
+        "CategoryStats": {
+            "type": "object",
+            "description": "Test/coverage statistics for a single command category",
+            "required": ["total", "has_test", "missing", "coverage_pct", "missing_ids"],
+            "properties": {
+                "total":        { "type": "integer", "description": "Total migrated mappings in this category" },
+                "has_test":     { "type": "integer", "description": "Mappings with at least one Playwright test" },
+                "missing":      { "type": "integer", "description": "Mappings with no test (length of missing_ids)" },
+                "coverage_pct": { "type": "number",  "description": "has_test / total × 100, rounded to 1 decimal" },
+                "missing_ids":  { "type": "array", "items": { "type": "string" }, "description": "Sorted unique_ids with no test" }
+            }
+        },
         "Issues": {
             "type": "object",
             "description": "Actionable problem lists — items that need attention, surfaced from all checks. Design principle: list=full data, summary=aggregate counts, issues=actionable problem lists",
@@ -415,7 +427,7 @@ export const REPORT_JSON_SCHEMA = {
                 "tests": {
                     "type": "object",
                     "description": "Test coverage issues",
-                    "required": ["missing", "invalid_files"],
+                    "required": ["missing", "invalid_files", "by_category"],
                     "properties": {
                         "missing": {
                             "type": "array",
@@ -426,6 +438,11 @@ export const REPORT_JSON_SCHEMA = {
                             "type": "array",
                             "description": "Test file names that don't match any known unique_id or valid naming pattern",
                             "items": { "type": "string" }
+                        },
+                        "by_category": {
+                            "type": "object",
+                            "description": "Test coverage breakdown grouped by command category (second segment of unique_id, e.g. 'visual' from 'cmd_visual_foo'). Sorted alphabetically by category key.",
+                            "additionalProperties": { "$ref": "#/$defs/CategoryStats" }
                         }
                     }
                 },
@@ -444,12 +461,17 @@ export const REPORT_JSON_SCHEMA = {
                 "code_coverage": {
                     "type": "object",
                     "description": "V8 code coverage issues",
-                    "required": ["missing"],
+                    "required": ["missing", "by_category"],
                     "properties": {
                         "missing": {
                             "type": "array",
                             "description": "unique_ids of migrated mappings with no V8 coverage data (hasData=false)",
                             "items": { "type": "string" }
+                        },
+                        "by_category": {
+                            "type": "object",
+                            "description": "V8 code coverage breakdown grouped by command category (second segment of unique_id). Sorted alphabetically by category key.",
+                            "additionalProperties": { "$ref": "#/$defs/CategoryStats" }
                         }
                     }
                 },
