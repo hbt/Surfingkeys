@@ -2279,15 +2279,25 @@ function start(browser) {
         });
     };
     self.getCaptureSize = function(message, sender, sendResponse) {
-        var img = document.createElement( "img" );
-        img.onload = function() {
-            _response(message, sendResponse, {
-                width: img.width,
-                height: img.height
-            });
-        };
         chrome.tabs.captureVisibleTab(null, {format: "png"}, function(dataUrl) {
-            img.src = dataUrl;
+            if (chrome.runtime.lastError || !dataUrl) {
+                _response(message, sendResponse, { width: 0, height: 0 });
+                return;
+            }
+            // Use fetch + createImageBitmap (SW-compatible; no document required)
+            fetch(dataUrl)
+                .then(function(res) { return res.blob(); })
+                .then(function(blob) { return createImageBitmap(blob); })
+                .then(function(bitmap) {
+                    _response(message, sendResponse, {
+                        width: bitmap.width,
+                        height: bitmap.height
+                    });
+                    bitmap.close();
+                })
+                .catch(function() {
+                    _response(message, sendResponse, { width: 0, height: 0 });
+                });
         });
     };
     self.deleteHistoryOlderThan = function(message, sender, sendResponse) {
