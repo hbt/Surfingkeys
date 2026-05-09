@@ -5,7 +5,13 @@ import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+const SUITE_LABEL = 'cmd_tools_edit_url_reload';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+
+let context: BrowserContext;
+let page: Page;
+let covBg: ServiceWorkerCoverage | undefined;
+let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 async function waitForEditorVisible(p: Page, timeoutMs = 5000): Promise<boolean> {
     const deadline = Date.now() + timeoutMs;
@@ -24,55 +30,7 @@ async function waitForEditorVisible(p: Page, timeoutMs = 5000): Promise<boolean>
     return false;
 }
 
-test.describe('cmd_tools_edit_url_new_tab (Playwright)', () => {
-    let context: BrowserContext;
-    let page: Page;
-    let covBg: ServiceWorkerCoverage | undefined;
-    let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
-
-    const SUITE_LABEL = 'cmd_tools_edit_url_new_tab';
-
-    test.setTimeout(20_000);
-
-    test.beforeAll(async () => {
-        const result = await launchWithDualCoverage(FIXTURE_URL);
-        context = result.context;
-        covBg = result.covBg;
-        initContentCoverageForUrl = result.covForPageUrl;
-        page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await page.waitForTimeout(500);
-    });
-
-    test.afterAll(async () => {
-        await covBg?.close();
-        await context?.close();
-    });
-
-    test('cmd_tools_edit_url_new_tab opens editor with current URL', async () => {
-        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            const ok = await invokeCommand(page, 'cmd_tools_edit_url_new_tab');
-            if (DEBUG) console.log(`invokeCommand result: ${ok}`);
-            expect(ok).toBe(true);
-
-            const editorVisible = await waitForEditorVisible(page, 4000);
-            if (DEBUG) console.log(`Editor visible: ${editorVisible}`);
-            expect(editorVisible).toBe(true);
-
-            await page.keyboard.press('Escape');
-            await page.waitForTimeout(400);
-        });
-    });
-});
-
 test.describe('cmd_tools_edit_url_reload (Playwright)', () => {
-    let context: BrowserContext;
-    let page: Page;
-    let covBg: ServiceWorkerCoverage | undefined;
-    let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
-
-    const SUITE_LABEL = 'cmd_tools_edit_url_reload';
-
     test.setTimeout(20_000);
 
     test.beforeAll(async () => {
