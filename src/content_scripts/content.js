@@ -99,11 +99,6 @@ function applyRuntimeConf(normal) {
     });
 }
 
-const userConfPromise = new Promise(function (resolve, reject) {
-    document.addEventListener("surfingkeys:settingsFromSnippetsLoaded", () => {
-        resolve(runtime.conf);
-    }, {once: true});
-});
 
 function applySettings(api, normal, rs) {
     for (var k in rs) {
@@ -381,9 +376,7 @@ function start(browser) {
                 if (resp.index > 0) {
                     var showTabIndexInTitle = function () {
                         skipObserver = true;
-                        userConfPromise.then(function(conf) {
-                            document.title = myTabIndex + conf.tabIndicesSeparator + originalTitle;
-                        });
+                        document.title = '[' + myTabIndex + '] ' + originalTitle;
                     };
 
                     var myTabIndex = resp.index,

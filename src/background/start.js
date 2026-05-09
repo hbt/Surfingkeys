@@ -404,7 +404,7 @@ function start(browser) {
         tabsMRUOrder: true,
         newTabPosition: 'default',
         newTabUrl: browser._setNewTabUrl(),
-        showTabIndices: false,
+        showTabIndices: true,
         interceptedErrors: []
     };
 
