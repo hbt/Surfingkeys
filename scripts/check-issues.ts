@@ -15,6 +15,7 @@ const result = spawnSync('bun', ['scripts/mappings-json-report.ts'], {
     cwd: ROOT,
     encoding: 'utf-8',
     timeout: 30_000,
+    maxBuffer: 16 * 1024 * 1024, // 16MB — report grows with bySourceFile coverage data
 });
 
 if (result.status !== 0) {

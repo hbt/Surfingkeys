@@ -27,6 +27,8 @@ Guide for porting a custom command from the legacy fork into this fork.
 grep -n "<key>" /home/hassen/.surfingkeysrc
 ```
 
+> **`amap` in legacy** maps a key to an existing command by its annotation string — it's an alias, not an implementation. Find the real implementation by searching `hbt.js` for the function name.
+
 **1.2** Check if the command already exists in the current fork:
 ```bash
 bun scripts/mappings-json-report.ts --schema   # understand structure first
@@ -81,10 +83,12 @@ Create `tests/playwright/commands/cmd-<unique-id-dashes>.spec.ts`.
 
 Reference: `tests/playwright/commands/cmd-tab-next.spec.ts`
 
-Run the spec — **expect failures** at this stage:
+**Run the spec — confirm it fails before implementing:**
 ```bash
 bunx playwright test tests/playwright/commands/cmd-<unique-id>.spec.ts
 ```
+
+Expected: all N tests fail (command not found). If they pass already, the command exists — re-check Step 1.2.
 
 ---
 
@@ -136,23 +140,71 @@ api.mapcmdkey('tg', 'cmd_tab_goto_index');
 
 ---
 
-## Step 6 — Verify
+## Step 6 — Build and verify
+
+> `npm run build:dev` builds **both** `chrome` (for gchrb) and `chrome-test` (for Playwright). Playwright tests load from `dist/development/chrome-test`.
 
 ```bash
 npm run build:dev
 bunx playwright test tests/playwright/commands/cmd-<unique-id>.spec.ts
 ```
 
-All tests should pass. If any fail, check:
+All N tests should pass. If any fail, check:
 - `actionsRepeatBackground` missing the action name
 - `message.repeats` vs `message.request.index` mismatch (legacy archive used `request.index`, current fork passes repeats directly)
 - `chrome.tabs.query({currentWindow: true})` vs `chrome.tabs.query({})` — use `currentWindow: true` for index-based navigation, `{}` for cross-window magic
 
 ---
 
-## Step 7 — Update mappings report
+## Step 7 — Verify coverage touches changed files
 
-Run integrity check to confirm everything is wired:
+After tests pass, confirm the coverage data actually exercises the new code paths.
+
+**7.1** Check git diff to know which source files changed:
+```bash
+git diff --stat
+```
+
+**7.2** Run with coverage:
+```bash
+COVERAGE=true bunx playwright test tests/playwright/commands/cmd-<unique-id>.spec.ts
+```
+
+**7.3** Check the report — `bySourceFile` must include the files from git diff:
+```bash
+bun scripts/mappings-json-report.ts | jq '
+  .mappings.list[]
+  | select(.annotation | type == "object")
+  | select(.annotation.unique_id == "cmd_<unique_id>")
+  | .code_coverage'
+```
+
+Expected output shape:
+```json
+{
+  "hasData": true,
+  "testCaseCount": 4,
+  "targets": {
+    "background": {
+      "totalFunctions": 412,
+      "coveredFunctions": 345,
+      "pct": "83.7%",
+      "bySourceFile": {
+        "src/background/start.js": { "total": 222, "covered": 175, "pct": "78.8%" }
+      }
+    }
+  }
+}
+```
+
+Confirm each file from `git diff --stat` that belongs to the background bundle appears in `bySourceFile`.
+
+> **Note:** `src/content_scripts/common/normal.js` and `runtime.js` are content-bundle files — they won't appear in `background` target coverage. Content coverage is a separate gap not yet wired for SW-target commands.
+
+---
+
+## Step 8 — Integrity check
+
 ```bash
 bun scripts/mappings-json-report.ts --integrity
 ```
@@ -166,3 +218,5 @@ bun scripts/mappings-json-report.ts --integrity
 - `tabHandleMagic` in current fork is **synchronous** (not async like archive)
 - `g-0XX` keys are placeholder keys — the real key comes from `api.mapcmdkey` in the user config
 - Always check `.surfingkeysrc` (legacy) vs `.surfingkeys-2026.js` (current) — they are different files for different forks
+- `amap("key", "annotation string")` in legacy is an alias, not a command implementation — always find the underlying function in `hbt.js`
+- Source map attribution only works for bundle targets (`background.js`, `content.js`) — it does NOT infer function names for anonymous property assignments (`self.foo = function() {}`) by name, but byte-range coverage still counts them
