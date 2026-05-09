@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-// @ts-ignore — source-map-js ships its own types
 import { SourceMapConsumer } from 'source-map-js';
 import type { MappingEntry, TargetStats } from './types';
 

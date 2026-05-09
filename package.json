@@ -12,7 +12,7 @@
     "build:doc": "documentation build src/content_scripts/common/api.js src/content_scripts/common/normal.js src/content_scripts/common/clipboard.js src/content_scripts/common/hints.js src/content_scripts/common/visual.js src/content_scripts/front.js src/user_scripts/index.js -f md -o docs/api.md",
     "build:doc-cmds": "bun scripts/generate-command-docs.js",
     "build:doc-chrome-api": "bash scripts/fetch-all-chrome-apis.sh",
-    "build:dev": "node ./config/esbuild.config.js development && CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test node ./config/esbuild.config.js development",
+    "build:dev": "BUILD_SUFFIX= node ./config/esbuild.config.js development && CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test node ./config/esbuild.config.js development",
     "build:prod": "node ./config/esbuild.config.js production",
     "build": "npm-run-all clean test build:doc build:doc-chrome-api build:prod",
     "watch": "node ./config/esbuild.config.js development --watch",
