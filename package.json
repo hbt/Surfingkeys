@@ -36,7 +36,9 @@
     "test:trace-open": "bash -c 'export REPORT_DIR=\"playwright-report\"; CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test npm run build:dev && REPORT_DIR=\"$REPORT_DIR\" PW_TRACE=1 bunx playwright test ${1:+\"$1\"}; bun scripts/patch-trace-viewer.ts; bun scripts/trace-slides.ts; xdg-open \"$REPORT_DIR/slides.html\"' --",
     "verify": "bun scripts/verify.ts",
     "verify:full": "bun scripts/verify.ts --full",
-    "worktree:setup": "bun scripts/worktree-setup.ts"
+    "worktree:setup": "bun scripts/worktree-setup.ts",
+    "worktree:status": "bun scripts/worktree-status.ts",
+    "worktree:merge": "bun scripts/worktree-merge.ts"
   },
   "repository": {
     "type": "git",
