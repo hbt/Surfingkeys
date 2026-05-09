@@ -55,20 +55,25 @@ test.describe('cmd_yank_screenshot (Playwright)', () => {
 
     test('yg shows popup with PNG screenshot', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            const viewportSize = page.viewportSize();
-            const centerX = viewportSize ? viewportSize.width / 2 : 400;
-            const centerY = viewportSize ? viewportSize.height / 2 : 300;
-            await page.mouse.click(centerX, centerY);
-            await page.waitForTimeout(100);
+            await test.step('Given the page is focused', async () => {
+                const viewportSize = page.viewportSize();
+                const centerX = viewportSize ? viewportSize.width / 2 : 400;
+                const centerY = viewportSize ? viewportSize.height / 2 : 300;
+                await page.mouse.click(centerX, centerY);
+                await page.waitForTimeout(100);
+            });
 
-            await page.keyboard.press('y');
-            await page.waitForTimeout(30);
-            await page.keyboard.press('g');
+            await test.step('When the user presses yg to capture a screenshot', async () => {
+                await page.keyboard.press('y');
+                await page.waitForTimeout(30);
+                await page.keyboard.press('g');
+            });
 
-            const result = await waitForScreenshotPopup(page, 15000);
-
-            expect(result.visible).toBe(true);
-            expect(result.imgSrc).toMatch(/^data:image\/png;base64,/);
+            await test.step('Then a popup with a PNG screenshot should appear', async () => {
+                const result = await waitForScreenshotPopup(page, 15000);
+                expect(result.visible).toBe(true);
+                expect(result.imgSrc).toMatch(/^data:image\/png;base64,/);
+            });
         });
     });
 });

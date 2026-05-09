@@ -4,6 +4,7 @@ export default defineConfig({
     testDir: './tests/playwright',
     reporter: [
         ['dot'],
+        ['html', { outputFolder: process.env.REPORT_DIR ?? 'playwright-report', open: 'never' }],
         ...(process.env.PLAYWRIGHT_JSON_OUTPUT
             ? ([['json', { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT }]] as const)
             : []),
@@ -12,7 +13,7 @@ export default defineConfig({
     retries: 2,
     timeout: 30_000,
     use: {
-        trace: 'off',
+        trace: process.env.PW_TRACE ? 'on' : 'off',
     },
     webServer: [
         {
