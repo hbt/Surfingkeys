@@ -55,6 +55,7 @@ const ACTIONS = {
     'server-start': 'Start local config server (port 9600)',
     'server-stop': 'Stop local config server',
     'server-status': 'Check local config server status',
+    'devtools-status': 'Check sk-devtools eval relay (server + panel + SW debugger + page eval)',
     'config-clear': 'Wipe all config state (localPath, snippets, showAdvanced, savedAt)'
 };
 
