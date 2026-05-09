@@ -1150,6 +1150,19 @@ function createNormal(insert) {
             RUNTIME("nextTab");
         }
     });
+    self.mappings.add("g-036", {
+        annotation: {
+            short: "Go to tab by index",
+            unique_id: "cmd_tab_goto_index",
+            category: "navigation",
+            description: "Switch to the tab at the given 1-based position (e.g. 3tg → tab 3). Clamps to last tab if index exceeds tab count.",
+            tags: ["tabs", "navigation"]
+        },
+        feature_group: 3,
+        code: function() {
+            RUNTIME("tabGotoIndex");
+        }
+    });
 
     function _onMouseUp(event) {
         if (runtime.conf.mouseSelectToQuery.indexOf(window.origin) !== -1

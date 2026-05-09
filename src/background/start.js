@@ -1334,6 +1334,15 @@ function start(browser) {
     self.previousTab = function(message, sender, sendResponse) {
         _nextTab(sender.tab, -(message.repeats || 1));
     };
+    self.tabGotoIndex = function(message, sender, sendResponse) {
+        var index = (message.repeats || 1) - 1;
+        chrome.tabs.query({ currentWindow: true }, function(tabs) {
+            var target = tabs[index] || tabs[tabs.length - 1];
+            if (target) {
+                chrome.tabs.update(target.id, { active: true });
+            }
+        });
+    };
     function _roundRepeatTabs(tab, repeats, operation) {
         if (tab) {
             chrome.tabs.query({

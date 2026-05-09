@@ -185,6 +185,30 @@ git log master..brookhong/master --oneline   # filter against upstream-excluded.
 ```
 
 
+## Archive
+
+`/home/hassen/workspace/surfingkeys-archive` — old legacy fork with many custom commands being migrated into this fork (which is based on latest upstream). Use it to look up existing custom commands, mappings, or behaviour not yet ported here.
+
+## Config Files
+
+| File | Used by | Notes |
+|------|---------|-------|
+| `/home/hassen/.surfingkeys-2026.js` | **This fork** (current) | Active config loaded by the extension |
+| `/home/hassen/.surfingkeysrc` | **Archive** (legacy fork) | Reference only — do not treat as current config |
+
+
+## Mappings Report
+
+```bash
+bun scripts/mappings-json-report.ts            # Full JSON report
+bun scripts/mappings-json-report.ts --schema   # Print the JSON schema (use to understand report structure before querying)
+bun scripts/mappings-json-report.ts --integrity  # Run integrity checks
+```
+
+Top-level keys: `mappings.list[]`, `settings`, `issues`, `custom_configuration`.
+Each entry's metadata lives under `.annotation` (not top-level).
+
+
 ## Documentation
 
 | File | Purpose |

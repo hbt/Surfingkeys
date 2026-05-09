@@ -53,16 +53,8 @@ export interface MappingEntry {
         hasData: boolean;
         testCaseCount: number;
         targets: {
-            content?: {
-                totalFunctions: number;
-                coveredFunctions: number;
-                pct: string;
-            };
-            background?: {
-                totalFunctions: number;
-                coveredFunctions: number;
-                pct: string;
-            };
+            content?: TargetStats;
+            background?: TargetStats;
         };
     };
 }
@@ -227,4 +219,5 @@ export interface TargetStats {
     totalFunctions: number;
     coveredFunctions: number;
     pct: string;
+    bySourceFile?: Record<string, { total: number; covered: number; pct: string }>;
 }
