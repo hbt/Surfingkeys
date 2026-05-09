@@ -1972,6 +1972,31 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             window.location.href = data;
         }, 'url');
     });
+    if (getBrowserName() === "Chrome") {
+        mapkey(';nu', {
+            short: "Edit URL in neovim",
+            unique_id: "cmd_tools_edit_url_neovim",
+            feature_group: 4,
+            category: "settings",
+            description: "Edit current URL in neovim and open result in new tab",
+            tags: ["settings", "neovim", "url"]
+        }, function() {
+            front.showEditor(window.location.href, function(data) {
+                tabOpenLink(data);
+            }, 'url', true);
+        });
+        mapkey(';ns', {
+            short: "View page source in neovim",
+            unique_id: "cmd_tools_source_neovim",
+            feature_group: 11,
+            category: "settings",
+            description: "Open current page HTML source in a neovim scratch buffer",
+            tags: ["settings", "neovim", "source", "html"]
+        }, function() {
+            const source = document.documentElement.outerHTML;
+            front.showEditor(source, null, 'html', true);
+        });
+    }
 
     addSearchAlias('g', 'google', 'https://www.google.com/search?q=', 's', 'https://www.google.com/complete/search?client=chrome-omni&gs_ri=chrome-ext&oit=1&cp=1&pgcl=7&q=', function(response) {
         var res = JSON.parse(response.text);
