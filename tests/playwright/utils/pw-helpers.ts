@@ -375,7 +375,9 @@ export async function launchWithDualCoverage(fixtureUrl: string): Promise<{
         if (!isCoverage || !result.cdpPort) return undefined;
         const { ServiceWorkerCoverage } = require('./cdp-coverage');
         const covContent: import('./cdp-coverage').ServiceWorkerCoverage = new ServiceWorkerCoverage();
-        const filter = (t: any) => t.type === 'page' && t.url === url;
+        // Extension iframes appear as type 'iframe' (not 'page') in CDP targets.
+        // Try exact URL match across all target types.
+        const filter = (t: any) => t.url === url && t.webSocketDebuggerUrl;
         const ok = await covContent.init(result.cdpPort, filter);
         return ok ? covContent : undefined;
     };

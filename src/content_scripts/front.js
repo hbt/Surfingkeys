@@ -482,6 +482,12 @@ function createFront(insert, normal, hints, visual, browser) {
                 content
             });
         },
+        showImagePopup: (dataUrl) => {
+            self.command({
+                action: 'showImagePopup',
+                dataUrl
+            });
+        },
         showDialog: (question, onOk) => {
             self.command({
                 action: 'showDialog',

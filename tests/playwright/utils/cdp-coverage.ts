@@ -185,9 +185,12 @@ export class ServiceWorkerCoverage {
         const resultEntries: any[] = raw?.result ?? [];
 
         // Content scripts run in V8 isolated worlds and cannot be captured by the CDP
-        // page-target profiler. When the result has no content.js entry for a page target,
+        // page-target profiler. When the result has no content.js entry for a regular page target,
         // skip writing the file so callers can treat a null path as "no content coverage available".
-        if (isPageTarget) {
+        // Exception: chrome-extension:// targets (e.g. frontend.html) are extension pages, not
+        // regular web pages — they don't inject content.js but still have capturable scripts.
+        const isExtensionPage = this.swUrl?.startsWith('chrome-extension://');
+        if (isPageTarget && !isExtensionPage) {
             const hasContentScript = resultEntries.some(
                 (e: any) => typeof e.url === 'string' && e.url.endsWith('content.js'),
             );

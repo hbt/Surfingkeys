@@ -503,6 +503,56 @@ const Front = (function() {
         showPopup(message.content);
     };
 
+    function showImagePopup(dataUrl) {
+        _popup.innerHTML = '';
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px';
+
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.style.cssText = 'max-width:100%;max-height:60vh;border-radius:3px';
+        wrapper.appendChild(img);
+
+        const bar = document.createElement('div');
+        bar.style.cssText = 'display:flex;gap:10px';
+
+        const mkBtn = (label, onClick) => {
+            const b = document.createElement('button');
+            b.innerHTML = label;
+            b.style.cssText = 'padding:6px 14px;font-size:13px;cursor:pointer;border-radius:4px;border:1px solid #555;background:#333;color:#eee';
+            b.addEventListener('click', onClick);
+            return b;
+        };
+
+        bar.appendChild(mkBtn('&#11015; Download', () => {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'screenshot-' + Date.now() + '.png';
+            a.click();
+        }));
+
+        const cpBtn = mkBtn('&#128203; Copy', async () => {
+            try {
+                const blob = await (await fetch(dataUrl)).blob();
+                await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+                cpBtn.innerHTML = '&#10003; Copied!';
+                setTimeout(() => { cpBtn.innerHTML = '&#128203; Copy'; }, 2000);
+            } catch (e) {
+                cpBtn.innerHTML = '&#10007; ' + e.message.slice(0, 28);
+                setTimeout(() => { cpBtn.innerHTML = '&#128203; Copy'; }, 3000);
+            }
+        });
+        bar.appendChild(cpBtn);
+
+        wrapper.appendChild(bar);
+        _popup.appendChild(wrapper);
+        showElement(_popup);
+    }
+
+    _actions['showImagePopup'] = function(message) {
+        showImagePopup(message.dataUrl);
+    };
+
     _actions['showDialog'] = function(message) {
         showElement(_popup, () => {
             const hintLabels = hints.genLabels(2);

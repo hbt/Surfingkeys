@@ -280,6 +280,10 @@ function showPopup(msg) {
     dispatchSKEvent("front", ['showPopup', msg]);
 }
 
+function showImagePopup(dataUrl) {
+    dispatchSKEvent("front", ['showImagePopup', dataUrl]);
+}
+
 function openOmnibar(args) {
     dispatchSKEvent("front", ['openOmnibar', args]);
 }
@@ -1204,6 +1208,7 @@ export {
     setSanitizedContent,
     showBanner,
     showPopup,
+    showImagePopup,
     tabOpenLink,
     timeStampString,
     toggleQuote,

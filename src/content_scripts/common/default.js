@@ -11,6 +11,7 @@ import {
     htmlEncode,
     setSanitizedContent,
     showBanner,
+    showImagePopup,
     showPopup,
     tabOpenLink,
     toggleQuote,
@@ -363,14 +364,14 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         unique_id: "cmd_yank_screenshot",
         feature_group: 7,
         category: "clipboard",
-        description: "Capture screenshot of current page to clipboard",
+        description: "Capture screenshot of current page, show in popup with download and clipboard options",
         tags: ["clipboard", "screenshot", "capture"]
     }, function() {
         front.toggleStatus(false);
         setTimeout(function() {
             RUNTIME('captureVisibleTab', null, function(response) {
                 front.toggleStatus(true);
-                showPopup("<img src='{0}' />".format(response.dataUrl));
+                showImagePopup(response.dataUrl);
             });
         }, 500);
     });
