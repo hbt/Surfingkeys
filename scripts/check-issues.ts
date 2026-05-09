@@ -84,6 +84,12 @@ const EXCLUDED_IDS = new Set([
     'cmd_neovim_enable_input',
     'cmd_insert_neovim_editor',
     'cmd_tools_neovim',
+    'cmd_tools_edit_url_neovim',
+    'cmd_tools_source_neovim',
+    // Emoji picker — opens native OS emoji dialog (not available in headless Chrome)
+    'cmd_insert_emoji',
+    // captureVisibleTab — Chrome service worker API doesn't function in headless Playwright
+    'cmd_capture_full_page',
 ]);
 
 const excluded = (id: string) => EXCLUDED_IDS.has(id);
