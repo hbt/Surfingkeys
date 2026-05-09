@@ -40,54 +40,57 @@ If either check fails, see the troubleshooting table below before proceeding.
 
 ## usage.wrapper-scripts
 
-**Prefer these over raw curl.** Located in `bin/` — add to PATH:
-```bash
-export PATH="$PATH:/home/hassen/workspace/surfingkeys/bin"
-```
+**Prefer these over raw curl.** Located in `bin/` — use full paths or add to PATH first.
+
+> **PATH note:** `browser-eval` and `browser-nav` are shell scripts in `bin/`. They are NOT on PATH by default.
+> Either use full paths (shown below) or run once per session:
+> ```bash
+> export PATH="$PATH:/home/hassen/workspace/surfingkeys/bin"
+> ```
 
 | Script | Purpose |
 |--------|---------|
-| `browser-eval [--target bg\|page] 'JS'` | Eval JS, read from stdin or `$1` |
-| `browser-nav URL [timeout_s]` | Navigate active tab + block until `readyState=complete` |
+| `/home/hassen/workspace/surfingkeys/bin/browser-eval [--target bg\|page] 'JS'` | Eval JS, read from stdin or `$1` |
+| `/home/hassen/workspace/surfingkeys/bin/browser-nav URL [timeout_s]` | Navigate active tab + block until `readyState=complete` |
 
 ### browser-eval examples
 
 ```bash
 # Positional arg
-browser-eval 'document.title'
-browser-eval --target bg 'chrome.runtime.id'
+/home/hassen/workspace/surfingkeys/bin/browser-eval 'document.title'
+/home/hassen/workspace/surfingkeys/bin/browser-eval --target bg 'chrome.runtime.id'
 
 # Heredoc — no escaping needed, any quotes/newlines safe
-browser-eval <<'JS'
+/home/hassen/workspace/surfingkeys/bin/browser-eval <<'JS'
   document.querySelectorAll('form').length
 JS
 
 # Store result
-HREF=$(browser-eval 'window.location.href')
+HREF=$(/home/hassen/workspace/surfingkeys/bin/browser-eval 'window.location.href')
 ```
 
 ### browser-nav example
 
 ```bash
 # Navigate and wait (no sleep needed)
-browser-nav https://example.com
-browser-nav https://example.com 15    # custom timeout
+/home/hassen/workspace/surfingkeys/bin/browser-nav https://example.com
+/home/hassen/workspace/surfingkeys/bin/browser-nav https://example.com 15    # custom timeout
 ```
 
 ### Full login sequence (no escaping, no sleep)
 
 ```bash
-browser-nav https://test.empowerhealthresearch.ca/login2
+/home/hassen/workspace/surfingkeys/bin/browser-nav https://test.empowerhealthresearch.ca/login2
 
-browser-eval <<'JS'
+/home/hassen/workspace/surfingkeys/bin/browser-eval <<'JS'
   document.getElementById("username").value = "ctms_admin@sylsft.com";
   document.getElementById("password").value = "secret";
   document.querySelector("input[name=commit]").click();
   "submitted"
 JS
 
-browser-nav https://test.empowerhealthresearch.ca/index.php/main/index
-browser-eval 'window.location.href'
+/home/hassen/workspace/surfingkeys/bin/browser-nav https://test.empowerhealthresearch.ca/index.php/main/index
+/home/hassen/workspace/surfingkeys/bin/browser-eval 'window.location.href'
 ```
 
 ---
