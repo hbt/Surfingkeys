@@ -171,43 +171,53 @@ export async function sendKeyAndWaitForScroll(
         direction: 'up' | 'down' | 'left' | 'right';
         minDelta: number;
         timeoutMs?: number;
+        /** After minDelta is crossed, wait this many ms for smooth scroll to settle (default 400) */
+        settleMs?: number;
     },
 ): Promise<{ baseline: number; final: number; delta: number }> {
     const timeoutMs = opts.timeoutMs ?? 5000;
+    const settleMs = opts.settleMs ?? 400;
     const isHorizontal = opts.direction === 'left' || opts.direction === 'right';
 
     const scrollPromise = page.evaluate(
-        ({ direction, minDelta, timeoutMs, isHorizontal }) => {
+        ({ direction, minDelta, timeoutMs, settleMs, isHorizontal }) => {
             return new Promise<{ baseline: number; final: number }>((resolve) => {
                 const baseline = isHorizontal ? window.scrollX : window.scrollY;
-                let resolved = false;
+                let triggered = false;
+                let settled = false;
+                let settleTimer: ReturnType<typeof setTimeout> | null = null;
+
+                const finish = () => {
+                    if (settled) return;
+                    settled = true;
+                    window.removeEventListener('scroll', listener);
+                    resolve({ baseline, final: isHorizontal ? window.scrollX : window.scrollY });
+                };
 
                 const listener = () => {
-                    if (resolved) return;
                     const current = isHorizontal ? window.scrollX : window.scrollY;
                     const delta =
                         direction === 'up' || direction === 'left'
                             ? baseline - current
                             : current - baseline;
-                    if (delta >= minDelta) {
-                        resolved = true;
-                        window.removeEventListener('scroll', listener);
-                        resolve({ baseline, final: current });
+                    if (!triggered && delta >= minDelta) {
+                        triggered = true;
+                    }
+                    if (triggered) {
+                        // Reset settle timer on every scroll event after minDelta
+                        if (settleTimer !== null) clearTimeout(settleTimer);
+                        settleTimer = setTimeout(finish, settleMs);
                     }
                 };
 
                 window.addEventListener('scroll', listener);
 
                 setTimeout(() => {
-                    if (!resolved) {
-                        resolved = true;
-                        window.removeEventListener('scroll', listener);
-                        resolve({ baseline, final: isHorizontal ? window.scrollX : window.scrollY });
-                    }
+                    if (!settled) finish();
                 }, timeoutMs);
             });
         },
-        { direction: opts.direction, minDelta: opts.minDelta, timeoutMs, isHorizontal },
+        { direction: opts.direction, minDelta: opts.minDelta, timeoutMs, settleMs, isHorizontal },
     );
 
     await page.keyboard.press(key);
