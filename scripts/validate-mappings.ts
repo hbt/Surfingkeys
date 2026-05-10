@@ -71,7 +71,7 @@ interface Report {
 
 // Load JSON report via bun run report:mappings:json
 function loadJsonReport(): Report {
-    const json = execSync('bun run --silent report:mappings:json', { cwd: ROOT, timeout: 30000 });
+    const json = execSync('bun run --silent report:mappings:json', { cwd: ROOT, timeout: 30000, maxBuffer: 16 * 1024 * 1024 });
     return JSON.parse(json.toString());
 }
 

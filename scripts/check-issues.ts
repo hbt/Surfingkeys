@@ -129,6 +129,11 @@ const optionalChecks: IssueCheck[] = [
         items: issues.custom_mappings.unmapped,
         note: 'add bindings to ~/.surfingkeys-2026.js',
     },
+    {
+        label: 'config_validation.duplicate_keys',
+        items: issues.config_validation.duplicate_keys,
+        note: 'same key bound to multiple commands in personal config',
+    },
 ];
 
 const failed = requiredChecks.filter(c => c.items.length > 0);

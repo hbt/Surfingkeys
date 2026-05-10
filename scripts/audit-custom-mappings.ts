@@ -19,6 +19,7 @@ const result = spawnSync('bun', ['scripts/mappings-json-report.ts'], {
     cwd: ROOT,
     encoding: 'utf-8',
     timeout: 30_000,
+    maxBuffer: 16 * 1024 * 1024,
 });
 
 if (result.status !== 0) {
@@ -69,4 +70,19 @@ for (const [cat, ids] of sorted) {
 }
 
 console.log();
+
+const dupes = report.issues.config_validation.duplicate_keys ?? [];
+if (dupes.length > 0) {
+    console.log(`⚠️  config_validation.duplicate_keys — ${dupes.length} key(s) bound to multiple commands\n`);
+    for (const { key, entries } of dupes) {
+        console.log(`  '${key}'`);
+        for (const e of entries) {
+            const loc = e.line ? `:${e.line}` : '';
+            const target = e.unique_id ?? `(${e.type})`;
+            console.log(`    ${target}${loc}`);
+        }
+    }
+    console.log();
+}
+
 process.exit(0);
