@@ -65,6 +65,12 @@ const CHECKS: Check[] = [
         cmd: ['bun', 'scripts/audit-custom-mappings.ts'],
         group: 'personal',
     },
+    {
+        id: 'upstream',
+        label: 'Upstream lag (brookhong)',
+        cmd: ['bun', 'scripts/check-upstream.ts'],
+        group: 'personal',
+    },
 ];
 
 function printHelp() {
@@ -99,8 +105,8 @@ async function runCheck(check: Check): Promise<CheckResult> {
     const start = Date.now();
     const binPath = `${process.cwd()}/node_modules/.bin`;
     const env = { ...process.env, PATH: `${binPath}:${process.env.PATH}` };
-    const proc = Bun.spawn({
-        cmd: check.cmd,
+    // @ts-expect-error bun-types spawn overload mismatch
+    const proc = Bun.spawn(check.cmd, {
         stdout: 'pipe',
         stderr: 'pipe',
         cwd: process.cwd(),
@@ -108,8 +114,8 @@ async function runCheck(check: Check): Promise<CheckResult> {
     });
 
     const [stdout, stderr, exitCode] = await Promise.all([
-        new Response(proc.stdout).text(),
-        new Response(proc.stderr).text(),
+        Bun.readableStreamToText(proc.stdout),
+        Bun.readableStreamToText(proc.stderr),
         proc.exited,
     ]);
 
