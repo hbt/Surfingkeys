@@ -176,7 +176,13 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
             annotationStr = command.annotation;
         }
 
-        mapkey(keys, annotationStr, command.code, mappingOptions);
+        if (command.mode === 'Insert') {
+            imapkey(keys, annotationStr, command.code, mappingOptions);
+        } else if (command.mode === 'Visual') {
+            vmapkey(keys, annotationStr, command.code, mappingOptions);
+        } else {
+            mapkey(keys, annotationStr, command.code, mappingOptions);
+        }
     }
 
     /**
