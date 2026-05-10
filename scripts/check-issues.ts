@@ -51,8 +51,6 @@ const EXCLUDED_IDS = new Set([
     'cmd_chrome_net_internals',
     'cmd_chrome_view_source',
     // Global mode — state affects parallel test suite
-    'cmd_passthrough_enter',
-    'cmd_passthrough_ephemeral',
     'cmd_lurk_enter_normal',
     'cmd_lurk_ephemeral_normal',
     // TTS / Voice — requires audio / speech synthesis API
