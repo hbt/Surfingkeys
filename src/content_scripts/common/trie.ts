@@ -11,13 +11,16 @@ export interface TrieMeta {
     [key: string]: unknown;
 }
 
-interface TrieNode {
-    stem?: string;
-    meta?: TrieMeta;
-    [char: string]: TrieNode | TrieMeta | string | undefined;
+/** Walk a Trie from a given start node, following characters of `word`. */
+function trieWalk(start: Trie, word: string): Trie | undefined {
+    let current: Trie | undefined = start;
+    for (let i = 0; i < word.length && current; i++) {
+        current = current[word[i]] as Trie | undefined;
+    }
+    return current;
 }
 
-class Trie implements TrieNode {
+class Trie {
     stem?: string;
     meta?: TrieMeta;
     [char: string]: Trie | TrieMeta | string | undefined;
@@ -32,16 +35,11 @@ class Trie implements TrieNode {
     }
 
     find(word: string): Trie | undefined {
-        let found: Trie | undefined = this;
-        const len = word.length;
-        for (let i = 0; i < len && found; i++) {
-            found = found[word[i]] as Trie | undefined;
-        }
-        return found;
+        return trieWalk(this, word);
     }
 
     add(word: string, meta: Omit<TrieMeta, 'word'> & Partial<Pick<TrieMeta, 'word'>>): void {
-        let node: Trie = this;
+        let node: Trie = this as Trie;
         const len = word.length;
         for (let i = 0; i < len; i++) {
             const c = word[i];
@@ -59,7 +57,8 @@ class Trie implements TrieNode {
     }
 
     remove(word: string): Trie | undefined {
-        let found: Trie | undefined = this;
+        const root: Trie = this as Trie;
+        let found: Trie | undefined = root;
         const len = word.length;
         const ancestor: Trie[] = [];
         for (let i = 0; i < len && found; i++) {
@@ -72,7 +71,7 @@ class Trie implements TrieNode {
             let node = ancestor[i];
             delete node[found.stem!];
             let parent = node;
-            while (parent !== this && Object.keys(parent).length === 1) {
+            while (parent !== root && Object.keys(parent).length === 1) {
                 // remove the node if it has only one property -- which should be stem
                 node = ancestor[--i];
                 delete node[parent.stem!];
@@ -115,8 +114,8 @@ class Trie implements TrieNode {
             return "";
         }
         let fullWord = "";
-        let futureWord = this.stem;
-        let node: Trie = this;
+        let futureWord = this.stem || "";
+        let node: Trie = this as Trie;
         while (fullWord === "") {
             const keys = Object.keys(node);
             for (let i = 0; i < keys.length; i++) {
@@ -124,13 +123,13 @@ class Trie implements TrieNode {
                     fullWord = node.meta!.word;
                     break;
                 } else if (keys[i] !== 'stem') {
-                    futureWord = (futureWord || "") + keys[i];
+                    futureWord = futureWord + keys[i];
                     node = node[keys[i]] as Trie;
                     break;
                 }
             }
         }
-        return fullWord.substr(0, fullWord.length - (futureWord || "").length + 1);
+        return fullWord.substr(0, fullWord.length - futureWord.length + 1);
     }
 }
 
