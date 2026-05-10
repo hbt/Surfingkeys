@@ -412,6 +412,7 @@ const Front = (function() {
 
             metas = metas.concat(getAnnotations(omnibar.mappings));
             metas.forEach(function(meta) {
+                if (!help_groups[meta.feature_group]) return;
                 const w = KeyboardUtils.decodeKeystroke(meta.word);
                 const annotationStr = getAnnotationString(meta.annotation);
                 const annotation = localizeAnnotation(locale, annotationStr);

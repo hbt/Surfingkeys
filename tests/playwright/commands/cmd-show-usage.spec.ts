@@ -68,6 +68,15 @@ test.describe('cmd_show_usage (Playwright)', () => {
 
             if (DEBUG) console.log(`usageVisible: ${usageVisible}`);
             expect(usageVisible).toBe(true);
+
+            // Usage panel must have rendered keybinding content (guards against showElement
+            // succeeding but buildUsage crashing before populating the panel)
+            const kbdCount = await frontendFrame!.evaluate(() => {
+                return document.querySelectorAll('#sk_usage .kbd-span').length;
+            });
+
+            if (DEBUG) console.log(`kbdCount: ${kbdCount}`);
+            expect(kbdCount).toBeGreaterThan(0);
         });
     });
 });
