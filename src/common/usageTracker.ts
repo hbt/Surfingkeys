@@ -61,7 +61,7 @@ function trackCommandUsage(key: string, annotation: Annotation, mode = 'Normal')
     const commandId = getCommandId(annotation, key);  // Unique ID that persists across remaps
 
     chrome.storage.local.get([STORAGE_KEY], (result) => {
-        const usage: UsageStats = result[STORAGE_KEY] || {
+        const usage: UsageStats = (result[STORAGE_KEY] as UsageStats | undefined) ?? {
             commands: {},
             recentHistory: [],
             stats: {
@@ -127,7 +127,7 @@ function trackCommandUsage(key: string, annotation: Annotation, mode = 'Normal')
 function getUsageStats(): Promise<UsageStats> {
     return new Promise((resolve) => {
         chrome.storage.local.get([STORAGE_KEY], (result) => {
-            resolve(result[STORAGE_KEY] || {
+            resolve((result[STORAGE_KEY] as UsageStats | undefined) ?? {
                 commands: {},
                 recentHistory: [],
                 stats: {
@@ -143,10 +143,10 @@ function getUsageStats(): Promise<UsageStats> {
 /**
  * Get frequently used commands (sorted by count)
  */
-async function getFrequentCommands(limit = 20): Promise<Array<{ key: string } & CommandEntry>> {
+async function getFrequentCommands(limit = 20): Promise<CommandEntry[]> {
     const usage = await getUsageStats();
     return Object.entries(usage.commands)
-        .map(([key, data]) => ({ key, ...data }))
+        .map(([, data]) => data)
         .sort((a, b) => b.count - a.count)
         .slice(0, limit);
 }

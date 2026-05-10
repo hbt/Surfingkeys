@@ -7,7 +7,7 @@ import Mode from './mode';
 
 function isElementPositionRelative(elm: Element): boolean {
     let current: Element | null = elm;
-    while (current !== document.body) {
+    while (current !== null && current !== document.body) {
         if (getComputedStyle(current).position === "relative") {
             return true;
         }
