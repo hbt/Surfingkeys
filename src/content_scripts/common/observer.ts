@@ -5,24 +5,33 @@ import {
 
 import Mode from './mode';
 
-function isElementPositionRelative(elm) {
-    while (elm !== document.body) {
-        if (getComputedStyle(elm).position === "relative") {
+function isElementPositionRelative(elm: Element): boolean {
+    let current: Element | null = elm;
+    while (current !== document.body) {
+        if (getComputedStyle(current).position === "relative") {
             return true;
         }
-        elm = elm.parentElement;
+        current = current.parentElement;
     }
     return false;
 }
 
-function startScrollNodeObserver(normal) {
-    var pendingUpdater = undefined, DOMObserver = new MutationObserver(function (mutations) {
-        var addedNodes = [];
-        for (var m of mutations) {
-            for (var n of m.addedNodes) {
-                if (n.nodeType === Node.ELEMENT_NODE && !n.fromSurfingKeys) {
-                    n.newlyCreated = true;
-                    addedNodes.push(n);
+interface NormalMode {
+    addScrollableElement: (el: Element) => void;
+}
+
+type ExtendedElement = Element & { fromSurfingKeys?: boolean; newlyCreated?: boolean };
+type ExtendedMutationObserver = MutationObserver & { isConnected: boolean };
+
+function startScrollNodeObserver(normal: NormalMode): void {
+    let pendingUpdater: ReturnType<typeof setTimeout> | undefined;
+    const DOMObserver = new MutationObserver(function (mutations) {
+        const addedNodes: Element[] = [];
+        for (const m of mutations) {
+            for (const n of m.addedNodes) {
+                if (n.nodeType === Node.ELEMENT_NODE && !(n as ExtendedElement).fromSurfingKeys) {
+                    (n as ExtendedElement).newlyCreated = true;
+                    addedNodes.push(n as Element);
                 }
             }
         }
@@ -33,8 +42,8 @@ function startScrollNodeObserver(normal) {
                 pendingUpdater = undefined;
             }
             pendingUpdater = setTimeout(function() {
-                var possibleModalElements = getVisibleElements(function(e, v) {
-                    var br = e.getBoundingClientRect();
+                const possibleModalElements = getVisibleElements(function(e: Element, v: Element[]) {
+                    const br = e.getBoundingClientRect();
                     if (br.width > 300 && br.height > 300
                         && br.width <= window.innerWidth && br.height <= window.innerHeight
                         && br.top >= 0 && br.left >= 0
@@ -50,7 +59,7 @@ function startScrollNodeObserver(normal) {
                 }
             }, 200);
         }
-    });
+    }) as ExtendedMutationObserver;
     DOMObserver.isConnected = false;
 
     initSKFunctionListener("observer", {

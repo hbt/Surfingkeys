@@ -12,18 +12,46 @@
  * - Call getUsageStats() to retrieve statistics
  */
 
-import { getAnnotationString, getAnnotationMetadata, getCommandId } from './commandMetadata.js';
+import { getAnnotationString, getAnnotationMetadata, getCommandId, type Annotation } from './commandMetadata.js';
 
 const STORAGE_KEY = 'surfingkeys_usage';
 const MAX_RECENT_HISTORY = 100;
 
+interface CommandEntry {
+    key: string;
+    display_name: string;
+    command_id: string;
+    category: string | null;
+    mode: string;
+    count: number;
+    firstUsed: string;
+    lastUsed: string;
+}
+
+interface RecentEntry {
+    key: string;
+    command_id: string;
+    display_name: string;
+    category: string | null;
+    mode: string;
+    timestamp: string;
+    url: string;
+}
+
+interface UsageStats {
+    commands: Record<string, CommandEntry>;
+    recentHistory: RecentEntry[];
+    stats: {
+        totalInvocations: number;
+        firstTracked: string | null;
+        lastTracked: string | null;
+    };
+}
+
 /**
  * Track a command execution
- * @param {string} key - The key sequence (e.g., "j", "gg", "gf")
- * @param {string|object} annotation - Command description (string or metadata object)
- * @param {string} mode - Mode name (e.g., "Normal", "Visual")
  */
-function trackCommandUsage(key, annotation, mode = 'Normal') {
+function trackCommandUsage(key: string, annotation: Annotation, mode = 'Normal'): void {
     const timestamp = new Date().toISOString();
     const url = typeof window !== 'undefined' ? window.location.href : 'unknown';
 
@@ -33,7 +61,7 @@ function trackCommandUsage(key, annotation, mode = 'Normal') {
     const commandId = getCommandId(annotation, key);  // Unique ID that persists across remaps
 
     chrome.storage.local.get([STORAGE_KEY], (result) => {
-        const usage = result[STORAGE_KEY] || {
+        const usage: UsageStats = result[STORAGE_KEY] || {
             commands: {},
             recentHistory: [],
             stats: {
@@ -46,7 +74,7 @@ function trackCommandUsage(key, annotation, mode = 'Normal') {
         // Update command aggregate by unique ID (or key as fallback)
         if (!usage.commands[commandId]) {
             usage.commands[commandId] = {
-                key: key,  // Current key mapping
+                key: key,
                 display_name: displayString,
                 command_id: commandId,
                 category: metadata.category,
@@ -95,9 +123,8 @@ function trackCommandUsage(key, annotation, mode = 'Normal') {
 
 /**
  * Get all usage statistics
- * @returns {Promise<object>} Usage statistics
  */
-function getUsageStats() {
+function getUsageStats(): Promise<UsageStats> {
     return new Promise((resolve) => {
         chrome.storage.local.get([STORAGE_KEY], (result) => {
             resolve(result[STORAGE_KEY] || {
@@ -115,10 +142,8 @@ function getUsageStats() {
 
 /**
  * Get frequently used commands (sorted by count)
- * @param {number} limit - Maximum number of commands to return
- * @returns {Promise<Array>} Array of {key, annotation, count, ...}
  */
-async function getFrequentCommands(limit = 20) {
+async function getFrequentCommands(limit = 20): Promise<Array<{ key: string } & CommandEntry>> {
     const usage = await getUsageStats();
     return Object.entries(usage.commands)
         .map(([key, data]) => ({ key, ...data }))
@@ -128,19 +153,16 @@ async function getFrequentCommands(limit = 20) {
 
 /**
  * Get recently used commands
- * @param {number} limit - Maximum number of commands to return
- * @returns {Promise<Array>} Array of recent command executions
  */
-async function getRecentCommands(limit = 20) {
+async function getRecentCommands(limit = 20): Promise<RecentEntry[]> {
     const usage = await getUsageStats();
     return usage.recentHistory.slice(0, limit);
 }
 
 /**
  * Clear all usage statistics
- * @returns {Promise<void>}
  */
-function clearUsageStats() {
+function clearUsageStats(): Promise<void> {
     return new Promise((resolve) => {
         chrome.storage.local.set({
             [STORAGE_KEY]: {
@@ -161,9 +183,8 @@ function clearUsageStats() {
 
 /**
  * Export usage data as JSON
- * @returns {Promise<string>} JSON string of usage data
  */
-async function exportUsageData() {
+async function exportUsageData(): Promise<string> {
     const usage = await getUsageStats();
     return JSON.stringify(usage, null, 2);
 }
@@ -176,3 +197,5 @@ export {
     clearUsageStats,
     exportUsageData
 };
+
+export type { UsageStats, CommandEntry, RecentEntry };
