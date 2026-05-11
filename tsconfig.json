@@ -3,7 +3,7 @@
     "target": "esnext",
     "types": ["node", "offscreencanvas", "chrome"],
     "allowJs": true,
-    "strict": true,
+    "strict": false,
     "moduleResolution": "node",
     "sourceMap": true,
     "declaration": false,

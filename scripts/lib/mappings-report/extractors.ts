@@ -175,13 +175,14 @@ export function parseMappingsAddPatternsAST(
 
             if (annotation === undefined) return; // Allow empty strings
 
-            // Determine mode from file path
+            // Determine mode from file path (match both .js and .ts extensions)
+            const relPathBase = relPath.replace(/\.(js|ts)$/, '');
             let mode = 'Normal';
-            if (relPath.includes('insert.js')) mode = 'Insert';
-            else if (relPath.includes('visual.js')) mode = 'Visual';
-            else if (relPath.includes('omnibar.js')) mode = 'Omnibar';
-            else if (relPath.includes('hints.js')) mode = 'Hints';
-            else if (relPath.includes('cursorPrompt.js')) mode = 'CursorPrompt';
+            if (relPathBase.endsWith('insert')) mode = 'Insert';
+            else if (relPathBase.endsWith('visual')) mode = 'Visual';
+            else if (relPathBase.endsWith('omnibar')) mode = 'Omnibar';
+            else if (relPathBase.endsWith('hints')) mode = 'Hints';
+            else if (relPathBase.endsWith('cursorPrompt')) mode = 'CursorPrompt';
 
             const lineNum = path.node.loc?.start.line || 0;
 

@@ -10,8 +10,8 @@ const timestamp = new Date().toISOString();
 
 try {
   // Run linters with --fix to auto-correct fixable issues
-  const eslintCmd = 'eslint --config config/eslint.config.js src tests scripts --ext .js,.ts --fix 2>&1';
-  const stylelintCmd = 'stylelint --config config/stylelint.config.js \'src/**/*.css\' --fix 2>&1';
+  const eslintCmd = './node_modules/.bin/eslint --config config/eslint.config.js src tests scripts --ext .js,.ts --fix 2>&1';
+  const stylelintCmd = './node_modules/.bin/stylelint --config config/stylelint.config.js \'src/**/*.css\' --fix 2>&1';
 
   const jsOutput = execSync(eslintCmd, { encoding: 'utf8', stdio: 'pipe' });
   const cssOutput = execSync(stylelintCmd, { encoding: 'utf8', stdio: 'pipe' });
