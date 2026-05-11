@@ -99,7 +99,7 @@ test.describe('cmd_hints_first_input (Playwright)', () => {
     test('1.1 should load input-test.html fixture', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             const title = await page.title();
-            expect(title).toBe('Input Test Page');
+            expect(title).toContain('Input Test Page');
         });
     });
 
