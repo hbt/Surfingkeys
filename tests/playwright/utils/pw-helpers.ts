@@ -456,3 +456,22 @@ export async function collectOptionalCoverage(
         }
     }
 }
+
+/**
+ * Create a sibling tab via the extension service worker using chrome.tabs.create
+ * (without openerTabId). Newer Playwright/Chromium versions auto-set openerTabId
+ * when context.newPage() is called while another tab is active, causing sibling
+ * tabs to be misidentified as children. This helper avoids that by using the
+ * Chrome API directly.
+ */
+export async function openSiblingTabViaSW(ctx: BrowserContext, url: string): Promise<import('@playwright/test').Page> {
+    const sw = ctx.serviceWorkers()[0];
+    if (!sw) throw new Error('No service worker found');
+    const pagePromise = ctx.waitForEvent('page');
+    await sw.evaluate((u: string) => new Promise<void>(resolve => {
+        chrome.tabs.create({ url: u, active: false }, () => resolve());
+    }), url);
+    const page = await pagePromise;
+    await page.waitForLoadState('load').catch(() => {});
+    return page;
+}

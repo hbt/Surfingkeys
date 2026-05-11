@@ -1,5 +1,5 @@
 import { test, expect, BrowserContext } from '@playwright/test';
-import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, openSiblingTabViaSW } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { coverageSlug, readCoverageStats, withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -114,8 +114,7 @@ test.describe('cmd_tab_detach_magic_children_recursive_key (Playwright)', () => 
                 await parent.goto(parentUrl, { waitUntil: 'load' });
                 await closeAllExcept(parent);
 
-                const sibling = await context.newPage();
-                await sibling.goto(FIXTURE_URL, { waitUntil: 'load' });
+                const sibling = await openSiblingTabViaSW(context, FIXTURE_URL);
                 await sibling.waitForTimeout(200);
 
                 await parent.bringToFront();
