@@ -509,9 +509,7 @@ function createFront(insert, normal, hints, visual, browser) {
                     delete cloneUS[k];
                 }
            }
-            if (runtime.conf.enableEmojiInsertion) {
-                insert.enableEmojiInsertion();
-            }
+
             if (Object.keys(cloneUS).length > 0 && window === top) {
                 // left settings are for background, need not broadcast the update, neither persist into storage
                 RUNTIME('updateSettings', {

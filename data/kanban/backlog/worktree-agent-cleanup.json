@@ -1,0 +1,10 @@
+{
+  "id": "worktree-agent-cleanup",
+  "title": "Worktree cleanup (aa42ef66)",
+  "created_at": "2026-05-10T00:00:00Z",
+  "updated_at": "2026-05-10T00:00:00Z",
+  "sessions": [],
+  "branch": null,
+  "proof": null,
+  "notes": "Commit aa42ef66 — agent-generated worktree changes needing cleanup"
+}

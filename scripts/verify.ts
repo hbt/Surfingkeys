@@ -50,7 +50,7 @@ const CHECKS: Check[] = [
     {
         id: 'tests',
         label: 'Playwright test suite',
-        cmd: ['bun', 'scripts/test-parallel.ts'],
+        cmd: ['npm', 'run', 'test:playwright:parallel'],
         group: 'slow',
     },
     {
@@ -159,6 +159,7 @@ async function runAll(checks: Check[]): Promise<CheckResult[]> {
         const r = await runCheck(check);
         printResult(r);
         results.push(r);
+        if (!r.passed) break; // fail-fast: don't run subsequent slow checks
     }
 
     return results;

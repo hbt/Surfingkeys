@@ -1,21 +1,19 @@
 #!/bin/bash
-# Pre-commit hook to run all fast verification checks (lint + integrity + validate)
-# This hook provides warnings only and does not prevent commits
+# Pre-commit hook: fast checks + Playwright suite
+# Blocks commits on any failure — fix regressions before committing.
+# To bypass (not recommended): git commit --no-verify
 
-echo "🔍 Running fast checks..."
+echo "🔍 Running checks (lint + Playwright suite)..."
 
-# Run all fast checks (lint + integrity + validate)
-bun scripts/verify.ts
+bun scripts/verify.ts && bun scripts/verify.ts --only tests
 
-# Capture the exit code
 VERIFY_EXIT_CODE=$?
 
-# Display result
 if [ $VERIFY_EXIT_CODE -eq 0 ]; then
     echo "✅ All checks passed"
 else
-    echo "⚠️  One or more checks failed (commit will proceed)"
+    echo "❌ Checks failed — fix regressions before committing"
+    echo "   To bypass (not recommended): git commit --no-verify"
 fi
 
-# Always exit with 0 to allow commit to proceed
-exit 0
+exit $VERIFY_EXIT_CODE
