@@ -9,13 +9,15 @@ export {};
  *   - Its subject line appears in the upstream-sync branch (cherry-pick tracking branch)
  *   - It looks like a version bump (e.g. "1.18.0")
  *
- * Does NOT fetch — uses whatever refs are cached locally.
+ * Fetches brookhong remote at most once per 24 h (cache stamp in .git/sk-upstream-last-fetch).
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync, statSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const root = process.cwd();
+const FETCH_CACHE_FILE = join(root, '.git', 'sk-upstream-last-fetch');
+const FETCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 interface ExcludedEntry {
     sha: string;
@@ -50,6 +52,25 @@ async function spawn(cmd: string[]): Promise<{ stdout: string; ok: boolean }> {
     return { stdout: stdout.trim(), ok: exitCode === 0 };
 }
 
+async function fetchIfStale(): Promise<void> {
+    let lastFetch = 0;
+    try {
+        lastFetch = statSync(FETCH_CACHE_FILE).mtimeMs;
+    } catch {
+        // file doesn't exist — treat as never fetched
+    }
+
+    if (Date.now() - lastFetch < FETCH_CACHE_TTL_MS) return;
+
+    process.stderr.write('⟳  Fetching brookhong remote…\n');
+    const r = await spawn(['git', 'fetch', 'brookhong']);
+    if (!r.ok) {
+        process.stderr.write('⚠️  git fetch brookhong failed — using cached refs\n');
+        return;
+    }
+    writeFileSync(FETCH_CACHE_FILE, '');
+}
+
 async function branchExists(branch: string): Promise<boolean> {
     const r = await spawn(['git', 'rev-parse', '--verify', branch]);
     return r.ok;
@@ -79,6 +100,8 @@ function isVersionBump(title: string): boolean {
 }
 
 async function main() {
+    await fetchIfStale();
+
     const [excludedShas, syncSubjects, upstreamCommits] = await Promise.all([
         loadExcludedShas(),
         loadSyncSubjects(),

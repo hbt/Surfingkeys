@@ -1,9 +1,10 @@
 # Use official Playwright image — Chromium + all system deps included
-FROM mcr.microsoft.com/playwright:v1.58.2-noble
+FROM mcr.microsoft.com/playwright:v1.60.0-noble
 
 WORKDIR /app
 
 # Install Bun (required by scripts/server.ts and scripts/test-parallel.ts)
+RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:$PATH"
 
@@ -11,18 +12,12 @@ ENV PATH="/root/.bun/bin:$PATH"
 COPY package.json package-lock.json ./
 
 # Install node deps (Playwright browser already in base image — skip download)
-RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci --ignore-scripts
+# Use npm install instead of npm ci: esbuild optional platform packages are not
+# pre-populated in the lock file for all platforms, which npm ci (v11) rejects.
+RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --ignore-scripts
 
-# Copy full source
-COPY . .
+# Source is mounted at runtime via volume (see docker-compose.yml)
 
-# Build the extension (test suffix only — that's what Playwright uses)
-RUN CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test node ./config/esbuild.config.js development
-
-# Stub config for port-9601 server (config-server-debug tests only)
-# scripts/server.ts resolves CONFIG_FILE to /app/.surfingkeysrc.js (import.meta.dir/../)
-# Without this file, Playwright aborts before running any tests
-RUN echo 'settings.showModeIndicator = true;' > /app/.surfingkeysrc.js
-
-# Default: run full suite, 9 workers, no coverage
-CMD ["bunx", "playwright", "test", "--workers=9"]
+# Build extension + stub config at container start, then run suite
+# Stub: scripts/server.ts resolves CONFIG_FILE to /app/.surfingkeysrc.js — required or Playwright aborts
+CMD ["bash", "-c", "CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test node ./config/esbuild.config.js development && bun scripts/test-parallel.ts"]
