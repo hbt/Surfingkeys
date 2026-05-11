@@ -7,28 +7,19 @@
  * Supports gradual migration from string-based to object-based annotation.
  */
 
-export interface CommandMetadata {
-    short: string;
-    unique_id: string | null;
-    category: string | null;
-    description: string | null;
-    tags: string[];
-    [key: string]: unknown;
-}
-
-export type Annotation = string | CommandMetadata | [string, ...unknown[]];
-
 /**
  * Extract display string from annotation (legacy or structured)
+ * @param {string|object|array} annotation - Annotation value (string, metadata object, or array from parseAnnotation)
+ * @returns {string} Display string for UI
  */
-function getAnnotationString(annotation: Annotation): string {
+function getAnnotationString(annotation) {
     if (typeof annotation === 'string') {
         return annotation;
     }
     if (Array.isArray(annotation) && annotation.length > 0) {
-        return annotation[0] as string;
+        return annotation[0];
     }
-    if (!Array.isArray(annotation) && annotation?.short) {
+    if (annotation?.short) {
         return annotation.short;
     }
     return "Unknown command";
@@ -36,15 +27,17 @@ function getAnnotationString(annotation: Annotation): string {
 
 /**
  * Extract metadata object from annotation
+ * @param {string|object|array} annotation - Annotation value
+ * @returns {object} Metadata object with safe defaults
  */
-function getAnnotationMetadata(annotation: Annotation): CommandMetadata {
+function getAnnotationMetadata(annotation) {
     if (typeof annotation === 'object' && annotation !== null && !Array.isArray(annotation)) {
-        return annotation as CommandMetadata;
+        return annotation;
     }
     // Legacy string or array: convert to minimal metadata
     const displayString = Array.isArray(annotation) && annotation.length > 0
-        ? (annotation[0] as string)
-        : ((annotation as string) || "Unknown command");
+        ? annotation[0]
+        : (annotation || "Unknown command");
     return {
         short: displayString,
         unique_id: null,
@@ -57,8 +50,11 @@ function getAnnotationMetadata(annotation: Annotation): CommandMetadata {
 /**
  * Get unique command identifier for tracking
  * Persists across key remappings
+ * @param {string|object} annotation - Annotation value
+ * @param {string} fallbackKey - Key sequence as fallback
+ * @returns {string} Unique command ID
  */
-function getCommandId(annotation: Annotation, fallbackKey: string): string {
+function getCommandId(annotation, fallbackKey) {
     const metadata = getAnnotationMetadata(annotation);
     return metadata.unique_id || fallbackKey;
 }

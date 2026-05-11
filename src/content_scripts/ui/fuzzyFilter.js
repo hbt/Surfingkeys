@@ -3,29 +3,15 @@
  * Uses fzf-like sequential character matching with scoring
  */
 
-export interface FuzzyMatchResult {
-    match: boolean;
-    score: number;
-    positions: number[];
-}
-
-export interface FilterResult {
-    total: number;
-    visible: number;
-}
-
-export interface FilterAPI {
-    searchInput: HTMLInputElement;
-    filter: (query: string) => FilterResult;
-    destroy: () => void;
-    itemCount?: number;
-}
-
 /**
  * fzf-like fuzzy match with scoring
  * Characters must appear in sequence (not necessarily contiguous)
+ *
+ * @param {string} text - Text to search in
+ * @param {string} query - Search query
+ * @returns {{match: boolean, score: number, positions: number[]}} - Match result with score
  */
-export function fuzzyMatch(text: string, query: string): FuzzyMatchResult {
+export function fuzzyMatch(text, query) {
     if (!query || query.trim() === '') return { match: true, score: 0, positions: [] };
     if (!text) return { match: false, score: -1, positions: [] };
 
@@ -36,7 +22,7 @@ export function fuzzyMatch(text: string, query: string): FuzzyMatchResult {
     let queryIdx = 0;
     let score = 0;
     let lastMatchIdx = -1;
-    const positions: number[] = [];
+    const positions = [];
 
     for (let i = 0; i < lowerText.length && queryIdx < lowerQuery.length; i++) {
         if (lowerText[i] === lowerQuery[queryIdx]) {
@@ -79,41 +65,30 @@ export function fuzzyMatch(text: string, query: string): FuzzyMatchResult {
 
 /**
  * Simple boolean fuzzy match (for backwards compatibility)
+ * @param {string} text - Text to search in
+ * @param {string} query - Search query
+ * @returns {boolean} - Whether the text matches
  */
-export function fuzzyMatchBool(text: string, query: string): boolean {
+export function fuzzyMatchBool(text, query) {
     return fuzzyMatch(text, query).match;
 }
 
-interface HelpItem {
-    groupIndex: number;
-    categoryName: string;
-    kbd: string;
-    annotation: string;
-    item: HTMLElement;
-}
-
-interface GroupData {
-    wrapper: HTMLElement;
-    header: HTMLElement | null;
-    categoryName: string;
-}
-
-type SkWindow = Window & { _skFuzzyFilter?: (q: string) => FilterResult };
-
 /**
  * Create and setup fuzzy filter for help menu
+ * @param {HTMLElement} usageContainer - The #sk_usage container
+ * @returns {Object} - Filter API with { searchInput, filter, destroy }
  */
-export function setupHelpFilter(usageContainer: HTMLElement | null): FilterAPI | null {
+export function setupHelpFilter(usageContainer) {
     if (!usageContainer) return null;
 
     // Check if already setup
-    const existingSearch = usageContainer.querySelector<HTMLInputElement>('#sk_fuzzy_search');
+    const existingSearch = usageContainer.querySelector('#sk_fuzzy_search');
     if (existingSearch) {
-        return { searchInput: existingSearch, filter: (window as SkWindow)._skFuzzyFilter!, destroy: () => {} };
+        return { searchInput: existingSearch, filter: window._skFuzzyFilter, destroy: () => {} };
     }
 
     // Get all group wrappers (direct children of #sk_usage, excluding non-div elements like <p>)
-    const groupWrappers = Array.from(usageContainer.querySelectorAll<HTMLElement>(':scope > div'));
+    const groupWrappers = Array.from(usageContainer.querySelectorAll(':scope > div'));
     if (groupWrappers.length === 0) return null;
 
     // Create search input
@@ -136,12 +111,12 @@ export function setupHelpFilter(usageContainer: HTMLElement | null): FilterAPI |
     `;
 
     // Parse all help items from ALL groups
-    const allItems: HelpItem[] = [];
-    const allGroupData: GroupData[] = [];
+    const allItems = [];
+    const allGroupData = [];  // Track group wrappers and their headers
 
     groupWrappers.forEach((groupWrapper, groupIdx) => {
-        const children = Array.from(groupWrapper.querySelectorAll<HTMLElement>(':scope > div'));
-        let headerDiv: HTMLElement | null = null;
+        const children = Array.from(groupWrapper.querySelectorAll(':scope > div'));
+        let headerDiv = null;
         let categoryName = '';
 
         children.forEach((div) => {
@@ -170,9 +145,9 @@ export function setupHelpFilter(usageContainer: HTMLElement | null): FilterAPI |
     console.log('[SK Fuzzy] Parsed', allItems.length, 'items from', groupWrappers.length, 'groups');
 
     // Filter function with fzf-like scoring
-    function filter(query: string): FilterResult {
+    function filter(query) {
         console.log('[SK Fuzzy] filter called with:', query, 'items:', allItems.length);
-        const groupVisibility = new Set<number>();
+        const groupVisibility = new Set();
 
         // Score all items
         const scored = allItems.map(itemData => {
@@ -210,14 +185,14 @@ export function setupHelpFilter(usageContainer: HTMLElement | null): FilterAPI |
     }
 
     // Store globally for debugging
-    (window as SkWindow)._skFuzzyFilter = filter;
+    window._skFuzzyFilter = filter;
 
     // Event listener
-    const onInput = (e: Event) => filter((e.target as HTMLInputElement).value);
+    const onInput = (e) => filter(e.target.value);
     searchInput.addEventListener('input', onInput);
 
     // Keyboard handler
-    const onKeydown = (e: KeyboardEvent) => {
+    const onKeydown = (e) => {
         // Ctrl+F to focus search when help is visible
         if (e.ctrlKey && e.key === 'f' && usageContainer.style.display !== 'none') {
             e.preventDefault();
@@ -242,7 +217,7 @@ export function setupHelpFilter(usageContainer: HTMLElement | null): FilterAPI |
         searchInput.removeEventListener('input', onInput);
         document.removeEventListener('keydown', onKeydown, true);
         searchInput.remove();
-        delete (window as SkWindow)._skFuzzyFilter;
+        delete window._skFuzzyFilter;
     }
 
     return { searchInput, filter, destroy, itemCount: allItems.length };
