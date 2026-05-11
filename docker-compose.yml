@@ -1,0 +1,13 @@
+services:
+  tests:
+    build: .
+    environment:
+      - CONFIG_SERVER_PORT=9602
+      - BUILD_SUFFIX=-test
+      # Uncomment to get machine-readable results:
+      # - PLAYWRIGHT_JSON_OUTPUT=/app/playwright-report/results.json
+    volumes:
+      - ./playwright-report:/app/playwright-report   # HTML report
+      # - ./coverage-raw:/app/coverage-raw           # Coverage (enable if needed)
+    # To run a single test:
+    # command: ["bunx", "playwright", "test", "tests/playwright/commands/cmd-scroll-down.spec.ts"]
