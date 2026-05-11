@@ -21,7 +21,11 @@ const cmd = ['playwright', 'test', '--workers=9', ...process.argv.slice(2)];
 console.log(`\n[test:parallel] Running: bunx ${cmd.join(' ')}`);
 const run = spawnSync('bunx', cmd, {
     stdio: 'inherit',
-    env: { ...process.env, PLAYWRIGHT_JSON_OUTPUT: reportPath },
+    env: {
+        ...process.env,
+        PLAYWRIGHT_JSON_OUTPUT: reportPath,
+        PW_GLOBAL_TIMEOUT: process.env.PW_GLOBAL_TIMEOUT ?? String(30 * 60_000), // 30min for full suite
+    },
 });
 
 console.log(`\n[test:parallel] Report → ${reportPath}`);
