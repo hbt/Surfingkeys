@@ -10,7 +10,6 @@ import {
     scrollIntoViewIfNeeded,
     setSanitizedContent,
 } from './utils.js';
-import CursorPrompt from './cursorPrompt';
 
 function createInsert() {
     var self = new Mode("Insert");
@@ -216,41 +215,6 @@ function createInsert() {
         }
     });
 
-    const emojiURL = chrome.runtime.getURL("pages/emoji.tsv");
-    const emojiPrompt = new CursorPrompt((c) => {
-        const ee = c.split("\t");
-        const parsedUnicodeEmoji = String.fromCodePoint.apply(null, ee[0].split(','));
-        return "<div><span>{0}</span>{1}</div>".format(parsedUnicodeEmoji, ee[1]);
-    }, (elm) => {
-        return elm.firstElementChild.innerText;
-    }, () => new Promise((r) => {
-        fetch(emojiURL)
-            .then(res => Promise.all([res.text()]))
-            .then(res => {
-                r(res[0].split("\n"));
-            });
-    }));
-
-    self.enableEmojiInsertion = () => {
-        self.mappings.add(":", {
-            annotation: {
-                short: "Insert emoji",
-                unique_id: "cmd_insert_emoji",
-                category: "editing",
-                description: "Open emoji picker to insert emoji in input fields",
-                tags: ["editing", "insert", "emoji", "input"]
-            },
-            feature_group: 15,
-            stopPropagation: function() {
-                return false;
-            },
-            code: function() {
-                setTimeout(() => {
-                    emojiPrompt.activate(getRealEdit(), undefined, runtime.conf.startToShowEmoji, -1);
-                }, 100);
-            }
-        });
-    };
 
     self.addEventListener('keydown', function(event) {
         if (event.key && event.key.charCodeAt(0) > 127) {

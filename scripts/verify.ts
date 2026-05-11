@@ -50,7 +50,7 @@ const CHECKS: Check[] = [
     {
         id: 'tests',
         label: 'Playwright test suite',
-        cmd: ['bun', 'scripts/test-parallel.ts'],
+        cmd: ['npm', 'run', 'test:playwright:parallel'],
         group: 'slow',
     },
     {

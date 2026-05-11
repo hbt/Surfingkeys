@@ -176,7 +176,7 @@ const initKeyboard = ({ nvim, screen }: { nvim: Nvim; screen: Screen }): Keyboar
         }
     };
 
-    // Non-keyboard input. For example insert emoji.
+    // Non-keyboard input (e.g. paste, IME composition).
     const handleInput = (event: InputEvent) => {
         if (event.inputType === "insertFromPaste") {
             nvim.input(input.value);
