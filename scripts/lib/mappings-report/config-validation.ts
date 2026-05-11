@@ -38,8 +38,26 @@ export function generateConfigValidation(
         }
     }
 
+    // Detect exact duplicate keys (same key bound to 2+ entries, excluding unmap)
+    const keyGroups = new Map<string, typeof customConfig.mappings>();
+    for (const m of customConfig.mappings) {
+        if (m.type === 'unmap') continue;
+        if (!keyGroups.has(m.key)) keyGroups.set(m.key, []);
+        keyGroups.get(m.key)!.push(m);
+    }
+    const duplicateKeys: Issues['config_validation']['duplicate_keys'] = [];
+    for (const [key, entries] of keyGroups) {
+        if (entries.length > 1) {
+            duplicateKeys.push({
+                key,
+                entries: entries.map(e => ({ unique_id: e.unique_id, type: e.type, line: e.line })),
+            });
+        }
+    }
+
     return {
         prefix_conflicts: prefixConflicts,
         invalid_mapcmdkey_targets: invalidMapcmdkeyTargets,
+        duplicate_keys: duplicateKeys,
     };
 }

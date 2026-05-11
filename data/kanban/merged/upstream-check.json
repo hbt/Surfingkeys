@@ -1,0 +1,22 @@
+{
+  "id": "upstream-check",
+  "title": "Upstream lag personal check",
+  "created_at": "2026-05-10T00:00:00Z",
+  "updated_at": "2026-05-10T00:00:00Z",
+  "sessions": [
+    {
+      "id": "038db8c",
+      "phase": "merged",
+      "summary": "Add upstream lag personal check to verify.ts"
+    }
+  ],
+  "branch": "master",
+  "proof": {
+    "phase": "merged",
+    "artifact": "",
+    "summary": "Commit 038db8c reachable from master",
+    "produced_by": "038db8c",
+    "at": "2026-05-10T00:00:00Z"
+  },
+  "notes": ""
+}

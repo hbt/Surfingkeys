@@ -358,6 +358,7 @@ function createFront(insert, normal, hints, visual, browser) {
         args.action = 'openOmnibar';
         _userURLsHasCustomOnEnter = false;
         if (args.type === "LLMChat") {
+            args.extra = args.extra || {};
             args.extra.url = window.location.href.replace(/\#[^\#]*$/, '');
         }
         if (args._hasCustomOnEnter) {
@@ -508,9 +509,7 @@ function createFront(insert, normal, hints, visual, browser) {
                     delete cloneUS[k];
                 }
            }
-            if (runtime.conf.enableEmojiInsertion) {
-                insert.enableEmojiInsertion();
-            }
+
             if (Object.keys(cloneUS).length > 0 && window === top) {
                 // left settings are for background, need not broadcast the update, neither persist into storage
                 RUNTIME('updateSettings', {

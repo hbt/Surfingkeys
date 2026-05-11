@@ -51,8 +51,6 @@ const EXCLUDED_IDS = new Set([
     'cmd_chrome_net_internals',
     'cmd_chrome_view_source',
     // Global mode — state affects parallel test suite
-    'cmd_passthrough_enter',
-    'cmd_passthrough_ephemeral',
     'cmd_lurk_enter_normal',
     'cmd_lurk_ephemeral_normal',
     // TTS / Voice — requires audio / speech synthesis API
@@ -84,6 +82,10 @@ const EXCLUDED_IDS = new Set([
     'cmd_neovim_enable_input',
     'cmd_insert_neovim_editor',
     'cmd_tools_neovim',
+    'cmd_tools_edit_url_neovim',
+    'cmd_tools_source_neovim',
+    // captureVisibleTab — Chrome service worker API doesn't function in headless Playwright
+    'cmd_capture_full_page',
 ]);
 
 const excluded = (id: string) => EXCLUDED_IDS.has(id);
@@ -91,9 +93,11 @@ const excluded = (id: string) => EXCLUDED_IDS.has(id);
 interface IssueCheck {
     label: string;
     items: unknown[];
+    note?: string;
 }
 
-const checks: IssueCheck[] = [
+// REQUIRED — must be zero; CI fails immediately if any item is found.
+const requiredChecks: IssueCheck[] = [
     { label: 'annotations.invalid',                          items: issues.annotations.invalid },
     { label: 'annotations.not_migrated',                     items: issues.annotations.not_migrated },
     { label: 'tests.missing',                                items: issues.tests.missing.filter((id: string) => !excluded(id)) },
@@ -105,19 +109,50 @@ const checks: IssueCheck[] = [
     { label: 'config_validation.invalid_mapcmdkey_targets',  items: issues.config_validation.invalid_mapcmdkey_targets },
 ];
 
-const failed = checks.filter(c => c.items.length > 0);
+// OPTIONAL — work-in-progress; tracked for visibility but do not fail CI.
+// Goal: bring each count to 0 so it can graduate to REQUIRED.
+const optionalChecks: IssueCheck[] = [
+    {
+        label: 'tests.missing (excluded commands)',
+        items: issues.tests.missing.filter((id: string) => excluded(id)),
+        note: 'write Playwright specs or confirm exclusion is permanent',
+    },
+    {
+        label: 'code_coverage.missing (excluded commands)',
+        items: issues.code_coverage.missing.filter((id: string) => excluded(id)),
+        note: 'run tests with COVERAGE=true once specs exist',
+    },
+    {
+        label: 'custom_mappings.unmapped',
+        items: issues.custom_mappings.unmapped,
+        note: 'add bindings to ~/.surfingkeys-2026.js',
+    },
+    {
+        label: 'config_validation.duplicate_keys',
+        items: issues.config_validation.duplicate_keys,
+        note: 'same key bound to multiple commands in personal config',
+    },
+];
+
+const failed = requiredChecks.filter(c => c.items.length > 0);
 
 if (failed.length === 0) {
-    console.log('✅ No issues found.');
-    process.exit(0);
+    console.log('✅ Required checks passed.');
+} else {
+    for (const c of failed) {
+        const preview = c.items.slice(0, 5);
+        const more = c.items.length - preview.length;
+        console.log(`\n❌ ${c.label} (${c.items.length}):`);
+        console.log(JSON.stringify(preview, null, 2));
+        if (more > 0) console.log(`  ... and ${more} more`);
+    }
+    process.exit(1);
 }
 
-for (const c of failed) {
-    const preview = c.items.slice(0, 5);
-    const more = c.items.length - preview.length;
-    console.log(`\n❌ ${c.label} (${c.items.length}):`);
-    console.log(JSON.stringify(preview, null, 2));
-    if (more > 0) console.log(`  ... and ${more} more`);
+const optionalWithItems = optionalChecks.filter(c => c.items.length > 0);
+if (optionalWithItems.length > 0) {
+    console.log('\n📊 Optional (work in progress — does not fail CI):');
+    for (const c of optionalWithItems) {
+        console.log(`  ⚠️  ${c.label}: ${c.items.length}${c.note ? `  — ${c.note}` : ''}`);
+    }
 }
-
-process.exit(1);

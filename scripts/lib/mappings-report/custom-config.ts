@@ -103,7 +103,8 @@ export function parseCustomConfigAST(configPath: string): CustomConfiguration {
                 key,
                 type: functionName as any,
                 ...(unique_id && { unique_id }),
-                ...(description && { description })
+                ...(description && { description }),
+                ...(path.node.loc?.start.line !== undefined && { line: path.node.loc.start.line }),
             });
         }
     });

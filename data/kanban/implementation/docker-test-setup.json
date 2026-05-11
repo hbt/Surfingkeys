@@ -1,0 +1,16 @@
+{
+  "id": "docker-test-setup",
+  "title": "Docker test setup for Playwright",
+  "created_at": "2026-05-10T00:00:00Z",
+  "updated_at": "2026-05-10T00:00:00Z",
+  "sessions": [
+    {
+      "id": "597e418",
+      "phase": "implementation",
+      "summary": "Created Dockerfile, docker-compose.yml, .dockerignore on feat/docker-tests"
+    }
+  ],
+  "branch": "feat/docker-tests",
+  "proof": null,
+  "notes": ""
+}

@@ -6,6 +6,9 @@ dist/
 /coverage-manifests/
 /test-reports/
 data/gen/
+data/*.duckdb
+.claude/worktrees/
+.claude/scheduled_tasks.lock
 .DS_Store
 .vscode/
 package-lock.json

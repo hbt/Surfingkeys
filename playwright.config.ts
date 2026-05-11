@@ -12,6 +12,7 @@ export default defineConfig({
     workers: 1,
     retries: 2,
     timeout: 30_000,
+    globalTimeout: parseInt(process.env.PW_GLOBAL_TIMEOUT ?? String(5 * 60_000)),
     use: {
         trace: process.env.PW_TRACE ? 'on' : 'off',
     },

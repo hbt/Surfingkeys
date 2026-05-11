@@ -143,6 +143,10 @@ export interface Issues {
             key: string;
             unique_id: string;
         }>;
+        duplicate_keys: Array<{
+            key: string;
+            entries: Array<{ unique_id?: string; type: string; line?: number }>;
+        }>;
     };
 }
 
@@ -186,6 +190,7 @@ export interface CustomConfigMapping {
     type: 'mapkey' | 'vmapkey' | 'imapkey' | 'cmapkey' | 'map' | 'unmap' | 'mapcmdkey';
     unique_id?: string;
     description?: string;
+    line?: number;
 }
 
 export interface CustomConfiguration {
