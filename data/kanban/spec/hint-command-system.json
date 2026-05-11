@@ -1,0 +1,10 @@
+{
+  "id": "hint-command-system",
+  "title": "Hint command discovery UI",
+  "created_at": "2026-05-10T00:00:00Z",
+  "updated_at": "2026-05-10T00:00:00Z",
+  "sessions": [],
+  "branch": null,
+  "proof": null,
+  "notes": "See todos/features/hint-command-system.md"
+}

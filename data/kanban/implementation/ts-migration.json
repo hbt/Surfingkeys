@@ -1,0 +1,16 @@
+{
+  "id": "ts-migration",
+  "title": "TS migration / trie.ts fix",
+  "created_at": "2026-05-10T00:00:00Z",
+  "updated_at": "2026-05-10T00:00:00Z",
+  "sessions": [
+    {
+      "id": "597e418",
+      "phase": "implementation",
+      "summary": "WIP TypeScript migration and trie.ts fix"
+    }
+  ],
+  "branch": null,
+  "proof": null,
+  "notes": ""
+}
