@@ -159,6 +159,7 @@ async function runAll(checks: Check[]): Promise<CheckResult[]> {
         const r = await runCheck(check);
         printResult(r);
         results.push(r);
+        if (!r.passed) break; // fail-fast: don't run subsequent slow checks
     }
 
     return results;
