@@ -8,6 +8,7 @@ services:
       # - PLAYWRIGHT_JSON_OUTPUT=/app/playwright-report/results.json
     volumes:
       - .:/app                                        # live source mount
+      - /app/node_modules                             # shield container node_modules from host override
       - /home/hassen/.surfingkeys-2026.js:/home/hassen/.surfingkeys-2026.js:ro  # symlink target for .surfingkeysrc.js
       - ./playwright-report:/app/playwright-report   # HTML report
       # - ./coverage-raw:/app/coverage-raw           # Coverage (enable if needed)

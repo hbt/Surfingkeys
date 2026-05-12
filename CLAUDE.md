@@ -181,7 +181,6 @@ walk(json.load(open(sys.argv[1]))['suites'])
 
 | Test | Status |
 |------|--------|
-| `features/config-server-debug` | failing since `52d40f9` (fixture issue) |
 
 Last fully clean run: commit `11a97ab` — 2026-05-11T04:13 (735 pass, 0 fail, 1 flaky)
 

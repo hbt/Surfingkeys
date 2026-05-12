@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
     testDir: './tests/playwright',
+    testIgnore: ['**/scratch/**'],
     reporter: [
         ['dot'],
         ['html', { outputFolder: process.env.REPORT_DIR ?? 'playwright-report', open: 'never' }],
