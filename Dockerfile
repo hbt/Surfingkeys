@@ -18,6 +18,5 @@ RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --ignore-scripts
 
 # Source is mounted at runtime via volume (see docker-compose.yml)
 
-# Build extension + stub config at container start, then run suite
-# Stub: scripts/server.ts resolves CONFIG_FILE to /app/.surfingkeysrc.js — required or Playwright aborts
-CMD ["bash", "-c", "CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test node ./config/esbuild.config.js development && bun scripts/test-parallel.ts"]
+# Run the full test suite via the npm script (builds extension, then runs tests in parallel)
+CMD ["npm", "run", "test:playwright:parallel"]

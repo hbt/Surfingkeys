@@ -10,7 +10,10 @@ export default defineConfig({
             ? ([['json', { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT }]] as const)
             : []),
     ],
+    // workers: 1 here would be inherited as project.workers in PW 1.53.2, capping --workers=N CLI overrides.
+    // The explicit projects entry below keeps project.workers undefined so --workers=N works correctly.
     workers: 1,
+    projects: [{ name: '' }],
     retries: 2,
     timeout: 30_000,
     globalTimeout: parseInt(process.env.PW_GLOBAL_TIMEOUT ?? String(5 * 60_000)),
