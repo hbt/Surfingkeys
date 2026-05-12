@@ -184,7 +184,7 @@ walk(json.load(open(sys.argv[1]))['suites'])
 | `commands/cmd-capture-scrolling-element` | flaky in Docker (popup timing); passes locally |
 | `commands/cmd-capture-full-page` | flaky in Docker (popup timing); passes locally |
 
-Last fully clean run: commit `e51e486` — 2026-05-12T20:53 (732 pass, 0 fail, 4 flaky)
+Last fully clean run: commit `a7f779a` — 2026-05-12T22:35 (730 pass, 0 fail, 4 flaky) — 2 capture tests skipped in Docker (popup timing)
 
 
 ## Tab Command Architecture
