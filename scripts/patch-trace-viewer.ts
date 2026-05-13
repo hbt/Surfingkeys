@@ -1,7 +1,7 @@
 // scripts/patch-trace-viewer.ts
 import { readFileSync, writeFileSync, existsSync } from "fs";
 
-const traceHtml = `${process.env.REPORT_DIR ?? "playwright-report"}/trace/index.html`;
+const traceHtml = `${process.env.REPORT_DIR ?? "test-artifacts/playwright"}/trace/index.html`;
 if (!existsSync(traceHtml)) {
   console.log("No trace viewer found, skipping patch.");
   process.exit(0);

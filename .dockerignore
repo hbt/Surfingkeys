@@ -1,6 +1,5 @@
 node_modules/
 dist/
-coverage-raw/
-playwright-report/
+test-artifacts/
 .git/
 .surfingkeysrc.js
