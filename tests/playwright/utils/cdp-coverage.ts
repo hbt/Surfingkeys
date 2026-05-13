@@ -159,7 +159,7 @@ export class ServiceWorkerCoverage {
      * Prints a single line to stdout only when DEBUG is set: [Coverage:<label>] saved → <path>
      * Returns the file path, or null if not connected / COVERAGE not set.
      */
-    async flush(label: string, outputDir: string = 'coverage-raw'): Promise<string | null> {
+    async flush(label: string, outputDir: string = 'test-artifacts/coverage-raw'): Promise<string | null> {
         if (!this.ws) return null;
         let raw: any;
         try {

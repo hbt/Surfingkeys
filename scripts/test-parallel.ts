@@ -13,7 +13,7 @@ import * as path from 'path';
 
 const gitHash = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf-8' }).stdout.trim();
 const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${gitHash}`;
-const reportPath = path.resolve('test-reports', 'runs', `${runId}.json`);
+const reportPath = path.resolve('test-artifacts/reports', 'runs', `${runId}.json`);
 fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 
 const cmd = ['playwright', 'test', '--workers=9', ...process.argv.slice(2)];

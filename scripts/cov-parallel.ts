@@ -21,11 +21,11 @@ type ManifestEntry = {
 const runStartMs = Date.now();
 const startedAt = new Date(runStartMs).toISOString();
 const runId = startedAt.replace(/[:.]/g, '-');
-const coverageRoot = path.resolve('coverage-raw', 'runs', runId);
-const manifestDir = path.resolve('coverage-manifests');
+const coverageRoot = path.resolve('test-artifacts/coverage-raw', 'runs', runId);
+const manifestDir = path.resolve('test-artifacts/coverage-manifests');
 const manifestPath = path.join(manifestDir, `${runId}.json`);
 
-const reportPath = path.resolve('test-reports', 'runs', `${runId}.json`);
+const reportPath = path.resolve('test-artifacts/reports', 'runs', `${runId}.json`);
 fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 
 const playwrightArgs = process.argv.slice(2);
