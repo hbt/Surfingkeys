@@ -4,6 +4,7 @@
 
 import { existsSync, readdirSync, rmSync, mkdirSync, writeFileSync } from "fs";
 import { execSync, spawnSync } from "child_process";
+import * as os from "os";
 
 const QUEUE_DIR   = "/home/ctmsadmin/ci-queue";
 const RESULTS_DIR = "/home/ctmsadmin/ci-results";
@@ -41,7 +42,7 @@ function run(sha: string) {
   const result = spawnSync(
     "docker-compose",
     ["run", "--rm", "tests"],
-    { cwd: WORK_DIR, stdio: "inherit", env: { ...process.env, WORKERS: "4", DOCKER_CI: "1", GIT_HASH: sha.slice(0, 7) } }
+    { cwd: WORK_DIR, stdio: "inherit", env: { ...process.env, WORKERS: "4", DOCKER_CI: "1", GIT_HASH: sha.slice(0, 7), HOST_MACHINE: os.hostname() } }
   );
   const elapsed = Date.now() - start;
 
