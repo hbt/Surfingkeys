@@ -1,5 +1,6 @@
 services:
   tests:
+    image: surfingkeys-tests:latest
     build: .
     environment:
       - GIT_HASH
