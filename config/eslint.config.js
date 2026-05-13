@@ -117,15 +117,12 @@ module.exports = [
             ...typescriptEslintPlugin.configs.recommended.rules,
             'semi': ['error', 'always'],
             'no-tabs': 2,
-            // Phase 1 loose migration — relax TS-specific rules
+            // Phase 2 lint hardening — re-enabling suppressed rules one by one
             '@typescript-eslint/no-explicit-any': 'off',
             '@typescript-eslint/no-unused-vars': 'off',
             '@typescript-eslint/no-require-imports': 'off',
             '@typescript-eslint/no-var-requires': 'off',
-            '@typescript-eslint/ban-ts-comment': 'off',
             '@typescript-eslint/no-this-alias': 'off',
-            '@typescript-eslint/no-unsafe-function-type': 'off',
-            '@typescript-eslint/no-wrapper-object-types': 'off',
             '@typescript-eslint/no-unused-expressions': 'off'
         }
     },
