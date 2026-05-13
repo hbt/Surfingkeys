@@ -8,7 +8,7 @@
  *   COVERAGE=true bunx playwright test tests/playwright/commands/cmd-config-server-debug.spec.ts --reporter=line
  */
 import { test, expect } from '@playwright/test';
-import { launchWithCoverage, invokeCommand, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import { readCoverageStats } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
@@ -75,19 +75,28 @@ test('SW startup — which background.js functions ran', async () => {
 });
 
 // ─── Fixture config applied via 9602 ─────────────────────────────────────────
-test('fixture config applied — cmd_config_server_test_marker registered', async () => {
+test('fixture config applied — user script ran on page', async () => {
     const { context, cov } = await launchWithCoverage();
-    await new Promise(r => setTimeout(r, 2000));
-
     const page = await context.newPage();
     await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-    await new Promise(r => setTimeout(r, 1000));
 
-    const ok = await invokeCommand(page, 'cmd_config_server_test_marker');
-    if (DEBUG) console.log(`\n[fixture applied] cmd_config_server_test_marker invokable: ${ok}`);
+    // Wait for user script DOM marker — proves the full pipeline:
+    // config fetched → snippet registered → user script executed → fixture ran
+    const markerSeen = await page.waitForFunction(
+        () => document.documentElement.dataset['skConfigServerLoaded'] === 'true',
+        { timeout: 5000 },
+    ).then(() => true).catch(() => false);
+
+    if (!markerSeen) {
+        // SW may not have registered snippet yet on first load — reload once
+        await page.reload({ waitUntil: 'load' });
+        await page.waitForFunction(
+            () => document.documentElement.dataset['skConfigServerLoaded'] === 'true',
+            { timeout: 15000 },
+        );
+    }
 
     await cov?.close();
     await context.close();
-
-    expect(ok, 'fixture config marker command should be registered').toBe(true);
+    // waitForFunction throws on timeout — reaching here = pass
 });

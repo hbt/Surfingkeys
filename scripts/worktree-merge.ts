@@ -115,8 +115,8 @@ async function main() {
 
     if (target.branch === null) abort("Target worktree is in detached HEAD state.");
 
-    // Dirty check
-    const statusOut = gitLine(["status", "--porcelain"], target.path);
+    // Dirty check (ignore untracked files — node_modules symlink from worktree:setup is untracked but harmless)
+    const statusOut = gitLine(["status", "--porcelain", "--untracked-files=no"], target.path);
     if (statusOut.length > 0) {
         abort(`Worktree at ${target.path} has uncommitted changes. Commit or stash first.`);
     }

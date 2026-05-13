@@ -1,5 +1,5 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand, openSiblingTabViaSW } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { coverageSlug, readCoverageStats, withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -108,7 +108,7 @@ test.describe('cmd_tab_copy_urls_magic_children_recursive (Playwright)', () => {
 
                 const parent = await createPage(parentUrl);
                 await closeAllExcept(parent);
-                const sibling = await createPage(`${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/children_recursive_sibling`)}`);
+                const sibling = await openSiblingTabViaSW(context, `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/children_recursive_sibling`)}`);
                 await sibling.waitForTimeout(200);
                 await parent.bringToFront();
                 await parent.waitForTimeout(300);

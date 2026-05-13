@@ -1,5 +1,5 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand, openSiblingTabViaSW } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { coverageSlug, readCoverageStats, withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -111,8 +111,8 @@ test.describe('cmd_tab_copy_urls_magic_children (Playwright)', () => {
                 const anchor = await createPage(anchorUrl);
                 await closeAllExcept(anchor);
 
-                // Create an unrelated sibling tab
-                await createPage(siblingUrl);
+                // Create an unrelated sibling tab (via SW to avoid openerTabId being auto-set)
+                await openSiblingTabViaSW(context, siblingUrl);
                 await anchor.bringToFront();
                 await anchor.waitForTimeout(300);
 

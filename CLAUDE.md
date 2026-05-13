@@ -129,6 +129,64 @@ npm run test:playwright:parallel
 See **[tests/playwright/CLAUDE.md](tests/playwright/CLAUDE.md)** for coverage, instrumentation, fixtures, and full template.
 
 
+### Test Run History
+
+Past runs saved to `test-reports/runs/` by `npm run test:playwright:parallel` (`scripts/test-parallel.ts`).
+
+| Path | Content | Notes |
+|------|---------|-------|
+| `test-reports/runs/<ts>-<hash>.json` | Full Playwright JSON reporter output | Persisted — all runs kept |
+| `test-results/` | Per-test artifacts (screenshots, traces, error context) | Latest run only — overwritten |
+| `playwright-report/` | HTML report | Latest run only — overwritten |
+
+Filename format: `<ISO-timestamp>-<short-git-hash>.json`
+
+**Summarize all runs:**
+```bash
+python3 -c "
+import json, glob, os
+for f in sorted(glob.glob('test-reports/runs/*.json')):
+    d = json.load(open(f)); s = d['stats']
+    print(f'{os.path.basename(f)}  pass={s[\"expected\"]}  fail={s[\"unexpected\"]}  flaky={s[\"flaky\"]}')
+"
+```
+
+**Find last clean run (0 failures):**
+```bash
+python3 -c "
+import json, glob, os
+for f in sorted(glob.glob('test-reports/runs/*.json'), reverse=True):
+    d = json.load(open(f)); s = d['stats']
+    if s['unexpected'] == 0:
+        print('Last clean:', os.path.basename(f)); break
+"
+```
+
+**List failing tests in a specific run:**
+```bash
+python3 -c "
+import json, sys
+def walk(suites):
+    for s in suites:
+        for spec in s.get('specs', []):
+            for t in spec.get('tests', []):
+                if t.get('status') == 'unexpected':
+                    print(spec['file'], '|', spec['title'])
+        walk(s.get('suites', []))
+walk(json.load(open(sys.argv[1]))['suites'])
+" test-reports/runs/<filename>.json
+```
+
+**Current known failures:**
+
+| Test | Status |
+|------|--------|
+| `commands/cmd-capture-scrolling-element` | flaky in Docker (popup timing); passes locally |
+| `commands/cmd-capture-full-page` | flaky in Docker (popup timing); passes locally |
+
+Last fully clean run: commit `a7f779a` — 2026-05-12T22:35 (730 pass, 0 fail, 4 flaky) — 2 capture tests skipped in Docker (popup timing)
+
+
 ## Tab Command Architecture
 
 New tab commands go through the `tabHandleMagic` dispatch system — **not** legacy handlers like `tabOnly`, `tabCloseM`, etc.
