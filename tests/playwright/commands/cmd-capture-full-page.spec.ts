@@ -36,6 +36,7 @@ async function waitForPopupWithImg(p: Page, timeoutMs = 25000): Promise<boolean>
 test.describe('cmd_capture_full_page (Playwright)', () => {
     // Full-page capture scrolls the entire page with 1s waits per viewport — budget 35s
     test.setTimeout(60_000);
+    test.skip(!!process.env.DOCKER_CI, 'captureVisibleTab unsupported in headless Docker');
 
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(FIXTURE_URL);

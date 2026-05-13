@@ -2294,6 +2294,11 @@ function start(browser) {
     };
     self.captureVisibleTab = function(message, sender, sendResponse) {
         chrome.tabs.captureVisibleTab(null, {format: "png"}, function(dataUrl) {
+            if (chrome.runtime.lastError || !dataUrl) {
+                console.error("[capture] captureVisibleTab failed:", chrome.runtime.lastError?.message);
+                _response(message, sendResponse, { dataUrl: null });
+                return;
+            }
             _response(message, sendResponse, {
                 dataUrl: dataUrl
             });
