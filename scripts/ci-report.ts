@@ -106,14 +106,14 @@ function formatHuman(
   if (runs.length === 0) {
     lines.push("  (none)");
   } else {
-    lines.push(`  ${pad("sha", 9)}${pad("env", 7)}${pad("subject", 38)}${pad("pass", 6)}${pad("fail", 6)}${pad("elapsed", 9)}when`);
-    lines.push("  " + ["─".repeat(7), "─".repeat(6), "─".repeat(36), "─".repeat(4), "─".repeat(4), "─".repeat(7), "─".repeat(9)].join("  "));
+    lines.push(`  ${pad("sha", 9)}${pad("env", 7)}${pad("host", 16)}${pad("subject", 38)}${pad("pass", 6)}${pad("fail", 6)}${pad("elapsed", 9)}when`);
+    lines.push("  " + ["─".repeat(7), "─".repeat(6), "─".repeat(14), "─".repeat(36), "─".repeat(4), "─".repeat(4), "─".repeat(7), "─".repeat(9)].join("  "));
     for (const r of runs) {
       const { stats } = r;
       const elapsed = formatElapsed(stats.duration);
       const when = formatRelative(stats.startTime);
       lines.push(
-        `  ${pad(r.short || r.sha || "-", 9)}${pad(r.env, 7)}${pad(r.subject, 38)}${pad(String(stats.expected), 6)}${pad(String(stats.unexpected), 6)}${pad(elapsed, 9)}${when}`
+        `  ${pad(r.short || r.sha || "-", 9)}${pad(r.env, 7)}${pad(r.host || "-", 16)}${pad(r.subject, 38)}${pad(String(stats.expected), 6)}${pad(String(stats.unexpected), 6)}${pad(elapsed, 9)}${when}`
       );
     }
   }
@@ -134,6 +134,7 @@ function formatJson(pending: QueueEntry[], container: string | null, runs: Enric
       sha: r.sha,
       short: r.short,
       env: r.env,
+      host: r.host,
       subject: r.subject,
       date: r.date,
       stats: r.stats,

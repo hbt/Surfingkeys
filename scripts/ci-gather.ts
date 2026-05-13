@@ -25,6 +25,7 @@ export interface RunEntry {
   filename: string;   // raw filename (no .json)
   sha: string;        // git short hash, or "" if not embedded
   env: string;        // "docker" | "local"
+  host: string;       // hostname of the machine that ran the tests, or ""
   stats: RunStats;
 }
 
@@ -80,7 +81,7 @@ function readRuns(): RunEntry[] {
       const data = JSON.parse(readFileSync(path.join(LOCAL_RUNS, f), "utf8"));
       if (!data?.stats) continue;
       const { sha, env } = parseRunFilename(f);
-      entries.push({ filename: f.replace(/\.json$/, ""), sha, env, stats: data.stats });
+      entries.push({ filename: f.replace(/\.json$/, ""), sha, env, host: data.host ?? "", stats: data.stats });
     } catch {}
   }
   return entries;

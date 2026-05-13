@@ -9,6 +9,7 @@
 
 import { spawnSync } from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 const isDocker = fs.existsSync('/.dockerenv');
@@ -32,5 +33,14 @@ const run = spawnSync('bunx', cmd, {
 });
 
 console.log(`\n[test:parallel] Report → ${reportPath}`);
+
+// Patch host into the report JSON so runs can be attributed to a machine
+if (fs.existsSync(reportPath)) {
+  try {
+    const data = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+    data.host = os.hostname();
+    fs.writeFileSync(reportPath, JSON.stringify(data));
+  } catch {}
+}
 
 if (run.status !== 0) process.exitCode = run.status ?? 1;
