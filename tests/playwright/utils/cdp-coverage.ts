@@ -62,17 +62,20 @@ export class ServiceWorkerCoverage {
         this.targetFilter = targetFilter ??
             ((t: any) => t.type === 'service_worker' && t.url?.includes('background.js'));
         try {
+            // Caller should have waited for the SW via waitForExtensionSW() before calling init().
+            // This short retry is a safety net for the small gap between Playwright's SW event
+            // and the target appearing in /json/list.
             let sw: any;
-            const maxAttempts = 10;
+            const maxAttempts = 3;
             for (let attempt = 0; attempt < maxAttempts; attempt++) {
                 const targets = await this.fetchTargets(cdpPort);
                 sw = targets.find(this.targetFilter);
                 if (sw?.webSocketDebuggerUrl) break;
                 debugWarn(
-                    `[Coverage] SW target not found (attempt ${attempt + 1}/${maxAttempts}), retrying in 500ms...\n` +
+                    `[Coverage] SW target not found (attempt ${attempt + 1}/${maxAttempts}), retrying in 200ms...\n` +
                         `  Available: ${targets.map((t: any) => `${t.type}:${t.url}`).join(', ')}`,
                 );
-                await new Promise(r => setTimeout(r, 500));
+                await new Promise(r => setTimeout(r, 200));
             }
             if (!sw?.webSocketDebuggerUrl) {
                 debugWarn('[Coverage] SW target not found after all retries.');
