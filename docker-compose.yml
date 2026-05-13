@@ -4,6 +4,7 @@ services:
     build: .
     environment:
       - GIT_HASH
+      - WORKERS
       - CONFIG_SERVER_PORT=9602
       - BUILD_SUFFIX=-test
       # Uncomment to get machine-readable results:
@@ -11,7 +12,7 @@ services:
     volumes:
       - .:/app                                        # live source mount
       - /app/node_modules                             # shield container node_modules from host override
-      - /home/hassen/.surfingkeys-2026.js:/home/hassen/.surfingkeys-2026.js:ro  # symlink target for .surfingkeysrc.js
+      - ${SURFINGKEYS_CONFIG_FILE:-/home/hassen/.surfingkeys-2026.js}:/home/hassen/.surfingkeys-2026.js:ro  # symlink target for .surfingkeysrc.js
       - ./test-artifacts/playwright:/app/test-artifacts/playwright   # HTML report
       - ./test-artifacts/coverage-raw:/app/test-artifacts/coverage-raw             # Coverage output
       - ./test-artifacts/coverage-manifests:/app/test-artifacts/coverage-manifests  # Coverage manifests

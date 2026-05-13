@@ -18,7 +18,8 @@ const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${gitHash}-${en
 const reportPath = path.resolve('test-artifacts/reports', 'runs', `${runId}.json`);
 fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 
-const cmd = ['playwright', 'test', '--workers=9', ...process.argv.slice(2)];
+const workers = process.env.WORKERS ?? '9';
+const cmd = ['playwright', 'test', `--workers=${workers}`, ...process.argv.slice(2)];
 
 console.log(`\n[test:parallel] Running: bunx ${cmd.join(' ')}`);
 const run = spawnSync('bunx', cmd, {
