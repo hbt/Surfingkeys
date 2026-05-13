@@ -118,7 +118,7 @@ async function detectDebugMode() {
             console.log('[DEBUG HELPER] CDP detected on port 9222 - Browser:', data.Browser);
             return true;
         }
-    } catch (error) {
+    } catch (_error) {
         // Expected when not in debug mode or port not accessible
     }
 
@@ -247,11 +247,11 @@ function _setNewTabUrl(){
     return  "https://www.google.com";
 }
 
-function _getContainerName(self, _response){
+function _getContainerName(_self, _response){
 }
 
 function getLatestHistoryItem(text, maxResults, cb) {
-    const caseSensitive = text.toLowerCase() !== text;
+    const _caseSensitive = text.toLowerCase() !== text;
     let endTime = new Date().getTime();
     let results = [];
     const impl = (endTime, maxResults, cb) => {
@@ -329,12 +329,12 @@ function generatePassword() {
 let nativeConnected = false;
 const nvimServer = {};
 function startNative() {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
         const nm = chrome.runtime.connectNative("surfingkeys");
         const password = generatePassword();
-        nm.onDisconnect.addListener((evt) => {
+        nm.onDisconnect.addListener((_evt) => {
             if (chrome.runtime.lastError) {
-                var error = chrome.runtime.lastError.message;
+                var _error = chrome.runtime.lastError.message;
             }
             if (nativeConnected) {
                 nvimServer.instance = startNative();

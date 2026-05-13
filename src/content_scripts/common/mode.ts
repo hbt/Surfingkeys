@@ -73,7 +73,7 @@ const Mode = function(name, statusLine) {
             } else {
                 // otherwise, we just pop all modes above this inclusively.
                 pos++;
-                var popup = mode_stack.slice(0, pos);
+                var _popup = mode_stack.slice(0, pos);
                 mode_stack = mode_stack.slice(pos);
             }
 
@@ -143,7 +143,7 @@ function handleStack(eventName, event, cb) {
 
 let eventListenerBeats = 0;
 var suppressScrollEvent = 0, _listenedEvents = {
-    "sentinel": (event) => {
+    "sentinel": (_event) => {
         eventListenerBeats ++;
     },
     "keydown": function (event) {
@@ -160,7 +160,7 @@ var suppressScrollEvent = 0, _listenedEvents = {
         handleStack("keydown", event);
     },
     "keyup": function (event) {
-        handleStack("keyup", event, function (m) {
+        handleStack("keyup", event, function (_m) {
             var i = keysNeedKeyupSuppressed.indexOf(event.keyCode);
             if (i !== -1) {
                 event.stopImmediatePropagation();
@@ -228,7 +228,7 @@ Mode.init = (cb)=> {
     // as document.write will clear added eventListeners.
     if (window.location.href === "about:blank" && window.frameElement &&
         (!document.body || document.body.childElementCount === 0)) {
-        window.frameElement.addEventListener("load", function(evt) {
+        window.frameElement.addEventListener("load", function(_evt) {
             try {
                 init(cb);
             } catch (e) {

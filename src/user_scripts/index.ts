@@ -22,7 +22,7 @@ function isInUIFrame() {
         return !domain || domain.test(document.location.href) || domain.test(window.origin);
     }
 
-    function cmap(new_keystroke, old_keystroke, domain, new_annotation) {
+    function cmap(new_keystroke, old_keystroke, domain, _new_annotation) {
         if (_isDomainApplicable(domain)) {
             dispatchSKEvent("front", ['addMapkey', "Omnibar", new_keystroke, old_keystroke]);
         }
@@ -94,7 +94,7 @@ initSKFunctionListener("user", {
             userDefinedCommands[name](...args);
         }
     },
-    getSearchSuggestions: async (url, response, request, callbackId, origin) => {
+    getSearchSuggestions: async (url, response, request, callbackId, _origin) => {
         if (functionsToListSuggestions.hasOwnProperty(url)) {
             try {
                 const ret = await functionsToListSuggestions[url](response, request);
@@ -105,7 +105,7 @@ initSKFunctionListener("user", {
             }
         }
     },
-    performInlineQuery: (query, callbackId, origin) => {
+    performInlineQuery: (query, callbackId, _origin) => {
         const url = (typeof(inlineQuery.url) === "function") ? inlineQuery.url(query) : inlineQuery.url + query;
         httpRequest({
             url,
@@ -237,7 +237,7 @@ const api = {
                 cssSelector = `.${hintsCreating}`;
             }
             hintsFunction = onHintKey;
-            const promise = new Promise((resolve, reject) => {
+            const promise = new Promise((resolve, _reject) => {
                 hintsCreationResolve = resolve;
             });
             dispatchSKEvent('api', ['hints:create', cssSelector, "user", attrs]);

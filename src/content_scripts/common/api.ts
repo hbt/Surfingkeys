@@ -310,7 +310,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * @see map
      */
-    function cmap(new_keystroke, old_keystroke, domain, new_annotation) {
+    function cmap(new_keystroke, old_keystroke, domain, _new_annotation) {
         if (_isDomainApplicable(domain)) {
             dispatchSKEvent("front", ['addMapkey', "Omnibar", new_keystroke, old_keystroke]);
         }
@@ -356,7 +356,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * @see map
      */
-    function lmap(new_keystroke, old_keystroke, domain, new_annotation) {
+    function lmap(new_keystroke, old_keystroke, domain, _new_annotation) {
         if (_isDomainApplicable(domain)) {
             normal.addLurkMap(new_keystroke, old_keystroke);
         }

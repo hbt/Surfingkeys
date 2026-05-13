@@ -10,7 +10,7 @@ import {
     isInUIFrame,
     mapInMode,
     scrollIntoViewIfNeeded,
-    setSanitizedContent,
+    _setSanitizedContent,
     showBanner,
     showPopup,
 } from './utils.js';
@@ -250,7 +250,7 @@ function createNormal(insert) {
             Mode.suppressKeyUp(event.keyCode);
         }
     });
-    self.addEventListener('blur', function(event) {
+    self.addEventListener('blur', function(_event) {
         keyHeld = 0;
     });
     self.addEventListener('focus', function(event) {
@@ -270,7 +270,7 @@ function createNormal(insert) {
             }
         }
     });
-    self.addEventListener('keyup', function(event) {
+    self.addEventListener('keyup', function(_event) {
         setTimeout(function() {
             keyHeld = 0;
         }, 0);
@@ -372,7 +372,7 @@ function createNormal(insert) {
     var scrollNodes, scrollIndex = 0,
         lastKeys;
 
-    function easeFn(t, b, c, d) {
+    function _easeFn(t, b, c, d) {
         // t: current time, b: begInnIng value, c: change In value, d: duration
         return (t === d) ? b + c : c * (-Math.pow(2, -10 * t / d) + 1) + b;
     }

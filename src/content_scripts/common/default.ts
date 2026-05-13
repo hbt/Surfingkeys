@@ -137,7 +137,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                     settings: {
                         "noPdfViewer": 1
                     }
-                }, (resp) => {
+                }, (_resp) => {
                     window.location.replace(pdfUrl);
                 });
             } else {
@@ -146,7 +146,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                         settings: {
                             "noPdfViewer": 0
                         }
-                    }, (resp) => {
+                    }, (_resp) => {
                         window.location.replace(pdfUrl);
                     });
                 } else {
@@ -158,7 +158,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
                             settings: {
                                 "noPdfViewer": !resp.settings.noPdfViewer
                             }
-                        }, (r) => {
+                        }, (_r) => {
                             showBanner(info);
                         });
                     });
@@ -220,7 +220,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         description: "Enter hints mode for large page regions",
         tags: ["hints", "regional", "navigation"]
     }, function() {
-        hints.create(getLargeElements(), (e) => { }, { regionalHints: true });
+        hints.create(getLargeElements(), (_e) => { }, { regionalHints: true });
     });
 
     mapkey('zv', {
@@ -576,7 +576,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
     });
 
-    function getSentence(textNode, offset) {
+    function _getSentence(textNode, offset) {
         var sentence = "";
 
         actionWithSelectionPreserved(function(sel) {
@@ -1318,7 +1318,7 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         description: "Fill form fields with data from clipboard",
         tags: ["clipboard", "paste", "form"]
     }, function() {
-        hints.create('form', function(element, event) {
+        hints.create('form', function(element, _event) {
             var formKey = generateFormKey(element);
             clipboard.read(function(response) {
                 var forms = JSON.parse(response.data.trim());

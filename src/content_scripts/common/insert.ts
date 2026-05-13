@@ -3,12 +3,12 @@ import { runtime } from './runtime.js';
 import Mode from './mode';
 import KeyboardUtils from './keyboardUtils';
 import {
-    createElementWithContent,
+    _createElementWithContent,
     getRealEdit,
     isEditable,
-    locateFocusNode,
-    scrollIntoViewIfNeeded,
-    setSanitizedContent,
+    _locateFocusNode,
+    _scrollIntoViewIfNeeded,
+    _setSanitizedContent,
 } from './utils.js';
 
 function createInsert() {

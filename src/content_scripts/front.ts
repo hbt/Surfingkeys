@@ -7,7 +7,7 @@ import {
     getBrowserName,
     getDocumentOrigin,
     getElements,
-    httpRequest,
+    _httpRequest,
     initSKFunctionListener,
     isEditable,
     isInUIFrame,
@@ -33,7 +33,7 @@ function createFront(insert, normal, hints, visual, browser) {
     var frontendPromise;
 
     function newFrontEnd() {
-        frontendPromise = new Promise(function (resolve, reject) {
+        frontendPromise = new Promise(function (resolve, _reject) {
             createUiHost(browser, (res) => {
                 resolve(res);
                 applyUserSettings();
@@ -145,7 +145,7 @@ function createFront(insert, normal, hints, visual, browser) {
                     query: message.query,
                 });
             } else {
-                ret = new Promise((resolve, reject) => {
+                ret = new Promise((resolve, _reject) => {
                     const callbackId = generateQuickGuid();
                     skCallbacks[callbackId] = (res) => {
                         resolve(res);
@@ -600,7 +600,7 @@ function createFront(insert, normal, hints, visual, browser) {
 
             var root = mode.mappings.find(_keyHints.accumulated);
             if (root) {
-                root.getMetas(function(m) {
+                root.getMetas(function(_m) {
                     return true;
                 }).forEach(function(m) {
                     _keyHints.candidates[m.word] = {
@@ -668,7 +668,7 @@ function createFront(insert, normal, hints, visual, browser) {
         });
     };
 
-    _actions["getBackFocus"] = function(response) {
+    _actions["getBackFocus"] = function(_response) {
         window.focus();
         if (window === top && frontendPromise) {
             frontendPromise.then((uiHost) => {
@@ -680,7 +680,7 @@ function createFront(insert, normal, hints, visual, browser) {
         }
     };
 
-    _actions["getPageText"] = function(response) {
+    _actions["getPageText"] = function(_response) {
         return document.body.innerText;
     };
 
@@ -702,7 +702,7 @@ function createFront(insert, normal, hints, visual, browser) {
         }, 500);
     };
 
-    _actions["visualClear"] = function(message) {
+    _actions["visualClear"] = function(_message) {
         clearPendingQuery();
         visual.visualClear();
     };
@@ -712,7 +712,7 @@ function createFront(insert, normal, hints, visual, browser) {
         visual.visualEnter(message.query);
     };
 
-    _actions["emptySelection"] = function(message) {
+    _actions["emptySelection"] = function(_message) {
         visual.emptySelection();
     };
 
@@ -721,15 +721,15 @@ function createFront(insert, normal, hints, visual, browser) {
     };
 
     var _active = window === top;
-    _actions['deactivated'] = function(message) {
+    _actions['deactivated'] = function(_message) {
         _active = false;
     };
 
-    _actions['activated'] = function(message) {
+    _actions['activated'] = function(_message) {
         _active = true;
     };
 
-    runtime.on('focusFrame', function(msg, sender, response) {
+    runtime.on('focusFrame', function(msg, _sender, _response) {
         if (msg.frameId === window.frameId) {
             window.focus();
             document.body.scrollIntoView({

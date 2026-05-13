@@ -14,9 +14,9 @@ import {
     getVisibleElements,
     getWordUnderCursor,
     locateFocusNode,
-    scrollIntoViewIfNeeded,
+    _scrollIntoViewIfNeeded,
     setSanitizedContent,
-    tabOpenLink,
+    _tabOpenLink,
 } from './utils.js';
 
 function createVisual(clipboard, hints) {
@@ -61,7 +61,7 @@ function createVisual(clipboard, hints) {
             }
         }
     });
-    self.addEventListener('scroll', function(event) {
+    self.addEventListener('scroll', function(_event) {
         matches.forEach(function(m) {
             const r = getTextRect(m[0], m[1])[0];
             m[2].forEach((mi) => {
@@ -71,7 +71,7 @@ function createVisual(clipboard, hints) {
         });
     });
 
-    self.addEventListener('click', function(event) {
+    self.addEventListener('click', function(_event) {
         switch (selection.type) {
             case "None":
                 self.hideCursor();
@@ -97,7 +97,7 @@ function createVisual(clipboard, hints) {
         _onStateChange();
     });
 
-    self.addEventListener('resize', function(event) {
+    self.addEventListener('resize', function(_event) {
         if (runtime.conf.lastQuery) {
             self.visualUpdate(runtime.conf.lastQuery);
         }
@@ -113,7 +113,7 @@ function createVisual(clipboard, hints) {
             });
         }
     };
-    self.addEventListener('selectionchange', function(event) {
+    self.addEventListener('selectionchange', function(_event) {
         clearSelectionMark();
         selectionMark_ = createSelectionMark(selection.anchorNode, selection.anchorOffset, selection.focusNode, selection.focusOffset);
     });

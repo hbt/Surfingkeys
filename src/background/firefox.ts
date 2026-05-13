@@ -7,7 +7,7 @@ import {
 function loadRawSettings(keys, cb, defaultSet) {
     var rawSet = defaultSet || {};
     chrome.storage.local.get(null, function(localSet) {
-        var localSavedAt = localSet.savedAt || 0;
+        var _localSavedAt = localSet.savedAt || 0;
         extendObject(rawSet, localSet);
         var subset = getSubSettings(rawSet, keys);
         if (chrome.runtime.lastError) {
@@ -17,7 +17,7 @@ function loadRawSettings(keys, cb, defaultSet) {
     });
 }
 
-function _applyProxySettings(proxyConf) {
+function _applyProxySettings(_proxyConf) {
 }
 
 function _setNewTabUrl(){
@@ -31,7 +31,7 @@ function _getContainerName(self, _response) {
             _response(message, sendResponse, {
                 name : container.name
             });
-        }, function(err){
+        }, function(_err){
             _response(message, sendResponse, {
                 name : null
             });});

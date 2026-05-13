@@ -42,7 +42,7 @@ export default function(
         };
 
         _ace.setTheme("ace/theme/monokai");
-        ace.config.loadModule('ace/ext/language_tools', function (mod) {
+        ace.config.loadModule('ace/ext/language_tools', function (_mod) {
             ace.config.loadModule('ace/autocomplete', function (mod) {
                 mod.Autocomplete.startCommand.bindKey = "Tab";
                 mod.Autocomplete.prototype.commands['Space'] = mod.Autocomplete.prototype.commands['Tab'];
@@ -60,10 +60,10 @@ export default function(
             cm.on('vim-mode-change', function(data) {
                 _ace.mode = data.mode;
             });
-            cm.constructor.Vim.defineEx("write", "w", function(cm, input) {
+            cm.constructor.Vim.defineEx("write", "w", function(_cm, _input) {
                 saveSettings();
             });
-            cm.constructor.Vim.defineEx("quit", "q", function(cm, input) {
+            cm.constructor.Vim.defineEx("quit", "q", function(_cm, _input) {
                 window.close();
             });
         });
@@ -156,7 +156,7 @@ export default function(
         var proxySelect = divProxyPair.querySelector(".proxy>select");
         var proxyInput = divProxyPair.querySelector(".proxy>input");
 
-        function __updateProxy(data) {
+        function __updateProxy(_data) {
             let v = proxyInput.value.replace(/\W+([0-9]+)$/, ":$1");
             _updateProxy({
                 number: number,
@@ -340,7 +340,7 @@ export default function(
 
     document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
         const { normal } = evt.detail;
-        basicMappings = basicMappings.map(function(w, i) {
+        basicMappings = basicMappings.map(function(w, _i) {
             const binding = normal.mappings.find(KeyboardUtils.encodeKeystroke(w));
             if (binding) {
                 return {
@@ -354,7 +354,7 @@ export default function(
     });
 
     function renderSearchAlias(frontCommand, disabledSearchAliases) {
-        new Promise((r, j) => {
+        new Promise((r, _j) => {
             const getSearchAliases = () => {
                 frontCommand({
                     action: 'getSearchAliases'
@@ -403,7 +403,7 @@ export default function(
 
     function renderKeyMappings(rs) {
         initL10n(function (locale) {
-            var customization = basicMappings.map(function (w, i) {
+            var customization = basicMappings.map(function (w, _i) {
                 var newKey = w.origin;
                 if (rs.basicMappings && rs.basicMappings.hasOwnProperty(w.origin)) {
                     newKey = rs.basicMappings[w.origin];

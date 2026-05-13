@@ -117,7 +117,7 @@ class CursorPrompt {
         }
     }
 
-    onKeyUp(event) {
+    onKeyUp(_event) {
         if (!this.#suppressKeyup && this.matchStart !== -1) {
             let [v, ss] = this.#getValueAndSelectionStart();
             if (ss < this.matchStart || v[this.matchStart - 1] !== this.activator) {

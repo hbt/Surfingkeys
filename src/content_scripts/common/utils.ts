@@ -239,7 +239,7 @@ function listElements(root, whatToShow, filter) {
     return elms;
 }
 
-function isElementVisible(elm) {
+function _isElementVisible(elm) {
     return elm.offsetHeight > 0 && elm.offsetWidth > 0;
 }
 
@@ -370,7 +370,7 @@ function isEditable(element) {
         || (element.localName === 'input' && /^(?!button|checkbox|file|hidden|image|radio|reset|submit)/i.test(element.type)));
 }
 
-function parseQueryString(query) {
+function _parseQueryString(query) {
     var params = {};
     if (query.length) {
         var parts = query.split('&');
@@ -522,7 +522,7 @@ function filterAncestors(elements) {
 
     // filter out element which has its children covered
     var result = [];
-    elements.forEach(function(e, i) {
+    elements.forEach(function(e, _i) {
         if (isExplicitlyRequested(e)) {
             result.push(e);
         } else {
@@ -684,7 +684,7 @@ function getTextRect() {
             rects = _focusedRange.getClientRects();
             start --;
         }
-    } catch (e) {
+    } catch (_e) {
         return [];
     }
     return rects;
@@ -1073,7 +1073,7 @@ function flashPressedLink(link, cb) {
 function safeDecodeURI(url) {
     try {
         return decodeURI(url);
-    } catch (e) {
+    } catch (_e) {
         return url;
     }
 }
@@ -1081,7 +1081,7 @@ function safeDecodeURI(url) {
 function safeDecodeURIComponent(url) {
     try {
         return decodeURIComponent(url);
-    } catch (e) {
+    } catch (_e) {
         return url;
     }
 }

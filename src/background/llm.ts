@@ -264,7 +264,7 @@ function bedrock(req, opts) {
         if (response.status == 200) {
             readStream();
         } else {
-            reader.read().then(({done, value}) => {
+            reader.read().then(({_done, value}) => {
                 const err = new TextDecoder().decode(value);
                 opts.onChunk(err);
                 opts.onComplete({});

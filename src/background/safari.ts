@@ -1,6 +1,6 @@
 import {
     _save,
-    dictFromArray,
+    _dictFromArray,
     extendObject,
     getSubSettings,
     start
@@ -33,17 +33,17 @@ function loadRawSettings(keys, cb, defaultSet) {
     });
 }
 
-function _applyProxySettings(proxyConf) {
+function _applyProxySettings(_proxyConf) {
 }
 
 function _setNewTabUrl(){
     return  "favorites://";
 }
 
-function _getContainerName(self, _response){
+function _getContainerName(_self, _response){
 }
 
-function getLatestHistoryItem(text, maxResults, cb) {
+function getLatestHistoryItem(_text, _maxResults, _cb) {
 }
 
 start({

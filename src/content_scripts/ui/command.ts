@@ -102,7 +102,7 @@ export default (normal, command, omnibar) => {
         category: "tts",
         description: "Stop any currently active text-to-speech reading session",
         tags: ["tts", "stop", "control"]
-    }, function(args) {
+    }, function(_args) {
         RUNTIME('stopReading');
     });
     command('feedkeys', {
@@ -189,7 +189,7 @@ export default (normal, command, omnibar) => {
         category: "queue",
         description: "Display all URLs currently in the queue waiting to be opened",
         tags: ["queue", "urls", "list"]
-    }, function(args) {
+    }, function(_args) {
         RUNTIME('getQueueURLs', null, function(response) {
             omnibar.listResults(response.queueURLs, function(s) {
                 return createElementWithContent('li', s);
@@ -202,7 +202,7 @@ export default (normal, command, omnibar) => {
         category: "queue",
         description: "Remove all URLs from the queue waiting to be opened",
         tags: ["queue", "urls", "clear"]
-    }, function(args) {
+    }, function(_args) {
         RUNTIME('clearQueueURLs');
     });
     command('createTabGroup', {

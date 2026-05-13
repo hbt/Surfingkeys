@@ -322,7 +322,7 @@ function start(browser) {
         readText: () => {},
     };
     if (window === top) {
-        new Promise((r, j) => {
+        new Promise((r, _j) => {
             if (window.location.href === chrome.runtime.getURL("/pages/options.html")) {
                 import(/* webpackIgnore: true */ './pages/options.js').then((optionsLib) => {
                     optionsLib.default(
@@ -357,16 +357,16 @@ function start(browser) {
             runtime.on('tabDeactivated', function() {
                 modes.front.detach();
             });
-            runtime.on('setScrollPos', function(msg, sender, response) {
+            runtime.on('setScrollPos', function(msg, _sender, _response) {
                 setTimeout(() => {
                     document.scrollingElement.scrollLeft = msg.scrollLeft;
                     document.scrollingElement.scrollTop = msg.scrollTop;
                 }, 1000);
             });
-            runtime.on('showBanner', function(msg, sender, response) {
+            runtime.on('showBanner', function(msg, _sender, _response) {
                 showBanner(msg.message, 3000);
             });
-            document.addEventListener("surfingkeys:ensureFrontEnd", function(evt) {
+            document.addEventListener("surfingkeys:ensureFrontEnd", function(_evt) {
                 modes.front.attach();
             });
 
@@ -385,7 +385,7 @@ function start(browser) {
                         skipObserver = false,
                         originalTitle = document.title;
 
-                    new MutationObserver(function (mutationsList) {
+                    new MutationObserver(function (_mutationsList) {
                         if (skipObserver) {
                             skipObserver = false;
                         } else {
@@ -396,7 +396,7 @@ function start(browser) {
 
                     showTabIndexInTitle();
 
-                    runtime.on('tabIndexChange', function(msg, sender, response) {
+                    runtime.on('tabIndexChange', function(msg, _sender, _response) {
                         if (msg.index !== myTabIndex) {
                             myTabIndex = msg.index;
                             showTabIndexInTitle();

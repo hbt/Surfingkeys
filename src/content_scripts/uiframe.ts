@@ -1,7 +1,7 @@
 import { LOG } from '../common/utils.js';
 import { runtime } from './common/runtime.js';
 import {
-    getBrowserName,
+    _getBrowserName,
     getDocumentOrigin
 } from './common/utils.js';
 
@@ -86,7 +86,7 @@ function createUiHost(browser, onload) {
 
     var lastStateOfPointerEvents = "none", _origOverflowY;
     var _actions = {}, activeContent = null;
-    _actions['initFrontendAck'] = function(response) {
+    _actions['initFrontendAck'] = function(_response) {
         onload(uiHost);
     };
     _actions['setFrontFrame'] = function(response) {

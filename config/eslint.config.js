@@ -119,7 +119,13 @@ module.exports = [
             'no-tabs': 2,
             // Phase 2 lint hardening — re-enabling suppressed rules one by one
             '@typescript-eslint/no-explicit-any': 'off',
-            '@typescript-eslint/no-unused-vars': 'off',
+            '@typescript-eslint/no-unused-vars': ['error', {
+                vars: 'all',
+                args: 'after-used',
+                argsIgnorePattern: '^_',
+                varsIgnorePattern: '^_',
+                caughtErrorsIgnorePattern: '^_'
+            }],
             '@typescript-eslint/no-require-imports': 'off',
             '@typescript-eslint/no-var-requires': 'off'
         }

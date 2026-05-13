@@ -434,11 +434,11 @@ function createOmnibar(front, clipboard) {
         var _input = document.createElement("input");
         _input.oninput = _onIput;
         _input.onkeydown = _onKeyDown;
-        _input.addEventListener('compositionstart', function(evt) {
+        _input.addEventListener('compositionstart', function(_evt) {
             _input.oninput = null;
             _input.onkeydown = null;
         });
-        _input.addEventListener('compositionend', function(evt) {
+        _input.addEventListener('compositionend', function(_evt) {
             _input.oninput = _onIput;
             _input.onkeydown = _onKeyDown;
             _onIput();
@@ -720,7 +720,7 @@ function createOmnibar(front, clipboard) {
     };
 
     self.openFocused = function() {
-        var ret = false, fi = self.resultsDiv.querySelector('li.focused');
+        var _ret = false, fi = self.resultsDiv.querySelector('li.focused');
         var url;
         if (fi) {
             url = fi.url;
@@ -828,7 +828,7 @@ function createOmnibar(front, clipboard) {
     self.addHandler('Bookmarks', OpenBookmarks(self));
     self.addHandler('AddBookmark', AddBookmark(self));
     self.addHandler('History', OpenURLs(`history${separatorHtml}`, self, () => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, _reject) => {
             RUNTIME('getHistory', {
                 maxResults: self.getHistoryCacheSize(),
                 query: self.input.value,
@@ -839,7 +839,7 @@ function createOmnibar(front, clipboard) {
         });
     }));
     self.addHandler('URLs', OpenURLs(separatorHtml, self, () => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, _reject) => {
             RUNTIME('getTabs', {
                 queryInfo: runtime.conf.omnibarTabsQuery
             }, function(response) {
@@ -861,14 +861,14 @@ function createOmnibar(front, clipboard) {
         });
     }));
     self.addHandler('RecentlyClosed', OpenURLs(`Recently closed${separatorHtml}`, self, () => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, _reject) => {
             RUNTIME('getRecentlyClosed', null, function(response) {
                 resolve(filterByTitleOrUrl(response.urls, self.input.value, runtime.getCaseSensitive(self.input.value)));
             });
         });
     }));
     self.addHandler('TabURLs', OpenURLs(`Tab History${separatorHtml}`, self, () => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, _reject) => {
             RUNTIME('getTabURLs', null, function(response) {
                 resolve(filterByTitleOrUrl(response.urls, self.input.value, runtime.getCaseSensitive(self.input.value)));
             });
@@ -1047,7 +1047,7 @@ function AddBookmark(omnibar) {
     var self = {
         focusFirstCandidate: true,
         prompt: `add bookmark${separatorHtml}`
-    }, folders, origFFC;
+    }, folders, _origFFC;
 
     self.onOpen = function(arg) {
         self.page = arg;
@@ -1121,7 +1121,7 @@ function AddBookmark(omnibar) {
         }
         RUNTIME('createBookmark', {
             page: self.page
-        }, function(response) {
+        }, function(_response) {
             showBanner("Bookmark created at {0}.".format(folderName), 3000);
         });
         localStorage.setItem("surfingkeys.lastAddedBookmark", omnibar.input.value);
@@ -1195,7 +1195,7 @@ function OpenTabs(omnibar) {
 
     var getTabsArgs = {};
     self.getResults = function () {
-        omnibar.cachedPromise = new Promise(function(resolve, reject) {
+        omnibar.cachedPromise = new Promise(function(resolve, _reject) {
             getTabsArgs.tabsThreshold = Math.min(runtime.conf.tabsThreshold, Math.ceil(window.innerWidth / 26));
             RUNTIME('getTabs', getTabsArgs, function(response) {
                 resolve(response.tabs);
@@ -1253,7 +1253,7 @@ function CloseTabs(omnibar) {
                 try {
                     var u = new URL(tab.url);
                     tab.url = u.origin + u.pathname;
-                } catch (e) {}
+                } catch (_e) {}
             });
             omnibar.listURLs(filtered, false);
         });
@@ -1281,7 +1281,7 @@ function OpenWindows(omnibar, front) {
     };
 
     self.getResults = function () {
-        omnibar.cachedPromise = new Promise(function(resolve, reject) {
+        omnibar.cachedPromise = new Promise(function(resolve, _reject) {
             RUNTIME('getWindows', {
                 query: ''
             }, function(response) {
@@ -1537,7 +1537,7 @@ function Commands(omnibar, front) {
         prompt: ':',
     }, items = {};
 
-    var historyInc = 0;
+    var _historyInc = 0;
 
     self.onOpen = function() {
         omnibar.resultsDiv.className = "commands";
@@ -1547,7 +1547,7 @@ function Commands(omnibar, front) {
             return;
         }
 
-        historyInc = -1;
+        _historyInc = -1;
         RUNTIME('getSettings', {
             key: 'cmdHistory'
         }, function(response) {

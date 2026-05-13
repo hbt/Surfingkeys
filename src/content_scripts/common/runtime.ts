@@ -102,7 +102,7 @@ const runtime = (function() {
         },
     }, _handlers = {};
 
-    const getTopURLPromise = new Promise(function(resolve, reject) {
+    const getTopURLPromise = new Promise(function(resolve, _reject) {
         if (window === top) {
             resolve(window.location.href);
         } else {

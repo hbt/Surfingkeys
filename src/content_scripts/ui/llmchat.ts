@@ -33,7 +33,7 @@ export default function (omnibar, front) {
     let inputs = [];
     let curInputIdx = 0;
 
-    const tools = [
+    const _tools = [
         {
             "name": "extract_links",
             "input_schema": {
@@ -52,7 +52,7 @@ export default function (omnibar, front) {
         }
     ];
     const toolImplementations = {
-        extract_links: (params) => {
+        extract_links: (_params) => {
             return 'https://github.com/brookhong/Surfingkeys, https://brookhong.github.io/';
         }
     };

@@ -201,7 +201,7 @@ const Front = (function() {
         sk_bubbleClassList.remove("sk_scroller_indicator_middle");
         sk_bubbleClassList.remove("sk_scroller_indicator_bottom");
     }
-    sk_bubble_content.onscroll = function(evt) {
+    sk_bubble_content.onscroll = function(_evt) {
         clearScrollerIndicator();
         if (this.scrollTop === 0) {
             sk_bubbleClassList.add("sk_scroller_indicator_top");
@@ -270,7 +270,7 @@ const Front = (function() {
     }
 
     function renderTabTitles(container, tabs) {
-        tabs.forEach(function(t, i) {
+        tabs.forEach(function(t, _i) {
             const tab = createElementWithContent('div', `<div class=sk_tab_wrap><div class=sk_tab_icon><img/></div><div class=sk_tab_title>${htmlEncode(t.title)}</div></div>`, { "class": 'sk_tab' });
             if (t.active) {
                 tab.classList.add("active");
@@ -585,7 +585,7 @@ const Front = (function() {
     let _aceEditor = null;
     function renderAceEditor(message) {
         if (!_aceEditor) {
-            _aceEditor = new Promise((resolve, reject) => {
+            _aceEditor = new Promise((resolve, _reject) => {
                 import(/* webpackIgnore: true */ './ace.js').then(() => {
                     resolve(createAceEditor(normal, self));
                 });
@@ -598,7 +598,7 @@ const Front = (function() {
     let _neovim = null;
     function renderNvim(message) {
         if (!_neovim) {
-            _neovim  = new Promise((resolve, reject) => {
+            _neovim  = new Promise((resolve, _reject) => {
                 import(/* webpackIgnore: true */ './neovim_lib.js').then((nvimlib) => {
                     nvimlib.default(_nvim).then(({nvim, destroy}) => {
                         function quitNvim() {
@@ -736,7 +736,7 @@ const Front = (function() {
         self.flush();
     };
 
-    _actions['visualUpdated'] = function(message) {
+    _actions['visualUpdated'] = function(_message) {
         self.statusBar.querySelector('input').focus();
     };
 
@@ -864,7 +864,7 @@ const Front = (function() {
         self.topSize = message.winSize;
         return new Date().getTime();
     };
-    _actions['destroyFrontend'] = function(message) {
+    _actions['destroyFrontend'] = function(_message) {
         if (_display && _display.style.display !== "none") {
             return false;
         }
@@ -1297,10 +1297,10 @@ function createAceEditor(normal, front) {
             lf.focus();
         });
         var vim = cm.constructor.Vim;
-        vim.defineEx("write", "w", function(cm, input) {
+        vim.defineEx("write", "w", function(_cm, _input) {
             _save();
         });
-        const wq = function(cm, input) {
+        const wq = function(_cm, _input) {
             self.onExit = _closeAndSave;
             self.exit();
             // tell vim editor that command is done
@@ -1309,19 +1309,19 @@ function createAceEditor(normal, front) {
         vim.defineEx("wq", "wq", wq);
         vim.defineEx("x", "x", wq);
         vim.map('<CR>', ':wq<CR>', 'normal');
-        vim.defineEx("bnext", "bn", function(cm, input) {
+        vim.defineEx("bnext", "bn", function(_cm, _input) {
             front.contentCommand({
                 action: 'nextEdit',
                 backward: false
             });
         });
-        vim.defineEx("bprevious", "bp", function(cm, input) {
+        vim.defineEx("bprevious", "bp", function(_cm, _input) {
             front.contentCommand({
                 action: 'nextEdit',
                 backward: true
             });
         });
-        vim.defineEx("quit", "q", function(cm, input) {
+        vim.defineEx("quit", "q", function(_cm, _input) {
             self.onExit = _close;
             self.exit();
             _ace.state.cm.signal('vim-command-done', '');
@@ -1338,7 +1338,7 @@ function createAceEditor(normal, front) {
     function aceKeyboardEmacsLoaded() {
         _ace.$emacsModeHandler.addCommands({
             closeAndSave: {
-                exec: function(editor) {
+                exec: function(_editor) {
                     self.onExit = _closeAndSave;
                     self.exit();
                 },
@@ -1349,7 +1349,7 @@ function createAceEditor(normal, front) {
         return _ace.$emacsModeHandler;
     }
     _ace.setTheme("ace/theme/monokai");
-    var keybindingsDeferred = new Promise(function(resolve, reject) {
+    var keybindingsDeferred = new Promise(function(resolve, _reject) {
         var aceKeyboardLoaded = aceKeyboardVimLoaded;
         if (runtime.conf.aceKeybindings === "emacs") {
             aceKeyboardLoaded = aceKeyboardEmacsLoaded;

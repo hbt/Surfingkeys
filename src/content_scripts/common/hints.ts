@@ -542,7 +542,7 @@ div.hint-scrollable {
                 hint.style.zIndex = hints.length - i + 2147483000 - z;
             });
         } else {
-            hints.forEach(function(hint, i) {
+            hints.forEach(function(hint, _i) {
                 hint.style.zIndex = hint.zIndex;
             });
         }
@@ -960,7 +960,7 @@ div.hint-scrollable {
         if (elements.length > 1) {
             self.enter();
             _initHolder('input');
-            elements.forEach(function(e, i) {
+            elements.forEach(function(e, _i) {
                 var be = e.getBoundingClientRect();
                 var z = getZIndex(e);
 
@@ -1027,7 +1027,7 @@ div.hint-scrollable {
             handleHint();
         }
         dispatchSKEvent('user', ["onHintCreated", found]);
-        const promise = new Promise((resolve, reject) => {
+        const promise = new Promise((resolve, _reject) => {
             resolve(found);
         });
         return promise;
