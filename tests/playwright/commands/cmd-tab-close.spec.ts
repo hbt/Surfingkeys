@@ -91,7 +91,7 @@ test.describe('cmd_tab_close (Playwright)', () => {
         await covContent?.snapshot();
 
         const closePromise = anchor.waitForEvent('close');
-        await anchor.keyboard.press('x');
+        await anchor.keyboard.press('x').catch(() => {}); // page may close before ack
         await closePromise;
 
         const tabsAfter = await getTabsViaSW(context);
