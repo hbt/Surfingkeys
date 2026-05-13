@@ -1,4 +1,6 @@
-function dispatchSKEvent(type, args, target) {
+import type { SurfingKeysConf, RuntimeMessage } from '../../../@types/surfingkeys';
+
+function dispatchSKEvent(type: string, args: unknown[], target?: EventTarget): void {
     if (target === undefined) {
         target = document;
     }
@@ -18,7 +20,7 @@ function dispatchSKEvent(type, args, target) {
  *   console.log(response);
  * });
  */
-function RUNTIME(action, args, callback) {
+function RUNTIME(action: string, args?: Record<string, unknown> | null, callback?: (response: unknown) => void): void {
     var actionsRepeatBackground = ['closeTab', 'nextTab', 'previousTab', 'moveTab', 'moveToWindowMagic', 'copyTabUrlsMagic', 'reloadTab', 'setZoom', 'focusTabByIndex', 'closeTabMagic', 'reloadTabMagic', 'tabGotoIndex'];
     (args = args || {}).action = action;
     if (actionsRepeatBackground.indexOf(action) !== -1) {
@@ -39,7 +41,15 @@ function RUNTIME(action, args, callback) {
 }
 
 const runtime = (function() {
-    const self = {
+    const self: {
+        conf: SurfingKeysConf;
+        on(message: string, cb: (msg: RuntimeMessage, sender: chrome.runtime.MessageSender, response: (r: unknown) => void) => void): void;
+        bookMessage(message: string, cb: (msg: RuntimeMessage, sender: chrome.runtime.MessageSender, response: (r: unknown) => void) => void): boolean;
+        releaseMessage(message: string): void;
+        getTopURL(cb: (url: string) => void): void;
+        postTopMessage(msg: RuntimeMessage): void;
+        getCaseSensitive(query: string): boolean;
+    } = {
         conf: {
             autoSpeakOnInlineQuery: false,
             lastKeys: "",
