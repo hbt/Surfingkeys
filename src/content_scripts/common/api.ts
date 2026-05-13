@@ -1,3 +1,4 @@
+import type { MapKeyAnnotation, MapKeyOptions, ModeInstance } from '../../../@types/surfingkeys';
 import { RUNTIME, dispatchSKEvent } from './runtime.js';
 import Trie from './trie';
 import Mode from './mode';
@@ -45,7 +46,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         return !domain || domain.test(document.location.href) || domain.test(window.origin);
     }
 
-    function _mapkey(mode, keys, annotation, jscode, options) {
+    function _mapkey(mode: ModeInstance, keys: string, annotation: MapKeyAnnotation | string, jscode: () => void, options?: MapKeyOptions): void {
         options = options || {};
         if (_isDomainApplicable(options.domain)) {
             keys = KeyboardUtils.encodeKeystroke(keys);
@@ -102,7 +103,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *     btn.click();
      * }, {domain: /youtube.com/i});
      */
-    function mapkey(keys, annotation, jscode, options) {
+    function mapkey(keys: string, annotation: MapKeyAnnotation | string, jscode: () => void, options?: MapKeyOptions): void {
         _mapkey(normal, keys, annotation, jscode, options);
     }
 
@@ -116,7 +117,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * @see mapkey
      */
-    function vmapkey(keys, annotation, jscode, options) {
+    function vmapkey(keys: string, annotation: MapKeyAnnotation | string, jscode: () => void, options?: MapKeyOptions): void {
         _mapkey(visual, keys, annotation, jscode, options);
     }
 
@@ -130,7 +131,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * @see mapkey
      */
-    function imapkey(keys, annotation, jscode, options) {
+    function imapkey(keys: string, annotation: MapKeyAnnotation | string, jscode: () => void, options?: MapKeyOptions): void {
         _mapkey(insert, keys, annotation, jscode, options);
     }
 
@@ -310,7 +311,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * @see map
      */
-    function cmap(new_keystroke, old_keystroke, domain, _new_annotation) {
+    function cmap(new_keystroke: string, old_keystroke: string, domain?: RegExp, _new_annotation?: string): void {
         if (_isDomainApplicable(domain)) {
             dispatchSKEvent("front", ['addMapkey', "Omnibar", new_keystroke, old_keystroke]);
         }
@@ -326,7 +327,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * @see map
      */
-    function vmap(new_keystroke, old_keystroke, domain, new_annotation) {
+    function vmap(new_keystroke: string, old_keystroke: string, domain?: RegExp, new_annotation?: string): void {
         if (_isDomainApplicable(domain)) {
             mapInMode(visual, new_keystroke, old_keystroke, new_annotation);
         }
