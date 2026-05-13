@@ -125,8 +125,6 @@ module.exports = [
                 varsIgnorePattern: '^_',
                 caughtErrorsIgnorePattern: '^_'
             }],
-            '@typescript-eslint/no-require-imports': 'off',
-            '@typescript-eslint/no-var-requires': 'off'
         }
     },
     {
