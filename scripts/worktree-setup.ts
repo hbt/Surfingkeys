@@ -5,11 +5,10 @@
  * When run from inside a git worktree, this script:
  *   1. Finds the main (primary) worktree path via `git worktree list --porcelain`
  *   2. Symlinks <main-worktree>/node_modules -> ./node_modules (if not already present)
- *   3. Symlinks <main-worktree>/test-artifacts/coverage-raw -> ./test-artifacts/coverage-raw (if not already present)
- *   4. Runs `npm run build:dev` to build the extension
+ *   3. Runs `npm run build:dev` to build the extension
  */
 
-import { existsSync, mkdirSync, symlinkSync } from "fs";
+import { existsSync, symlinkSync } from "fs";
 import { resolve } from "path";
 import { spawnSync } from "child_process";
 
@@ -59,19 +58,6 @@ if (existsSync(targetLink)) {
 } else {
   console.log(`[worktree-setup] Creating symlink: ${targetLink} -> ${targetSrc}`);
   symlinkSync(targetSrc, targetLink);
-  console.log(`[worktree-setup] Symlink created.`);
-}
-
-// Step 2b: symlink test-artifacts/coverage-raw
-const coverageLink = resolve(cwd, "test-artifacts/coverage-raw");
-const coverageSrc = resolve(mainPath, "test-artifacts/coverage-raw");
-
-if (existsSync(coverageLink)) {
-  console.log(`[worktree-setup] test-artifacts/coverage-raw already present — skipping symlink`);
-} else {
-  mkdirSync(resolve(cwd, "test-artifacts"), { recursive: true });
-  console.log(`[worktree-setup] Creating symlink: ${coverageLink} -> ${coverageSrc}`);
-  symlinkSync(coverageSrc, coverageLink);
   console.log(`[worktree-setup] Symlink created.`);
 }
 
