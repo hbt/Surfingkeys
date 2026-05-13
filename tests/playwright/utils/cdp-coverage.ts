@@ -62,13 +62,20 @@ export class ServiceWorkerCoverage {
         this.targetFilter = targetFilter ??
             ((t: any) => t.type === 'service_worker' && t.url?.includes('background.js'));
         try {
-            const targets = await this.fetchTargets(cdpPort);
-            const sw = targets.find(this.targetFilter);
-            if (!sw?.webSocketDebuggerUrl) {
+            let sw: any;
+            const maxAttempts = 10;
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                const targets = await this.fetchTargets(cdpPort);
+                sw = targets.find(this.targetFilter);
+                if (sw?.webSocketDebuggerUrl) break;
                 debugWarn(
-                    '[Coverage] Target not found. Available targets:\n' +
-                        targets.map((t: any) => `  ${t.type}: ${t.url}`).join('\n'),
+                    `[Coverage] SW target not found (attempt ${attempt + 1}/${maxAttempts}), retrying in 500ms...\n` +
+                        `  Available: ${targets.map((t: any) => `${t.type}:${t.url}`).join(', ')}`,
                 );
+                await new Promise(r => setTimeout(r, 500));
+            }
+            if (!sw?.webSocketDebuggerUrl) {
+                debugWarn('[Coverage] SW target not found after all retries.');
                 return false;
             }
             this.swUrl = sw.url;
