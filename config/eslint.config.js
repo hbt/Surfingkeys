@@ -118,7 +118,6 @@ module.exports = [
             'semi': ['error', 'always'],
             'no-tabs': 2,
             // Phase 2 lint hardening — re-enabling suppressed rules one by one
-            '@typescript-eslint/no-explicit-any': 'off',
             '@typescript-eslint/no-unused-vars': ['error', {
                 vars: 'all',
                 args: 'after-used',
