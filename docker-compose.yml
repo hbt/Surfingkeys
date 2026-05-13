@@ -11,6 +11,7 @@ services:
       - /app/node_modules                             # shield container node_modules from host override
       - /home/hassen/.surfingkeys-2026.js:/home/hassen/.surfingkeys-2026.js:ro  # symlink target for .surfingkeysrc.js
       - ./playwright-report:/app/playwright-report   # HTML report
-      # - ./coverage-raw:/app/coverage-raw           # Coverage (enable if needed)
+      - ./coverage-raw:/app/coverage-raw             # Coverage output
+      - ./coverage-manifests:/app/coverage-manifests  # Coverage manifests
     # To run a subset or pass extra flags:
     # command: ["npm", "run", "test:playwright:parallel", "--", "--grep-invert", "cmd_capture_scrolling_element"]

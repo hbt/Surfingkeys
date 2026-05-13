@@ -7,7 +7,7 @@ import { existsSync, readFileSync, rmSync, mkdirSync, readdirSync, writeFileSync
 import { join } from "path";
 import { spawnSync } from "child_process";
 
-const reportDir = process.env.REPORT_DIR ?? "playwright-report";
+const reportDir = process.env.REPORT_DIR ?? "test-artifacts/playwright";
 const dataDir = join(reportDir, "data");
 const slidesDir = join(reportDir, "slides");
 const slidesHtml = join(reportDir, "slides.html");

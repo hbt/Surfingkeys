@@ -3,9 +3,10 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
     testDir: './tests/playwright',
     testIgnore: ['**/scratch/**'],
+    outputDir: 'test-artifacts/results',
     reporter: [
         ['dot'],
-        ['html', { outputFolder: process.env.REPORT_DIR ?? 'playwright-report', open: 'never' }],
+        ['html', { outputFolder: process.env.REPORT_DIR ?? 'test-artifacts/playwright', open: 'never' }],
         ...(process.env.PLAYWRIGHT_JSON_OUTPUT
             ? ([['json', { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT }]] as const)
             : []),

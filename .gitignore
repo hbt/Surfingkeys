@@ -1,11 +1,6 @@
 node_modules
-coverage-raw
 dist/
-/coverage/
-/coverage-raw/
-/coverage-html/
-/coverage-manifests/
-/test-reports/
+/test-artifacts/
 data/gen/
 data/*.duckdb
 .claude/worktrees/
@@ -14,8 +9,6 @@ data/*.duckdb
 .vscode/
 package-lock.json
 jsconfig.json
-/test-results/
-/playwright-report/
 src/content_scripts/safari.js
 *~
 .idea
