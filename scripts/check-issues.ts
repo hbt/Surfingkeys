@@ -102,7 +102,6 @@ const requiredChecks: IssueCheck[] = [
     { label: 'annotations.not_migrated',                     items: issues.annotations.not_migrated },
     { label: 'tests.missing',                                items: issues.tests.missing.filter((id: string) => !excluded(id)) },
     { label: 'tests.invalid_files',                          items: issues.tests.invalid_files },
-    { label: 'code_coverage.missing',                        items: issues.code_coverage.missing.filter((id: string) => !excluded(id)) },
     { label: 'source_validation.prefix_conflicts',           items: issues.source_validation.prefix_conflicts },
     { label: 'source_validation.g_placeholder_issues',       items: issues.source_validation.g_placeholder_issues },
     { label: 'config_validation.prefix_conflicts',           items: issues.config_validation.prefix_conflicts },
@@ -116,6 +115,11 @@ const optionalChecks: IssueCheck[] = [
         label: 'tests.missing (excluded commands)',
         items: issues.tests.missing.filter((id: string) => excluded(id)),
         note: 'write Playwright specs or confirm exclusion is permanent',
+    },
+    {
+        label: 'code_coverage.missing',
+        items: issues.code_coverage.missing.filter((id: string) => !excluded(id)),
+        note: 'run tests with COVERAGE=true to collect coverage data',
     },
     {
         label: 'code_coverage.missing (excluded commands)',

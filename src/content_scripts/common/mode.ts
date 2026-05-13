@@ -262,8 +262,7 @@ Mode.finish = function (mode) {
 };
 
 Mode.handleMapKey = function(event, onNoMatched) {
-    var thisMode = this,
-        key = event.sk_keyName;
+    var key = event.sk_keyName;
     this.isTrustedEvent = this.__trust_all_events__ || event.isTrusted;
 
     var isEscKey = Mode.isSpecialKeyOf("<Esc>", key);
@@ -282,13 +281,13 @@ Mode.handleMapKey = function(event, onNoMatched) {
         trackCommandUsage(
             this.map_node.meta.word + key,
             this.map_node.meta.annotation,
-            thisMode.name
+            this.name
         );
         var pf = this.pendingMap.bind(this);
         event.sk_stopPropagation = (!this.map_node.meta.stopPropagation
             || this.map_node.meta.stopPropagation(key));
         pf(key);
-        actionDone = Mode.finish(thisMode);
+        actionDone = Mode.finish(this);
     } else if (this.repeats !== undefined &&
         this.map_node === this.mappings &&
         runtime.conf.digitForRepeat &&
@@ -320,7 +319,7 @@ Mode.handleMapKey = function(event, onNoMatched) {
                     trackCommandUsage(
                         this.map_node.meta.word,
                         this.map_node.meta.annotation,
-                        thisMode.name
+                        this.name
                     );
                     RUNTIME.repeats = parseInt(this.repeats) || 1;
                     event.sk_stopPropagation = (!this.map_node.meta.stopPropagation
@@ -339,7 +338,7 @@ Mode.handleMapKey = function(event, onNoMatched) {
                             RUNTIME.repeats--;
                         }
                     }
-                    actionDone = Mode.finish(thisMode);
+                    actionDone = Mode.finish(this);
                 }
             } else {
                 this.isTrustedEvent && dispatchSKEvent("front", ['showKeystroke', key, this]);

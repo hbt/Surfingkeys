@@ -16,7 +16,9 @@ function Trie() {
 
 Trie.prototype = {
     find: function(word) {
-        var found = this, len = word.length;
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        var found = this;
+        const len = word.length;
         for (var i = 0; i < len && found; i++) {
             found = found[word[i]];
         }
@@ -24,7 +26,9 @@ Trie.prototype = {
     },
 
     add: function(word, meta) {
-        var node = this, len = word.length;
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        var node = this;
+        const len = word.length;
         for (var i = 0; i < len; i++) {
             var c = word[i];
             if (!node.hasOwnProperty(c)) {
@@ -41,7 +45,10 @@ Trie.prototype = {
     },
 
     remove: function(word) {
-        var found = this, len = word.length, ancestor = [];
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        var found = this;
+        const len = word.length;
+        const ancestor = [];
         for (var i = 0; i < len && found; i++) {
             // keep node in path for later to remove empty nodes
             ancestor.push(found);
@@ -93,7 +100,10 @@ Trie.prototype = {
         if (Object.keys(this).length === 0) {
             return "";
         }
-        var fullWord = "", futureWord = this.stem, node = this;
+        var fullWord = "";
+        var futureWord = this.stem;
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        var node = this;
         while (fullWord === "") {
             var keys = Object.keys(node);
             for (var i = 0; i < keys.length; i++) {

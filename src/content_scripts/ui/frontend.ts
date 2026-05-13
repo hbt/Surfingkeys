@@ -117,6 +117,7 @@ const Front = (function() {
     function State(pointerEvents, frameHeight, onEnter) {
         this.enter = function() {
             onEnter && onEnter();
+            // eslint-disable-next-line @typescript-eslint/no-this-alias
             _state = this;
             top.postMessage({surfingkeys_uihost_data: {
                 action: 'setFrontFrame',

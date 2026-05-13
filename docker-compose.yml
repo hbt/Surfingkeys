@@ -1,5 +1,6 @@
 services:
   tests:
+    image: surfingkeys-tests:latest
     build: .
     environment:
       - CONFIG_SERVER_PORT=9602

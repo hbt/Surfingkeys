@@ -797,12 +797,13 @@ function initL10n(cb) {
 }
 
 String.prototype.format = function() {
-    var formatted = this;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    var result = this;
     for (var i = 0; i < arguments.length; i++) {
         var regexp = new RegExp('\\{' + i + '\\}', 'gi');
-        formatted = formatted.replace(regexp, arguments[i]);
+        result = result.replace(regexp, arguments[i]);
     }
-    return formatted;
+    return result;
 };
 
 String.prototype.reverse = function() {
