@@ -1,18 +1,7 @@
 #!/usr/bin/env bun
 // report subcommand — bun scripts/ci.ts report [--json] [--limit N]
 
-interface RemoteResult {
-  sha: string;
-  exitCode: number | null;
-  elapsedMs: number;
-  timestamp: string;
-}
-
-interface RemoteData {
-  queue: string[];               // queue entry filenames
-  processingContainer: string | null;
-  results: RemoteResult[];
-}
+import { gather, type RunEntry, type GatherResult } from "./ci-gather.ts";
 
 interface GitInfo {
   sha: string;
@@ -21,7 +10,7 @@ interface GitInfo {
   date: string;
 }
 
-interface EnrichedResult extends RemoteResult {
+interface EnrichedRun extends RunEntry {
   short: string;
   subject: string;
   date: string;
@@ -32,25 +21,10 @@ interface QueueEntry {
   enqueuedAt: string;
 }
 
-// ── Remote gather ─────────────────────────────────────────────────────────────
-
-const REMOTE_WORK_DIR = "/home/ctmsadmin/projects/surfingkeys";
-
-function gatherRemote(): RemoteData {
-  const result = Bun.spawnSync(
-    ["ssh", "ctms-ops", `cd ${REMOTE_WORK_DIR} && bun scripts/ci-gather.ts`],
-    { stdout: "pipe", stderr: "pipe" }
-  );
-  if (result.exitCode !== 0) {
-    const err = new TextDecoder().decode(result.stderr);
-    throw new Error(`SSH failed: ${err}`);
-  }
-  return JSON.parse(new TextDecoder().decode(result.stdout));
-}
-
 // ── Git info ──────────────────────────────────────────────────────────────────
 
 function getGitInfo(sha: string): GitInfo | null {
+  if (!sha) return null;
   const result = Bun.spawnSync(
     ["git", "log", '--format={"sha":"%H","short":"%h","subject":"%s","date":"%ai"}', "-1", sha],
     { stdout: "pipe", stderr: "pipe" }
@@ -63,12 +37,12 @@ function getGitInfo(sha: string): GitInfo | null {
   }
 }
 
-function enrichWithGitInfo(results: RemoteResult[]): EnrichedResult[] {
-  return results.map(r => {
+function enrichRuns(runs: RunEntry[]): EnrichedRun[] {
+  return runs.map(r => {
     const info = getGitInfo(r.sha);
     return {
       ...r,
-      short: info?.short ?? r.sha.slice(0, 7),
+      short: info?.short ?? r.sha ?? "",
       subject: info?.subject ?? "(unknown)",
       date: info?.date ?? "",
     };
@@ -78,13 +52,10 @@ function enrichWithGitInfo(results: RemoteResult[]): EnrichedResult[] {
 // ── Queue parsing ─────────────────────────────────────────────────────────────
 
 // Filename format: <ISO-ts-with-dashes>-<full-sha>
-// SHA has no dashes, so it's always the last `-`-separated token.
 function parseQueueEntry(filename: string): QueueEntry {
   const parts = filename.split("-");
   const sha = parts.at(-1)!;
-  // Reconstruct timestamp: everything before the last `-<sha>` segment
   const tsRaw = parts.slice(0, -1).join("-");
-  // Reverse the replace(/[:.]/g, "-") from post-commit.ts — best effort
   const enqueuedAt = tsRaw.replace(/(\d{4}-\d{2}-\d{2}T\d{2})-(\d{2})-(\d{2})-(\d{3})/, "$1:$2:$3.$4");
   return { sha, enqueuedAt };
 }
@@ -92,6 +63,7 @@ function parseQueueEntry(filename: string): QueueEntry {
 // ── Formatting helpers ────────────────────────────────────────────────────────
 
 function formatRelative(iso: string): string {
+  if (!iso) return "-";
   const diffMs = Date.now() - new Date(iso).getTime();
   const diffMin = Math.floor(diffMs / 60_000);
   if (diffMin < 60) return `${diffMin} min ago`;
@@ -109,11 +81,6 @@ function formatElapsed(ms: number): string {
   return `${min}m ${sec}s`;
 }
 
-function exitIcon(code: number | null): string {
-  if (code === null) return "?";
-  return code === 0 ? "✅" : "❌";
-}
-
 function pad(s: string, len: number): string {
   return s.length >= len ? s.slice(0, len) : s + " ".repeat(len - s.length);
 }
@@ -123,7 +90,7 @@ function pad(s: string, len: number): string {
 function formatHuman(
   pending: QueueEntry[],
   container: string | null,
-  completed: EnrichedResult[]
+  runs: EnrichedRun[]
 ): string {
   const lines: string[] = [];
 
@@ -132,26 +99,21 @@ function formatHuman(
 
   lines.push("Queue");
   lines.push(`  pending     ${pending.length}`);
-  if (container) {
-    lines.push(`  processing  1  (${container})`);
-  } else {
-    lines.push(`  processing  0`);
-  }
+  lines.push(container ? `  processing  1  (${container})` : `  processing  0`);
   lines.push("");
 
-  lines.push(`Completed (last ${completed.length})`);
-  if (completed.length === 0) {
+  lines.push(`Completed (last ${runs.length})`);
+  if (runs.length === 0) {
     lines.push("  (none)");
   } else {
-    const hdr = `  ${pad("sha", 8)}${pad("subject", 38)}${pad("exit", 6)}${pad("elapsed", 9)}when`;
-    lines.push(hdr);
-    lines.push("  " + "─".repeat(7) + "  " + "─".repeat(36) + "  " + "─".repeat(4) + "  " + "─".repeat(7) + "  " + "─".repeat(9));
-    for (const r of completed) {
-      const icon = exitIcon(r.exitCode);
-      const elapsed = formatElapsed(r.elapsedMs);
-      const when = formatRelative(r.timestamp);
+    lines.push(`  ${pad("sha", 9)}${pad("env", 7)}${pad("subject", 38)}${pad("pass", 6)}${pad("fail", 6)}${pad("elapsed", 9)}when`);
+    lines.push("  " + ["─".repeat(7), "─".repeat(6), "─".repeat(36), "─".repeat(4), "─".repeat(4), "─".repeat(7), "─".repeat(9)].join("  "));
+    for (const r of runs) {
+      const { stats } = r;
+      const elapsed = formatElapsed(stats.duration);
+      const when = formatRelative(stats.startTime);
       lines.push(
-        `  ${pad(r.short, 8)}${pad(r.subject, 38)}${pad(icon, 6)}${pad(elapsed, 9)}${when}`
+        `  ${pad(r.short || r.sha || "-", 9)}${pad(r.env, 7)}${pad(r.subject, 38)}${pad(String(stats.expected), 6)}${pad(String(stats.unexpected), 6)}${pad(elapsed, 9)}${when}`
       );
     }
   }
@@ -161,24 +123,20 @@ function formatHuman(
 
 // ── JSON output ───────────────────────────────────────────────────────────────
 
-function formatJson(
-  pending: QueueEntry[],
-  container: string | null,
-  completed: EnrichedResult[]
-) {
+function formatJson(pending: QueueEntry[], container: string | null, runs: EnrichedRun[]) {
   return {
     queue: {
       pending,
       processing: container ? { container } : null,
     },
-    completed: completed.map(r => ({
+    completed: runs.map(r => ({
+      filename: r.filename,
       sha: r.sha,
       short: r.short,
+      env: r.env,
       subject: r.subject,
-      exitCode: r.exitCode,
-      elapsedMs: r.elapsedMs,
-      timestamp: r.timestamp,
       date: r.date,
+      stats: r.stats,
     })),
   };
 }
@@ -195,26 +153,26 @@ export async function run(argv: string[]) {
     if (!isNaN(parsed)) limit = parsed;
   }
 
-  let remote: RemoteData;
+  let data: GatherResult;
   try {
-    remote = gatherRemote();
+    data = await gather();
   } catch (e: any) {
     console.error("Error:", e.message);
     process.exit(1);
   }
 
-  const pending = remote.queue.map(parseQueueEntry);
+  const pending = data.queue.map(parseQueueEntry);
 
-  // Sort results newest-first by timestamp, then take limit
-  const sorted = [...remote.results].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  // Sort newest-first by startTime, take limit
+  const sorted = [...data.runs].sort(
+    (a, b) => new Date(b.stats.startTime).getTime() - new Date(a.stats.startTime).getTime()
   );
   const limited = sorted.slice(0, limit);
-  const enriched = enrichWithGitInfo(limited);
+  const enriched = enrichRuns(limited);
 
   if (jsonMode) {
-    process.stdout.write(JSON.stringify(formatJson(pending, remote.processingContainer, enriched), null, 2) + "\n");
+    process.stdout.write(JSON.stringify(formatJson(pending, data.processingContainer, enriched), null, 2) + "\n");
   } else {
-    console.log(formatHuman(pending, remote.processingContainer, enriched));
+    console.log(formatHuman(pending, data.processingContainer, enriched));
   }
 }

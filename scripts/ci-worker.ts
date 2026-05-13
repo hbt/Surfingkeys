@@ -41,7 +41,7 @@ function run(sha: string) {
   const result = spawnSync(
     "docker-compose",
     ["run", "--rm", "tests"],
-    { cwd: WORK_DIR, stdio: "inherit", env: { ...process.env, WORKERS: "4", DOCKER_CI: "1" } }
+    { cwd: WORK_DIR, stdio: "inherit", env: { ...process.env, WORKERS: "4", DOCKER_CI: "1", GIT_HASH: sha.slice(0, 7) } }
   );
   const elapsed = Date.now() - start;
 
