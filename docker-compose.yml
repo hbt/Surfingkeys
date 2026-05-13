@@ -2,6 +2,7 @@ services:
   tests:
     build: .
     environment:
+      - GIT_HASH
       - CONFIG_SERVER_PORT=9602
       - BUILD_SUFFIX=-test
       # Uncomment to get machine-readable results:

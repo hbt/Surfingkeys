@@ -18,9 +18,11 @@ type ManifestEntry = {
     targets: { background: number; content: number; unknown: number };
 };
 
+const isDocker = fs.existsSync('/.dockerenv');
+const env = isDocker ? 'docker' : 'local';
 const runStartMs = Date.now();
 const startedAt = new Date(runStartMs).toISOString();
-const runId = startedAt.replace(/[:.]/g, '-');
+const runId = startedAt.replace(/[:.]/g, '-') + `-${env}`;
 const coverageRoot = path.resolve('test-artifacts/coverage-raw', 'runs', runId);
 const manifestDir = path.resolve('test-artifacts/coverage-manifests');
 const manifestPath = path.join(manifestDir, `${runId}.json`);
@@ -85,6 +87,7 @@ const manifest = {
     exitCode: run.status,
     signal: run.signal,
     success: run.status === 0,
+    execution: env,
     coverageRoot: path.relative(process.cwd(), coverageRoot),
     testReportPath: path.relative(process.cwd(), reportPath),
     artifactCount: coverageFiles.length,

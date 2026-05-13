@@ -11,8 +11,10 @@ import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const gitHash = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf-8' }).stdout.trim();
-const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${gitHash}`;
+const isDocker = fs.existsSync('/.dockerenv');
+const env = isDocker ? 'docker' : 'local';
+const gitHash = process.env.GIT_HASH || spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf-8' }).stdout.trim();
+const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${gitHash}-${env}`;
 const reportPath = path.resolve('test-artifacts/reports', 'runs', `${runId}.json`);
 fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 
