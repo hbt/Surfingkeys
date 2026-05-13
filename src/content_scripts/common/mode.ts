@@ -1,3 +1,4 @@
+import type { ModeInstance } from '../../../@types/surfingkeys';
 import {
     listElements,
     isInUIFrame,
@@ -10,7 +11,7 @@ import { getAnnotationString } from '../../common/commandMetadata.js';
 
 var mode_stack = [];
 
-const Mode = function(name, statusLine) {
+const Mode = function(name: string, statusLine?: string) {
     this.name = name;
     this.statusLine = statusLine;
     this.eventListeners = {};
@@ -89,8 +90,8 @@ const Mode = function(name, statusLine) {
     };
 };
 
-Mode.getCurrent = () => {
-    return mode_stack[0];
+Mode.getCurrent = (): ModeInstance | undefined => {
+    return mode_stack[0] as ModeInstance | undefined;
 };
 
 Mode.specialKeys = {
@@ -98,7 +99,7 @@ Mode.specialKeys = {
     "<Esc>": ["<Esc>"]
 };
 
-Mode.isSpecialKeyOf = function(specialKey, keyToCheck) {
+Mode.isSpecialKeyOf = function(specialKey: string, keyToCheck: string): boolean {
     return (-1 !== Mode.specialKeys[specialKey].indexOf(KeyboardUtils.decodeKeystroke(keyToCheck)));
 };
 
