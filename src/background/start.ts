@@ -26,7 +26,9 @@ function request(url, onReady, headers, data, onException) {
         const content = decoder.decode(res[1]);
         onReady(content);
     }).catch(exp => {
-        onException && onException(exp);
+        if (onException) {
+            onException(exp);
+        }
     });
 }
 
@@ -120,14 +122,18 @@ var Gist = (function() {
             _token = token;
             _initGist(_token, "cloudboard", function(gist) {
                 _gist = gist;
-                onGistReady && onGistReady(_gist);
+                if (onGistReady) {
+                    onGistReady(_gist);
+                }
             });
         }
     };
 
     function _newComment(text, cb) {
         request(`https://api.github.com/gists/${_gist}/comments`, function(res) {
-            cb && cb(res);
+            if (cb) {
+                cb(res);
+            }
         }, {
             'Authorization': 'token ' + _token
         }, `{"body": "${encodeURIComponent(text)}"}`);
@@ -152,7 +158,9 @@ var Gist = (function() {
     }
     function _writeComment(cid, clip, cb) {
         request(`https://api.github.com/gists/${_gist}/comments/${cid}`, function(res) {
-            cb && cb(res);
+            if (cb) {
+                cb(res);
+            }
         }, {
             'Authorization': 'token ' + _token
         }, `{"body": "${encodeURIComponent(clip)}"}`);
@@ -663,7 +671,9 @@ function start(browser) {
 
     function getActiveTab(cb) {
         chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-            tabs.length > 0 && cb(tabs[0]);
+            if (tabs.length > 0) {
+                cb(tabs[0]);
+            }
         });
     }
     chrome.commands.onCommand.addListener(function(command) {
@@ -2198,7 +2208,9 @@ function start(browser) {
             };
             _updateAndPostSettings(diffSet);
             browser._applyProxySettings(proxyConf);
-            cb && cb(diffSet);
+            if (cb) {
+                cb(diffSet);
+            }
         });
     }
     self.updateProxy = function(message, sender, sendResponse) {
@@ -2324,7 +2336,9 @@ function start(browser) {
             bookmarks.forEach(function(b) {
                 chrome.bookmarks.remove(b.id);
             });
-            cb && cb();
+            if (cb) {
+                cb();
+            }
         });
     }
     self.removeBookmark = function(message, sender, sendResponse) {

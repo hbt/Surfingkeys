@@ -287,7 +287,9 @@ function _initContent(modes) {
     if (runtime.conf.stealFocusOnLoad && !isInUIFrame()
         && document.body && document.body.childElementCount > 1) {
         var elm = getRealEdit();
-        elm && elm.blur();
+        if (elm) {
+            elm.blur();
+        }
     }
 }
 

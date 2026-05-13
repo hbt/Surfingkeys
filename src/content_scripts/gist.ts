@@ -37,7 +37,9 @@ var Gist = (function() {
         _token = token;
         _initGist(_token, "Surfingkeys", function(gist) {
             _gist = gist;
-            onGistReady && onGistReady(gist);
+            if (onGistReady) {
+                onGistReady(gist);
+            }
         });
     };
 

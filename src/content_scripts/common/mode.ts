@@ -55,7 +55,9 @@ const Mode = function(name, statusLine) {
         // }).join('->');
         // console.log('enter {0}, {1}'.format(this.name, modes));
 
-        this.onEnter && this.onEnter();
+        if (this.onEnter) {
+            this.onEnter();
+        }
 
         Mode.showStatus();
         return pos;
@@ -81,7 +83,9 @@ const Mode = function(name, statusLine) {
             // console.log('exit {0}, {1}'.format(this.name, modes));
         }
         Mode.showStatus();
-        this.onExit && this.onExit(pos);
+        if (this.onExit) {
+            this.onExit(pos);
+        }
     };
 };
 
@@ -131,7 +135,9 @@ function handleStack(eventName, event, cb) {
         if (m.name === "Disabled") {
             break;
         }
-        cb && cb(m);
+        if (cb) {
+            cb(m);
+        }
     }
 }
 
@@ -177,7 +183,9 @@ function init(cb) {
     for (var evtName in _listenedEvents) {
         window.addEventListener(evtName, _listenedEvents[evtName], true);
     }
-    cb && cb();
+    if (cb) {
+        cb();
+    }
 }
 
 Mode.hasScroll = function (el, direction, barSize) {
@@ -252,7 +260,9 @@ Mode.finish = function (mode) {
     if (mode.map_node !== mode.mappings || mode.pendingMap != null || mode.repeats) {
         mode.map_node = mode.mappings;
         mode.pendingMap = null;
-        mode.isTrustedEvent && dispatchSKEvent("front", ['hideKeystroke']);
+        if (mode.isTrustedEvent) {
+            dispatchSKEvent("front", ['hideKeystroke']);
+        }
         if (mode.repeats) {
             mode.repeats = "";
         }
@@ -276,7 +286,9 @@ Mode.handleMapKey = function(event, onNoMatched) {
         event.sk_suppressed = true;
         actionDone = true;
     } else if (this.pendingMap) {
-        this.setLastKeys && this.setLastKeys(this.map_node.meta.word + key);
+        if (this.setLastKeys) {
+            this.setLastKeys(this.map_node.meta.word + key);
+        }
         // Track command usage for statistics (pendingMap commands)
         trackCommandUsage(
             this.map_node.meta.word + key,
@@ -296,13 +308,17 @@ Mode.handleMapKey = function(event, onNoMatched) {
     ) {
         // reset only after target action executed or cancelled
         this.repeats += key;
-        this.isTrustedEvent && dispatchSKEvent("front", ['showKeystroke', key, this]);
+        if (this.isTrustedEvent) {
+            dispatchSKEvent("front", ['showKeystroke', key, this]);
+        }
         event.sk_stopPropagation = true;
     } else {
         var last = this.map_node;
         this.map_node = this.map_node.find(key);
         if (!this.map_node) {
-            onNoMatched && onNoMatched(last);
+            if (onNoMatched) {
+                onNoMatched(last);
+            }
             event.sk_suppressed = (last !== this.mappings);
             actionDone = Mode.finish(this);
         } else {
@@ -311,10 +327,14 @@ Mode.handleMapKey = function(event, onNoMatched) {
                 if (code.length) {
                     // bound function needs arguments
                     this.pendingMap = code;
-                    this.isTrustedEvent && dispatchSKEvent("front", ['showKeystroke', key, this]);
+                    if (this.isTrustedEvent) {
+                        dispatchSKEvent("front", ['showKeystroke', key, this]);
+                    }
                     event.sk_stopPropagation = true;
                 } else {
-                    this.setLastKeys && this.setLastKeys(this.map_node.meta.word);
+                    if (this.setLastKeys) {
+                        this.setLastKeys(this.map_node.meta.word);
+                    }
                     // Track command usage for statistics
                     trackCommandUsage(
                         this.map_node.meta.word,
@@ -341,7 +361,9 @@ Mode.handleMapKey = function(event, onNoMatched) {
                     actionDone = Mode.finish(this);
                 }
             } else {
-                this.isTrustedEvent && dispatchSKEvent("front", ['showKeystroke', key, this]);
+                if (this.isTrustedEvent) {
+                    dispatchSKEvent("front", ['showKeystroke', key, this]);
+                }
                 event.sk_stopPropagation = true;
             }
         }

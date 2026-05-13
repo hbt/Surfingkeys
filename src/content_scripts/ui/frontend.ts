@@ -116,7 +116,9 @@ const Front = (function() {
     var _state;
     function State(pointerEvents, frameHeight, onEnter) {
         this.enter = function() {
-            onEnter && onEnter();
+            if (onEnter) {
+                onEnter();
+            }
             // eslint-disable-next-line @typescript-eslint/no-this-alias
             _state = this;
             top.postMessage({surfingkeys_uihost_data: {
@@ -237,7 +239,9 @@ const Front = (function() {
         if (_display && _display.style.display !== "none") {
             _display.style.display = "none";
             self.flush();
-            _display.onHide && _display.onHide();
+            if (_display.onHide) {
+                _display.onHide();
+            }
             self.exit();
         }
     };
@@ -246,11 +250,15 @@ const Front = (function() {
     function setDisplay(td, render) {
         if (_display && _display.style.display !== "none") {
             _display.style.display = "none";
-            _display.onHide && _display.onHide();
+            if (_display.onHide) {
+                _display.onHide();
+            }
         }
         _display = td;
         _display.style.display = "";
-        render && render();
+        if (render) {
+            render();
+        }
         self.startInputGuard();
     }
 
@@ -1098,7 +1106,9 @@ function createAceEditor(normal, front) {
                 var _onClose = options.onClose;
                 options.onClose = function() {
                     passThrough.exit();
-                    _onClose && _onClose();
+                    if (_onClose) {
+                        _onClose();
+                    }
                 };
                 _ace.state.cm.openDialog(template, function(q) {
                     onEnter(q);

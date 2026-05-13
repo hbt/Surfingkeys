@@ -227,7 +227,9 @@ function listElements(root, whatToShow, filter) {
     );
 
     while (currentNode = nodeIterator.nextNode()) {
-        filter(currentNode) && elms.push(currentNode);
+        if (filter(currentNode)) {
+            elms.push(currentNode);
+        }
 
         if (currentNode.shadowRoot) {
             elms.push(...listElements(currentNode.shadowRoot, whatToShow, filter));
