@@ -33,6 +33,7 @@ async function waitForPopupWithImg(p: Page, timeoutMs = 25000): Promise<boolean>
 
 test.describe('cmd_capture_scrolling_element (Playwright)', () => {
     test.setTimeout(60_000);
+    test.skip(!!process.env.DOCKER_CI, 'captureVisibleTab unsupported in headless Docker');
 
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(FIXTURE_URL);
