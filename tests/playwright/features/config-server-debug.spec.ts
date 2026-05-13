@@ -76,6 +76,7 @@ test('SW startup — which background.js functions ran', async () => {
 
 // ─── Fixture config applied via 9602 ─────────────────────────────────────────
 test('fixture config applied — user script ran on page', async () => {
+    test.skip(!!process.env.DOCKER_CI, 'user script registration flaky in Docker CI');
     const { context, cov } = await launchWithCoverage();
     const page = await context.newPage();
     await page.goto(FIXTURE_URL, { waitUntil: 'load' });

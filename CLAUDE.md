@@ -181,8 +181,10 @@ walk(json.load(open(sys.argv[1]))['suites'])
 
 | Test | Status |
 |------|--------|
-| `commands/cmd-capture-scrolling-element` | flaky in Docker (popup timing); passes locally |
-| `commands/cmd-capture-full-page` | flaky in Docker (popup timing); passes locally |
+| `commands/cmd-capture-scrolling-element` | skipped in Docker (popup timing); passes locally |
+| `commands/cmd-capture-full-page` | skipped in Docker (popup timing); passes locally |
+| `commands/cmd-nav-next-link` | skipped in Docker (navigation timing flaky) |
+| `features/config-server-debug` › fixture config applied | skipped in Docker (user script registration timing) |
 
 Last fully clean run: commit `a7f779a` — 2026-05-12T22:35 (730 pass, 0 fail, 4 flaky) — 2 capture tests skipped in Docker (popup timing)
 
