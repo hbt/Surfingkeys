@@ -94,7 +94,7 @@ function detectTargetFromPayload(filePath: string): 'background' | 'content' | '
 }
 
 // 2. Find persisted v8.json files for this spec
-const covDir = path.join('coverage-raw', label);
+const covDir = path.join('test-artifacts/coverage-raw', label);
 if (!fs.existsSync(covDir)) {
     console.error(`[cov] No coverage dir found: ${covDir}`);
     process.exit(1);
@@ -141,7 +141,7 @@ for (const filePath of allFiles) {
     execSync(`bun scripts/coverage-html.ts ${filePath}`, { stdio: 'inherit' });
 }
 
-const htmlRoot = path.resolve(path.join('coverage-html', label));
+const htmlRoot = path.resolve(path.join('test-artifacts/coverage-html', label));
 console.log(`\n[cov] Done → ${htmlRoot}`);
 
 // Open both target reports (background + content) when available.

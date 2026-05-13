@@ -9,6 +9,24 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as net from 'net';
 
+/**
+ * Wait for the extension service worker to register in the browser context.
+ * Uses Playwright's native SW event instead of polling CDP /json/list,
+ * so init() connects only after the target is guaranteed to exist.
+ */
+async function waitForExtensionSW(context: BrowserContext, timeoutMs = 10000): Promise<void> {
+    const already = context.serviceWorkers().find(w => w.url().includes('background.js'));
+    if (already) return;
+    await context
+        .waitForEvent('serviceworker', {
+            predicate: sw => sw.url().includes('background.js'),
+            timeout: timeoutMs,
+        })
+        .catch(() => {
+            // Timed out — proceed anyway; init() still has a short safety-net retry
+        });
+}
+
 async function findFreePort(): Promise<number> {
     return new Promise((resolve, reject) => {
         const server = net.createServer();
@@ -326,7 +344,8 @@ export async function launchWithCoverage(fixtureUrl?: string): Promise<{
     let cov: import('./cdp-coverage').ServiceWorkerCoverage | undefined;
 
     if (isCoverage && result.cdpPort && !fixtureUrl) {
-        // SW target: page exists at launch — init immediately.
+        // SW target: wait for the SW to register before connecting CDP.
+        await waitForExtensionSW(result.context);
         const { ServiceWorkerCoverage } = require('./cdp-coverage');
         cov = new ServiceWorkerCoverage();
         const filter = (t: any) => t.type === 'service_worker' && t.url?.includes('background.js');
@@ -365,10 +384,11 @@ export async function launchWithDualCoverage(fixtureUrl: string): Promise<{
 
     let covBg: import('./cdp-coverage').ServiceWorkerCoverage | undefined;
     if (isCoverage && result.cdpPort) {
+        await waitForExtensionSW(result.context);
         const { ServiceWorkerCoverage } = require('./cdp-coverage');
         covBg = new ServiceWorkerCoverage();
         const filter = (t: any) => t.type === 'service_worker' && t.url?.includes('background.js');
-        const ok = await covBg.init(result.cdpPort, filter);
+        const ok = await covBg!.init(result.cdpPort, filter);
         if (!ok) covBg = undefined;
     }
 

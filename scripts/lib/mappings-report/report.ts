@@ -52,7 +52,7 @@ export function buildReport(): Report {
     summary.custom_mapping_coverage = customMappingCoverage;
 
     // Add code_coverage field to each mapping
-    const coverageRawDir = path.join(projectRoot, 'coverage-raw');
+    const coverageRawDir = path.join(projectRoot, 'test-artifacts/coverage-raw');
     const coverageSummary = generateCoverageStats(mappings, coverageRawDir);
     summary.code_coverage = coverageSummary;
 

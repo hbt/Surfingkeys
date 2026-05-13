@@ -18,14 +18,16 @@ type ManifestEntry = {
     targets: { background: number; content: number; unknown: number };
 };
 
+const isDocker = fs.existsSync('/.dockerenv');
+const env = isDocker ? 'docker' : 'local';
 const runStartMs = Date.now();
 const startedAt = new Date(runStartMs).toISOString();
-const runId = startedAt.replace(/[:.]/g, '-');
-const coverageRoot = path.resolve('coverage-raw', 'runs', runId);
-const manifestDir = path.resolve('coverage-manifests');
+const runId = startedAt.replace(/[:.]/g, '-') + `-${env}`;
+const coverageRoot = path.resolve('test-artifacts/coverage-raw', 'runs', runId);
+const manifestDir = path.resolve('test-artifacts/coverage-manifests');
 const manifestPath = path.join(manifestDir, `${runId}.json`);
 
-const reportPath = path.resolve('test-reports', 'runs', `${runId}.json`);
+const reportPath = path.resolve('test-artifacts/reports', 'runs', `${runId}.json`);
 fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 
 const playwrightArgs = process.argv.slice(2);
@@ -85,6 +87,7 @@ const manifest = {
     exitCode: run.status,
     signal: run.signal,
     success: run.status === 0,
+    execution: env,
     coverageRoot: path.relative(process.cwd(), coverageRoot),
     testReportPath: path.relative(process.cwd(), reportPath),
     artifactCount: coverageFiles.length,

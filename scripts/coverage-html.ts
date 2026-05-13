@@ -55,7 +55,7 @@ type FileReport = {
 const args = process.argv.slice(2);
 const inputFile = args.find((arg) => !arg.startsWith('--'));
 const outFlag = args.indexOf('--out');
-const outBase = outFlag !== -1 ? args[outFlag + 1] : 'coverage-html';
+const outBase = outFlag !== -1 ? args[outFlag + 1] : 'test-artifacts/coverage-html';
 
 if (!inputFile) {
     console.error('Usage: bun scripts/coverage-html.ts <v8-json-file> [--out <dir>]');
