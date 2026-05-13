@@ -2,6 +2,7 @@ services:
   tests:
     image: surfingkeys-tests:latest
     build: .
+    user: "${UID}:${GID}"
     environment:
       - GIT_HASH
       - WORKERS
