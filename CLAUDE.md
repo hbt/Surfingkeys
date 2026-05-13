@@ -131,13 +131,13 @@ See **[tests/playwright/CLAUDE.md](tests/playwright/CLAUDE.md)** for coverage, i
 
 ### Test Run History
 
-Past runs saved to `test-reports/runs/` by `npm run test:playwright:parallel` (`scripts/test-parallel.ts`).
+Past runs saved to `test-artifacts/reports/runs/` by `npm run test:playwright:parallel` (`scripts/test-parallel.ts`).
 
 | Path | Content | Notes |
 |------|---------|-------|
-| `test-reports/runs/<ts>-<hash>.json` | Full Playwright JSON reporter output | Persisted — all runs kept |
-| `test-results/` | Per-test artifacts (screenshots, traces, error context) | Latest run only — overwritten |
-| `playwright-report/` | HTML report | Latest run only — overwritten |
+| `test-artifacts/reports/runs/<ts>-<hash>.json` | Full Playwright JSON reporter output | Persisted — all runs kept |
+| `test-artifacts/results/` | Per-test artifacts (screenshots, traces, error context) | Latest run only — overwritten |
+| `test-artifacts/playwright/` | HTML report | Latest run only — overwritten |
 
 Filename format: `<ISO-timestamp>-<short-git-hash>.json`
 
@@ -145,7 +145,7 @@ Filename format: `<ISO-timestamp>-<short-git-hash>.json`
 ```bash
 python3 -c "
 import json, glob, os
-for f in sorted(glob.glob('test-reports/runs/*.json')):
+for f in sorted(glob.glob('test-artifacts/reports/runs/*.json')):
     d = json.load(open(f)); s = d['stats']
     print(f'{os.path.basename(f)}  pass={s[\"expected\"]}  fail={s[\"unexpected\"]}  flaky={s[\"flaky\"]}')
 "
@@ -155,7 +155,7 @@ for f in sorted(glob.glob('test-reports/runs/*.json')):
 ```bash
 python3 -c "
 import json, glob, os
-for f in sorted(glob.glob('test-reports/runs/*.json'), reverse=True):
+for f in sorted(glob.glob('test-artifacts/reports/runs/*.json'), reverse=True):
     d = json.load(open(f)); s = d['stats']
     if s['unexpected'] == 0:
         print('Last clean:', os.path.basename(f)); break
@@ -174,7 +174,7 @@ def walk(suites):
                     print(spec['file'], '|', spec['title'])
         walk(s.get('suites', []))
 walk(json.load(open(sys.argv[1]))['suites'])
-" test-reports/runs/<filename>.json
+" test-artifacts/reports/runs/<filename>.json
 ```
 
 **Current known failures:**
