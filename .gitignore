@@ -7,7 +7,6 @@ data/*.duckdb
 .claude/scheduled_tasks.lock
 .DS_Store
 .vscode/
-package-lock.json
 jsconfig.json
 src/content_scripts/safari.js
 *~
