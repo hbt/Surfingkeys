@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 // CI CLI — bun scripts/ci.ts <subcommand> [flags]
+export {};
 
 const cmd = process.argv[2];
 if (cmd === "report") {

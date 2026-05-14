@@ -12,5 +12,6 @@
     "isolatedModules": true,
     "baseUrl": "."
   },
-  "include": ["src", "@types", "tests", "debug", "scripts"]
+  "include": ["src", "@types", "tests", "debug"],
+  "exclude": ["tests/nvim"]
 }

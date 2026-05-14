@@ -541,7 +541,7 @@ async function buildFileReport(script: any): Promise<FileReport[]> {
         }
     }
 
-    consumer.destroy?.();
+    (consumer as unknown as { destroy?: () => void }).destroy?.();
 
     const reports: FileReport[] = [];
     for (const [sourceId, lines] of sourceLines.entries()) {

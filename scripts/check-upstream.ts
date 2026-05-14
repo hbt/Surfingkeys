@@ -38,7 +38,6 @@ function loadExcludedShas(): Set<string> {
 }
 
 async function spawn(cmd: string[]): Promise<{ stdout: string; ok: boolean }> {
-    // @ts-expect-error bun-types spawn overload mismatch
     const proc = Bun.spawn(cmd, {
         stdout: 'pipe',
         stderr: 'pipe',

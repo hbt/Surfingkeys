@@ -4,9 +4,10 @@ export const DIST_DIR = path.resolve(__dirname, '../dist/');
 /*
  * wait for an Event of `obj` that matches `messageToWait` and is delivered from `messageDeliver`.
  */
-export const waitForEvent = async (obj, evt, messageToWait, messageDeliver) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const waitForEvent = async (obj: any, evt: any, messageToWait: any, messageDeliver: any) => {
     await new Promise((r) => {
-        const handler = (evt) => {
+        const handler = (evt: any) => {
             var _message = evt.data;
             if (messageToWait(_message)) {
                 obj.removeEventListener(evt, handler, true);

@@ -2,7 +2,7 @@
 // CI queue worker — run as a systemd service on ctms-ops.
 // Processes one commit at a time, flock'd to prevent concurrent workers.
 
-import { existsSync, readdirSync, rmSync, mkdirSync, writeFileSync } from "fs";
+import { existsSync, readdirSync, rmSync, mkdirSync, writeFileSync, readFileSync } from "fs";
 import { execSync, spawnSync } from "child_process";
 import * as os from "os";
 
@@ -14,15 +14,24 @@ const LOCK_FILE   = `${QUEUE_DIR}/worker.lock`;
 mkdirSync(QUEUE_DIR, { recursive: true });
 mkdirSync(RESULTS_DIR, { recursive: true });
 
-function nextEntry(): string | null {
+function nextEntry(): { path: string; sha: string; quick: boolean } | null {
   const files = readdirSync(QUEUE_DIR)
     .filter(f => f !== "worker.lock")
     .sort();  // lexicographic = chronological (ISO ts prefix)
-  return files.length ? `${QUEUE_DIR}/${files[0]}` : null;
+  if (!files.length) return null;
+  const file = files[0];
+  const filePath = `${QUEUE_DIR}/${file}`;
+  const sha = file.split("-").at(-1)!;
+  let quick = false;
+  try {
+    const raw = readFileSync(filePath, "utf8").trim();
+    if (raw) quick = JSON.parse(raw).quick === true;
+  } catch {}
+  return { path: filePath, sha, quick };
 }
 
-function run(sha: string) {
-  console.log(`[ci-worker] processing ${sha}`);
+function run(sha: string, quick: boolean) {
+  console.log(`[ci-worker] processing ${sha}${quick ? " (quick)" : ""}`);
 
   // Verify commit exists
   const check = spawnSync("git", ["-C", WORK_DIR, "cat-file", "-t", sha], { encoding: "utf8" });
@@ -38,16 +47,21 @@ function run(sha: string) {
 
   spawnSync("git", ["-C", WORK_DIR, "checkout", "--detach", sha], { stdio: "inherit" });
 
+  const extraArgs = quick
+    ? ["npm", "run", "test:playwright:parallel", "--", "tests/playwright/commands/cmd-scroll-down.spec.ts"]
+    : [];
+
   const start = Date.now();
   const result = spawnSync(
     "docker-compose",
-    ["run", "--rm", "tests"],
-    { cwd: WORK_DIR, stdio: "inherit", env: { ...process.env, WORKERS: "4", DOCKER_CI: "1", GIT_HASH: sha.slice(0, 7), HOST_MACHINE: os.hostname() } }
+    ["run", "--rm", "tests", ...extraArgs],
+    { cwd: WORK_DIR, stdio: "inherit", env: { ...process.env, WORKERS: quick ? "1" : "4", DOCKER_CI: "1", GIT_HASH: sha.slice(0, 7), HOST_MACHINE: os.hostname() } }
   );
   const elapsed = Date.now() - start;
 
   const summary = {
     sha,
+    quick,
     exitCode: result.status,
     elapsedMs: elapsed,
     timestamp: new Date().toISOString()
@@ -61,9 +75,8 @@ console.log("[ci-worker] started, polling queue...");
 while (true) {
   const entry = nextEntry();
   if (entry) {
-    const sha = entry.split("-").at(-1)!;
-    rmSync(entry);  // dequeue before running (prevents double-process on crash)
-    run(sha);
+    rmSync(entry.path);  // dequeue before running (prevents double-process on crash)
+    run(entry.sha, entry.quick);
   } else {
     await Bun.sleep(3000);
   }
