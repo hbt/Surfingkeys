@@ -1,0 +1,99 @@
+import { RUNTIME, runtime } from '../runtime.js';
+import { getBrowserName, showBanner } from '../utils.js';
+import type { CommandAPI } from '../../../../@types/surfingkeys';
+
+export default function registerMisc(
+    api: CommandAPI,
+    _clipboard: unknown,
+    _insert: unknown,
+    _normal: unknown,
+    _hints: unknown,
+    _visual: unknown,
+    _front: unknown,
+    _browser: unknown
+): void {
+    const { mapkey, map, cmap } = api;
+
+    map('ZQ', ':quit', 0, {
+        short: "Quit without saving",
+        unique_id: "cmd_misc_quit",
+        feature_group: 16,
+        category: "misc",
+        description: "Quit and close all tabs without saving session",
+        tags: ["misc", "quit", "session"]
+    });
+    map('u', 'e', 0, {
+        short: "Alias for e",
+        unique_id: "cmd_misc_alias_u",
+        feature_group: 16,
+        category: "misc",
+        description: "Alias for 'e' - scroll up half page",
+        tags: ["misc", "alias", "scroll"]
+    });
+    map('C', 'gf', 0, {
+        short: "Alias for gf",
+        unique_id: "cmd_misc_alias_c",
+        feature_group: 16,
+        category: "misc",
+        description: "Alias for 'gf' - open link in non-active new tab",
+        tags: ["misc", "alias", "hints"]
+    });
+    map('<Ctrl-i>', 'I', 0, {
+        short: "Alias for I",
+        unique_id: "cmd_misc_alias_ctrl_i",
+        feature_group: 16,
+        category: "misc",
+        description: "Alias for 'I' - go to edit box with vim editor",
+        tags: ["misc", "alias", "input"]
+    });
+
+    cmap('<ArrowDown>', '<Ctrl-n>');
+    cmap('<ArrowUp>', '<Ctrl-p>');
+
+    if (getBrowserName() === "Chrome") {
+        mapkey(';s', {
+            short: "Toggle PDF viewer",
+            unique_id: "cmd_misc_toggle_pdf_viewer",
+            feature_group: 16,
+            category: "misc",
+            description: "Toggle between SurfingKeys PDF viewer and native Chrome PDF viewer",
+            tags: ["misc", "pdf", "viewer"]
+        }, function() {
+            var pdfUrl = window.location.href;
+            if (pdfUrl.indexOf(chrome.runtime.getURL("/pages/pdf_viewer.html")) === 0) {
+                const filePos = window.location.search.indexOf("=") + 1;
+                pdfUrl = window.location.search.substr(filePos);
+                RUNTIME('updateSettings', {
+                    settings: {
+                        "noPdfViewer": 1
+                    }
+                }, (_resp: any) => {
+                    window.location.replace(pdfUrl);
+                });
+            } else {
+                if (document.querySelector("EMBED") && document.querySelector("EMBED").getAttribute("type") === "application/pdf") {
+                    RUNTIME('updateSettings', {
+                        settings: {
+                            "noPdfViewer": 0
+                        }
+                    }, (_resp: any) => {
+                        window.location.replace(pdfUrl);
+                    });
+                } else {
+                    RUNTIME('getSettings', {
+                        key: 'noPdfViewer'
+                    }, function(resp: any) {
+                        const info = resp.settings.noPdfViewer ? "PDF viewer enabled." : "PDF viewer disabled.";
+                        RUNTIME('updateSettings', {
+                            settings: {
+                                "noPdfViewer": !resp.settings.noPdfViewer
+                            }
+                        }, (_r: any) => {
+                            showBanner(info);
+                        });
+                    });
+                }
+            }
+        });
+    }
+}
