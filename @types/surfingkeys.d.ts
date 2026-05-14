@@ -208,3 +208,47 @@ export type RuntimeAction = (RepeatAction | NamedAction | UnknownAction) & {
     needResponse?: boolean;
     repeats?: number;
 };
+
+// GitHub Gist API
+export interface GistFile { content: string; filename: string; }
+export interface GistObject {
+    id: string;
+    description?: string;
+    files: Record<string, GistFile>;
+}
+export interface GistComment { id: number; body: string; }
+
+// Internal data structures
+export interface ScrollPositionData { scrollLeft: number; scrollTop: number; }
+export interface BookmarkFolder { id: string; title: string; }
+export interface LLMClientRequest { tabId: number; frameId: number; }
+
+// Message handler type
+export type MessageHandler = (
+    message: RuntimeAction,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response: unknown) => void
+) => unknown;
+
+// Tab URL tracking: tabId -> { url -> title }
+export type TabURLMap = Record<number, Record<string, string>>;
+// Tab message tracking: tabId -> scroll position
+export type TabMessageMap = Record<number, ScrollPositionData>;
+
+// LLM client function signature
+export type LLMClientFn = (request: Record<string, unknown>, opts: {
+    onComplete: (message: Record<string, unknown>) => void;
+    onChunk: (chunk: string) => void;
+}) => void;
+
+export type LLMClientsMap = Record<string, LLMClientFn>;
+
+declare global {
+    var _isConfigReady: (() => Promise<boolean>) | undefined;
+    var _configLoadError: Error | undefined;
+    var _snippetSyncChain: Promise<void> | undefined;
+    var __CDP_MESSAGE_BRIDGE__: {
+        dispatch(action: string, payload?: unknown, expectResponse?: boolean): unknown;
+        listActions(): string[];
+    } | undefined;
+}
