@@ -115,6 +115,8 @@ async function build() {
         'pages/start': './src/content_scripts/start.js',
         'pages/ace': './src/content_scripts/ace.js',
         'pages/error-viewer': './src/pages/error-viewer.ts',
+        'pages/devtools': './src/pages/devtools.ts',
+        'pages/devtools-panel': './src/pages/devtools-panel.ts',
     };
 
     const moduleEntries = {
