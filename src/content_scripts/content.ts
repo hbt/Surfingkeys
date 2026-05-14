@@ -29,9 +29,9 @@ import KeyboardUtils from './common/keyboardUtils';
  * Apply custom key mappings for basic users, the input is like
  * {"a": "b", "b": "a", "c": "d"}
  */
-function applyBasicMappings(api, normal, mappings) {
+function applyBasicMappings(api: any, normal: any, mappings: any) {
     const originKeys = new Set(Object.keys(mappings));
-    const originMappings = {};
+    const originMappings: Record<string, any> = {};
     for (const originKey in mappings) {
         const newKey = mappings[originKey];
         // current new key is one original key that will be overrode later
@@ -53,14 +53,14 @@ function applyBasicMappings(api, normal, mappings) {
     }
 }
 
-function ensureRegex(regexName) {
-    const r = runtime.conf[regexName];
+function ensureRegex(regexName: any) {
+    const r = (runtime.conf as any)[regexName];
     if (r && r.source && !(r instanceof RegExp)) {
-        runtime.conf[regexName] = new RegExp(r.source, r.flags);
+        (runtime.conf as any)[regexName] = new RegExp(r.source, r.flags);
     }
 }
 
-function applyRuntimeConf(normal) {
+function applyRuntimeConf(normal: any) {
     ensureRegex("prevLinkRegex");
     ensureRegex("nextLinkRegex");
     ensureRegex("clickablePat");
@@ -100,10 +100,10 @@ function applyRuntimeConf(normal) {
 }
 
 
-function applySettings(api, normal, rs) {
+function applySettings(api: any, normal: any, rs: any) {
     for (var k in rs) {
         if (runtime.conf.hasOwnProperty(k)) {
-            runtime.conf[k] = rs[k];
+            (runtime.conf as any)[k] = rs[k];
         }
     }
     if ('findHistory' in rs) {
@@ -139,7 +139,7 @@ function applySettings(api, normal, rs) {
  * @param {Object} modes - Object containing mode instances {normal, insert, visual, hints}
  * @returns {Map} Registry mapping unique_id -> command metadata
  */
-function buildCommandRegistry(modes) {
+function buildCommandRegistry(modes: any) {
     const registry = new Map();
     const modesToScan = [modes.normal, modes.insert, modes.visual, modes.hints];
 
@@ -149,7 +149,7 @@ function buildCommandRegistry(modes) {
         // getMetas requires a criterion function, we use it to collect all metas
         const allMetas = mode.mappings.getMetas(() => true);
 
-        allMetas.forEach(meta => {
+        allMetas.forEach((meta: any) => {
             // Check if annotation has unique_id
             const annotation = meta.annotation;
             let unique_id = null;
@@ -247,7 +247,7 @@ function _initModules() {
     document.addEventListener('__sk_conf_override', (e) => {
         const { key, value } = (e as CustomEvent).detail;
         if (Object.prototype.hasOwnProperty.call(runtime.conf, key)) {
-            runtime.conf[key] = value;
+            (runtime.conf as any)[key] = value;
             document.documentElement.dataset.skConfOverrideResult = 'true';
         } else {
             document.documentElement.dataset.skConfOverrideResult = 'false';
@@ -277,7 +277,7 @@ function _initModules() {
 }
 
 
-function _initContent(modes) {
+function _initContent(modes: any) {
     (window as any).frameId = generateQuickGuid();
     runtime.on('settingsUpdated', response => {
         var rs = response.settings;
@@ -315,8 +315,8 @@ Mode.init(window === top ? undefined : ()=> {
     }, {once: true});
 });
 
-let _browser;
-function start(browser?) {
+let _browser: any;
+function start(browser?: any) {
     _browser = browser || {
         usePdfViewer: () => {},
         readText: () => {},

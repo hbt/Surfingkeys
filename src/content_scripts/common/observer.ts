@@ -5,7 +5,7 @@ import {
 
 import Mode from './mode';
 
-function isElementPositionRelative(elm) {
+function isElementPositionRelative(elm: any) {
     while (elm !== document.body) {
         if (getComputedStyle(elm).position === "relative") {
             return true;
@@ -15,7 +15,7 @@ function isElementPositionRelative(elm) {
     return false;
 }
 
-function startScrollNodeObserver(normal) {
+function startScrollNodeObserver(normal: any) {
     var pendingUpdater: ReturnType<typeof setTimeout> | undefined = undefined, DOMObserver = new MutationObserver(function (mutations) {
         var addedNodes: Node[] = [];
         for (var m of mutations) {
@@ -33,7 +33,7 @@ function startScrollNodeObserver(normal) {
                 pendingUpdater = undefined;
             }
             pendingUpdater = setTimeout(function() {
-                var possibleModalElements = getVisibleElements(function(e, v) {
+                var possibleModalElements = getVisibleElements(function(e: any, v: any) {
                     var br = e.getBoundingClientRect();
                     if (br.width > 300 && br.height > 300
                         && br.width <= window.innerWidth && br.height <= window.innerHeight

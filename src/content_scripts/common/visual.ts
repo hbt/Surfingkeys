@@ -19,10 +19,10 @@ import {
     tabOpenLink,
 } from './utils.js';
 
-function createVisual(clipboard, hints) {
-    var self = new Mode("Visual");
+function createVisual(clipboard: any, hints: any) {
+    var self = new (Mode as any)("Visual");
 
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener('keydown', function(event: any) {
         if (visualf) {
             var exitf = false;
             event.sk_stopPropagation = true;
@@ -61,17 +61,17 @@ function createVisual(clipboard, hints) {
             }
         }
     });
-    self.addEventListener('scroll', function(_event) {
+    self.addEventListener('scroll', function(_event: any) {
         matches.forEach(function(m) {
             const r = getTextRect(m[0], m[1])[0];
-            m[2].forEach((mi) => {
+            m[2].forEach((mi: any) => {
                 mi.style.left = document.scrollingElement!.scrollLeft + r.left + 'px';
                 mi.style.top = document.scrollingElement!.scrollTop + r.top + 'px';
             });
         });
     });
 
-    self.addEventListener('click', function(_event) {
+    self.addEventListener('click', function(_event: any) {
         switch (selection.type) {
             case "None":
                 self.hideCursor();
@@ -97,7 +97,7 @@ function createVisual(clipboard, hints) {
         _onStateChange();
     });
 
-    self.addEventListener('resize', function(_event) {
+    self.addEventListener('resize', function(_event: any) {
         if (runtime.conf.lastQuery) {
             self.visualUpdate(runtime.conf.lastQuery);
         }
@@ -113,12 +113,12 @@ function createVisual(clipboard, hints) {
             });
         }
     };
-    self.addEventListener('selectionchange', function(_event) {
+    self.addEventListener('selectionchange', function(_event: any) {
         clearSelectionMark();
         selectionMark_ = createSelectionMark(selection.anchorNode, selection.anchorOffset, selection.focusNode, selection.focusOffset);
     });
 
-    self.mappings = new Trie();
+    self.mappings = new (Trie as any)();
     self.map_node = self.mappings;
     self.repeats = "";
     self.mappings.add("l", {
@@ -348,9 +348,9 @@ function createVisual(clipboard, hints) {
         s: "sentence",
         p: "paragraphboundary"
     };
-    function _selectUnit(w) {
+    function _selectUnit(w: any) {
         if (getBrowserName() !== "Firefox" || (w !== "p" && w !== "s")) {
-            var unit = _units[w];
+            var unit = (_units as any)[w];
             // sentence and paragraphboundary not support in firefox
             // document.getSelection().modify("move", "backward", "paragraphboundary")
             // gets 0x80004001 (NS_ERROR_NOT_IMPLEMENTED)
@@ -360,7 +360,7 @@ function createVisual(clipboard, hints) {
     var _yankFunctions = [{}, {
         annotation: "Yank a word(w) or line(l) or sentence(s) or paragraph(p)",
         feature_group: 9,
-        code: function(w) {
+        code: function(w: any) {
             var pos = [selection.focusNode, selection.focusOffset];
             self.hideCursor();
             _selectUnit(w);
@@ -399,7 +399,7 @@ function createVisual(clipboard, hints) {
             self.star();
         }
     });
-    function clickLink(element, shiftKey) {
+    function clickLink(element: any, shiftKey: any) {
         flashPressedLink(element, () => {
             dispatchMouseEvent(element, ['click'], {shiftKey});
         });
@@ -577,7 +577,7 @@ function createVisual(clipboard, hints) {
             tags: ["visual", "selection", "vim"]
         },
         feature_group: 9,
-        code: function(w) {
+        code: function(w: any) {
             self.hideCursor();
             state = 2;
             _onStateChange();
@@ -599,7 +599,7 @@ function createVisual(clipboard, hints) {
     // f in visual mode
     var visualf = 0, lastF: any[] | null = null;
 
-    function visualSeek(dir, chr) {
+    function visualSeek(dir: any, chr: any) {
         self.hideCursor();
         var lastPosBeforeF = [selection.anchorNode, selection.anchorOffset];
         if (selection.focusNode
@@ -626,7 +626,7 @@ function createVisual(clipboard, hints) {
         self.showCursor();
     }
 
-    function getTextNodeByY(y) {
+    function getTextNodeByY(y: any) {
         var node: Node | null = null;
         var treeWalker = getTextNodes(document.body, /./, 0);
         while (treeWalker.nextNode()) {
@@ -665,7 +665,7 @@ function createVisual(clipboard, hints) {
         return cursor.getBoundingClientRect();
     };
 
-    function select(found) {
+    function select(found: any) {
         self.hideCursor();
         if (selection.anchorNode && state === 2) {
             selection.extend(found[0] as Node, found[1] as number);
@@ -736,7 +736,7 @@ function createVisual(clipboard, hints) {
     }
 
     const markHolder_ = document.createElement("div");
-    function createMark(className, node1, offset1, node2, offset2) {
+    function createMark(className: any, node1: any, offset1: any, node2: any, offset2: any) {
         let rects = getTextRect(node1, offset1, node2, offset2);
         if (rects.length > 100) {
             // avoid hangs due to huge amounts of selection
@@ -762,10 +762,10 @@ function createVisual(clipboard, hints) {
         }
         return marks;
     }
-    function createSelectionMark(node1, offset1, node2, offset2) {
+    function createSelectionMark(node1: any, offset1: any, node2: any, offset2: any) {
         return createMark("surfingkeys_selection_mark", node1, offset1, node2, offset2);
     }
-    function createMatchMark(node1, offset1, node2, offset2) {
+    function createMatchMark(node1: any, offset1: any, node2: any, offset2: any) {
         const marks = createMark("surfingkeys_match_mark", node1, offset1, node2, offset2);
 
         if (marks.length) {
@@ -773,9 +773,9 @@ function createVisual(clipboard, hints) {
         }
     }
 
-    function highlight(pattern) {
+    function highlight(pattern: any) {
         const gpattern = new RegExp(pattern.source, "g" + pattern.flags);
-        getTextNodes(document.body, pattern).forEach(function(node) {
+        getTextNodes(document.body, pattern).forEach(function(node: any) {
             var mtches;
             while ((mtches = gpattern.exec(node.data)) !== null) {
                 var match = mtches[0];
@@ -839,7 +839,7 @@ function createVisual(clipboard, hints) {
             self.enter();
         }
     };
-    self.toggle = function(ex) {
+    self.toggle = function(ex: any) {
         switch (state) {
             case 1:
                 selection.extend(selection.anchorNode!, selection.anchorOffset);
@@ -852,7 +852,7 @@ function createVisual(clipboard, hints) {
                 _incState();
                 break;
             default:
-                hints.create(runtime.conf.textAnchorPat, function (element) {
+                hints.create(runtime.conf.textAnchorPat, function (element: any) {
                     setTimeout(function () {
                         selection.setPosition(element[0], element[1]);
                         self.enter();
@@ -886,7 +886,7 @@ function createVisual(clipboard, hints) {
         }
     };
 
-    self.next = function(backward) {
+    self.next = function(backward: any) {
         if (matches.length) {
             // need enter visual mode again when modeAfterYank is set to Normal / Caret.
             if (state === 0) {
@@ -901,7 +901,7 @@ function createVisual(clipboard, hints) {
         }
     };
 
-    self.feedkeys = function(keys) {
+    self.feedkeys = function(keys: any) {
         setTimeout(function() {
             var evt = new Event("keydown");
             for (var i = 0; i < keys.length; i ++) {
@@ -911,7 +911,7 @@ function createVisual(clipboard, hints) {
         }, 1);
     };
 
-    function findNextTextNodeBy(query, caseSensitive, backwards) {
+    function findNextTextNodeBy(query: any, caseSensitive: any, backwards: any) {
         var found = false;
         // window.find sometimes does not move selection forward
         var firstNode: Node | null = null;
@@ -927,7 +927,7 @@ function createVisual(clipboard, hints) {
         }
         return found;
     }
-    self.visualUpdate = function(query) {
+    self.visualUpdate = function(query: any) {
         self.visualClear();
 
         // set caret to top in view
@@ -961,7 +961,7 @@ function createVisual(clipboard, hints) {
 
     };
 
-    self.visualEnter = function (query) {
+    self.visualEnter = function (query: any) {
         if (query.length === 0 || query === ".") {
             return;
         }
@@ -975,9 +975,9 @@ function createVisual(clipboard, hints) {
         }
     };
 
-    self.findSentenceOf = function (query) {
+    self.findSentenceOf = function (query: any) {
         var wr = new RegExp("\\b" + query + "\\b");
-        var elements = getVisibleElements(function(e, v) {
+        var elements = getVisibleElements(function(e: any, v: any) {
             if (wr.test(e.innerText)) {
                 v.push(e);
             }
@@ -985,7 +985,7 @@ function createVisual(clipboard, hints) {
         elements = filterAncestors(elements);
 
         var sentence = "";
-        actionWithSelectionPreserved(function(selection) {
+        actionWithSelectionPreserved(function(selection: any) {
             selection.setPosition(elements[0], 0);
             if (window.find(query, false, false, true, true)) {
                 _selectUnit("s");
@@ -1007,7 +1007,7 @@ function createVisual(clipboard, hints) {
      * Visual.style('marks', 'background-color: #89a1e2;');
      * Visual.style('cursor', 'background-color: #9065b7;');
      */
-    self.style = function (element, style) {
+    self.style = function (element: any, style: any) {
         _style[element] = style;
 
         cursor.setAttribute('style', _style.cursor || '');

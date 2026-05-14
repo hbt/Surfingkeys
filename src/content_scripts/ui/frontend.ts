@@ -40,11 +40,11 @@ const Front = (function() {
     const hints = createHints(insert, normal, clipboard);
     const visual = createVisual(clipboard, hints);
 
-    const self = new Mode("Front");
+    const self = new (Mode as any)("Front");
     self._actions = {};
     self.topSize = [0, 0];
     let destroyListeners: ((...args: any[]) => void)[] = [];
-    self.addDestroyListener = (task) => {
+    self.addDestroyListener = (task: any) => {
         destroyListeners.push(task);
     };
     const omnibar = createOmnibar(self, clipboard);
@@ -63,23 +63,23 @@ const Front = (function() {
 
     var _actions = self._actions,
         _callbacks = {};
-    self.contentCommand = function(args, successById) {
+    self.contentCommand = function(args: any, successById: any) {
         args.toContent = true;
         args.id = generateQuickGuid();
         if (successById) {
             args.ack = true;
-            _callbacks[args.id] = successById;
+            (_callbacks as any)[args.id] = successById;
         }
         top!.postMessage({surfingkeys_uihost_data: args}, self.topOrigin);
     };
 
-    self.postMessage = function(args) {
+    self.postMessage = function(args: any) {
         top!.postMessage({surfingkeys_uihost_data: args}, self.topOrigin);
     };
 
     var pressedHintKeys = "";
     var _display: any;
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener('keydown', function(event: any) {
         if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
             self.hidePopup();
             event.sk_stopPropagation = true;
@@ -115,8 +115,8 @@ const Front = (function() {
         }
     });
 
-    var _state;
-    function State(this: any, pointerEvents, frameHeight, onEnter?) {
+    var _state: any;
+    function State(this: any, pointerEvents: any, frameHeight: any, onEnter?: any) {
         this.enter = function(this: any) {
             if (onEnter) {
                 onEnter();
@@ -166,9 +166,9 @@ const Front = (function() {
             }
         };
     }
-    const stateInvisible = new State("none", "0px");
-    const stateVisible = new State("none", "100%");
-    const stateInteractive = new State("all", "100%", function() {
+    const stateInvisible = new (State as any)("none", "0px");
+    const stateVisible = new (State as any)("none", "100%");
+    const stateInteractive = new (State as any)("all", "100%", function() {
         window.focus();
     });
     _state = stateInvisible;
@@ -176,7 +176,7 @@ const Front = (function() {
     self.flush = function() {
         _state.nextState();
     };
-    self.visualCommand = function(args) {
+    self.visualCommand = function(args: any) {
         if (_usage.style.display !== "none") {
             // visual mode in frontend.html, such as help
             visual[args.action](args.query);
@@ -203,7 +203,7 @@ const Front = (function() {
         sk_bubbleClassList.remove("sk_scroller_indicator_middle");
         sk_bubbleClassList.remove("sk_scroller_indicator_bottom");
     }
-    sk_bubble_content.onscroll = function(_evt) {
+    sk_bubble_content.onscroll = function(_evt: any) {
         clearScrollerIndicator();
         if (this.scrollTop === 0) {
             sk_bubbleClassList.add("sk_scroller_indicator_top");
@@ -249,7 +249,7 @@ const Front = (function() {
     };
     self.hidePopup = _actions['hidePopup'];
 
-    function setDisplay(td, render?) {
+    function setDisplay(td: any, render?: any) {
         if (_display && _display.style.display !== "none") {
             _display.style.display = "none";
             if (_display.onHide) {
@@ -264,15 +264,15 @@ const Front = (function() {
         self.startInputGuard();
     }
 
-    function showElement(td, render?, onHit?) {
+    function showElement(td: any, render?: any, onHit?: any) {
         self.enter(0, true);
         td.onHit = onHit;
         setDisplay(td, render);
         self.flush();
     }
 
-    function renderTabTitles(container, tabs) {
-        tabs.forEach(function(t, _i) {
+    function renderTabTitles(container: any, tabs: any) {
+        tabs.forEach(function(t: any, _i: any) {
             const tab = createElementWithContent('div', `<div class=sk_tab_wrap><div class=sk_tab_icon><img/></div><div class=sk_tab_title>${htmlEncode(t.title)}</div></div>`, { "class": 'sk_tab' });
             if (t.active) {
                 tab.classList.add("active");
@@ -281,7 +281,7 @@ const Front = (function() {
             container.append(tab);
         });
     }
-    function renderTabs(container, tabs) {
+    function renderTabs(container: any, tabs: any) {
         setSanitizedContent(container, "");
         var hintLabels = hints.genLabels(tabs.length - 1);
         const unitWidth = (window.innerWidth - 2) / tabs.length - 2;
@@ -289,17 +289,17 @@ const Front = (function() {
         container.className = verticalTabs ? "vertical" : "horizontal";
         renderTabTitles(container, tabs);
         if (verticalTabs) {
-            container.querySelectorAll("div.sk_tab").forEach((tab) => {
+            container.querySelectorAll("div.sk_tab").forEach((tab: any) => {
                 tab.append(createElementWithContent('div', '🚀', {class: "tab_rocket"}));
             });
         } else {
-            container.querySelectorAll("div.sk_tab").forEach((tab) => {
+            container.querySelectorAll("div.sk_tab").forEach((tab: any) => {
                 tab.querySelector("div.sk_tab_title").style.width = (unitWidth - 24) + 'px';
                 tab.style.width = unitWidth + 'px';
             });
         }
-        const tabsNeedHint = tabs.filter((t) => !t.active);
-        container.querySelectorAll("div.sk_tab:not(.active)").forEach((tab, i) => {
+        const tabsNeedHint = tabs.filter((t: any) => !t.active);
+        container.querySelectorAll("div.sk_tab:not(.active)").forEach((tab: any, i: any) => {
             const tabHint = createElementWithContent('div', hintLabels[i], { "class": 'sk_tab_hint' });
             const tabData = tabsNeedHint[i];
             tabHint.label = hintLabels[i];
@@ -320,7 +320,7 @@ const Front = (function() {
             } else if (response.tabs.length > 0) {
                 showElement(_tabs, () => {
                     renderTabs(_tabs, response.tabs);
-                }, (matched) => {
+                }, (matched: any) => {
                     RUNTIME('focusTab', {
                         windowId: matched.windowId,
                         tabId: matched.id
@@ -342,7 +342,7 @@ const Front = (function() {
                 setSanitizedContent(_tabs, "");
                 _tabs.className = "";
                 const hintLabels = hints.genLabels(groups.length*2 + 1);
-                groups.forEach(function(g, i) {
+                groups.forEach(function(g: any, i: any) {
                     const group = document.createElement('div');
                     group.setAttribute('class', 'sk_tab_group');
                     const labels = [hintLabels[2*i],hintLabels[2*i + 1]];
@@ -364,7 +364,7 @@ const Front = (function() {
                 tabHint.label = hintLabels[groups.length*2];
                 tabHint.link = {action: "new"};
                 _tabs.append(newTabGroup);
-            }, (matched) => {
+            }, (matched: any) => {
                 if (matched.action === "collapse") {
                     RUNTIME('collapseGroup', {groupId: matched.id, collapsed: !matched.collapsed});
                 } else if (matched.action === "new") {
@@ -382,7 +382,7 @@ const Front = (function() {
         });
     };
 
-    function localizeAnnotation(locale, annotation) {
+    function localizeAnnotation(locale: any, annotation: any) {
         if (annotation.constructor.name === "Array") {
             const fmt = annotation[0];
             return locale(fmt).format(...annotation.slice(1));
@@ -391,7 +391,7 @@ const Front = (function() {
         }
     }
 
-    function buildUsage(metas, cb) {
+    function buildUsage(metas: any, cb: any) {
         var feature_groups = [
             'Help',                  // 0
             'Mouse Click',           // 1
@@ -413,7 +413,7 @@ const Front = (function() {
             'Regional Hints Mode',   // 17
         ];
 
-        initL10n(function(locale) {
+        initL10n(function(locale: any) {
             var help_groups: any = feature_groups.map(function(){return [];});
             const lh = Mode.specialKeys["<Alt-s>"].length;
             if (lh > 0) {
@@ -422,7 +422,7 @@ const Front = (function() {
             }
 
             metas = metas.concat(getAnnotations(omnibar.mappings));
-            metas.forEach(function(meta) {
+            metas.forEach(function(meta: any) {
                 if (!help_groups[meta.feature_group]) return;
                 const w = KeyboardUtils.decodeKeystroke(meta.word);
                 const annotationStr = getAnnotationString(meta.annotation);
@@ -430,7 +430,7 @@ const Front = (function() {
                 const item = `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotation}</span></div>`;
                 help_groups[meta.feature_group].push(item);
             });
-            help_groups = help_groups.map(function(g, i) {
+            help_groups = help_groups.map(function(g: any, i: any) {
                 if (g.length) {
                     return "<div><div class=feature_name><span>{0}</span></div>{1}</div>".format(locale(feature_groups[i]), g.join(''));
                 } else {
@@ -443,9 +443,9 @@ const Front = (function() {
         });
     }
 
-    _actions['showUsage'] = function(message) {
+    _actions['showUsage'] = function(message: any) {
         showElement(_usage, () => {
-            buildUsage(message.metas, function(usage) {
+            buildUsage(message.metas, function(usage: any) {
                 setSanitizedContent(_usage, usage);
                 // Setup fuzzy filter for searching commands
                 const filterAPI = setupHelpFilter(_usage);
@@ -456,34 +456,34 @@ const Front = (function() {
             });
         });
     };
-    _actions['applyUserSettings'] = function (message) {
+    _actions['applyUserSettings'] = function (message: any) {
         for (var k in message.userSettings) {
             if (runtime.conf.hasOwnProperty(k)) {
-                runtime.conf[k] = message.userSettings[k];
+                (runtime.conf as any)[k] = message.userSettings[k];
             }
         }
         if ('theme' in message.userSettings) {
             setSanitizedContent(document.getElementById("sk_theme"), message.userSettings.theme);
         }
     };
-    _actions['setHintsCharacters'] = function (message) {
+    _actions['setHintsCharacters'] = function (message: any) {
         hints.setCharacters(message.characters);
     };
-    _actions['addMapkey'] = function (message) {
+    _actions['addMapkey'] = function (message: any) {
         if (message.old_keystroke in Mode.specialKeys) {
             Mode.specialKeys[message.old_keystroke].push(message.new_keystroke);
         } else if (modes.hasOwnProperty(message.mode)) {
-            mapInMode(modes[message.mode], message.new_keystroke, message.old_keystroke);
+            mapInMode((modes as any)[message.mode], message.new_keystroke, message.old_keystroke);
         }
     };
-    _actions['addVimMap'] = function (message) {
+    _actions['addVimMap'] = function (message: any) {
         self.vimMappings.push([message.lhs, message.rhs, message.ctx]);
     };
-    _actions['addVimKeyMap'] = function (message) {
+    _actions['addVimKeyMap'] = function (message: any) {
         self.vimKeyMap = message.vimKeyMap;
     };
-    _actions['addCommand'] = function(message) {
-        const proxyAction = (...args) => {
+    _actions['addCommand'] = function(message: any) {
+        const proxyAction = (...args: any[]) => {
             self.contentCommand({
                 action: 'executeUserCommand',
                 name: message.name,
@@ -492,10 +492,10 @@ const Front = (function() {
         };
         omnibar.command(message.name, message.description, proxyAction);
     };
-    _actions['getUsage'] = function (message) {
+    _actions['getUsage'] = function (message: any) {
         // send response in callback from buildUsage
         delete message.ack;
-        buildUsage(message.metas, function(usage) {
+        buildUsage(message.metas, function(usage: any) {
             top!.postMessage({surfingkeys_uihost_data: {
                 data: usage,
                 toContent: true,
@@ -506,16 +506,16 @@ const Front = (function() {
 
     self.showUsage = self.hidePopup;
 
-    function showPopup(content) {
+    function showPopup(content: any) {
         setSanitizedContent(_popup, content);
         showElement(_popup);
     }
 
-    _actions['showPopup'] = function(message) {
+    _actions['showPopup'] = function(message: any) {
         showPopup(message.content);
     };
 
-    function showImagePopup(dataUrl) {
+    function showImagePopup(dataUrl: any) {
         _popup.innerHTML = '';
         const wrapper = document.createElement('div');
         wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px';
@@ -528,7 +528,7 @@ const Front = (function() {
         const bar = document.createElement('div');
         bar.style.cssText = 'display:flex;gap:10px';
 
-        const mkBtn = (label, onClick) => {
+        const mkBtn = (label: any, onClick: any) => {
             const b = document.createElement('button');
             b.innerHTML = label;
             b.style.cssText = 'padding:6px 14px;font-size:13px;cursor:pointer;border-radius:4px;border:1px solid #555;background:#333;color:#eee';
@@ -561,11 +561,11 @@ const Front = (function() {
         showElement(_popup);
     }
 
-    _actions['showImagePopup'] = function(message) {
+    _actions['showImagePopup'] = function(message: any) {
         showImagePopup(message.dataUrl);
     };
 
-    _actions['showDialog'] = function(message) {
+    _actions['showDialog'] = function(message: any) {
         showElement(_popup, () => {
             const hintLabels = hints.genLabels(2);
             setSanitizedContent(_popup, `<div>${message.question}</div><div><div class=sk_tab_hint>${hintLabels[0]}</div><span class=sk_tab_group_title>Ok</span><div class=sk_tab_hint>${hintLabels[1]}</div><span class=sk_tab_group_title>Cancel</span></div>`);
@@ -575,7 +575,7 @@ const Front = (function() {
             (tabHints[0] as any).label = hintLabels[0];
             (tabHints[1] as any).link = "Cancel";
             (tabHints[1] as any).label = hintLabels[1];
-        }, (matched) => {
+        }, (matched: any) => {
             self.contentCommand({
                 action: 'dialogResponse',
                 result: matched
@@ -585,7 +585,7 @@ const Front = (function() {
 
     self.vimMappings = [];
     let _aceEditor: Promise<unknown> | null = null;
-    function renderAceEditor(message) {
+    function renderAceEditor(message: any) {
         if (!_aceEditor) {
             _aceEditor = new Promise((resolve, _reject) => {
                 // @ts-ignore
@@ -599,18 +599,18 @@ const Front = (function() {
         });
     }
     let _neovim: Promise<unknown> | null = null;
-    function renderNvim(message) {
+    function renderNvim(message: any) {
         if (!_neovim) {
             _neovim  = new Promise((resolve, _reject) => {
                 // @ts-ignore
                 import(/* webpackIgnore: true */ './neovim_lib.js').then((nvimlib) => {
-                    nvimlib.default(_nvim).then(({nvim, destroy}) => {
+                    nvimlib.default(_nvim).then(({nvim, destroy}: any) => {
                         function quitNvim() {
                             normal.enter();
                             destroy();
                             self.hidePopup();
                         }
-                        function rpc(data) {
+                        function rpc(data: any) {
                             const [ event, args ] = data;
                             if (event === "WriteData") {
                                 self.contentCommand({
@@ -641,7 +641,7 @@ const Front = (function() {
             });
         });
     }
-    _actions['showEditor'] = function(message) {
+    _actions['showEditor'] = function(message: any) {
         if (message.onEditorSaved) {
             self.onEditorSaved = message.onEditorSaved;
         }
@@ -656,7 +656,7 @@ const Front = (function() {
         }
     };
     self.showEditor = _actions['showEditor'];
-    _actions['openOmnibar'] = function(message) {
+    _actions['openOmnibar'] = function(message: any) {
         showElement(_omnibar, () => {
             _omnibar.onShow(message);
             const style = message.style || "";
@@ -668,7 +668,7 @@ const Front = (function() {
         Find.open();
     };
 
-    function showBanner(content, linger_time) {
+    function showBanner(content: any, linger_time: any) {
         _banner.style.cssText = "";
         _banner.style.display = "";
         _banner.style.top = "0px";
@@ -682,10 +682,10 @@ const Front = (function() {
             self.flush();
         }, timems);
     }
-    _actions['showBanner'] = function(message) {
+    _actions['showBanner'] = function(message: any) {
         showBanner(message.content, message.linger_time);
     };
-    _actions['showBubble'] = function(message) {
+    _actions['showBubble'] = function(message: any) {
         var pos = message.position;
         pos.left += pos.winX;
         pos.top += pos.winY;
@@ -740,11 +740,11 @@ const Front = (function() {
         self.flush();
     };
 
-    _actions['visualUpdated'] = function(_message) {
+    _actions['visualUpdated'] = function(_message: any) {
         self.statusBar.querySelector('input').focus();
     };
 
-    _actions['showStatus'] = function(message) {
+    _actions['showStatus'] = function(message: any) {
         StatusBar.show(message.contents, message.duration);
     };
 
@@ -754,23 +754,23 @@ const Front = (function() {
         openFinder: () => {
             Find.open();
         },
-        showStatus: (contents, duration) => {
+        showStatus: (contents: any, duration: any) => {
             StatusBar.show(contents, duration);
         },
     });
 
-    self.toggleStatus = function(visible) {
+    self.toggleStatus = function(visible: any) {
         if (visible) {
             self.statusBar.style.display = "";
         } else {
             self.statusBar.style.display = "none";
         }
     };
-    _actions['toggleStatus'] = function(message) {
+    _actions['toggleStatus'] = function(message: any) {
         self.toggleStatus(message.visible);
     };
 
-    var _pendingHint;
+    var _pendingHint: any;
     function clearPendingHint() {
         if (_pendingHint) {
             clearTimeout(_pendingHint);
@@ -791,18 +791,18 @@ const Front = (function() {
     };
 
     // Color map for shortcut characters - maps each character to a unique color
-    const charColorMap = {};
+    const charColorMap: Record<string, any> = {};
     const charColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B195', '#FFCCAA'];
     let colorIndex = 0;
 
-    function getCharColor(char) {
+    function getCharColor(char: any) {
         if (!charColorMap[char]) {
             charColorMap[char] = charColors[colorIndex++ % charColors.length];
         }
         return charColorMap[char];
     }
 
-    function colorizeNextKey(nextKey) {
+    function colorizeNextKey(nextKey: any) {
         const decodedKey = KeyboardUtils.decodeKeystroke(nextKey);
         const firstChar = htmlEncode(decodedKey[0]);
 
@@ -824,8 +824,8 @@ const Front = (function() {
         return `<span style="color:${firstCharColor};font-size:1.4em;font-weight:bold">${firstChar}</span><span style="color:#fff">${restChars}</span>`;
     }
 
-    function showRichHints(keyHints) {
-        initL10n(function (locale) {
+    function showRichHints(keyHints: any) {
+        initL10n(function (locale: any) {
             var words = keyHints.accumulated;
             var cc = keyHints.candidates;
             words = Object.keys(cc).sort().map(function (w) {
@@ -845,7 +845,7 @@ const Front = (function() {
             }
         });
     }
-    _actions['showKeystroke'] = function (message) {
+    _actions['showKeystroke'] = function (message: any) {
         if (keystroke.style.display !== "none" && keystroke.classList.contains("expandRichHints")) {
             showRichHints(message.keyHints);
         } else {
@@ -863,12 +863,12 @@ const Front = (function() {
         }
     };
 
-    _actions['initFrontend'] = function(message) {
+    _actions['initFrontend'] = function(message: any) {
         self.topOrigin = message.origin;
         self.topSize = message.winSize;
         return new Date().getTime();
     };
-    _actions['destroyFrontend'] = function(_message) {
+    _actions['destroyFrontend'] = function(_message: any) {
         if (_display && _display.style.display !== "none") {
             return false;
         }
@@ -883,11 +883,11 @@ const Front = (function() {
         if (_message === undefined) {
             return;
         }
-        if (_callbacks[_message.id]) {
-            var f = _callbacks[_message.id];
+        if ((_callbacks as any)[_message.id]) {
+            var f = (_callbacks as any)[_message.id];
             // returns true to make callback stay for coming response.
             if (!f(_message)) {
-                delete _callbacks[_message.id];
+                delete (_callbacks as any)[_message.id];
             }
         } else if (_message.action && _actions.hasOwnProperty(_message.action)) {
             var ret = _actions[_message.action](_message);
@@ -932,7 +932,7 @@ const Front = (function() {
         }
     };
 
-    _bubble.querySelector("div.sk_bubble_content").addEventListener("mousewheel", function (this: any, evt) {
+    _bubble.querySelector("div.sk_bubble_content").addEventListener("mousewheel", function (this: any, evt: any) {
         if (evt.deltaY > 0 && this.scrollTop + this.offsetHeight >= this.scrollHeight || evt.deltaY < 0 && this.scrollTop <= 0) {
             evt.preventDefault();
         }
@@ -959,7 +959,7 @@ var StatusBar = (function() {
     // search: 1
     // searchResult: 2
     // proxy: 3
-    self.show = function(contents, duration) {
+    self.show = function(contents: any, duration: any) {
         if (timerHide) {
             clearTimeout(timerHide);
             timerHide = null;
@@ -998,12 +998,12 @@ var StatusBar = (function() {
 })();
 
 var Find = (function() {
-    var self = new Mode("Find", "/");
+    var self = new (Mode as any)("Find", "/");
 
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener('keydown', function(event: any) {
         // prevent this event to be handled by Surfingkeys' other listeners
         event.sk_suppressed = true;
-    }).addEventListener('mousedown', function(event) {
+    }).addEventListener('mousedown', function(event: any) {
         if (event.target !== input) {
             // user clicks on somewhere else
             reset();
@@ -1011,7 +1011,7 @@ var Find = (function() {
         event.sk_suppressed = true;
     });
 
-    let input;
+    let input: any;
     let historyInc = 0;
     let userInput = "";
     function reset() {
@@ -1045,7 +1045,7 @@ var Find = (function() {
                 }
             };
         }
-        var findHistory = [];
+        var findHistory: any[] = [];
         RUNTIME('getSettings', {
             key: 'findHistory'
         }, function(response) {
@@ -1053,7 +1053,7 @@ var Find = (function() {
             findHistory = response.settings.findHistory;
             historyInc = findHistory.length;
         });
-        input.onkeydown = function(event) {
+        input.onkeydown = function(event: any) {
             if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
                 reset();
                 Front.visualCommand({
@@ -1093,19 +1093,19 @@ var Find = (function() {
     return self;
 })();
 
-function createAceEditor(normal, front) {
-    var self = new Mode("AceEditor");
+function createAceEditor(normal: any, front: any) {
+    var self = new (Mode as any)("AceEditor");
     document.getElementById("sk_editor")!.style.height = "30%";
     var _ace = ace.edit('sk_editor');
 
-    var originValue;
+    var originValue: any;
     function isDirty() {
         return _ace.getValue() != originValue;
     }
 
     var dialog = (function() {
         return {
-            open: function(template, onEnter, options) {
+            open: function(template: any, onEnter: any, options: any) {
                 const passThrough = normal.passThrough();
                 var _onClose = options.onClose;
                 options.onClose = function() {
@@ -1114,7 +1114,7 @@ function createAceEditor(normal, front) {
                         _onClose();
                     }
                 };
-                _ace.state.cm.openDialog(template, function(q) {
+                _ace.state.cm.openDialog(template, function(q: any) {
                     onEnter(q);
                     options.onClose();
                 }, options);
@@ -1145,7 +1145,7 @@ function createAceEditor(normal, front) {
         _save();
     }
 
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener('keydown', function(event: any) {
         event.sk_suppressed = true;
         if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)
             && (!_ace.completer || !_ace.completer.activated) // and completion popup not opened
@@ -1157,7 +1157,7 @@ function createAceEditor(normal, front) {
                 && !_ace.state.cm.state.vim.status // and no pending normal operation
             ){
                 if (isDirty()) {
-                    dialog.open('<span style="font-family: monospace">Quit anyway? Y/n </span><input type="text"/>', function(q) {
+                    dialog.open('<span style="font-family: monospace">Quit anyway? Y/n </span><input type="text"/>', function(q: any) {
                         if (q.toLowerCase() === 'y') {
                             self.onExit = _close;
                             self.exit();
@@ -1165,7 +1165,7 @@ function createAceEditor(normal, front) {
                     }, {
                         bottom: true,
                         value: "Y",
-                        onKeyDown: function(e, q, close) {
+                        onKeyDown: function(e: any, q: any, close: any) {
                             if (e.keyCode === KeyboardUtils.keyCodes.enter || e.keyCode === KeyboardUtils.keyCodes.ESC) {
                                 close();
                             }
@@ -1180,9 +1180,9 @@ function createAceEditor(normal, front) {
     });
 
     function createUrlCompleter() {
-        var allVisitedURLs;
+        var allVisitedURLs: any;
         RUNTIME('getAllURLs', null, function(response) {
-            allVisitedURLs = response.urls.map(function(u) {
+            allVisitedURLs = response.urls.map(function(u: any) {
                 var typedCount = 0, visitCount = 1;
                 if (u.hasOwnProperty('typedCount')) {
                     typedCount = u.typedCount;
@@ -1200,18 +1200,18 @@ function createAceEditor(normal, front) {
         });
         return {
             identifierRegexps: [/.*/],
-            getCompletions: function(editor, session, pos, prefix, callback) {
+            getCompletions: function(editor: any, session: any, pos: any, prefix: any, callback: any) {
                 callback(null, allVisitedURLs);
             }
         };
     }
 
     var wordsOnPage: any[] | null = null;
-    function getWordsOnPage(message) {
+    function getWordsOnPage(message: any) {
         var splitRegex = /[^a-zA-Z_0-9\$\-\u00C0-\u1FFF\u2C00-\uD7FF\w]+/;
         var words = message.split(splitRegex);
-        var wordScores = {};
-        words.forEach(function(word) {
+        var wordScores: Record<string, any> = {};
+        words.forEach(function(word: any) {
             word = "sk_" + word;
             if (wordScores.hasOwnProperty(word)) {
                 wordScores[word]++;
@@ -1232,11 +1232,11 @@ function createAceEditor(normal, front) {
     };
 
     var pageWordCompleter = {
-        getCompletions: function(editor, session, pos, prefix, callback) {
+        getCompletions: function(editor: any, session: any, pos: any, prefix: any, callback: any) {
             if (!wordsOnPage) {
                 front.contentCommand({
                     action: 'getPageText'
-                }, function(message) {
+                }, function(message: any) {
                     wordsOnPage = getWordsOnPage(message.data);
                     callback(null, wordsOnPage);
                 });
@@ -1246,14 +1246,14 @@ function createAceEditor(normal, front) {
         }
     };
 
-    ace.config.loadModule('ace/ext/language_tools', function (mod) {
+    ace.config.loadModule('ace/ext/language_tools', function (mod: any) {
         _ace.language_tools = mod;
-        ace.config.loadModule('ace/autocomplete', function (mod) {
+        ace.config.loadModule('ace/autocomplete', function (mod: any) {
             mod.Autocomplete.startCommand.bindKey = "Tab";
             mod.Autocomplete.prototype.commands['Space'] = mod.Autocomplete.prototype.commands['Tab'];
             mod.Autocomplete.prototype.commands['Tab'] = mod.Autocomplete.prototype.commands['Down'];
             mod.Autocomplete.prototype.commands['Shift-Tab'] = mod.Autocomplete.prototype.commands['Up'];
-            mod.FilteredList.prototype.filterCompletions = function(items, needle) {
+            mod.FilteredList.prototype.filterCompletions = function(items: any, needle: any) {
                 var results: any[] = [];
                 var upper = needle.toUpperCase();
                 loop: for (var i = 0, item; item = items[i]; i++) {
@@ -1278,7 +1278,7 @@ function createAceEditor(normal, front) {
         });
     });
 
-    var _editorType;
+    var _editorType: any;
     function _getValue() {
         var val = _ace.getValue();
         if (_editorType === 'select') {
@@ -1292,19 +1292,19 @@ function createAceEditor(normal, front) {
     function aceKeyboardVimLoaded() {
         var cm = _ace.state.cm;
         cm.mode = "normal";
-        cm.on('vim-mode-change', function(data) {
+        cm.on('vim-mode-change', function(data: any) {
             cm.mode = data.mode;
         });
-        cm.on('0-register-set', function(data) {
+        cm.on('0-register-set', function(data: any) {
             var lf = document.activeElement;
             (Clipboard as any).write(data.text);
             (lf as HTMLElement).focus();
         });
         var vim = cm.constructor.Vim;
-        vim.defineEx("write", "w", function(_cm, _input) {
+        vim.defineEx("write", "w", function(_cm: any, _input: any) {
             _save();
         });
-        const wq = function(_cm, _input) {
+        const wq = function(_cm: any, _input: any) {
             self.onExit = _closeAndSave;
             self.exit();
             // tell vim editor that command is done
@@ -1313,24 +1313,24 @@ function createAceEditor(normal, front) {
         vim.defineEx("wq", "wq", wq);
         vim.defineEx("x", "x", wq);
         vim.map('<CR>', ':wq<CR>', 'normal');
-        vim.defineEx("bnext", "bn", function(_cm, _input) {
+        vim.defineEx("bnext", "bn", function(_cm: any, _input: any) {
             front.contentCommand({
                 action: 'nextEdit',
                 backward: false
             });
         });
-        vim.defineEx("bprevious", "bp", function(_cm, _input) {
+        vim.defineEx("bprevious", "bp", function(_cm: any, _input: any) {
             front.contentCommand({
                 action: 'nextEdit',
                 backward: true
             });
         });
-        vim.defineEx("quit", "q", function(_cm, _input) {
+        vim.defineEx("quit", "q", function(_cm: any, _input: any) {
             self.onExit = _close;
             self.exit();
             _ace.state.cm.signal('vim-command-done', '');
         });
-        front.vimMappings.forEach(function(a) {
+        front.vimMappings.forEach(function(a: any) {
             vim.map.apply(vim, a);
         });
         var dk = _ace.getKeyboardHandler().defaultKeymap;
@@ -1342,7 +1342,7 @@ function createAceEditor(normal, front) {
     function aceKeyboardEmacsLoaded() {
         _ace.$emacsModeHandler.addCommands({
             closeAndSave: {
-                exec: function(_editor) {
+                exec: function(_editor: any) {
                     self.onExit = _closeAndSave;
                     self.exit();
                 },
@@ -1367,7 +1367,7 @@ function createAceEditor(normal, front) {
     _ace.container.style.background = "#f1f1f1";
     _ace.$blockScrolling = Infinity;
 
-    self.show = function(message) {
+    self.show = function(message: any) {
         keybindingsDeferred.then(function(vim: any) {
             _ace.setValue(message.content, -1);
             originValue = message.content;

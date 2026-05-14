@@ -12,7 +12,7 @@ function usePdfViewer() {
     window.location.replace(chrome.runtime.getURL("/pages/pdf_viewer.html") + "?file=" + encodeURIComponent(document.URL));
 }
 
-function readText(text, options) {
+function readText(text: any, options: any) {
     options = options || {
         enqueue: true,
         voiceName: runtime.conf.defaultVoice

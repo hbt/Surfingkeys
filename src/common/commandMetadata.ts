@@ -12,7 +12,7 @@
  * @param {string|object|array} annotation - Annotation value (string, metadata object, or array from parseAnnotation)
  * @returns {string} Display string for UI
  */
-function getAnnotationString(annotation) {
+function getAnnotationString(annotation: any) {
     if (typeof annotation === 'string') {
         return annotation;
     }
@@ -30,7 +30,7 @@ function getAnnotationString(annotation) {
  * @param {string|object|array} annotation - Annotation value
  * @returns {object} Metadata object with safe defaults
  */
-function getAnnotationMetadata(annotation) {
+function getAnnotationMetadata(annotation: any) {
     if (typeof annotation === 'object' && annotation !== null && !Array.isArray(annotation)) {
         return annotation;
     }
@@ -54,7 +54,7 @@ function getAnnotationMetadata(annotation) {
  * @param {string} fallbackKey - Key sequence as fallback
  * @returns {string} Unique command ID
  */
-function getCommandId(annotation, fallbackKey) {
+function getCommandId(annotation: any, fallbackKey: any) {
     const metadata = getAnnotationMetadata(annotation);
     return metadata.unique_id || fallbackKey;
 }

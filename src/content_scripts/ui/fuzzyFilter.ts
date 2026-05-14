@@ -11,7 +11,7 @@
  * @param {string} query - Search query
  * @returns {{match: boolean, score: number, positions: number[]}} - Match result with score
  */
-export function fuzzyMatch(text, query) {
+export function fuzzyMatch(text: any, query: any) {
     if (!query || query.trim() === '') return { match: true, score: 0, positions: [] };
     if (!text) return { match: false, score: -1, positions: [] };
 
@@ -69,7 +69,7 @@ export function fuzzyMatch(text, query) {
  * @param {string} query - Search query
  * @returns {boolean} - Whether the text matches
  */
-export function fuzzyMatchBool(text, query) {
+export function fuzzyMatchBool(text: any, query: any) {
     return fuzzyMatch(text, query).match;
 }
 
@@ -78,7 +78,7 @@ export function fuzzyMatchBool(text, query) {
  * @param {HTMLElement} usageContainer - The #sk_usage container
  * @returns {Object} - Filter API with { searchInput, filter, destroy }
  */
-export function setupHelpFilter(usageContainer) {
+export function setupHelpFilter(usageContainer: any) {
     if (!usageContainer) return null;
 
     // Check if already setup
@@ -145,7 +145,7 @@ export function setupHelpFilter(usageContainer) {
     console.log('[SK Fuzzy] Parsed', allItems.length, 'items from', groupWrappers.length, 'groups');
 
     // Filter function with fzf-like scoring
-    function filter(query) {
+    function filter(query: any) {
         console.log('[SK Fuzzy] filter called with:', query, 'items:', allItems.length);
         const groupVisibility = new Set();
 
@@ -188,11 +188,11 @@ export function setupHelpFilter(usageContainer) {
     (window as any)._skFuzzyFilter = filter;
 
     // Event listener
-    const onInput = (e) => filter(e.target.value);
+    const onInput = (e: any) => filter(e.target.value);
     searchInput.addEventListener('input', onInput);
 
     // Keyboard handler
-    const onKeydown = (e) => {
+    const onKeydown = (e: any) => {
         // Ctrl+F to focus search when help is visible
         if (e.ctrlKey && e.key === 'f' && usageContainer.style.display !== 'none') {
             e.preventDefault();

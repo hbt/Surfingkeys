@@ -12,7 +12,7 @@ import {
 } from './utils.js';
 
 function createInsert() {
-    var self = new Mode("Insert");
+    var self = new (Mode as any)("Insert");
 
     function moveCursorEOL() {
         var element = getRealEdit();
@@ -45,7 +45,7 @@ function createInsert() {
     }
 
     // From https://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity/69727327#69727327
-    function setEndOfContenteditable(contentEditableElement) {
+    function setEndOfContenteditable(contentEditableElement: any) {
         let range = document.createRange();//Create a range (a range is a like the selection but invisible)
         range.selectNodeContents(contentEditableElement);//Select the entire contents of the element with the range
         range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
@@ -54,7 +54,7 @@ function createInsert() {
         selection.addRange(range);//make the range you have just created the visible selection
     }
 
-    self.mappings = new Trie();
+    self.mappings = new (Trie as any)();
     self.map_node = self.mappings;
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-e>"), {
         annotation: {
@@ -204,7 +204,7 @@ function createInsert() {
             tags: ["insert", "vim", "mode"]
         },
         feature_group: 15,
-        stopPropagation: function(key) {
+        stopPropagation: function(key: any) {
             // return true only if bind key is not an ASCII key
             // so that imap(',,', "<Esc>") won't leave a comma in input
             return key.charCodeAt(0) < 256;
@@ -216,7 +216,7 @@ function createInsert() {
     });
 
 
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener('keydown', function(event: any) {
         if (event.key && event.key.charCodeAt(0) > 127) {
             // IME is opened.
             event.sk_suppressed = true;
@@ -227,7 +227,7 @@ function createInsert() {
         if (!isEditable(realTarget)) {
             self.exit();
         } else if (event.sk_keyName.length) {
-            Mode.handleMapKey.call(self, event, function(last) {
+            Mode.handleMapKey.call(self, event, function(last: any) {
                 // for insert mode to insert unmapped chars with preceding chars same as some mapkeys
                 // such as, to insert `,m` in case of mapkey `,,` defined.
                 var pw = last.getPrefixWord();
@@ -262,7 +262,7 @@ function createInsert() {
         }
         event.sk_suppressed = true;
     });
-    self.addEventListener('focus', function(event) {
+    self.addEventListener('focus', function(event: any) {
         var realTarget = getRealEdit(event);
         // We get a focus event with target = window when the browser window looses focus.
         // Ignore this event.
@@ -273,7 +273,7 @@ function createInsert() {
         }
     });
 
-    function nextNonWord(str, dir, cur) {
+    function nextNonWord(str: any, dir: any, cur: any) {
         var nonWord = /\W/;
         cur = cur + dir;
         for ( ; ; ) {
@@ -292,7 +292,7 @@ function createInsert() {
         return cur;
     }
 
-    function deleteNextWord(str, dir, cur) {
+    function deleteNextWord(str: any, dir: any, cur: any) {
         var pos = nextNonWord(str, dir, cur);
         var s = str;
         if (pos > cur) {
@@ -305,9 +305,9 @@ function createInsert() {
         return [s, dir > 0 ? cur: pos];
     }
 
-    var _element;
+    var _element: any;
     var _enter = self.enter;
-    self.enter = function(elm, keepCursor) {
+    self.enter = function(elm: any, keepCursor: any) {
         if (elm === document.body) {
             runtime.conf.showModeStatus = false;
         }

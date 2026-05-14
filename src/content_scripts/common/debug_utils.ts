@@ -5,7 +5,7 @@
 * breakOn("aa.scrollTop", 0)            remove the breakpoint
 *
 */
-function _breakOn(property, flag, expected) {
+function _breakOn(property: any, flag: any, expected: any) {
     var target = property.match(/(\S*)\.(.*)/);
     var object = eval(target[1]), property = target[2];
     var hash_magic = "_$_$" + property;
@@ -37,7 +37,7 @@ function _stackTrace() {
     console.log(err.stack?.substr(6));
 }
 
-function _time(fn) {
+function _time(fn: any) {
     var start = new Date().getTime();
 
     fn.call(fn);

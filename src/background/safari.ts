@@ -5,7 +5,7 @@ import {
     start
 } from './start.js';
 
-function loadRawSettings(keys, cb, defaultSet) {
+function loadRawSettings(keys: any, cb: any, defaultSet: any) {
     var rawSet = defaultSet || {};
     chrome.storage.local.get(null, function(localSet) {
         var localSavedAt = localSet.savedAt || 0;
@@ -32,17 +32,17 @@ function loadRawSettings(keys, cb, defaultSet) {
     });
 }
 
-function _applyProxySettings(_proxyConf) {
+function _applyProxySettings(_proxyConf: any) {
 }
 
 function _setNewTabUrl(){
     return  "favorites://";
 }
 
-function _getContainerName(_self, _response){
+function _getContainerName(_self: any, _response: any){
 }
 
-function getLatestHistoryItem(_text, _maxResults, _cb) {
+function getLatestHistoryItem(_text: any, _maxResults: any, _cb: any) {
 }
 
 start({

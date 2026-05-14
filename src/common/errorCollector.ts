@@ -15,7 +15,7 @@
  * Install global error handlers
  * @param {string} context - 'background' or 'content_script' or 'page'
  */
-function installErrorHandlers(context) {
+function installErrorHandlers(context: any) {
     // Use globalThis for compatibility with both window and service worker contexts
     // Service workers don't have 'window', they have 'self'
     const globalScope: any = globalThis;
@@ -36,7 +36,7 @@ function installErrorHandlers(context) {
      * Save error to chrome.storage.local
      * @param {object} errorData - Error data to save
      */
-    function saveError(errorData) {
+    function saveError(errorData: any) {
         chrome.storage.local.get([STORAGE_KEY], (result) => {
             const errors: any[] = (result[STORAGE_KEY] as any[]) || [];
             errors.push(errorData);
@@ -79,7 +79,7 @@ function installErrorHandlers(context) {
 
     // 1. onerror - catches unhandled JS errors
     const originalOnError = globalScope.onerror;
-    globalScope.onerror = function(message, source, lineno, colno, error) {
+    globalScope.onerror = function(message: any, source: any, lineno: any, colno: any, error: any) {
         const errorData = {
             ...getContext(),
             type: 'onerror',
@@ -106,7 +106,7 @@ function installErrorHandlers(context) {
 
     // 2. onunhandledrejection - catches unhandled promise rejections
     const originalOnRejection = globalScope.onunhandledrejection;
-    globalScope.onunhandledrejection = function(event) {
+    globalScope.onunhandledrejection = function(event: any) {
         const reason = event.reason;
         const errorData = {
             ...getContext(),
@@ -175,7 +175,7 @@ function getMemoryErrors() {
  * @param {string} message - Error message
  * @param {object} details - Additional details
  */
-function reportError(type, message, details = {}) {
+function reportError(type: any, message: any, details = {}) {
     const globalScope: any = globalThis;
 
     const errorData = {

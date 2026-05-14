@@ -23,7 +23,7 @@ const MAX_RECENT_HISTORY = 100;
  * @param {string|object} annotation - Command description (string or metadata object)
  * @param {string} mode - Mode name (e.g., "Normal", "Visual")
  */
-function trackCommandUsage(key, annotation, mode = 'Normal') {
+function trackCommandUsage(key: any, annotation: any, mode = 'Normal') {
     const timestamp = new Date().toISOString();
     const url = typeof window !== 'undefined' ? window.location.href : 'unknown';
 

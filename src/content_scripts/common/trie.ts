@@ -15,7 +15,7 @@ function Trie(this: any) {
 }
 
 Trie.prototype = {
-    find: function(word) {
+    find: function(word: any) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         var found = this;
         const len = word.length;
@@ -25,7 +25,7 @@ Trie.prototype = {
         return found;
     },
 
-    add: function(word, meta) {
+    add: function(word: any, meta: any) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         var node = this;
         const len = word.length;
@@ -45,7 +45,7 @@ Trie.prototype = {
         node.meta = meta;
     },
 
-    remove: function(word) {
+    remove: function(word: any) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         var found = this;
         const len = word.length;
@@ -70,7 +70,7 @@ Trie.prototype = {
         return found;
     },
 
-    getWords: function(prefix, withoutStem) {
+    getWords: function(prefix: any, withoutStem: any) {
         var ret: any[] = [], prefix = (prefix || "") + (withoutStem ? "" : (this.stem || ""));
         if (this.hasOwnProperty('meta')) {
             ret.push(prefix);
@@ -83,7 +83,7 @@ Trie.prototype = {
         return ret;
     },
 
-    getMetas: function(criterion) {
+    getMetas: function(criterion: any) {
         var ret: any[] = [];
         if (this.hasOwnProperty('meta') && criterion(this.meta)) {
             ret.push(this.meta);

@@ -17,7 +17,7 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
         Front,
     } = api;
 
-    var desc, content;
+    var desc: any, content: any;
 
     mapkey(';h', {
         short: 'Toggle section',
@@ -37,7 +37,7 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
     });
 
     function renderHeaderDescription() {
-        var words = normal.mappings.getWords().map(function(w) {
+        var words = normal.mappings.getWords().map(function(w: any) {
             var meta = normal.mappings.find(w).meta;
             w = KeyboardUtils.decodeKeystroke(w);
             if (meta.feature_group === 99) {
@@ -48,7 +48,7 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
                 return `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotText}</span></div>`;
             }
             return null;
-        }).filter(function(w) {
+        }).filter(function(w: any) {
             return w !== null;
         });
 
@@ -62,9 +62,9 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
         content.style.height = (window.innerHeight - desc.offsetHeight) + "px";
     }
 
-    var markdownBody = document.querySelector(".markdown-body"), _source;
+    var markdownBody = document.querySelector(".markdown-body"), _source: any;
 
-    function previewMarkdown(mk) {
+    function previewMarkdown(mk: any) {
         _source = mk;
         if (runtime.conf.useLocalMarkdownAPI) {
             setSanitizedContent(markdownBody, marked.parse(mk));
@@ -73,7 +73,7 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
             httpRequest({
                 url: "https://api.github.com/markdown/raw",
                 data: mk
-            }, function(res) {
+            }, function(res: any) {
                 setSanitizedContent(markdownBody, res.text);
             });
         }
@@ -118,16 +118,16 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
     if (mdUrl !== "") {
         httpRequest({
             url: mdUrl
-        }, function(res) {
+        }, function(res: any) {
             previewMarkdown(res.text);
         });
     } else {
-        Clipboard.read(function(response) {
+        Clipboard.read(function(response: any) {
             previewMarkdown(response.data);
         });
     }
 
-    var reader = new FileReader(), inputFile;
+    var reader = new FileReader(), inputFile: any;
     reader.onload = function(){
         previewMarkdown(reader.result);
     };

@@ -23,7 +23,7 @@ class CursorPrompt {
     activator: any;
     data: any;
 
-    constructor(renderer, picker, fetcher?) {
+    constructor(renderer: any, picker: any, fetcher?: any) {
         this.element = createElementWithContent('div', '', {class: "sk_cursor_prompt", style: "display: block; opacity: 1;"});
         this.renderer = renderer;
         this.picker = picker;
@@ -32,9 +32,9 @@ class CursorPrompt {
     }
 
     initMode() {
-        const mode = new Mode("CursorPrompt");
+        const mode = new (Mode as any)("CursorPrompt");
 
-        mode.addEventListener('keydown', function(event) {
+        mode.addEventListener('keydown', function(event: any) {
             if (event.sk_keyName.length) {
                 Mode.handleMapKey.call(mode, event);
             }
@@ -42,7 +42,7 @@ class CursorPrompt {
         });
         mode.addEventListener('keyup', this.onKeyUp.bind(this));
 
-        mode.mappings = new Trie();
+        mode.mappings = new (Trie as any)();
         mode.map_node = mode.mappings;
 
         mode.mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
@@ -60,7 +60,7 @@ class CursorPrompt {
         this.mode = mode;
     }
 
-    activate(parentElement, data, threshold?, insertOffset?) {
+    activate(parentElement: any, data: any, threshold?: any, insertOffset?: any) {
         this.insertOffset = insertOffset || 0;
         this.threshold = threshold || 0;
         this.parentElement = parentElement;
@@ -76,7 +76,7 @@ class CursorPrompt {
         if (this.data) {
             this.#render();
         } else if (this.fetcher) {
-            this.fetcher().then((res) => {
+            this.fetcher().then((res: any) => {
                 this.data = res;
                 this.#render();
             });
@@ -87,7 +87,7 @@ class CursorPrompt {
         this.mode.enter();
     }
 
-    rotate(backward) {
+    rotate(backward: any) {
         const items: any[] = Array.from(this.element.children);
         if (items.length === 1) {
             this.onEnter();
@@ -129,7 +129,7 @@ class CursorPrompt {
         }
     }
 
-    onKeyUp(_event) {
+    onKeyUp(_event: any) {
         if (!this.#suppressKeyup && this.matchStart !== -1) {
             let [v, ss] = this.#getValueAndSelectionStart();
             if (ss < this.matchStart || v[this.matchStart - 1] !== this.activator) {
@@ -158,7 +158,7 @@ class CursorPrompt {
         if (query.length < this.threshold || query[0] === " ") {
             this.element.remove();
         } else {
-            const choices = this.data.filter(function(c) {
+            const choices = this.data.filter(function(c: any) {
                 return c.indexOf(query) !== -1;
             }).slice(0, 5).map(this.renderer).join("");
 
@@ -184,7 +184,7 @@ class CursorPrompt {
 
     }
 
-    #getCursorPixelPos(input) {
+    #getCursorPixelPos(input: any) {
         var css = getComputedStyle(input),
             br = input.getBoundingClientRect(),
             mask = document.createElement("div"),

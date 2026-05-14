@@ -15,20 +15,20 @@ const Mode = function(this: any, name: string, statusLine?: string) {
     this.name = name;
     this.statusLine = statusLine;
     this.eventListeners = {};
-    this.addEventListener = function(evtName, handler) {
+    this.addEventListener = function(evtName: any, handler: any) {
         this.eventListeners[evtName] = handler;
 
         if (!_listenedEvents.hasOwnProperty(evtName)) {
-            _listenedEvents[evtName] = function(event) {
+            (_listenedEvents as any)[evtName] = function(event: any) {
                 handleStack(evtName, event);
             };
-            window.addEventListener(evtName, _listenedEvents[evtName], true);
+            window.addEventListener(evtName, (_listenedEvents as any)[evtName], true);
         }
 
         return this;
     };
 
-    this.enter = function(priority, reentrant) {
+    this.enter = function(priority: any, reentrant: any) {
         var pos = mode_stack.indexOf(this);
         if (!this.priority) {
             this.priority = priority || mode_stack.length;
@@ -64,7 +64,7 @@ const Mode = function(this: any, name: string, statusLine?: string) {
         return pos;
     };
 
-    this.exit = function(peek) {
+    this.exit = function(peek: any) {
         var pos = mode_stack.indexOf(this);
         if (pos !== -1) {
             this.priority = 0;
@@ -94,10 +94,10 @@ Mode.getCurrent = (): ModeInstance | undefined => {
     return mode_stack[0] as ModeInstance | undefined;
 };
 
-Mode.specialKeys = {
+Mode.specialKeys = ({
     "<Alt-s>": ["<Alt-s>"],       // hotkey to toggleBlocklist
     "<Esc>": ["<Esc>"]
-};
+} as Record<string, string[]>);
 
 Mode.isSpecialKeyOf = function(specialKey: string, keyToCheck: string): boolean {
     return (-1 !== Mode.specialKeys[specialKey].indexOf(KeyboardUtils.decodeKeystroke(keyToCheck)));
@@ -112,20 +112,20 @@ Mode.isSpecialKeyOf = function(specialKey: string, keyToCheck: string): boolean 
 // For Hints, we could not turn on it, as keyup should be propagated to Normal
 // to stop scrolling when holding a key.
 var keysNeedKeyupSuppressed: any[] = [];
-Mode.suppressKeyUp = function(keyCode) {
+Mode.suppressKeyUp = function(keyCode: any) {
     if (keysNeedKeyupSuppressed.indexOf(keyCode) === -1) {
         keysNeedKeyupSuppressed.push(keyCode);
     }
 };
 
-function onAfterHandler(mode, event) {
+function onAfterHandler(mode: any, event: any) {
     if (event.sk_stopPropagation) {
         event.stopImmediatePropagation();
         event.preventDefault();
     }
 }
 
-function handleStack(eventName, event, cb?) {
+function handleStack(eventName: any, event: any, cb?: any) {
     for (var i = 0; i < mode_stack.length && !event.sk_stopPropagation; i++) {
         var m = mode_stack[i];
         if (!event.sk_suppressed && m.eventListeners.hasOwnProperty(eventName)) {
@@ -144,10 +144,10 @@ function handleStack(eventName, event, cb?) {
 
 let eventListenerBeats = 0;
 var suppressScrollEvent = 0, _listenedEvents = {
-    "sentinel": (_event) => {
+    "sentinel": (_event: any) => {
         eventListenerBeats ++;
     },
-    "keydown": function (event) {
+    "keydown": function (event: any) {
         event.sk_keyName = KeyboardUtils.getKeyChar(event);
         if (mode_stack.length === 0 && window !== top) {
             // automatically boots iframe on demand
@@ -160,8 +160,8 @@ var suppressScrollEvent = 0, _listenedEvents = {
         }
         handleStack("keydown", event);
     },
-    "keyup": function (event) {
-        handleStack("keyup", event, function (_m) {
+    "keyup": function (event: any) {
+        handleStack("keyup", event, function (_m: any) {
             var i = keysNeedKeyupSuppressed.indexOf(event.keyCode);
             if (i !== -1) {
                 event.stopImmediatePropagation();
@@ -169,7 +169,7 @@ var suppressScrollEvent = 0, _listenedEvents = {
             }
         });
     },
-    "scroll": function (event) {
+    "scroll": function (event: any) {
         handleStack("scroll", event);
         if (suppressScrollEvent > 0) {
             event.stopImmediatePropagation();
@@ -179,17 +179,17 @@ var suppressScrollEvent = 0, _listenedEvents = {
     }
 };
 
-function init(cb?) {
+function init(cb?: any) {
     mode_stack = [];
     for (var evtName in _listenedEvents) {
-        window.addEventListener(evtName, _listenedEvents[evtName], true);
+        window.addEventListener(evtName, (_listenedEvents as any)[evtName], true);
     }
     if (cb) {
         cb();
     }
 }
 
-Mode.hasScroll = function (el, direction, barSize) {
+Mode.hasScroll = function (el: any, direction: any, barSize: any) {
     var offset = (direction === 'y') ? ['scrollTop', 'height'] : ['scrollLeft', 'width'];
     var result = el[offset[0]];
 
@@ -208,7 +208,7 @@ Mode.hasScroll = function (el, direction, barSize) {
 };
 
 Mode.getScrollableElements = function () {
-    var nodes = listElements(document.body, NodeFilter.SHOW_ELEMENT, function(n) {
+    var nodes = listElements(document.body, NodeFilter.SHOW_ELEMENT, function(n: any) {
         return (Mode.hasScroll(n, 'y', 16) && n.scrollHeight > 200 ) || (Mode.hasScroll(n, 'x', 16) && n.scrollWidth > 200);
     });
     nodes.sort(function(a, b) {
@@ -224,7 +224,7 @@ Mode.getScrollableElements = function () {
     return nodes;
 };
 
-Mode.init = (cb?)=> {
+Mode.init = (cb?: any)=> {
     // For blank page in frames, we defer init to page loaded
     // as document.write will clear added eventListeners.
     if (window.location.href === "about:blank" && window.frameElement &&
@@ -256,7 +256,7 @@ Mode.showStatus = function() {
     }
 };
 
-Mode.finish = function (mode) {
+Mode.finish = function (mode: any) {
     var ret = false;
     if (mode.map_node !== mode.mappings || mode.pendingMap != null || mode.repeats) {
         mode.map_node = mode.mappings;
@@ -272,7 +272,7 @@ Mode.finish = function (mode) {
     return ret;
 };
 
-Mode.handleMapKey = function(this: any, event, onNoMatched?) {
+Mode.handleMapKey = function(this: any, event: any, onNoMatched?: any) {
     var key = event.sk_keyName;
     this.isTrustedEvent = this.__trust_all_events__ || event.isTrusted;
 
@@ -372,7 +372,7 @@ Mode.handleMapKey = function(this: any, event, onNoMatched?) {
     return actionDone;
 };
 
-Mode.checkEventListener = (onMissing) => {
+Mode.checkEventListener = (onMissing: any) => {
     const previousState = eventListenerBeats;
     window.dispatchEvent(new CustomEvent("sentinel"));
     if (previousState === eventListenerBeats) {

@@ -8,7 +8,7 @@ import {
     rotateInput,
 } from '../common/utils.js';
 
-export default function (omnibar, front) {
+export default function (omnibar: any, front: any) {
     const self: any = {
         prompt: '🐝',
         omnibarPosition: "bottom",
@@ -52,19 +52,19 @@ export default function (omnibar, front) {
         }
     ];
     const toolImplementations = {
-        extract_links: (_params) => {
+        extract_links: (_params: any) => {
             return 'https://github.com/brookhong/Surfingkeys, https://brookhong.github.io/';
         }
     };
 
     const providerClients = {
-        "ollama": (resp) => {
+        "ollama": (resp: any) => {
             const toolResults: any[] = [];
             if (!resp.message.tool_calls) {
                 return false;
             }
             for (const c of resp.message.tool_calls) {
-                const toolResult = toolImplementations[c.function.name] ? toolImplementations[c.function.name](c.function.arguments) : `${c.function.name} not implemented.`;
+                const toolResult = (toolImplementations as any)[c.function.name] ? (toolImplementations as any)[c.function.name](c.function.arguments) : `${c.function.name} not implemented.`;
                 toolResults.push({
                     "content": toolResult,
                     "role": "tool"
@@ -76,14 +76,14 @@ export default function (omnibar, front) {
             }
             return false;
         },
-        "bedrock": (resp) => {
+        "bedrock": (resp: any) => {
             const toolResults: any[] = [];
             if (!resp.message.content) {
                 return false;
             }
             for (const c of resp.message.content) {
                 if (c.type === "tool_use") {
-                    const toolResult = toolImplementations[c.name] ? toolImplementations[c.name](c.input) : "not implemented.";
+                    const toolResult = (toolImplementations as any)[c.name] ? (toolImplementations as any)[c.name](c.input) : "not implemented.";
                     toolResults.push({
                         "tool_use_id": c.id,
                         "is_error": false,
@@ -102,7 +102,7 @@ export default function (omnibar, front) {
             return false;
         },
     };
-    function llmRequest(req, onChunk) {
+    function llmRequest(req: any, onChunk: any) {
         // req.tools = tools;
         if ((runtime as any).bookMessage('llmResponse', (resp: any) => {
             if (resp.chunk) {
@@ -112,7 +112,7 @@ export default function (omnibar, front) {
                 if (Object.keys(resp.message).length > 0) {
                     messages.push(resp.message);
                     if (providerClients.hasOwnProperty(provider)) {
-                        toolUsed = providerClients[provider](resp);
+                        toolUsed = (providerClients as any)[provider](resp);
                     }
                 }
                 if (toolUsed) {
@@ -129,7 +129,7 @@ export default function (omnibar, front) {
         return false;
     }
 
-    function showSystemMessage(msg, duration) {
+    function showSystemMessage(msg: any, duration: any) {
         const li = createElementWithContent('li', msg, { "class": "role-surfingkeys" });
         omnibar.resultsDiv.querySelector('ul')?.append(li);
 
@@ -152,10 +152,10 @@ export default function (omnibar, front) {
         renderMessages();
     };
     const commands = {
-        "system": (pmpt) => {
+        "system": (pmpt: any) => {
             messages[0].content = pmpt;
         },
-        "provider": (p) => {
+        "provider": (p: any) => {
             if (providers.indexOf(p) !== -1) {
                 clear();
                 provider = p;
@@ -173,14 +173,14 @@ export default function (omnibar, front) {
         "clear": clear,
     };
     const commandsPatten = new RegExp(`^/(${Object.keys(commands).join("|")})(?:\\s+(.+)|\\s*)?$`, "");
-    const commandsPrompt = new CursorPrompt((c) => {
+    const commandsPrompt = new CursorPrompt((c: any) => {
         return "<div>{0}</div>".format(c);
-    }, (elm) => {
+    }, (elm: any) => {
         return elm.innerText;
     });
 
     function renderMessages() {
-        function getReadableContent(content) {
+        function getReadableContent(content: any) {
             if (typeof(content) === "string") {
                 return content;
             } else {
@@ -228,8 +228,8 @@ export default function (omnibar, front) {
         }
     }
 
-    let currentUrl;
-    self.onOpen = function(opts) {
+    let currentUrl: any;
+    self.onOpen = function(opts: any) {
         currentUrl = opts.url;
         hashString(currentUrl).then(hash => {
             let last = localStorage.getItem(hash);
@@ -269,7 +269,7 @@ export default function (omnibar, front) {
             commandsPrompt.activate(omnibar.input, providers);
         }
     };
-    self.rotateInput = function(backward) {
+    self.rotateInput = function(backward: any) {
         if (inputs.length > 0) {
             [omnibar.input.value, curInputIdx] = rotateInput(inputs, backward, curInputIdx, userInput);
         }
@@ -298,7 +298,7 @@ export default function (omnibar, front) {
         });
         const match = prompt.match(commandsPatten);
         if (match) {
-            commands[match[1]](match[2]);
+            (commands as any)[match[1]](match[2]);
             userInput = "";
             omnibar.input.value = "";
             return false;
@@ -327,7 +327,7 @@ export default function (omnibar, front) {
         return false;
     };
 
-    function onChunk(chunk) {
+    function onChunk(chunk: any) {
         if (spinnerInterval) {
             clearInterval(spinnerInterval);
             spinnerInterval = 0;

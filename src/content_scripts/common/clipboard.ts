@@ -14,8 +14,8 @@ function createClipboard() {
     (holder as any).enableAutoFocus = true;
     holder.id = 'sk_clipboard';
 
-    function clipboardActionWithSelectionPreserved(cb) {
-        actionWithSelectionPreserved(function(selection) {
+    function clipboardActionWithSelectionPreserved(cb: any) {
+        actionWithSelectionPreserved(function(selection: any) {
             // avoid editable body
             document.documentElement.appendChild(holder);
 
@@ -36,7 +36,7 @@ function createClipboard() {
      *   console.log(response.data);
      * });
      */
-    self.read = function(onReady) {
+    self.read = function(onReady: any) {
         if (getBrowserName().startsWith("Safari")) {
             RUNTIME('readClipboard', null, function(response) {
                 onReady(response);
@@ -77,7 +77,7 @@ function createClipboard() {
      * @example
      * Clipboard.write(window.location.href);
      */
-    self.write = function(text) {
+    self.write = function(text: any) {
         const cb = () => {
             showBanner("Copied: " + text);
         };

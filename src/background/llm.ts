@@ -12,7 +12,7 @@ class EventStreamParser {
      * @param {Uint8Array|Buffer} chunk - Raw binary data chunk
      * @returns {Array} Array of parsed messages
      */
-    parse(chunk) {
+    parse(chunk: any) {
         // Append new chunk to existing buffer
         const newBuffer = new Uint8Array(this.buffer.length + chunk.length);
         newBuffer.set(this.buffer);
@@ -61,7 +61,7 @@ class EventStreamParser {
     /**
      * Read a 32-bit integer from the buffer
      */
-    readInt32(offset) {
+    readInt32(offset: any) {
         return (this.buffer[offset] << 24) |
             (this.buffer[offset + 1] << 16) |
             (this.buffer[offset + 2] << 8) |
@@ -71,8 +71,8 @@ class EventStreamParser {
     /**
      * Parse headers from the buffer
      */
-    parseHeaders(start, length) {
-        const headers = {};
+    parseHeaders(start: any, length: any) {
+        const headers: Record<string, any> = {};
         let position = start;
         const end = start + length;
 
@@ -109,7 +109,7 @@ class EventStreamParser {
     /**
      * Parse header value based on type
      */
-    parseHeaderValue(type, data) {
+    parseHeaderValue(type: any, data: any) {
         switch (type) {
             case 0: // boolean false
                 return true;
@@ -138,7 +138,7 @@ class EventStreamParser {
     /**
      * Decode payload based on content-type header
      */
-    decodePayload(payload, headers) {
+    decodePayload(payload: any, headers: any) {
         const contentType = headers[':content-type'];
 
         if (!contentType) {
@@ -158,15 +158,15 @@ class EventStreamParser {
 }
 
 let awsClient: (AwsClient & { bedrockModel?: string }) | null = null;
-function bedrock(req, opts) {
+function bedrock(req: any, opts: any) {
     if (!awsClient) {
         opts.onChunk("Please set up bedrock correctly.");
         opts.onComplete({});
         return;
     }
 
-    function transformMessages(messages) {
-        return messages.map((m) => {
+    function transformMessages(messages: any) {
+        return messages.map((m: any) => {
             if (typeof(m.content) === "string") {
                 return {"role": m.role, "content": [ {"type": "text", "text": m.content} ]};
             } else {
@@ -274,7 +274,7 @@ function bedrock(req, opts) {
     }).catch(error => console.error('Error:', error));
 }
 
-bedrock.init = function(opts) {
+bedrock.init = function(opts: any) {
     const clientOpts = {
         accessKeyId: opts.accessKeyId,
         secretAccessKey: opts.secretAccessKey,
@@ -284,7 +284,7 @@ bedrock.init = function(opts) {
     awsClient.bedrockModel = opts.model;
 };
 
-function ollama(req, opts) {
+function ollama(req: any, opts: any) {
     const decoder = new TextDecoder();
 
     fetch('http://localhost:11434/api/chat', {
@@ -341,7 +341,7 @@ function ollama(req, opts) {
     }).catch(error => console.error('Error:', error));
 }
 
-function deepseek(req, opts) {
+function deepseek(req: any, opts: any) {
     const decoder = new TextDecoder();
     if (!(deepseek as any).apiKey) {
         opts.onChunk("Please set api key for DeepSeek correctly.");
@@ -349,8 +349,8 @@ function deepseek(req, opts) {
         return;
     }
 
-    function transformMessages(reqMsgs) {
-        return reqMsgs.map((m) => {
+    function transformMessages(reqMsgs: any) {
+        return reqMsgs.map((m: any) => {
             if (typeof(m.content) === "string") {
                 return m;
             } else {
@@ -414,7 +414,7 @@ function deepseek(req, opts) {
 }
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference
-function gemini(req, opts) {
+function gemini(req: any, opts: any) {
     const decoder = new TextDecoder();
     if (!(gemini as any).apiKey) {
         opts.onChunk("Please set api key for Gemini correctly.");
@@ -423,14 +423,14 @@ function gemini(req, opts) {
     }
 
     let model = opts.model || "gemini-2.0-flash";
-    function buildParts(m) {
+    function buildParts(m: any) {
         if (typeof(m.content) === "string") {
             return {"role": m.role, "parts": [ {"text": m.content} ]};
         } else {
             return {"role": m.role, "parts": [ {"text": m.content[0].text} ]};
         }
     }
-    function transformMessages(reqMsgs) {
+    function transformMessages(reqMsgs: any) {
         let req: any = {};
         if (reqMsgs.length > 0 && reqMsgs[0].role === "system") {
             const text = reqMsgs[0].content;
@@ -499,7 +499,7 @@ function gemini(req, opts) {
     }).catch(error => console.error('Error:', error));
 }
 
-function custom(req, opts) {
+function custom(req: any, opts: any) {
     const decoder = new TextDecoder();
     const abortCtrl = new AbortController();
 
@@ -519,7 +519,7 @@ function custom(req, opts) {
         return;
     }
 
-    const transformMessages = msgs => msgs.map(m =>
+    const transformMessages = (msgs: any) => msgs.map((m: any) =>
         typeof m.content === 'string' ? m : { role: m.role, content: m.content[0].text }
     );
 

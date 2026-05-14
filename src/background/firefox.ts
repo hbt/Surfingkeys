@@ -6,7 +6,7 @@ import {
 
 declare const browser: any;
 
-function loadRawSettings(keys, cb, defaultSet) {
+function loadRawSettings(keys: any, cb: any, defaultSet: any) {
     var rawSet = defaultSet || {};
     chrome.storage.local.get(null, function(localSet) {
         var _localSavedAt = localSet.savedAt || 0;
@@ -19,28 +19,28 @@ function loadRawSettings(keys, cb, defaultSet) {
     });
 }
 
-function _applyProxySettings(_proxyConf) {
+function _applyProxySettings(_proxyConf: any) {
 }
 
 function _setNewTabUrl(){
     return "about:newtab";
 }
 
-function _getContainerName(self, _response) {
-    return function (message, sender, sendResponse){
+function _getContainerName(self: any, _response: any) {
+    return function (message: any, sender: any, sendResponse: any){
         var cookieStoreId = sender.tab.cookieStoreId;
-        browser.contextualIdentities.get(cookieStoreId).then(function(container){
+        browser.contextualIdentities.get(cookieStoreId).then(function(container: any){
             _response(message, sendResponse, {
                 name : container.name
             });
-        }, function(_err){
+        }, function(_err: any){
             _response(message, sendResponse, {
                 name : null
             });});
     };
 }
 
-function getLatestHistoryItem(text, maxResults, cb) {
+function getLatestHistoryItem(text: any, maxResults: any, cb: any) {
     chrome.history.search({
         startTime: 0,
         text,

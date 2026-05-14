@@ -27,7 +27,7 @@ import {
     setSanitizedContent,
 } from './utils.js';
 
-function placeHintsHost(host) {
+function placeHintsHost(host: any) {
     let topLayerElement: any = document.querySelector("dialog");
     if (!topLayerElement || !isElementDrawn(topLayerElement)) {
         topLayerElement = document.documentElement;
@@ -35,10 +35,10 @@ function placeHintsHost(host) {
     topLayerElement.appendChild(host);
 }
 
-function createRegionalHints(clipboard) {
-    const self = new Mode("RegionalHints");
+function createRegionalHints(clipboard: any) {
+    const self = new (Mode as any)("RegionalHints");
 
-    self.mappings = new Trie();
+    self.mappings = new (Trie as any)();
     self.map_node = self.mappings;
 
     const regionalHintsHost = document.createElement("div");
@@ -148,7 +148,7 @@ kbd {
     });
 
     const menu = createElementWithContent('div', "", {class: "menu"});
-    getAnnotations(self.mappings).forEach((b) => {
+    getAnnotations(self.mappings).forEach((b: any) => {
         const menuItem = createElementWithContent('div', "", {class: "menu-item"});
         menuItem.appendChild(createElementWithContent('kbd', htmlEncode(KeyboardUtils.decodeKeystroke(b.word))));
         const annotationStr = getAnnotationString(b.annotation);
@@ -156,7 +156,7 @@ kbd {
         menu.appendChild(menuItem);
     });
 
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener('keydown', function(event: any) {
         Mode.handleMapKey.call(self, event);
     });
 
@@ -165,7 +165,7 @@ kbd {
         overlay.remove();
         regionalHintsHost.remove();
     };
-    self.attach = (elm) => {
+    self.attach = (elm: any) => {
         if (overlay) overlay.remove();
         overlay = elm;
         regionalHintsHost!.shadowRoot!.appendChild(overlay);
@@ -188,8 +188,8 @@ kbd {
     return self;
 }
 
-function createHints(insert, normal, clipboard) {
-    const self = new Mode("Hints");
+function createHints(insert: any, normal: any, clipboard: any) {
+    const self = new (Mode as any)("Hints");
     const hintsHost = document.createElement("div");
     hintsHost.className = "surfingkeys_hints_host";
     hintsHost.attachShadow({ mode: 'open' });
@@ -264,7 +264,7 @@ div.hint-scrollable {
      * Hints.setCharacters("asdgqwertzxcvb");
      */
     let excludedScrollKeys: any[] = [];
-    self.setCharacters = function(chars) {
+    self.setCharacters = function(chars: any) {
         characters = chars;
         for (const c of chars) {
             if (normal.isScrollKeyInHints(c)) {
@@ -276,7 +276,7 @@ div.hint-scrollable {
         return characters;
     };
 
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener('keydown', function(event: any) {
         event.sk_stopPropagation = true;
 
         let ai = holder.querySelector('[mode=input]>mask.activeInput');
@@ -348,7 +348,7 @@ div.hint-scrollable {
             }
         }
     });
-    self.addEventListener('keyup', function(event) {
+    self.addEventListener('keyup', function(event: any) {
         if (event.keyCode === KeyboardUtils.keyCodes.space) {
             holder.style.display = "";
         }
@@ -366,7 +366,7 @@ div.hint-scrollable {
      *     Hints.create("div.media_box img", Hints.dispatchMouseClick);
      * }, {domain: /weibo.com/i});
      */
-    self.dispatchMouseClick = function(element) {
+    self.dispatchMouseClick = function(element: any) {
         if (isEditable(element)) {
             self.exit();
             normal.passFocus(true);
@@ -392,7 +392,7 @@ div.hint-scrollable {
             }
             if (tabbed) {
                 const modKey = (navigator.platform.indexOf("Mac") !== -1) ? "metaKey" : "ctrlKey";
-                mouseEventModifiers[modKey] = true;
+                (mouseEventModifiers as any)[modKey] = true;
             }
             flashPressedLink(element,() => {
                 if (tabbed && getBrowserName().startsWith("Safari")) {
@@ -426,7 +426,7 @@ div.hint-scrollable {
     const MOUSE_EVENTS = ['mouseover', 'pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click', 'focus', 'focusin'];
     var prefix = "",
         textFilter = "",
-        lastMouseTarget = null,
+        lastMouseTarget: any = null,
         behaviours: any = {
             mouseEvents: MOUSE_EVENTS
         },
@@ -436,12 +436,12 @@ div.hint-scrollable {
         _onHintKey = self.dispatchMouseClick,
         _cssSelector = "";
 
-    function isCapital(key) {
+    function isCapital(key: any) {
         return key === key.toUpperCase() &&
             key !== key.toLowerCase(); // in case key is a symbol or special character
     }
 
-    function getZIndex(node) {
+    function getZIndex(node: any) {
         var z = 0;
         do {
             var i = parseInt(getComputedStyle(node).getPropertyValue('z-index'));
@@ -451,7 +451,7 @@ div.hint-scrollable {
         return z;
     }
 
-    function handleHint(evt?) {
+    function handleHint(evt?: any) {
         const hints = holder.querySelectorAll('div:not(:empty)');
         const hintState = refreshHints(hints, prefix);
         const elm = hintState.matched;
@@ -498,7 +498,7 @@ div.hint-scrollable {
         var hints = holder.querySelectorAll('div');
         hints = Array.from(hints);
         if (textFilter.length > 0) {
-            hints = hints.filter(function(hint) {
+            hints = hints.filter(function(hint: any) {
                 hint.label = "";
                 setSanitizedContent(hint, "");
                 var e = hint.link;
@@ -510,7 +510,7 @@ div.hint-scrollable {
             });
         }
         var hintLabels = self.genLabels(hints.length);
-        hints.forEach(function(e, i) {
+        hints.forEach(function(e: any, i: any) {
             e.label = hintLabels[i];
             setSanitizedContent(e, hintLabels[i]);
         });
@@ -537,12 +537,12 @@ div.hint-scrollable {
     function flip() {
         var hints = holder.querySelectorAll('div');
         if (hints[0].style.zIndex == hints[0].zIndex) {
-            hints.forEach(function(hint, i) {
+            hints.forEach(function(hint: any, i: any) {
                 var z = parseInt(hint.style.zIndex);
                 hint.style.zIndex = hints.length - i + 2147483000 - z;
             });
         } else {
-            hints.forEach(function(hint, _i) {
+            hints.forEach(function(hint: any, _i: any) {
                 hint.style.zIndex = hint.zIndex;
             });
         }
@@ -560,7 +560,7 @@ div.hint-scrollable {
         }
     }
 
-    function getHref(elm) {
+    function getHref(elm: any) {
         var href = elm.href;
         while (!href && elm) {
             elm = elm.parentElement;
@@ -570,7 +570,7 @@ div.hint-scrollable {
     }
 
 
-    function walkPageUrl(step) {
+    function walkPageUrl(step: any) {
         for (var i = 0; i < runtime.conf.pageUrlRegex.length; i++) {
             var numbers = window.location.href.match(runtime.conf.pageUrlRegex[i]);
             if (numbers && numbers.length === 4) {
@@ -584,9 +584,9 @@ div.hint-scrollable {
         return false;
     }
 
-    function uniqueLinks(links) {
-        let unique = {};
-        links.forEach(function(link) {
+    function uniqueLinks(links: any) {
+        let unique: Record<string, any> = {};
+        links.forEach(function(link: any) {
             let href = link.getAttribute('href');
             if (!unique[href]) {
                 unique[href] = link;
@@ -607,13 +607,13 @@ div.hint-scrollable {
      *     Hints.click(document.querySelectorAll("#less-replies:not([hidden])"), true);
      * });
      */
-    self.click = function(links, force) {
+    self.click = function(links: any, force: any) {
         if (typeof(links) === 'string') {
             links = getClickableElements(links);
         }
         if (links.length > 1) {
             if (force) {
-                links.forEach(function(u) {
+                links.forEach(function(u: any) {
                     self.dispatchMouseClick(u);
                 });
             } else {
@@ -669,7 +669,7 @@ div.hint-scrollable {
         dispatchMouseClick: self.dispatchMouseClick,
     }, true);
 
-    self.genLabels = function(total) {
+    self.genLabels = function(total: any) {
         let chars = characters.toUpperCase();
         var hints = [""], offset = 0;
         while (hints.length - offset < total || offset == 0) {
@@ -697,13 +697,13 @@ div.hint-scrollable {
         return ret;
     };
 
-    function _initHolder(mode) {
+    function _initHolder(mode: any) {
         setSanitizedContent(holder, "");
         holder.setAttribute('mode', mode);
         holder.style.display = "";
     }
 
-    function createOverlay(e, i, alpha) {
+    function createOverlay(e: any, i: any, alpha: any) {
         e.skColorIndex = i;
 
         const be = e.getBoundingClientRect();
@@ -721,20 +721,20 @@ div.hint-scrollable {
         return frame;
     }
 
-    function placeHints(elements) {
+    function placeHints(elements: any) {
         _initHolder('click');
         const hintLabels = self.genLabels(elements.length);
         const bof = self.coordinate();
         const style = createElementWithContent("style", _styleForClick);
         holder.prepend(style);
         if (behaviours.regionalHints) {
-            elements.forEach(function(e, i) {
+            elements.forEach(function(e: any, i: any) {
                 holder.append(createOverlay(e, i, "33"));
             });
         }
 
         let lastTop = -1, lastLeft = -1;
-        var links = elements.map(function(elm, i) {
+        var links = elements.map(function(elm: any, i: any) {
             var r = getRealRect(elm),
                 z = getZIndex(elm);
             var left, width = Math.min(r.width, window.innerWidth);
@@ -772,7 +772,7 @@ div.hint-scrollable {
             lastLeft = left;
             return link;
         });
-        links.forEach(function(link) {
+        links.forEach(function(link: any) {
             holder.appendChild(link);
         });
         var hints = holder.querySelectorAll('div');
@@ -788,7 +788,7 @@ div.hint-scrollable {
         hintsHost!.shadowRoot!.appendChild(holder);
     }
 
-    function createHintsForElements(elements, attrs) {
+    function createHintsForElements(elements: any, attrs: any) {
         attrs = attrs || {};
         for (var attr in attrs) {
             behaviours[attr] = attrs[attr];
@@ -802,7 +802,7 @@ div.hint-scrollable {
         return elements.length;
     }
 
-    function createHintsForClick(cssSelector, attrs) {
+    function createHintsForClick(cssSelector: any, attrs: any) {
         self.statusLine = "Hints to click";
 
         attrs = attrs || {};
@@ -811,7 +811,7 @@ div.hint-scrollable {
         }
         let elements;
         if (cssSelector === "") {
-            elements = getVisibleElements(function(e, v) {
+            elements = getVisibleElements(function(e: any, v: any) {
                 if (isElementClickable(e)) {
                     v.push(e);
                 }
@@ -820,7 +820,7 @@ div.hint-scrollable {
         } else if (Array.isArray(cssSelector)) {
             elements = filterInvisibleElements(cssSelector);
         } else {
-            elements = getVisibleElements(function (e, v) {
+            elements = getVisibleElements(function (e: any, v: any) {
                 if (e.matches(cssSelector) && !e.disabled && !e.readOnly) {
                     v.push(e);
                 }
@@ -836,13 +836,13 @@ div.hint-scrollable {
         return elements.length;
     }
 
-    function createHintsForTextNode(rxp, attrs) {
+    function createHintsForTextNode(rxp: any, attrs: any) {
         for (var attr in attrs) {
             behaviours[attr] = attrs[attr];
         }
         self.statusLine = (attrs && attrs.statusLine) || "Hints to select text";
 
-        var elements = getVisibleElements(function(e, v) {
+        var elements = getVisibleElements(function(e: any, v: any) {
             var aa = e.childNodes;
             for (var i = 0, len = aa.length; i < len; i++) {
                 if (aa[i].nodeType == Node.TEXT_NODE && (aa[i] as Text).data.length > 0) {
@@ -927,7 +927,7 @@ div.hint-scrollable {
         return elements.length;
     }
 
-    function createHints(cssSelector, attrs) {
+    function createHints(cssSelector: any, attrs: any) {
         placeHintsHost(hintsHost);
         if (cssSelector.constructor.name === "RegExp") {
             return createHintsForTextNode(cssSelector, attrs);
@@ -941,7 +941,7 @@ div.hint-scrollable {
         placeHintsHost(hintsHost);
         const cssSelector = getCssSelectorsOfEditable();
 
-        var elements = getVisibleElements(function(e, v) {
+        var elements = getVisibleElements(function(e: any, v: any) {
             if (e.matches(cssSelector) && !e.disabled && !e.readOnly
                 && (e.type === "text" || e.type === "email" || e.type === "search" || e.type === "password")) {
                 v.push(e);
@@ -950,7 +950,7 @@ div.hint-scrollable {
 
         if (elements.length === 0 && document.querySelector(cssSelector) !== null) {
             document.querySelector(cssSelector)!.scrollIntoView();
-            elements = getVisibleElements(function(e, v) {
+            elements = getVisibleElements(function(e: any, v: any) {
                 if (e.matches(cssSelector) && !e.disabled && !e.readOnly) {
                     v.push(e);
                 }
@@ -1008,7 +1008,7 @@ div.hint-scrollable {
      *     });
      * });
      */
-    self.create = function(cssSelector, onHintKey, attrs) {
+    self.create = function(cssSelector: any, onHintKey: any, attrs: any) {
         if (numeric) {
             characters = "1234567890";
         }
@@ -1052,7 +1052,7 @@ div.hint-scrollable {
      * Hints.style('border: solid 3px #552a48; color:#efe1eb; background: none; background-color: #552a48;');
      * Hints.style("div{border: solid 3px #707070; color:#efe1eb; background: none; background-color: #707070;} div.begin{color:red;}", "text");
      */
-    self.style = function(css, mode) {
+    self.style = function(css: any, mode: any) {
         if (!/^div\b/.test(css)) {
             css = `div{${css}}`;
         }
@@ -1064,7 +1064,7 @@ div.hint-scrollable {
         }
     };
 
-    self.feedkeys = function(keys) {
+    self.feedkeys = function(keys: any) {
         setTimeout(function() {
             prefix = keys.toUpperCase();
             handleHint();

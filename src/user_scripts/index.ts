@@ -18,18 +18,18 @@ function isInUIFrame() {
     return !document.location.href.startsWith("chrome://") && document.location.href.indexOf(EXTENSION_ROOT_URL) === 0;
 }
 
-    function _isDomainApplicable(domain) {
+    function _isDomainApplicable(domain: any) {
         return !domain || domain.test(document.location.href) || domain.test(window.origin);
     }
 
-    function cmap(new_keystroke, old_keystroke, domain, _new_annotation) {
+    function cmap(new_keystroke: any, old_keystroke: any, domain: any, _new_annotation: any) {
         if (_isDomainApplicable(domain)) {
             dispatchSKEvent("front", ['addMapkey', "Omnibar", new_keystroke, old_keystroke]);
         }
     }
 
-const userDefinedFunctions = {};
-function mapkey(keys, annotation, jscode, options) {
+const userDefinedFunctions: Record<string, any> = {};
+function mapkey(keys: any, annotation: any, jscode: any, options: any) {
     if (!options || _isDomainApplicable(options.domain)) {
         const opt = options || {};
         userDefinedFunctions[`normal:${keys}`] = jscode;
@@ -37,64 +37,64 @@ function mapkey(keys, annotation, jscode, options) {
         dispatchSKEvent('api', ['mapkey', keys, annotation, opt]);
     }
 }
-function mapcmdkey(keys, unique_id, options) {
+function mapcmdkey(keys: any, unique_id: any, options: any) {
     if (!options || _isDomainApplicable(options.domain)) {
         dispatchSKEvent('api', ['mapcmdkey', keys, unique_id, options]);
     }
 }
-function imapkey(keys, annotation, jscode, options) {
+function imapkey(keys: any, annotation: any, jscode: any, options: any) {
     if (!options || _isDomainApplicable(options.domain)) {
         userDefinedFunctions[`insert:${keys}`] = jscode;
         dispatchSKEvent('api', ['imapkey', keys, annotation, options]);
     }
 }
-function vmapkey(keys, annotation, jscode, options) {
+function vmapkey(keys: any, annotation: any, jscode: any, options: any) {
     if (!options || _isDomainApplicable(options.domain)) {
         userDefinedFunctions[`visual:${keys}`] = jscode;
         dispatchSKEvent('api', ['vmapkey', keys, annotation, options]);
    }
 }
 
-const userDefinedCommands = {};
-function addCommand(name, description, action) {
+const userDefinedCommands: Record<string, any> = {};
+function addCommand(name: any, description: any, action: any) {
     userDefinedCommands[name] = action;
     dispatchSKEvent('front', ['addCommand', name, description]);
 }
 
-function map(new_keystroke, old_keystroke, domain, new_annotation) {
+function map(new_keystroke: any, old_keystroke: any, domain: any, new_annotation: any) {
     dispatchSKEvent('api', ['map', new_keystroke, old_keystroke, domain, new_annotation]);
 }
-function imap(new_keystroke, old_keystroke, domain, new_annotation) {
+function imap(new_keystroke: any, old_keystroke: any, domain: any, new_annotation: any) {
     dispatchSKEvent('api', ['imap', new_keystroke, old_keystroke, domain, new_annotation]);
 }
-function lmap(new_keystroke, old_keystroke, domain, new_annotation) {
+function lmap(new_keystroke: any, old_keystroke: any, domain: any, new_annotation: any) {
     dispatchSKEvent('api', ['lmap', new_keystroke, old_keystroke, domain, new_annotation]);
 }
-function vmap(new_keystroke, old_keystroke, domain, new_annotation) {
+function vmap(new_keystroke: any, old_keystroke: any, domain: any, new_annotation: any) {
     dispatchSKEvent('api', ['vmap', new_keystroke, old_keystroke, domain, new_annotation]);
 }
 
-const functionsToListSuggestions = {};
+const functionsToListSuggestions: Record<string, any> = {};
 
-let inlineQuery;
-let hintsFunction;
-let onClipboardReadFn;
-let onEditorWriteFn;
+let inlineQuery: any;
+let hintsFunction: any;
+let onClipboardReadFn: any;
+let onEditorWriteFn: any;
 let userScriptTask = () => {};
-let hintsCreationResolve;
+let hintsCreationResolve: any;
 let _pendingOnEnter: ((...args: any[]) => void) | null = null;
 initSKFunctionListener("user", {
-    callUserFunction: (keys, para) => {
+    callUserFunction: (keys: any, para: any) => {
         if (userDefinedFunctions.hasOwnProperty(keys)) {
             userDefinedFunctions[keys](para);
         }
     },
-    executeUserCommand: (name, args) => {
+    executeUserCommand: (name: any, args: any) => {
         if (userDefinedCommands.hasOwnProperty(name)) {
             userDefinedCommands[name](...args);
         }
     },
-    getSearchSuggestions: async (url, response, request, callbackId, _origin) => {
+    getSearchSuggestions: async (url: any, response: any, request: any, callbackId: any, _origin: any) => {
         if (functionsToListSuggestions.hasOwnProperty(url)) {
             try {
                 const ret = await functionsToListSuggestions[url](response, request);
@@ -105,12 +105,12 @@ initSKFunctionListener("user", {
             }
         }
     },
-    performInlineQuery: (query, callbackId, _origin) => {
+    performInlineQuery: (query: any, callbackId: any, _origin: any) => {
         const url = (typeof(inlineQuery.url) === "function") ? inlineQuery.url(query) : inlineQuery.url + query;
         httpRequest({
             url,
             headers: inlineQuery.headers
-        }, function(res) {
+        }, function(res: any) {
             if (res.error) {
                 dispatchSKEvent("front", [callbackId, `${res.error} on ${url}`]);
             } else {
@@ -121,24 +121,24 @@ initSKFunctionListener("user", {
     runUserScript: () => {
         userScriptTask();
     },
-    onClipboardRead: (resp) => {
+    onClipboardRead: (resp: any) => {
         onClipboardReadFn(resp);
     },
-    onEditorWrite: (data) => {
+    onEditorWrite: (data: any) => {
         onEditorWriteFn(data);
     },
-    onHintClicked: (shiftKey, element) => {
+    onHintClicked: (shiftKey: any, element: any) => {
         if (typeof(hintsFunction) === 'function') {
             hintsFunction(element, shiftKey);
         }
     },
-    onHintCreated: (found) => {
+    onHintCreated: (found: any) => {
         if (hintsCreationResolve) {
             hintsCreationResolve(found);
             hintsCreationResolve = null;
         }
     },
-    userURLs_onEnter: (item, ctrlKey, shiftKey) => {
+    userURLs_onEnter: (item: any, ctrlKey: any, shiftKey: any) => {
         if (_pendingOnEnter) {
             _pendingOnEnter(item, ctrlKey, shiftKey);
             _pendingOnEnter = null;
@@ -146,7 +146,7 @@ initSKFunctionListener("user", {
     },
 }, true);
 
-function addSearchAlias(alias, prompt, search_url, search_leader_key, suggestion_url, callback_to_parse_suggestion, only_this_site_key, options) {
+function addSearchAlias(alias: any, prompt: any, search_url: any, search_leader_key: any, suggestion_url: any, callback_to_parse_suggestion: any, only_this_site_key: any, options: any) {
     if (!/^[\u0000-\u007f]*$/.test(alias)) {
         throw `Invalid alias ${alias}, which must be ASCII characters.`;
     }
@@ -154,7 +154,7 @@ function addSearchAlias(alias, prompt, search_url, search_leader_key, suggestion
     dispatchSKEvent('api', ['addSearchAlias', alias, prompt, search_url, search_leader_key, suggestion_url, "user", only_this_site_key, options]);
 }
 
-function createCssSelectorForElements(cssSelector, elements) {
+function createCssSelectorForElements(cssSelector: any, elements: any) {
     if (elements instanceof HTMLElement) {
         elements = [elements];
     } else if (elements instanceof Array) {
@@ -162,7 +162,7 @@ function createCssSelectorForElements(cssSelector, elements) {
     } else {
         elements = [];
     }
-    elements.forEach((m) => {
+    elements.forEach((m: any) => {
         m.classList.add(cssSelector);
     });
     return elements.length;
@@ -186,39 +186,39 @@ const api = {
     map,
     mapcmdkey,
     mapkey,
-    unmap: (keystroke, domain) => {
+    unmap: (keystroke: any, domain: any) => {
         dispatchSKEvent('api', ['unmap', keystroke, domain]);
     },
-    iunmap: (keystroke, domain) => {
+    iunmap: (keystroke: any, domain: any) => {
         dispatchSKEvent('api', ['iunmap', keystroke, domain]);
     },
-    vunmap: (keystroke, domain) => {
+    vunmap: (keystroke: any, domain: any) => {
         dispatchSKEvent('api', ['vunmap', keystroke, domain]);
     },
-    unmapAllExcept: (keystrokes, domain) => {
+    unmapAllExcept: (keystrokes: any, domain: any) => {
         dispatchSKEvent('api', ['unmapAllExcept', keystrokes, domain]);
     },
-    readText: (text, options) => {
+    readText: (text: any, options: any) => {
         dispatchSKEvent('api', ['readText', text, options]);
     },
-    removeSearchAlias: (alias, search_leader_key, only_this_site_key) => {
+    removeSearchAlias: (alias: any, search_leader_key: any, only_this_site_key: any) => {
         dispatchSKEvent('api', ['removeSearchAlias', alias, search_leader_key, only_this_site_key]);
     },
-    searchSelectedWith: (se, onlyThisSite, interactive, alias) => {
+    searchSelectedWith: (se: any, onlyThisSite: any, interactive: any, alias: any) => {
         dispatchSKEvent('api', ['searchSelectedWith', se, onlyThisSite, interactive, alias]);
     },
     tabOpenLink,
     Clipboard: {
-        write: (text) => {
+        write: (text: any) => {
             dispatchSKEvent('api', ['clipboard:write', text]);
         },
-        read: (cb) => {
+        read: (cb: any) => {
             onClipboardReadFn = cb;
             dispatchSKEvent('api', ['clipboard:read']);
         },
     },
     Hints: {
-        click: (links, force) => {
+        click: (links: any, force: any) => {
             if (typeof(links) !== 'string') {
                 const hintsClicking = "surfingkeys--hints--clicking";
                 if (createCssSelectorForElements(hintsClicking, links) === 0) {
@@ -228,7 +228,7 @@ const api = {
             }
             dispatchSKEvent('api', ['hints:click', links, force]);
         },
-        create: (cssSelector, onHintKey, attrs) => {
+        create: (cssSelector: any, onHintKey: any, attrs: any) => {
             if (typeof(cssSelector) !== 'string') {
                 const hintsCreating = "surfingkeys--hints--creating";
                 if (createCssSelectorForElements(hintsCreating, cssSelector) === 0) {
@@ -243,13 +243,13 @@ const api = {
             dispatchSKEvent('api', ['hints:create', cssSelector, "user", attrs]);
             return promise;
         },
-        dispatchMouseClick: (element) => {
+        dispatchMouseClick: (element: any) => {
             dispatchSKEvent('hints', ['dispatchMouseClick'], element);
         },
-        style: (css, mode) => {
+        style: (css: any, mode: any) => {
             dispatchSKEvent('api', ['hints:style', css, mode]);
         },
-        setCharacters: (chars) => {
+        setCharacters: (chars: any) => {
             dispatchSKEvent('api', ['hints:setCharacters', chars]);
         },
         setNumeric: () => {
@@ -257,33 +257,33 @@ const api = {
         },
     },
     Normal: {
-        feedkeys: (keys) => {
+        feedkeys: (keys: any) => {
             dispatchSKEvent('api', ['normal:feedkeys', keys]);
         },
-        jumpVIMark: (mark) => {
+        jumpVIMark: (mark: any) => {
             dispatchSKEvent('api', ['normal:jumpVIMark', mark]);
         },
-        passThrough: (timeout) => {
+        passThrough: (timeout: any) => {
             dispatchSKEvent('api', ['normal:passThrough', timeout]);
         },
-        scroll: (type) => {
+        scroll: (type: any) => {
             dispatchSKEvent('api', ['normal:scroll', type]);
         },
     },
     Visual: {
-        style: (element, style) => {
+        style: (element: any, style: any) => {
             dispatchSKEvent('api', ['visual:style', element, style]);
         },
     },
-    log: function(msg) {
+    log: function(msg: any) {
         dispatchSKEvent('api', ['log', msg]);
     },
     Front: {
-        registerInlineQuery: (args) => {
+        registerInlineQuery: (args: any) => {
             inlineQuery = args;
             dispatchSKEvent('api', ['front:registerInlineQuery']);
         },
-        showEditor: (element, onWrite, type, useNeovim) => {
+        showEditor: (element: any, onWrite: any, type: any, useNeovim: any) => {
             if (typeof(element) !== 'string') {
                 const elementEditing = "surfingkeys--element--editing";
                 if (createCssSelectorForElements(elementEditing, element) === 0) {
@@ -294,7 +294,7 @@ const api = {
             onEditorWriteFn = onWrite;
             dispatchSKEvent('api', ['front:showEditor', element, type, useNeovim]);
         },
-        openOmnibar: (args) => {
+        openOmnibar: (args: any) => {
             _pendingOnEnter = null;
             if (typeof args.onEnter === 'function') {
                 _pendingOnEnter = args.onEnter;
@@ -311,7 +311,7 @@ const api = {
     },
 };
 
-export default (extensionRootUrl, uf) => {
+export default (extensionRootUrl: any, uf: any) => {
     EXTENSION_ROOT_URL = extensionRootUrl;
     if (isInUIFrame()) return;
     userScriptTask = () => {

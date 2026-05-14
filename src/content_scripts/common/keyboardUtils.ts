@@ -78,7 +78,7 @@ if (typeof(navigator) !== 'undefined') {
     }
 }
 
-KeyboardUtils.getKeyChar = function(event) {
+KeyboardUtils.getKeyChar = function(event: any) {
     var character;
     if (event.keyCode in this.modifierKeys) {
         character = "";
@@ -147,11 +147,11 @@ KeyboardUtils.getKeyChar = function(event) {
     return character;
 };
 
-KeyboardUtils.isWordChar = function(event) {
+KeyboardUtils.isWordChar = function(event: any) {
     return (event.keyCode < 123 && event.keyCode >= 97 || event.keyCode < 91 && event.keyCode >= 65 || event.keyCode < 58 && event.keyCode >= 48);
 };
 
-function _encodeKeystroke(s, k) {
+function _encodeKeystroke(s: any, k: any) {
     var mod = 0;
     if (s.indexOf("Ctrl-") !== -1) {
         mod |= 1;
@@ -176,7 +176,7 @@ function _encodeKeystroke(s, k) {
     code = 8192 + (code << 4) + mod;
     return String.fromCharCode(code);
 }
-KeyboardUtils.encodeKeystroke = function (s) {
+KeyboardUtils.encodeKeystroke = function (s: any) {
     var ekp = /<(?:Ctrl-)?(?:Alt-)?(?:Meta-)?(?:Shift-)?([^>]+|.)>/g;
     var mtches, ret = "", lastIndex = 0;
     while ((mtches = ekp.exec(s)) !== null) {
@@ -190,7 +190,7 @@ KeyboardUtils.encodeKeystroke = function (s) {
 
 KeyboardUtils.specialKeys = ['Esc', 'Space', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Backspace', 'Enter', 'Tab', 'Delete', 'End', 'Home', 'Insert', 'NumLock', 'PageDown', 'PageUp', 'Pause', 'ScrollLock', 'CapsLock', 'PrintScreen', 'Escape', 'Hyper'];
 
-KeyboardUtils.decodeKeystroke = function (s) {
+KeyboardUtils.decodeKeystroke = function (s: any) {
     var ret = "";
     for (var i = 0; i < s.length; i++) {
         var r = s[i].charCodeAt(0);

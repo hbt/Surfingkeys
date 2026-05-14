@@ -1,31 +1,31 @@
 export default function(
-    RUNTIME,
-    KeyboardUtils,
-    Mode,
-    createElementWithContent,
-    getBrowserName,
-    htmlEncode,
-    initL10n,
-    reportIssue,
-    setSanitizedContent,
-    showBanner,
+    RUNTIME: any,
+    KeyboardUtils: any,
+    Mode: any,
+    createElementWithContent: any,
+    getBrowserName: any,
+    htmlEncode: any,
+    initL10n: any,
+    reportIssue: any,
+    setSanitizedContent: any,
+    showBanner: any,
 ) {
     var mappingsEditor: any = null;
-    function createMappingEditor(elmId) {
+    function createMappingEditor(elmId: any) {
         var _ace = ace.edit(elmId);
         _ace.mode = "normal";
 
         var self = new Mode("mappingsEditor");
 
         self.container = _ace.container;
-        self.setValue = function(v, cursorPos) {
+        self.setValue = function(v: any, cursorPos: any) {
             _ace.setValue(v, cursorPos);
         };
         self.getValue = function() {
             return _ace.getValue();
         };
 
-        self.addEventListener('keydown', function(event) {
+        self.addEventListener('keydown', function(event: any) {
             event.sk_suppressed = true;
             if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)
                 && _ace.mode === 'normal' // vim in normal mode
@@ -42,8 +42,8 @@ export default function(
         };
 
         _ace.setTheme("ace/theme/monokai");
-        ace.config.loadModule('ace/ext/language_tools', function (_mod) {
-            ace.config.loadModule('ace/autocomplete', function (mod) {
+        ace.config.loadModule('ace/ext/language_tools', function (_mod: any) {
+            ace.config.loadModule('ace/autocomplete', function (mod: any) {
                 mod.Autocomplete.startCommand.bindKey = "Tab";
                 mod.Autocomplete.prototype.commands['Space'] = mod.Autocomplete.prototype.commands['Tab'];
                 mod.Autocomplete.prototype.commands['Tab'] = mod.Autocomplete.prototype.commands['Down'];
@@ -57,13 +57,13 @@ export default function(
         });
         _ace.setKeyboardHandler('ace/keyboard/vim', function() {
             var cm = _ace.state.cm;
-            cm.on('vim-mode-change', function(data) {
+            cm.on('vim-mode-change', function(data: any) {
                 _ace.mode = data.mode;
             });
-            cm.constructor.Vim.defineEx("write", "w", function(_cm, _input) {
+            cm.constructor.Vim.defineEx("write", "w", function(_cm: any, _input: any) {
                 saveSettings();
             });
-            cm.constructor.Vim.defineEx("quit", "q", function(_cm, _input) {
+            cm.constructor.Vim.defineEx("quit", "q", function(_cm: any, _input: any) {
                 window.close();
             });
         });
@@ -91,7 +91,7 @@ export default function(
         });
     };
 
-    function renderAutoproxyHosts(rs, divProxyPair, number) {
+    function renderAutoproxyHosts(rs: any, divProxyPair: any, number: any) {
         var desc = "For below hosts, above proxy will be used, click ❌ to remove one.";
         if (rs.proxyMode === "bypass") {
             desc = "For below hosts, <b>NO</b> proxy will be used, click ❌ to remove one.";
@@ -102,13 +102,13 @@ export default function(
 
         var ih = autoproxyHostsInput.value;
         autoproxyHostsInput.value = "";
-        var autoproxy_hosts = rs.autoproxy_hosts[number].sort().map(function(h) {
+        var autoproxy_hosts = rs.autoproxy_hosts[number].sort().map(function(h: any) {
             return `<div class='aphost'><span class='remove'>❌</span><span class="${h === ih ? 'highlight' : ''}">${h}</span></div>`;
         }).join("");
         setSanitizedContent(divProxyPair.querySelector('.autoproxy_hosts>div'), autoproxy_hosts);
 
         var autoproxyHostsDiv = divProxyPair.querySelector(".autoproxy_hosts");
-        autoproxyHostsDiv.querySelectorAll('div.aphost>span.remove').forEach(function(ph) {
+        autoproxyHostsDiv.querySelectorAll('div.aphost>span.remove').forEach(function(ph: any) {
             ph.onclick = function() {
                 var elm = this.closest('div.aphost');
                 RUNTIME('updateProxy', {
@@ -129,7 +129,7 @@ export default function(
             });
         }
 
-        autoproxyHostsInput.onkeyup = function(e) {
+        autoproxyHostsInput.onkeyup = function(e: any) {
             if (e.keyCode === 13) {
                 addAutoProxyHost();
             }
@@ -145,7 +145,7 @@ export default function(
         };
     }
 
-    function renderProxyPair(proxy, number) {
+    function renderProxyPair(proxy: any, number: any) {
         var divProxyPair: Element = document.querySelector(`div.proxyPair[number='${number}']`) as Element;
         if (!divProxyPair) {
             divProxyPair = createElementWithContent('div',
@@ -156,7 +156,7 @@ export default function(
         var proxySelect = divProxyPair.querySelector(".proxy>select") as HTMLSelectElement;
         var proxyInput = divProxyPair.querySelector(".proxy>input") as HTMLInputElement;
 
-        function __updateProxy(_data) {
+        function __updateProxy(_data: any) {
             let v = proxyInput.value.replace(/\W+([0-9]+)$/, ":$1");
             _updateProxy({
                 number: number,
@@ -177,7 +177,7 @@ export default function(
         return divProxyPair;
     }
 
-    function renderProxySettings(rs) {
+    function renderProxySettings(rs: any) {
         (proxyModeSelect as HTMLSelectElement).value = rs.proxyMode;
         (proxyModeSelect as HTMLSelectElement).onchange = function() {
             _updateProxy({
@@ -196,7 +196,7 @@ export default function(
                 (pp.querySelector('.autoproxy_hosts') as any)?.hide();
                 addProxyPair.hide();
             } else {
-                rs.proxy.forEach(function(proxy, number) {
+                rs.proxy.forEach(function(proxy: any, number: any) {
                     var pp = renderProxyPair(proxy, number);
                     (pp.querySelector('.autoproxy_hosts') as any)?.show();
                     renderAutoproxyHosts(rs, pp, number);
@@ -212,8 +212,8 @@ export default function(
         }
     }
 
-    function _updateProxy(data) {
-        RUNTIME('updateProxy', data, function(res) {
+    function _updateProxy(data: any) {
+        RUNTIME('updateProxy', data, function(res: any) {
             renderProxySettings(res);
         });
     }
@@ -222,7 +222,7 @@ export default function(
     const basicMappingsDiv = document.getElementById("basicMappings")!;
     const advancedSettingDiv = document.getElementById("advancedSetting")!;
     const advancedToggler = document.getElementById("advancedToggler") as HTMLInputElement;
-    function showAdvanced(flag) {
+    function showAdvanced(flag: any) {
         if (flag) {
             basicSettingsDiv.hide();
             advancedSettingDiv.show();
@@ -237,7 +237,7 @@ export default function(
     var localPathSaved = "";
     var localPathInput = document.getElementById("localPath") as HTMLInputElement;
     var sample = document.getElementById("sample")!.innerHTML;
-    function renderSettings(rs) {
+    function renderSettings(rs: any) {
         if (rs.isMV3) {
             document.getElementById("advancedTip")!.innerText = "First turn on 'Developer mode' in chrome://extensions/, then turn on 'Allow User Scripts' in Surfingkeys extension details, then toggle the 'Advanced mode' flag here.";
             advancedToggler.disabled = !rs.isUserScriptsAvailable;
@@ -267,7 +267,7 @@ export default function(
             settings: {
                 showAdvanced: newFlag
             }
-        }, (resp) => {
+        }, (resp: any) => {
             if (resp.error) {
                 showBanner(resp.error, 3000);
             } else {
@@ -279,7 +279,7 @@ export default function(
         if (this.innerText === "Reset") {
             this.innerText = "WARNING! This will clear all your settings. Click this again to continue.";
         } else {
-            RUNTIME("resetSettings", null, function(response) {
+            RUNTIME("resetSettings", null, function(response: any) {
                 renderSettings(response.settings);
                 renderKeyMappings(response.settings);
                 showBanner('Settings reset', 1000);
@@ -296,7 +296,7 @@ export default function(
         }
     };
 
-    function getURIPath(fn) {
+    function getURIPath(fn: any) {
         if (fn.length && !/^\w+:\/\/\w+/i.test(fn) && fn.indexOf('file:///') === -1) {
             fn = fn.replace(/\\/g, '/');
             if (fn[0] === '/') {
@@ -312,7 +312,7 @@ export default function(
         if (localPath.length && localPath !== localPathSaved) {
             RUNTIME('loadSettingsFromUrl', {
                 url: localPath
-            }, function(res) {
+            }, function(res: any) {
                 showBanner(res.status + ' to load settings from ' + localPath, 5000);
                 renderKeyMappings(res);
                 if (res.snippets && res.snippets.length) {
@@ -353,12 +353,12 @@ export default function(
         }).filter((m) => m !== null);;
     });
 
-    function renderSearchAlias(frontCommand, disabledSearchAliases) {
+    function renderSearchAlias(frontCommand: any, disabledSearchAliases: any) {
         new Promise<any>((r, _j) => {
             const getSearchAliases = () => {
                 frontCommand({
                     action: 'getSearchAliases'
-                }, function(response) {
+                }, function(response: any) {
                     if (Object.keys(response.aliases).length > 0) {
                         r(response.aliases);
                     } else {
@@ -368,7 +368,7 @@ export default function(
             };
             getSearchAliases();
         }).then((aliases) => {
-            const allAliases = {};
+            const allAliases: Record<string, any> = {};
             for (const key in aliases) {
                 let prompt = aliases[key].prompt;
                 if (!prompt.startsWith("<img src=")) {
@@ -401,8 +401,8 @@ export default function(
         });
     }
 
-    function renderKeyMappings(rs) {
-        initL10n(function (locale) {
+    function renderKeyMappings(rs: any) {
+        initL10n(function (locale: any) {
             var customization = basicMappings.map(function (w, _i) {
                 var newKey = w.origin;
                 if (rs.basicMappings && rs.basicMappings.hasOwnProperty(w.origin)) {
@@ -447,7 +447,7 @@ export default function(
 
         var _key = "";
         var keyPickerDiv = document.getElementById("keyPicker") as any;
-        self.addEventListener('keydown', function(event) {
+        self.addEventListener('keydown', function(event: any) {
             if (event.keyCode === 27) {
                 keyPickerDiv.hide();
                 self.exit();
@@ -494,9 +494,9 @@ export default function(
             event.sk_stopPropagation = true;
         });
 
-        var _elm;
+        var _elm: any;
         var _enter = self.enter;
-        self.enter = function(elm) {
+        self.enter = function(elm: any) {
             _enter.call(self);
 
             _key = elm.innerText;

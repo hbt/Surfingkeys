@@ -130,23 +130,23 @@ const runtime = (function() {
     });
 
     self.on = function(message, cb) {
-        _handlers[message] = cb;
+        (_handlers as any)[message] = cb;
     };
     self.bookMessage = function(message, cb) {
-        if (_handlers[message]) {
+        if ((_handlers as any)[message]) {
             return false;
         } else {
-            _handlers[message] = cb;
+            (_handlers as any)[message] = cb;
             return true;
         }
     };
     self.releaseMessage = function(message) {
-        delete _handlers[message];
+        delete (_handlers as any)[message];
     };
 
     chrome.runtime.onMessage.addListener(function(msg, sender, response) {
-        if (_handlers[msg.subject]) {
-            _handlers[msg.subject](msg, sender, response);
+        if ((_handlers as any)[msg.subject]) {
+            (_handlers as any)[msg.subject](msg, sender, response);
         }
     });
 

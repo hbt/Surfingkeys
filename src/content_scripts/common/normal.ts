@@ -15,8 +15,8 @@ import {
     showPopup,
 } from './utils.js';
 
-function createDisabled(normal) {
-    const self = new Mode("Disabled");
+function createDisabled(normal: any) {
+    const self = new (Mode as any)("Disabled");
 
     // hide status line for Disabled mode
     self.statusLine = "";
@@ -25,7 +25,7 @@ function createDisabled(normal) {
     self.priority = 99;
 
     self.activatedOnElement = false;
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener('keydown', function(event: any) {
         // prevent this event to be handled by Surfingkeys' other listeners
         event.sk_suppressed = true;
         if (self.activatedOnElement && !document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
@@ -41,8 +41,8 @@ function createDisabled(normal) {
     return self;
 }
 
-function createLurk(normal) {
-    const self = new Mode("Lurk");
+function createLurk(normal: any) {
+    const self = new (Mode as any)("Lurk");
 
     function enterNormal() {
         normal.enter();
@@ -53,7 +53,7 @@ function createLurk(normal) {
         }
     }
 
-    self.mappings = new Trie();
+    self.mappings = new (Trie as any)();
     self.map_node = self.mappings;
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
         annotation: {
@@ -84,7 +84,7 @@ function createLurk(normal) {
     });
 
     // Lurk and Disabled should be mutually exclusive.
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener('keydown', function(event: any) {
         var realTarget = getRealEdit(event);
         if (!isEditable(realTarget) && event.sk_keyName.length) {
             Mode.handleMapKey.call(self, event);
@@ -98,10 +98,10 @@ function createLurk(normal) {
 }
 
 function createPassThrough() {
-    var self = new Mode("PassThrough");
-    var _autoExit, _timeout;
+    var self = new (Mode as any)("PassThrough");
+    var _autoExit: any, _timeout: any;
 
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener('keydown', function(event: any) {
         // prevent this event to be handled by Surfingkeys' other listeners
         event.sk_suppressed = true;
         if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
@@ -116,10 +116,10 @@ function createPassThrough() {
                 self.exit();
             }, _timeout);
         }
-    }).addEventListener('mousedown', function(event) {
+    }).addEventListener('mousedown', function(event: any) {
         event.sk_suppressed = true;
     });
-    self.addEventListener('focus', function(event) {
+    self.addEventListener('focus', function(event: any) {
         event.sk_suppressed = true;
     });
 
@@ -134,22 +134,22 @@ function createPassThrough() {
         }
     };
 
-    self.setTimeout = function(timeout) {
+    self.setTimeout = function(timeout: any) {
         _timeout = timeout;
     };
 
     return self;
 }
 
-function createNormal(insert) {
-    var self = new Mode("Normal");
+function createNormal(insert: any) {
+    var self = new (Mode as any)("Normal");
 
-    self.mappings = new Trie();
+    self.mappings = new (Trie as any)();
     self.map_node = self.mappings;
 
     // let next focus event pass
     var _passFocus = false;
-    self.passFocus = function(pf) {
+    self.passFocus = function(pf: any) {
         _passFocus = pf;
     };
 
@@ -183,12 +183,12 @@ function createNormal(insert) {
         return _lurk;
     };
     let _lurkMaps: any[] | undefined = [];
-    self.addLurkMap = (new_keystroke, old_keystroke) => {
+    self.addLurkMap = (new_keystroke: any, old_keystroke: any) => {
         _lurkMaps!.push([new_keystroke, old_keystroke]);
     };
 
     var _once = false;
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener('keydown', function(event: any) {
         var realTarget = getRealEdit(event);
         if (isEditable(realTarget) && event.isTrusted) {
             if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
@@ -250,10 +250,10 @@ function createNormal(insert) {
             Mode.suppressKeyUp(event.keyCode);
         }
     });
-    self.addEventListener('blur', function(_event) {
+    self.addEventListener('blur', function(_event: any) {
         keyHeld = 0;
     });
-    self.addEventListener('focus', function(event) {
+    self.addEventListener('focus', function(event: any) {
         Mode.showStatus();
         if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
             var elm = getRealEdit(event);
@@ -270,12 +270,12 @@ function createNormal(insert) {
             }
         }
     });
-    self.addEventListener('keyup', function(_event) {
+    self.addEventListener('keyup', function(_event: any) {
         setTimeout(function() {
             keyHeld = 0;
         }, 0);
     });
-    self.addEventListener('mousedown', function(event) {
+    self.addEventListener('mousedown', function(event: any) {
         // The isTrusted read-only property of the Event interface is a boolean
         // that is true when the event was generated by a user action, and false
         // when the event was created or modified by a script or dispatched via dispatchEvent.
@@ -330,7 +330,7 @@ function createNormal(insert) {
      * @name Normal.passThrough
      *
      */
-    self.passThrough = function(timeout) {
+    self.passThrough = function(timeout: any) {
         _passThrough.setTimeout(timeout);
         _passThrough.enter();
         return _passThrough;
@@ -369,17 +369,17 @@ function createNormal(insert) {
     self.repeats = "";
     var keyHeld = 0;
 
-    var scrollNodes, scrollIndex = 0,
-        lastKeys;
+    var scrollNodes: any, scrollIndex = 0,
+        lastKeys: any;
 
-    function _easeFn(t, b, c, d) {
+    function _easeFn(t: any, b: any, c: any, d: any) {
         // t: current time, b: begInnIng value, c: change In value, d: duration
         return (t === d) ? b + c : c * (-Math.pow(2, -10 * t / d) + 1) + b;
     }
 
     var _nodesHasSKScroll: any[] = [];
-    function initScroll(elm) {
-        elm.skScrollBy = function(x, y) {
+    function initScroll(elm: any) {
+        elm.skScrollBy = function(x: any, y: any) {
             if (runtime.conf.smartPageBoundary && ((this === document.scrollingElement)
                 || scrollNodes.length === 1 && this === scrollNodes[0])) {
                 if (this.scrollTop === 0 && y < 0) {
@@ -407,7 +407,7 @@ function createNormal(insert) {
                 dispatchSKEvent("hints", ['scrollDone']);
             }
         };
-        elm.safeScroll_ = (prop, value, increasing) => {
+        elm.safeScroll_ = (prop: any, value: any, increasing: any) => {
             const clientHeight = elm === document.scrollingElement ? window.innerHeight : elm.clientHeight;
             const clientWidth = elm === document.scrollingElement ? window.innerWidth : elm.clientWidth;
             const range = prop === "scrollTop" ? [0, elm.scrollHeight - clientHeight] : [0, elm.scrollWidth - clientWidth];
@@ -420,7 +420,7 @@ function createNormal(insert) {
                 return true;
             }
         };
-        elm.smoothScrollBy = function(x, y, d) {
+        elm.smoothScrollBy = function(x: any, y: any, d: any) {
             if (!keyHeld) {
                 var [prop, distance] = y ? ['scrollTop', y] : ['scrollLeft', x],
                     duration = d,
@@ -428,7 +428,7 @@ function createNormal(insert) {
                     originValue = elm[prop],
                     stepCompleted = false;
                 keyHeld = 1;
-                function step(t) {
+                function step(t: any) {
                     if (previousTimestamp === 0) {
                         // init previousTimestamp in first step
                         previousTimestamp = t;
@@ -472,7 +472,7 @@ function createNormal(insert) {
     function initScrollIndex() {
         if (!scrollNodes || scrollNodes.length === 0) {
             scrollNodes = Mode.getScrollableElements();
-            scrollNodes.forEach(function (n) {
+            scrollNodes.forEach(function (n: any) {
                 n.removeEventListener('mousedown', scrollableMousedownHandler);
                 n.addEventListener('mousedown', scrollableMousedownHandler);
                 n.dataset.hint_scrollable = true;
@@ -481,7 +481,7 @@ function createNormal(insert) {
         }
     }
 
-    function scrollableMousedownHandler(e) {
+    function scrollableMousedownHandler(e: any) {
         var n = e.currentTarget;
         if (!n.contains(e.target)) return;
         var index = scrollNodes.lastIndexOf(e.target);
@@ -495,7 +495,7 @@ function createNormal(insert) {
         }
     }
 
-    self.highlightElement = function(elm) {
+    self.highlightElement = function(elm: any) {
         var rc;
         if (document.scrollingElement === elm) {
             rc = {
@@ -517,7 +517,7 @@ function createNormal(insert) {
             }
         }]);
     };
-    function changeScrollTarget(silent?) {
+    function changeScrollTarget(silent?: any) {
         scrollNodes = Mode.getScrollableElements();
         if (scrollNodes.length > 0) {
             scrollIndex = (scrollIndex + 1) % scrollNodes.length;
@@ -545,7 +545,7 @@ function createNormal(insert) {
         ['rightmost', 'horizontal']
     ]);
 
-    function canScrollInDirection(elm, direction) {
+    function canScrollInDirection(elm: any, direction: any) {
         const isMainPage = elm === document.scrollingElement || elm === document.body;
         const clientHeight = isMainPage ? window.innerHeight : elm.clientHeight;
         const clientWidth = isMainPage ? window.innerWidth : elm.clientWidth;
@@ -567,7 +567,7 @@ function createNormal(insert) {
      * @name Normal.scroll
      *
      */
-    self.scroll = function(type) {
+    self.scroll = function(type: any) {
         initScrollIndex();
         var scrollNode: any = document.scrollingElement;
         if (scrollNodes.length > 0) {
@@ -668,7 +668,7 @@ function createNormal(insert) {
         return scrollNodes;
     };
 
-    self.addScrollableElement = function(elm) {
+    self.addScrollableElement = function(elm: any) {
         if (!scrollNodes || !elm.contains(scrollNodes[scrollIndex]) && scrollNodes.indexOf(elm) === -1) {
             initScrollIndex();
             scrollNodes.push(elm);
@@ -689,7 +689,7 @@ function createNormal(insert) {
      * @name Normal.feedkeys
      *
      */
-    self.feedkeys = function(keys) {
+    self.feedkeys = function(keys: any) {
         setTimeout(function() {
             var evt = new Event("keydown");
             for (var i = 0; i < keys.length; i ++) {
@@ -699,7 +699,7 @@ function createNormal(insert) {
         }, 1);
     };
 
-    self.setLastKeys = function(key) {
+    self.setLastKeys = function(key: any) {
         if (!this.map_node.meta.repeatIgnore && key.length > 1) {
             lastKeys = [key];
             saveLastKeys();
@@ -714,7 +714,7 @@ function createNormal(insert) {
         });
     }
 
-    self.appendKeysForRepeat = function(mode, keys) {
+    self.appendKeysForRepeat = function(mode: any, keys: any) {
         if (lastKeys && lastKeys.length > 0) {
             // keys for normal mode must be pushed.
             lastKeys.push('{0}\t{1}'.format(mode, keys));
@@ -722,9 +722,9 @@ function createNormal(insert) {
         }
     };
 
-    self.addVIMark = function(mark, url) {
+    self.addVIMark = function(mark: any, url: any) {
         url = url || window.location.href;
-        var mo = {};
+        var mo: Record<string, any> = {};
         mo[mark] = {
             url: url,
             scrollLeft: document.scrollingElement!.scrollLeft,
@@ -741,7 +741,7 @@ function createNormal(insert) {
      * @name Normal.jumpVIMark
      *
      */
-    self.jumpVIMark = function(mark) {
+    self.jumpVIMark = function(mark: any) {
         if (mark === "'") {
             let scrollNode: any = document.scrollingElement;
             initScrollIndex();
@@ -763,13 +763,13 @@ function createNormal(insert) {
         }
     };
 
-    self.moveTab = function(pos) {
+    self.moveTab = function(pos: any) {
         RUNTIME('moveTab', {
             position: pos
         });
     };
 
-    self.captureElement = function(elm) {
+    self.captureElement = function(elm: any) {
         RUNTIME('getCaptureSize', null, function(response) {
             var scale = response.width / window.innerWidth;
 
@@ -786,7 +786,7 @@ function createNormal(insert) {
             elm.style.borderStyle = "none";
             dispatchSKEvent("front", ['toggleStatus', false]);
 
-            var dx = 0, dy = 0, sx, sy, sw, sh, ww, wh, dh = elm.scrollHeight, dw = elm.scrollWidth;
+            var dx = 0, dy = 0, sx: any, sy: any, sw: any, sh: any, ww: any, wh: any, dh = elm.scrollHeight, dw = elm.scrollWidth;
             if (elm === document.scrollingElement) {
                 ww = window.innerWidth;
                 wh = window.innerHeight;
@@ -925,13 +925,13 @@ function createNormal(insert) {
         }
     });
 
-    const bindScrollForHints = (action) => {
+    const bindScrollForHints = (action: any) => {
         const f = self.scroll.bind(self, action);
         // indicate that the key bound with this function is a key to scroll page and can be used to scroll in Hints mode.
         f.isSKScrollInHints = true;
         return f;
     };
-    self.isScrollKeyInHints = (key) => {
+    self.isScrollKeyInHints = (key: any) => {
         const bound = self.mappings[key];
         return bound && bound.meta && bound.meta.code && bound.meta.code.isSKScrollInHints;
     };
@@ -1164,7 +1164,7 @@ function createNormal(insert) {
         }
     });
 
-    function _onMouseUp(event) {
+    function _onMouseUp(event: any) {
         if (runtime.conf.mouseSelectToQuery.indexOf(window.origin) !== -1
             && !isElementClickable(event.target)
             && !event.target.matches(".cm-matchhighlight")) {
@@ -1177,7 +1177,7 @@ function createNormal(insert) {
     }
 
     var _disabled: any = null;
-    self.disable = function(onElement) {
+    self.disable = function(onElement: any) {
         if (!_disabled) {
             _disabled = createDisabled(self);
             _disabled.enter(0, true);

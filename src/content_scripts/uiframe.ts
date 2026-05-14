@@ -5,7 +5,7 @@ import {
     getDocumentOrigin
 } from './common/utils.js';
 
-function createUiHost(browser, onload) {
+function createUiHost(browser: any, onload: any) {
     var uiHost = document.createElement("div");
     uiHost.style.display = "block";
     uiHost.style.opacity = "1";
@@ -27,7 +27,7 @@ function createUiHost(browser, onload) {
     uiHost.attachShadow({ mode: 'open' });
     uiHost.shadowRoot!.appendChild(ifr);
 
-    function _onWindowMessage(event) {
+    function _onWindowMessage(event: any) {
         var _message = event.data && event.data.surfingkeys_uihost_data;
         if (_message === undefined) {
             return;
@@ -84,12 +84,12 @@ function createUiHost(browser, onload) {
 
     }, {once: true});
 
-    var lastStateOfPointerEvents = "none", _origOverflowY;
-    var _actions = {}, activeContent: { window: any; origin: any } | null = null;
-    _actions['initFrontendAck'] = function(_response) {
+    var lastStateOfPointerEvents = "none", _origOverflowY: any;
+    var _actions: Record<string, any> = {}, activeContent: { window: any; origin: any } | null = null;
+    _actions['initFrontendAck'] = function(_response: any) {
         onload(uiHost);
     };
-    _actions['setFrontFrame'] = function(response) {
+    _actions['setFrontFrame'] = function(response: any) {
         ifr.style.height = response.frameHeight;
         if (response.pointerEvents) {
             ifr.style.pointerEvents = response.pointerEvents;
@@ -133,7 +133,7 @@ function createUiHost(browser, onload) {
             origin: getDocumentOrigin()
         }}, frontEndURL);
     };
-    _actions['destroyFrontendAck'] = function(response) {
+    _actions['destroyFrontendAck'] = function(response: any) {
         if (response.data === true) {
             runtime.postTopMessage({surfingkeys_content_data: {
                 action: 'frontendDestroyed',

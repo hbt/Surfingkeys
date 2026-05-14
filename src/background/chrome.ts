@@ -48,7 +48,7 @@ installErrorHandlers('background');
  * @param {string} extensionId - The extension ID
  * @returns {Promise<void>}
  */
-async function openRequiredExtensionTabs(extensionId) {
+async function openRequiredExtensionTabs(extensionId: any) {
     const extensionsPageUrl = 'chrome://extensions/';
     const errorsPageUrl = `chrome://extensions/?errors=${extensionId}`;
 
@@ -131,7 +131,7 @@ async function detectDebugMode() {
  * @param {string} targetUrl - The chrome://extensions URL to search for
  * @returns {Promise<chrome.tabs.Tab|null>} Existing tab or null
  */
-async function findExtensionTab(targetUrl): Promise<chrome.tabs.Tab | null> {
+async function findExtensionTab(targetUrl: any): Promise<chrome.tabs.Tab | null> {
     return new Promise((resolve) => {
         chrome.tabs.query({}, (tabs) => {
             // Chrome doesn't allow extensions to see chrome:// URLs in tab.url
@@ -147,7 +147,7 @@ async function findExtensionTab(targetUrl): Promise<chrome.tabs.Tab | null> {
     });
 }
 
-function loadRawSettings(keys, cb, defaultSet) {
+function loadRawSettings(keys: any, cb: any, defaultSet: any) {
     var rawSet = defaultSet || {};
     chrome.storage.local.get(null, function(localSet) {
         var localSavedAt = localSet.savedAt || 0;
@@ -176,7 +176,7 @@ function loadRawSettings(keys, cb, defaultSet) {
     });
 }
 
-function _applyProxySettings(proxyConf) {
+function _applyProxySettings(proxyConf: any) {
     // Chrome doesn't allow modifying regular-scoped settings in incognito contexts
     if (chrome.extension.inIncognitoContext) {
         console.warn('[PROXY] Skipping proxy settings in incognito context');
@@ -186,13 +186,13 @@ function _applyProxySettings(proxyConf) {
     if (!proxyConf.proxyMode || proxyConf.proxyMode === 'clear') {
         chrome.proxy.settings.clear({scope: 'regular'});
     } else {
-        var autoproxy_pattern = proxyConf.autoproxy_hosts.map(function(h) {
-            return h.filter(function(a) {
+        var autoproxy_pattern = proxyConf.autoproxy_hosts.map(function(h: any) {
+            return h.filter(function(a: any) {
                 return a.indexOf('*') !== -1;
             }).join('|');
         });
-        var autoproxy_hosts = proxyConf.autoproxy_hosts.map(function(h) {
-            return dictFromArray(h.filter(function(a) {
+        var autoproxy_hosts = proxyConf.autoproxy_hosts.map(function(h: any) {
+            return dictFromArray(h.filter(function(a: any) {
                 return a.indexOf('*') === -1;
             }), 1);
         });
@@ -247,14 +247,14 @@ function _setNewTabUrl(){
     return  "https://www.google.com";
 }
 
-function _getContainerName(_self, _response){
+function _getContainerName(_self: any, _response: any){
 }
 
-function getLatestHistoryItem(text, maxResults, cb) {
+function getLatestHistoryItem(text: any, maxResults: any, cb: any) {
     const _caseSensitive = text.toLowerCase() !== text;
     let endTime = new Date().getTime();
     let results: chrome.history.HistoryItem[] = [];
-    const impl = (endTime, maxResults, cb) => {
+    const impl = (endTime: any, maxResults: any, cb: any) => {
         const prefetch = maxResults * Math.pow(10, Math.min(2, text.length));
         chrome.history.search({
             startTime: 0,

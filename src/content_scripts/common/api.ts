@@ -22,11 +22,11 @@ import {
     tabOpenLink,
 } from './utils.js';
 
-function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
+function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual: any, front: any, browser: any) {
     // Command registry - use closure variable for reliable access across all functions
     let commandRegistry = new Map();
 
-    function createKeyTarget(code, ag, repeatIgnore) {
+    function createKeyTarget(code: any, ag: any, repeatIgnore: any) {
         var keybound: {
             code: any;
             repeatIgnore?: any;
@@ -47,7 +47,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         return keybound;
     }
 
-    function _isDomainApplicable(domain) {
+    function _isDomainApplicable(domain: any) {
         return !domain || domain.test(document.location.href) || domain.test(window.origin);
     }
 
@@ -61,7 +61,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
                 if (old.meta) {
                     warning = `${old.meta.word} for [${old.meta.annotation}] is overridden by [${annotation}].`;
                 } else {
-                    warning = old.getMetas(function() { return true;}).map(function(meta) {
+                    warning = old.getMetas(function() { return true;}).map(function(meta: any) {
                         return `${meta.word} for [${meta.annotation}] is overridden by [${annotation}].`;
                     });
                 }
@@ -152,7 +152,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      * @example
      * mapcmdkey('<F2>', 'cmd_show_usage', { domain: /example.com/i });
      */
-    function mapcmdkey(keys, unique_id, options) {
+    function mapcmdkey(keys: any, unique_id: any, options: any) {
         // Lookup command in registry (will be populated after default mappings load)
         const command = commandRegistry.get(unique_id);
 
@@ -202,7 +202,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      * @example
      * map(';d', '<Ctrl-Alt-d>');
      */
-    function map(new_keystroke, old_keystroke, domain, new_annotation) {
+    function map(new_keystroke: any, old_keystroke: any, domain: any, new_annotation: any) {
         if (_isDomainApplicable(domain)) {
             if (old_keystroke[0] === ':' && old_keystroke.length > 1) {
                 var cmdline = old_keystroke.substr(1);
@@ -230,7 +230,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      * @example
      * unmap("<<", /youtube.com/);
      */
-    function unmap(keystroke, domain?) {
+    function unmap(keystroke: any, domain?: any) {
         if (_isDomainApplicable(domain)) {
             var old_map = normal.mappings.find(KeyboardUtils.encodeKeystroke(keystroke));
             if (old_map) {
@@ -256,11 +256,11 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * unmapAllExcept(['E','R','T'], /google.com|twitter.com/);
      */
-    function unmapAllExcept(keystrokes, domain) {
+    function unmapAllExcept(keystrokes: any, domain: any) {
         if (_isDomainApplicable(domain)) {
             var modes = [normal, insert];
             modes.forEach(function(mode) {
-                var _mappings = new Trie();
+                var _mappings = new (Trie as any)();
                 keystrokes = keystrokes || [];
                 for (var i = 0, il = keystrokes.length; i < il; i++) {
                     var ks = KeyboardUtils.encodeKeystroke(keystrokes[i]);
@@ -286,7 +286,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * @see map
      */
-    function imap(new_keystroke, old_keystroke, domain, new_annotation) {
+    function imap(new_keystroke: any, old_keystroke: any, domain: any, new_annotation: any) {
         if (_isDomainApplicable(domain)) {
             mapInMode(insert, new_keystroke, old_keystroke, new_annotation);
         }
@@ -300,7 +300,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * @see unmap
      */
-    function iunmap(keystroke, domain) {
+    function iunmap(keystroke: any, domain: any) {
         if (_isDomainApplicable(domain)) {
             insert.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
         }
@@ -346,7 +346,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * @see unmap
      */
-    function vunmap(keystroke, domain?) {
+    function vunmap(keystroke: any, domain?: any) {
         if (_isDomainApplicable(domain)) {
             visual.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
         }
@@ -362,7 +362,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * @see map
      */
-    function lmap(new_keystroke, old_keystroke, domain, _new_annotation) {
+    function lmap(new_keystroke: any, old_keystroke: any, domain: any, _new_annotation: any) {
         if (_isDomainApplicable(domain)) {
             normal.addLurkMap(new_keystroke, old_keystroke);
         }
@@ -388,7 +388,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *     });
      * });
      */
-    function addSearchAlias(alias, prompt, search_url, search_leader_key, suggestion_url, callback_to_parse_suggestion, only_this_site_key, options) {
+    function addSearchAlias(alias: any, prompt: any, search_url: any, search_leader_key: any, suggestion_url: any, callback_to_parse_suggestion: any, only_this_site_key: any, options: any) {
         if (!/^[\u0000-\u007f]*$/.test(alias)) {
             throw `Invalid alias ${alias}, which must be ASCII characters.`;
         }
@@ -438,7 +438,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      * @example
      * removeSearchAlias('d');
      */
-    function removeSearchAlias(alias, search_leader_key, only_this_site_key) {
+    function removeSearchAlias(alias: any, search_leader_key: any, only_this_site_key: any) {
         if (!isInUIFrame()) {
             front.removeSearchAlias(alias);
         }
@@ -468,9 +468,9 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      * @example
      * searchSelectedWith('https://translate.google.com/?hl=en#auto/en/');
      */
-    function searchSelectedWith(se, onlyThisSite?, interactive?, alias?) {
+    function searchSelectedWith(se: any, onlyThisSite?: any, interactive?: any, alias?: any) {
         let query = window.getSelection()!.toString();
-        clipboard.read(function(response) {
+        clipboard.read(function(response: any) {
             query = query || response.data;
             if (onlyThisSite) {
                 query = "site:" + window.location.hostname + " " + query;
@@ -497,7 +497,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         searchSelectedWith,
         "clipboard:write": clipboard.write,
         "clipboard:read": () => {
-            clipboard.read((resp) => {
+            clipboard.read((resp: any) => {
                 dispatchSKEvent('user', ["onClipboardRead", resp]);
             });
         },
@@ -507,8 +507,8 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         "hints:setNumeric": hints.setNumeric,
         "hints:style": hints.style,
         "front:registerInlineQuery": front.registerInlineQuery,
-        "front:showEditor": (element, type, useNeovim) => {
-            front.showEditor(element, (data) => {
+        "front:showEditor": (element: any, type: any, useNeovim: any) => {
+            front.showEditor(element, (data: any) => {
                 dispatchSKEvent('user', ["onEditorWrite", data]);
             }, type, useNeovim);
         },
@@ -519,17 +519,17 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         "normal:passThrough": normal.passThrough,
         "normal:scroll": normal.scroll,
         "visual:style": visual.style,
-        log: (msg) => {
+        log: (msg: any) => {
             RUNTIME('userLog', { msg, fromUserScript: true });
         },
-        mapcmdkey: (keys, unique_id, options) => {
+        mapcmdkey: (keys: any, unique_id: any, options: any) => {
             (window as any).__mapcmdkey_call_count = ((window as any).__mapcmdkey_call_count || 0) + 1;
             mapcmdkey(keys, unique_id, options);
         },
         listCommands: () => {
             return Array.from(commandRegistry.keys()).sort();
         },
-        getCommand: (unique_id) => {
+        getCommand: (unique_id: any) => {
             const cmd = commandRegistry.get(unique_id);
             if (cmd) {
                 // Return sanitized version (without code function for security)
@@ -542,9 +542,9 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
             }
             return null;
         },
-        mapkey: (keys, annotation, options) => {
+        mapkey: (keys: any, annotation: any, options: any) => {
             if (options.codeHasParameter) {
-                mapkey(keys, annotation, ((key) => {
+                mapkey(keys, annotation, ((key: any) => {
                     dispatchSKEvent('user', ["callUserFunction", `normal:${keys}`, key]);
                 }) as unknown as () => void, options);
             } else {
@@ -553,12 +553,12 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
                 }, options);
             }
         },
-        imapkey: (keys, annotation, options) => {
+        imapkey: (keys: any, annotation: any, options: any) => {
             imapkey(keys, annotation, () => {
                 dispatchSKEvent('user', ["callUserFunction", `insert:${keys}`]);
             }, options);
         },
-        vmapkey: (keys, annotation, options) => {
+        vmapkey: (keys: any, annotation: any, options: any) => {
             vmapkey(keys, annotation, () => {
                 dispatchSKEvent('user', ["callUserFunction", `visual:${keys}`]);
             }, options);
@@ -593,14 +593,14 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         vmapkey,
         // Command registry support
         __commandRegistry__: commandRegistry,
-        _setCommandRegistry: function(registry) {
+        _setCommandRegistry: function(registry: any) {
             commandRegistry = registry;
             this.__commandRegistry__ = registry;
         },
         listCommands: function() {
             return Array.from(commandRegistry.keys()).sort();
         },
-        getCommand: function(unique_id) {
+        getCommand: function(unique_id: any) {
             return commandRegistry.get(unique_id);
         },
         Clipboard: clipboard,
@@ -616,7 +616,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
             dispatchMouseClick: hints.dispatchMouseClick,
             style: hints.style,
             setNumeric: hints.setNumeric,
-            setCharacters: function(chars) {
+            setCharacters: function(chars: any) {
                 hints.setCharacters(chars);
                 if (front.setHintsCharacters) {
                     front.setHintsCharacters(chars);
@@ -626,7 +626,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         Visual: {
             style: visual.style,
         },
-        log: function(msg) {
+        log: function(msg: any) {
             RUNTIME('userLog', { msg: msg });
         },
         Front: {
