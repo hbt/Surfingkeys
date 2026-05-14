@@ -11,7 +11,7 @@
     "noImplicitThis": true,
     "alwaysStrict": true,
     "strictPropertyInitialization": false,
-    "useUnknownInCatchVariables": false,
+    "useUnknownInCatchVariables": true,
     "moduleResolution": "node",
     "sourceMap": true,
     "declaration": false,

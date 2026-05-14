@@ -339,7 +339,7 @@ function start(browser) {
             await callUserScriptsApi('unregister', { ids: [SETTINGS_SNIPPET_SCRIPT_ID] });
         } catch (error) {
             // Ignore attempts to unregister non-existent scripts; log others.
-            if (!/not found|exists/i.test(error.message)) {
+            if (!/not found|exists/i.test((error as Error).message)) {
                 console.warn('[userScripts] Failed to unregister settings snippet', error);
             }
         }
@@ -393,7 +393,7 @@ function start(browser) {
             snippetScriptCodeCache = desiredCode;
             debugLog('sync-snippets', 'registered ok'); console.log('[sync-snippets] registered ok');
         } catch (err) {
-            debugLog('sync-snippets', `register error: ${err && err.message}`); console.log(`[sync-snippets] register error: ${err && err.message}`);
+            debugLog('sync-snippets', `register error: ${err && (err as Error).message}`); console.log(`[sync-snippets] register error: ${err && (err as Error).message}`);
             throw err;
         }
     }
@@ -822,7 +822,7 @@ function start(browser) {
                     return responseData || result;
                 } catch (error) {
                     console.error('[CDP-BRIDGE] Error during dispatch:', error);
-                    return { error: error.message, action: action };
+                    return { error: (error as Error).message, action: action };
                 }
             },
 

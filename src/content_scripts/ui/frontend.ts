@@ -550,7 +550,7 @@ const Front = (function() {
                 cpBtn.innerHTML = '&#10003; Copied!';
                 setTimeout(() => { cpBtn.innerHTML = '&#128203; Copy'; }, 2000);
             } catch (e) {
-                cpBtn.innerHTML = '&#10007; ' + e.message.slice(0, 28);
+                cpBtn.innerHTML = '&#10007; ' + (e as Error).message.slice(0, 28);
                 setTimeout(() => { cpBtn.innerHTML = '&#128203; Copy'; }, 3000);
             }
         });
