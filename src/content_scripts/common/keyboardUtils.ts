@@ -1,21 +1,4 @@
-interface KeyboardUtilsType {
-    keyCodesMac: Record<string, string[]>;
-    keyCodes: Record<string, number>;
-    modifierKeys: Record<number, string>;
-    keyNames: Record<number, string>;
-    keyIdentifierCorrectionMap: Record<string, string[]>;
-    platform: string;
-    specialKeys: string[];
-    getKeyChar(event: KeyboardEvent): string;
-    isWordChar(event: KeyboardEvent): boolean;
-    encodeKeystroke(s: string): string;
-    decodeKeystroke(s: string): string;
-    [key: string]: unknown;
-}
-
-// KeyboardUtils is built incrementally with properties added after the literal.
-// Typed via interface cast at point of use.
-const KeyboardUtils = {
+const KeyboardUtils: any = {
     keyCodesMac: {
         Minus: ["-", "_"],
         Equal: ["=", "+"],
@@ -84,7 +67,7 @@ const KeyboardUtils = {
         "U+00BE": ["U+002E", "U+003E"],
         "U+00BF": ["U+002F", "U+003F"]
     },
-} as unknown as KeyboardUtilsType;
+};
 
 KeyboardUtils.platform = "Windows";
 if (typeof(navigator) !== 'undefined') {
@@ -95,29 +78,28 @@ if (typeof(navigator) !== 'undefined') {
     }
 }
 
-KeyboardUtils.getKeyChar = function(event: KeyboardEvent) {
+KeyboardUtils.getKeyChar = function(event: any) {
     var character;
-    if (event.keyCode in KeyboardUtils.modifierKeys) {
+    if (event.keyCode in this.modifierKeys) {
         character = "";
     } else {
-        if (KeyboardUtils.keyNames.hasOwnProperty(event.keyCode)) {
-            character = "{0}".format(KeyboardUtils.keyNames[event.keyCode]);
+        if (this.keyNames.hasOwnProperty(event.keyCode)) {
+            character = "{0}".format(this.keyNames[event.keyCode]);
         } else {
             character = event.key || "";
             if (["Shift", "Meta", "Alt", "Ctrl"].indexOf(character) !== -1) {
                 character = "";
             }
             if (!character) {
-                const legacyEvent = event as KeyboardEvent & { keyIdentifier?: string };
-                if (legacyEvent.keyIdentifier) {
+                if (event.keyIdentifier) {
                     // keep for chrome version below 52
-                    if (legacyEvent.keyIdentifier.slice(0, 2) !== "U+") {
-                        character = "{0}".format(legacyEvent.keyIdentifier);
+                    if (event.keyIdentifier.slice(0, 2) !== "U+") {
+                        character = "{0}".format(event.keyIdentifier);
                     } else {
-                        var keyIdentifier = legacyEvent.keyIdentifier;
-                        if ((KeyboardUtils.platform === "Windows" || KeyboardUtils.platform === "Linux") && KeyboardUtils.keyIdentifierCorrectionMap[keyIdentifier]) {
-                            var correctedIdentifiers = KeyboardUtils.keyIdentifierCorrectionMap[keyIdentifier];
-                            keyIdentifier = legacyEvent.shiftKey ? correctedIdentifiers[1] : correctedIdentifiers[0];
+                        var keyIdentifier = event.keyIdentifier;
+                        if ((KeyboardUtils.platform === "Windows" || KeyboardUtils.platform === "Linux") && this.keyIdentifierCorrectionMap[keyIdentifier]) {
+                            var correctedIdentifiers = this.keyIdentifierCorrectionMap[keyIdentifier];
+                            keyIdentifier = event.shiftKey ? correctedIdentifiers[1] : correctedIdentifiers[0];
                         }
                         var unicodeKeyInHex = "0x" + keyIdentifier.substring(2);
                         character = String.fromCharCode(parseInt(unicodeKeyInHex));
@@ -131,9 +113,9 @@ KeyboardUtils.getKeyChar = function(event: KeyboardEvent) {
                     if (event.keyCode < 127) {
                         character = String.fromCharCode(event.keyCode);
                         character = event.shiftKey ? character : character.toLowerCase();
-                    } else if (KeyboardUtils.keyCodesMac.hasOwnProperty(event.code)) {
+                    } else if (this.keyCodesMac.hasOwnProperty(event.code)) {
                         // Alt-/ or Alt-?
-                        character = KeyboardUtils.keyCodesMac[event.code][event.shiftKey ? 1 : 0];
+                        character = this.keyCodesMac[event.code][event.shiftKey ? 1 : 0];
                     }
                 } else if (character === "Unidentified") {
                     // for IME on
@@ -165,11 +147,11 @@ KeyboardUtils.getKeyChar = function(event: KeyboardEvent) {
     return character;
 };
 
-KeyboardUtils.isWordChar = function(event: KeyboardEvent) {
+KeyboardUtils.isWordChar = function(event: any) {
     return (event.keyCode < 123 && event.keyCode >= 97 || event.keyCode < 91 && event.keyCode >= 65 || event.keyCode < 58 && event.keyCode >= 48);
 };
 
-function _encodeKeystroke(s: string, k: string) {
+function _encodeKeystroke(s: any, k: any) {
     var mod = 0;
     if (s.indexOf("Ctrl-") !== -1) {
         mod |= 1;
@@ -194,7 +176,7 @@ function _encodeKeystroke(s: string, k: string) {
     code = 8192 + (code << 4) + mod;
     return String.fromCharCode(code);
 }
-KeyboardUtils.encodeKeystroke = function (s: string) {
+KeyboardUtils.encodeKeystroke = function (s: any) {
     var ekp = /<(?:Ctrl-)?(?:Alt-)?(?:Meta-)?(?:Shift-)?([^>]+|.)>/g;
     var mtches, ret = "", lastIndex = 0;
     while ((mtches = ekp.exec(s)) !== null) {
@@ -208,34 +190,33 @@ KeyboardUtils.encodeKeystroke = function (s: string) {
 
 KeyboardUtils.specialKeys = ['Esc', 'Space', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Backspace', 'Enter', 'Tab', 'Delete', 'End', 'Home', 'Insert', 'NumLock', 'PageDown', 'PageUp', 'Pause', 'ScrollLock', 'CapsLock', 'PrintScreen', 'Escape', 'Hyper'];
 
-KeyboardUtils.decodeKeystroke = function (s: string) {
+KeyboardUtils.decodeKeystroke = function (s: any) {
     var ret = "";
     for (var i = 0; i < s.length; i++) {
-        var code = s[i].charCodeAt(0);
-        if (code > 8192) {
-            var r = code - 8192;
+        var r = s[i].charCodeAt(0);
+        if (r > 8192) {
+            r = r - 8192;
             var flag = r >> 12,
                 key = (r % 4096) >> 4,
                 mod = r & 15;
-            var ch: string;
             if (flag) {
-                ch = KeyboardUtils.specialKeys[key % 256];
+                r = KeyboardUtils.specialKeys[key % 256];
             } else {
-                ch = String.fromCharCode(key);
+                r = String.fromCharCode(key);
             }
             if (mod & 8) {
-                ch = "Shift-" + ch;
+                r = "Shift-" + r;
             }
             if (mod & 4) {
-                ch = "Meta-" + ch;
+                r = "Meta-" + r;
             }
             if (mod & 2) {
-                ch = "Alt-" + ch;
+                r = "Alt-" + r;
             }
             if (mod & 1) {
-                ch = "Ctrl-" + ch;
+                r = "Ctrl-" + r;
             }
-            ret += "<" + ch + ">";
+            ret += "<" + r + ">";
         } else {
             ret += s[i];
         }

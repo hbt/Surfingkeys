@@ -1,13 +1,11 @@
 import { dispatchSKEvent } from '../runtime.js';
 import { actionWithSelectionPreserved, getBrowserName, getWordUnderCursor, tabOpenLink } from '../utils.js';
-import type { CommandAPI, VisualModule, FrontendAPI, ChromeSurfingkeysAPI, BrowserAdapter } from '../../../../@types/surfingkeys';
-
-type ChromeWithSK = typeof chrome & { surfingkeys?: ChromeSurfingkeysAPI };
+import type { CommandAPI } from '../../../../@types/surfingkeys';
 
 function _getSentence(textNode: Text, offset: number): string {
     var sentence = "";
 
-    actionWithSelectionPreserved(function(sel: Selection) {
+    actionWithSelectionPreserved(function(sel: any) {
         sel.setPosition(textNode, offset);
         sel.modify("extend", "backward", "sentence");
         sel.collapseToStart();
@@ -21,7 +19,7 @@ function _getSentence(textNode: Text, offset: number): string {
 
 function openGoogleTranslate(searchSelectedWith: CommandAPI['searchSelectedWith']): void {
     if (window.getSelection()?.toString()) {
-        searchSelectedWith('https://translate.google.com/?hl=en#auto/en/', false, '', '');
+        (searchSelectedWith as any)('https://translate.google.com/?hl=en#auto/en/', false, false, '');
     } else {
         tabOpenLink("https://translate.google.com/translate?js=n&sl=auto&tl=zh-CN&u=" + window.location.href);
     }
@@ -37,9 +35,6 @@ export default function registerVisual(
     front: unknown,
     browser: unknown
 ): void {
-    const vs = visual as VisualModule;
-    const fr = front as FrontendAPI;
-    const br = browser as BrowserAdapter;
     const { mapkey, vmapkey, searchSelectedWith, readText } = api;
 
     mapkey('zv', {
@@ -50,7 +45,7 @@ export default function registerVisual(
         description: "Enter visual mode and select entire element",
         tags: ["visual", "element", "selection"]
     }, function() {
-        vs.toggle("z");
+        (visual as any).toggle("z");
     });
 
     mapkey('V', {
@@ -61,7 +56,7 @@ export default function registerVisual(
         description: "Restore previous visual mode selection",
         tags: ["visual", "restore", "selection"]
     }, function() {
-        vs.restore();
+        (visual as any).restore();
     });
     mapkey('*', {
         short: "Find selected text in current page",
@@ -71,8 +66,8 @@ export default function registerVisual(
         description: "Search for currently selected text in the page",
         tags: ["visual", "search", "find"]
     }, function() {
-        vs.star();
-        vs.toggle();
+        (visual as any).star();
+        (visual as any).toggle();
     });
 
     vmapkey('<Ctrl-u>', {
@@ -83,7 +78,7 @@ export default function registerVisual(
         description: "Move selection backward 20 lines in visual mode",
         tags: ["visual", "navigation", "backward"]
     }, function() {
-        vs.feedkeys('20k');
+        (visual as any).feedkeys('20k');
     });
     vmapkey('<Ctrl-d>', {
         short: "Forward 20 lines",
@@ -93,7 +88,7 @@ export default function registerVisual(
         description: "Move selection forward 20 lines in visual mode",
         tags: ["visual", "navigation", "forward"]
     }, function() {
-        vs.feedkeys('20j');
+        (visual as any).feedkeys('20j');
     });
 
     mapkey("v", {
@@ -104,7 +99,7 @@ export default function registerVisual(
         description: "Toggle visual mode for text selection",
         tags: ["visual", "mode", "selection"]
     }, function() {
-        vs.toggle();
+        (visual as any).toggle();
     }, {repeatIgnore: true});
 
     mapkey("n", {
@@ -115,7 +110,7 @@ export default function registerVisual(
         description: "Jump to next occurrence of found text",
         tags: ["visual", "search", "next"]
     }, function() {
-        vs.next(false);
+        (visual as any).next(false);
     }, {repeatIgnore: true});
 
     mapkey("N", {
@@ -126,7 +121,7 @@ export default function registerVisual(
         description: "Jump to previous occurrence of found text",
         tags: ["visual", "search", "previous"]
     }, function() {
-        vs.next(true);
+        (visual as any).next(true);
     }, {repeatIgnore: true});
 
     vmapkey("q", {
@@ -137,15 +132,15 @@ export default function registerVisual(
         description: "Show inline translation for word under cursor",
         tags: ["visual", "translation", "word"]
     }, function() {
-        var w = getWordUnderCursor() ?? '';
-        br.readText(w);
-        var b = vs.getCursorPixelPos();
-        fr.performInlineQuery(w, {
+        var w = getWordUnderCursor();
+        (browser as any).readText(w);
+        var b = (visual as any).getCursorPixelPos();
+        (front as any).performInlineQuery(w, {
             top: b.top,
             left: b.left,
             height: b.height,
             width: b.width
-        }, function(pos, queryResult) {
+        }, function(pos: any, queryResult: any) {
             dispatchSKEvent("front", ['showBubble', pos, queryResult, true]);
         });
     });
@@ -158,9 +153,8 @@ export default function registerVisual(
         description: "Translate selected text or entire page with Google Translate",
         tags: ["settings", "translation", "google"]
     }, () => {
-        const skChrome = chrome as ChromeWithSK;
-        if (skChrome.surfingkeys) {
-            skChrome.surfingkeys.translateCurrentPage();
+        if ((chrome as any).surfingkeys) {
+            (chrome as any).surfingkeys.translateCurrentPage();
         } else {
             openGoogleTranslate(searchSelectedWith);
         }
@@ -183,7 +177,7 @@ export default function registerVisual(
         tags: ["visual", "llm", "ai"]
     }, function() {
         const sel = window.getSelection()?.toString() ?? '';
-        fr.openOmnibar({type: "LLMChat", extra: {
+        (front as any).openOmnibar({type: "LLMChat", extra: {
             system: sel
         }});
     });
@@ -197,7 +191,7 @@ export default function registerVisual(
             description: "Read selected text aloud using text-to-speech",
             tags: ["visual", "tts", "accessibility"]
         }, function() {
-            readText(window.getSelection()?.toString() ?? '');
+            readText(window.getSelection()?.toString() ?? '', {verbose: true} as any);
         });
     }
 }

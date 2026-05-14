@@ -12,93 +12,92 @@ import {
     showPopup,
     tabOpenLink,
 } from '../content_scripts/common/utils.js';
-import type { MapKeyAnnotation, MapKeyOptions, InlineQueryConfig } from '../../@types/surfingkeys';
 
 var EXTENSION_ROOT_URL = "";
 function isInUIFrame() {
     return !document.location.href.startsWith("chrome://") && document.location.href.indexOf(EXTENSION_ROOT_URL) === 0;
 }
 
-    function _isDomainApplicable(domain: RegExp | undefined | null) {
+    function _isDomainApplicable(domain: any) {
         return !domain || domain.test(document.location.href) || domain.test(window.origin);
     }
 
-    function cmap(new_keystroke: string, old_keystroke: string, domain?: RegExp | null, _new_annotation?: string | MapKeyAnnotation) {
+    function cmap(new_keystroke: any, old_keystroke: any, domain: any, _new_annotation: any) {
         if (_isDomainApplicable(domain)) {
             dispatchSKEvent("front", ['addMapkey', "Omnibar", new_keystroke, old_keystroke]);
         }
     }
 
-const userDefinedFunctions: Record<string, (...args: unknown[]) => void> = {};
-function mapkey(keys: string, annotation: MapKeyAnnotation | string, jscode: (...args: unknown[]) => void, options?: MapKeyOptions) {
+const userDefinedFunctions: Record<string, any> = {};
+function mapkey(keys: any, annotation: any, jscode: any, options: any) {
     if (!options || _isDomainApplicable(options.domain)) {
-        const opt: MapKeyOptions & { codeHasParameter?: number } = options || {};
+        const opt = options || {};
         userDefinedFunctions[`normal:${keys}`] = jscode;
         opt.codeHasParameter = jscode.length;
         dispatchSKEvent('api', ['mapkey', keys, annotation, opt]);
     }
 }
-function mapcmdkey(keys: string, unique_id: string, options?: MapKeyOptions) {
+function mapcmdkey(keys: any, unique_id: any, options: any) {
     if (!options || _isDomainApplicable(options.domain)) {
         dispatchSKEvent('api', ['mapcmdkey', keys, unique_id, options]);
     }
 }
-function imapkey(keys: string, annotation: MapKeyAnnotation | string, jscode: (...args: unknown[]) => void, options?: MapKeyOptions) {
+function imapkey(keys: any, annotation: any, jscode: any, options: any) {
     if (!options || _isDomainApplicable(options.domain)) {
         userDefinedFunctions[`insert:${keys}`] = jscode;
         dispatchSKEvent('api', ['imapkey', keys, annotation, options]);
     }
 }
-function vmapkey(keys: string, annotation: MapKeyAnnotation | string, jscode: (...args: unknown[]) => void, options?: MapKeyOptions) {
+function vmapkey(keys: any, annotation: any, jscode: any, options: any) {
     if (!options || _isDomainApplicable(options.domain)) {
         userDefinedFunctions[`visual:${keys}`] = jscode;
         dispatchSKEvent('api', ['vmapkey', keys, annotation, options]);
    }
 }
 
-const userDefinedCommands: Record<string, (...args: unknown[]) => void> = {};
-function addCommand(name: string, description: string, action: (...args: unknown[]) => void) {
+const userDefinedCommands: Record<string, any> = {};
+function addCommand(name: any, description: any, action: any) {
     userDefinedCommands[name] = action;
     dispatchSKEvent('front', ['addCommand', name, description]);
 }
 
-function map(new_keystroke: string, old_keystroke: string, domain?: RegExp | null, new_annotation?: string | MapKeyAnnotation) {
+function map(new_keystroke: any, old_keystroke: any, domain: any, new_annotation: any) {
     dispatchSKEvent('api', ['map', new_keystroke, old_keystroke, domain, new_annotation]);
 }
-function imap(new_keystroke: string, old_keystroke: string, domain?: RegExp | null, new_annotation?: string | MapKeyAnnotation) {
+function imap(new_keystroke: any, old_keystroke: any, domain: any, new_annotation: any) {
     dispatchSKEvent('api', ['imap', new_keystroke, old_keystroke, domain, new_annotation]);
 }
-function lmap(new_keystroke: string, old_keystroke: string, domain?: RegExp | null, new_annotation?: string | MapKeyAnnotation) {
+function lmap(new_keystroke: any, old_keystroke: any, domain: any, new_annotation: any) {
     dispatchSKEvent('api', ['lmap', new_keystroke, old_keystroke, domain, new_annotation]);
 }
-function vmap(new_keystroke: string, old_keystroke: string, domain?: RegExp | null, new_annotation?: string | MapKeyAnnotation) {
+function vmap(new_keystroke: any, old_keystroke: any, domain: any, new_annotation: any) {
     dispatchSKEvent('api', ['vmap', new_keystroke, old_keystroke, domain, new_annotation]);
 }
 
-const functionsToListSuggestions: Record<string, (response: string, request: Record<string, string>) => Promise<string[]> | string[]> = {};
+const functionsToListSuggestions: Record<string, any> = {};
 
-let inlineQuery: InlineQueryConfig | undefined;
-let hintsFunction: ((element: Element, shiftKey: boolean) => void) | undefined;
-let onClipboardReadFn: ((text: string) => void) | undefined;
-let onEditorWriteFn: ((data: string) => void) | undefined;
+let inlineQuery: any;
+let hintsFunction: any;
+let onClipboardReadFn: any;
+let onEditorWriteFn: any;
 let userScriptTask = () => {};
-let hintsCreationResolve: ((found: unknown) => void) | null = null;
-let _pendingOnEnter: ((item: unknown, ctrlKey: boolean, shiftKey: boolean) => void) | null = null;
+let hintsCreationResolve: any;
+let _pendingOnEnter: ((...args: any[]) => void) | null = null;
 initSKFunctionListener("user", {
-    callUserFunction: (keys: unknown, para: unknown) => {
-        if (userDefinedFunctions.hasOwnProperty(keys as string)) {
-            userDefinedFunctions[keys as string](para);
+    callUserFunction: (keys: any, para: any) => {
+        if (userDefinedFunctions.hasOwnProperty(keys)) {
+            userDefinedFunctions[keys](para);
         }
     },
-    executeUserCommand: (name: unknown, args: unknown) => {
-        if (userDefinedCommands.hasOwnProperty(name as string)) {
-            userDefinedCommands[name as string](...(args as unknown[]));
+    executeUserCommand: (name: any, args: any) => {
+        if (userDefinedCommands.hasOwnProperty(name)) {
+            userDefinedCommands[name](...args);
         }
     },
-    getSearchSuggestions: async (url: unknown, response: unknown, request: unknown, callbackId: unknown, _origin: unknown) => {
-        if (functionsToListSuggestions.hasOwnProperty(url as string)) {
+    getSearchSuggestions: async (url: any, response: any, request: any, callbackId: any, _origin: any) => {
+        if (functionsToListSuggestions.hasOwnProperty(url)) {
             try {
-                const ret = await functionsToListSuggestions[url as string](response as string, request as Record<string, string>);
+                const ret = await functionsToListSuggestions[url](response, request);
                 dispatchSKEvent("front", [callbackId, ret]);
             } catch (e) {
                 console.error("Search suggestion callback error:", e);
@@ -106,70 +105,67 @@ initSKFunctionListener("user", {
             }
         }
     },
-    performInlineQuery: (query: unknown, callbackId: unknown, _origin: unknown) => {
-        const url = (typeof(inlineQuery!.url) === "function") ? inlineQuery!.url(query as string) : inlineQuery!.url + query;
+    performInlineQuery: (query: any, callbackId: any, _origin: any) => {
+        const url = (typeof(inlineQuery.url) === "function") ? inlineQuery.url(query) : inlineQuery.url + query;
         httpRequest({
             url,
-            headers: inlineQuery!.headers
-        }, function(res: { error?: string; [key: string]: unknown }) {
+            headers: inlineQuery.headers
+        }, function(res: any) {
             if (res.error) {
                 dispatchSKEvent("front", [callbackId, `${res.error} on ${url}`]);
             } else {
-                dispatchSKEvent("front", [callbackId, inlineQuery!.parseResult(res as unknown as string)]);
+                dispatchSKEvent("front", [callbackId, inlineQuery.parseResult(res)]);
             }
         });
     },
     runUserScript: () => {
         userScriptTask();
     },
-    onClipboardRead: (resp: unknown) => {
-        onClipboardReadFn?.(resp as string);
+    onClipboardRead: (resp: any) => {
+        onClipboardReadFn(resp);
     },
-    onEditorWrite: (data: unknown) => {
-        onEditorWriteFn?.(data as string);
+    onEditorWrite: (data: any) => {
+        onEditorWriteFn(data);
     },
-    onHintClicked: (shiftKey: unknown, element: unknown) => {
+    onHintClicked: (shiftKey: any, element: any) => {
         if (typeof(hintsFunction) === 'function') {
-            hintsFunction(element as Element, shiftKey as boolean);
+            hintsFunction(element, shiftKey);
         }
     },
-    onHintCreated: (found: unknown) => {
+    onHintCreated: (found: any) => {
         if (hintsCreationResolve) {
             hintsCreationResolve(found);
             hintsCreationResolve = null;
         }
     },
-    userURLs_onEnter: (item: unknown, ctrlKey: unknown, shiftKey: unknown) => {
+    userURLs_onEnter: (item: any, ctrlKey: any, shiftKey: any) => {
         if (_pendingOnEnter) {
-            _pendingOnEnter(item, ctrlKey as boolean, shiftKey as boolean);
+            _pendingOnEnter(item, ctrlKey, shiftKey);
             _pendingOnEnter = null;
         }
     },
 }, true);
 
-function addSearchAlias(alias: string, prompt: string, search_url: string, search_leader_key?: string, suggestion_url?: string, callback_to_parse_suggestion?: (response: string, request: Record<string, string>) => Promise<string[]> | string[], only_this_site_key?: string, options?: Record<string, unknown>) {
+function addSearchAlias(alias: any, prompt: any, search_url: any, search_leader_key: any, suggestion_url: any, callback_to_parse_suggestion: any, only_this_site_key: any, options: any) {
     if (!/^[\u0000-\u007f]*$/.test(alias)) {
         throw `Invalid alias ${alias}, which must be ASCII characters.`;
     }
-    if (suggestion_url) {
-        functionsToListSuggestions[suggestion_url] = callback_to_parse_suggestion ?? (() => []);
-    }
+    functionsToListSuggestions[suggestion_url] = callback_to_parse_suggestion;
     dispatchSKEvent('api', ['addSearchAlias', alias, prompt, search_url, search_leader_key, suggestion_url, "user", only_this_site_key, options]);
 }
 
-function createCssSelectorForElements(cssSelector: string, elements: unknown) {
-    let els: HTMLElement[];
+function createCssSelectorForElements(cssSelector: any, elements: any) {
     if (elements instanceof HTMLElement) {
-        els = [elements];
-    } else if (Array.isArray(elements)) {
-        els = (elements as unknown[]).filter((m) => m instanceof HTMLElement) as HTMLElement[];
+        elements = [elements];
+    } else if (elements instanceof Array) {
+        elements = elements.filter((m) => m instanceof HTMLElement);
     } else {
-        els = [];
+        elements = [];
     }
-    els.forEach((m: HTMLElement) => {
+    elements.forEach((m: any) => {
         m.classList.add(cssSelector);
     });
-    return els.length;
+    return elements.length;
 }
 
 const api = {
@@ -190,39 +186,39 @@ const api = {
     map,
     mapcmdkey,
     mapkey,
-    unmap: (keystroke: string, domain?: RegExp) => {
+    unmap: (keystroke: any, domain: any) => {
         dispatchSKEvent('api', ['unmap', keystroke, domain]);
     },
-    iunmap: (keystroke: string, domain?: RegExp) => {
+    iunmap: (keystroke: any, domain: any) => {
         dispatchSKEvent('api', ['iunmap', keystroke, domain]);
     },
-    vunmap: (keystroke: string, domain?: RegExp) => {
+    vunmap: (keystroke: any, domain: any) => {
         dispatchSKEvent('api', ['vunmap', keystroke, domain]);
     },
-    unmapAllExcept: (keystrokes: string[], domain?: RegExp) => {
+    unmapAllExcept: (keystrokes: any, domain: any) => {
         dispatchSKEvent('api', ['unmapAllExcept', keystrokes, domain]);
     },
-    readText: (text: string, options?: Record<string, unknown>) => {
+    readText: (text: any, options: any) => {
         dispatchSKEvent('api', ['readText', text, options]);
     },
-    removeSearchAlias: (alias: string, search_leader_key?: string, only_this_site_key?: string) => {
+    removeSearchAlias: (alias: any, search_leader_key: any, only_this_site_key: any) => {
         dispatchSKEvent('api', ['removeSearchAlias', alias, search_leader_key, only_this_site_key]);
     },
-    searchSelectedWith: (se: string, onlyThisSite?: boolean, interactive?: boolean, alias?: string) => {
+    searchSelectedWith: (se: any, onlyThisSite: any, interactive: any, alias: any) => {
         dispatchSKEvent('api', ['searchSelectedWith', se, onlyThisSite, interactive, alias]);
     },
     tabOpenLink,
     Clipboard: {
-        write: (text: string) => {
+        write: (text: any) => {
             dispatchSKEvent('api', ['clipboard:write', text]);
         },
-        read: (cb: (text: string) => void) => {
+        read: (cb: any) => {
             onClipboardReadFn = cb;
             dispatchSKEvent('api', ['clipboard:read']);
         },
     },
     Hints: {
-        click: (links: string | unknown[], force?: boolean) => {
+        click: (links: any, force: any) => {
             if (typeof(links) !== 'string') {
                 const hintsClicking = "surfingkeys--hints--clicking";
                 if (createCssSelectorForElements(hintsClicking, links) === 0) {
@@ -232,7 +228,7 @@ const api = {
             }
             dispatchSKEvent('api', ['hints:click', links, force]);
         },
-        create: (cssSelector: string | unknown[], onHintKey: (element: Element, shiftKey: boolean) => void, attrs?: Record<string, unknown>) => {
+        create: (cssSelector: any, onHintKey: any, attrs: any) => {
             if (typeof(cssSelector) !== 'string') {
                 const hintsCreating = "surfingkeys--hints--creating";
                 if (createCssSelectorForElements(hintsCreating, cssSelector) === 0) {
@@ -247,13 +243,13 @@ const api = {
             dispatchSKEvent('api', ['hints:create', cssSelector, "user", attrs]);
             return promise;
         },
-        dispatchMouseClick: (element: Element) => {
+        dispatchMouseClick: (element: any) => {
             dispatchSKEvent('hints', ['dispatchMouseClick'], element);
         },
-        style: (css: string, mode?: string) => {
+        style: (css: any, mode: any) => {
             dispatchSKEvent('api', ['hints:style', css, mode]);
         },
-        setCharacters: (chars: string) => {
+        setCharacters: (chars: any) => {
             dispatchSKEvent('api', ['hints:setCharacters', chars]);
         },
         setNumeric: () => {
@@ -261,33 +257,33 @@ const api = {
         },
     },
     Normal: {
-        feedkeys: (keys: string) => {
+        feedkeys: (keys: any) => {
             dispatchSKEvent('api', ['normal:feedkeys', keys]);
         },
-        jumpVIMark: (mark: string) => {
+        jumpVIMark: (mark: any) => {
             dispatchSKEvent('api', ['normal:jumpVIMark', mark]);
         },
-        passThrough: (timeout?: number) => {
+        passThrough: (timeout: any) => {
             dispatchSKEvent('api', ['normal:passThrough', timeout]);
         },
-        scroll: (type: string) => {
+        scroll: (type: any) => {
             dispatchSKEvent('api', ['normal:scroll', type]);
         },
     },
     Visual: {
-        style: (element: string, style: string) => {
+        style: (element: any, style: any) => {
             dispatchSKEvent('api', ['visual:style', element, style]);
         },
     },
-    log: function(msg: unknown) {
+    log: function(msg: any) {
         dispatchSKEvent('api', ['log', msg]);
     },
     Front: {
-        registerInlineQuery: (args: InlineQueryConfig) => {
+        registerInlineQuery: (args: any) => {
             inlineQuery = args;
             dispatchSKEvent('api', ['front:registerInlineQuery']);
         },
-        showEditor: (element: string | Element, onWrite: (data: string) => void, type?: string, useNeovim?: boolean) => {
+        showEditor: (element: any, onWrite: any, type: any, useNeovim: any) => {
             if (typeof(element) !== 'string') {
                 const elementEditing = "surfingkeys--element--editing";
                 if (createCssSelectorForElements(elementEditing, element) === 0) {
@@ -298,7 +294,7 @@ const api = {
             onEditorWriteFn = onWrite;
             dispatchSKEvent('api', ['front:showEditor', element, type, useNeovim]);
         },
-        openOmnibar: (args: Record<string, unknown> & { onEnter?: (item: unknown, ctrlKey: boolean, shiftKey: boolean) => void }) => {
+        openOmnibar: (args: any) => {
             _pendingOnEnter = null;
             if (typeof args.onEnter === 'function') {
                 _pendingOnEnter = args.onEnter;
@@ -315,11 +311,11 @@ const api = {
     },
 };
 
-export default (extensionRootUrl: string, uf: (api: Record<string, unknown>, settings: Record<string, unknown>) => void) => {
+export default (extensionRootUrl: any, uf: any) => {
     EXTENSION_ROOT_URL = extensionRootUrl;
     if (isInUIFrame()) return;
     userScriptTask = () => {
-        var settings: Record<string, unknown> = {}, error = "";
+        var settings = {}, error = "";
         try {
             uf(api, settings);
         } catch(e) {

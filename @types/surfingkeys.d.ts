@@ -30,47 +30,14 @@ declare global {
         // HTML-like properties commonly used on Element without proper cast
         style: CSSStyleDeclaration;
         value: string;
-        onclick: ((this: Element, ev: MouseEvent) => unknown) | null;
-        onchange: ((this: Element, ev: Event) => unknown) | null;
-        onblur: ((this: Element, ev: FocusEvent) => unknown) | null;
-        onfocus: ((this: Element, ev: FocusEvent) => unknown) | null;
+        onclick: ((this: Element, ev: MouseEvent) => any) | null;
+        onchange: ((this: Element, ev: Event) => any) | null;
+        onblur: ((this: Element, ev: FocusEvent) => any) | null;
+        onfocus: ((this: Element, ev: FocusEvent) => any) | null;
         blur(): void;
         innerText: string;
         disabled: boolean;
-        readOnly: boolean;
         checked: boolean;
-        type: string;
-        isContentEditable: boolean;
-        offsetHeight: number;
-        offsetWidth: number;
-        offsetParent: Element | null;
-        selectionStart: number | null;
-        selectionEnd: number | null;
-        setSelectionRange(start: number, end: number, direction?: string): void;
-        scrollIntoViewIfNeeded?(): void;
-        scrollLeft: number;
-        scrollTop: number;
-        scrollHeight: number;
-        scrollWidth: number;
-        focus(options?: FocusOptions): void;
-        // Surfingkeys hint element custom properties
-        link: unknown;
-        label: string;
-        zIndex: string;
-        skColorIndex: number;
-        // Surfingkeys omnibar custom properties
-        uid: string;
-        url: string;
-        _item: unknown;
-        folder_name: string;
-        folderId: string;
-        query: string;
-        windowId: number;
-        cmd: string;
-        // Surfingkeys frontend custom properties
-        fromSurfingKeys: boolean;
-        newlyCreated?: boolean;
-        enableAutoFocus: boolean;
     }
 
     // NodeList/NodeListOf extensions
@@ -163,39 +130,21 @@ export interface MapKeyOptions {
     unique_id?: string;
 }
 
-export interface TrieNode {
-    meta?: Record<string, unknown>;
-    getMetas?: (filter: () => boolean) => Array<Record<string, unknown>>;
-    word?: string;
-    [key: string]: unknown;
-}
-
-export interface TrieMappings {
-    add(keys: string, meta: unknown): void;
-    remove(keys: string): TrieNode | null;
-    find(keys: string): TrieNode | null;
-    getWords(): string[];
-    meta?: {
-        annotation?: unknown;
-        repeatIgnore?: boolean;
-        [key: string]: unknown;
-    };
-    [key: string]: unknown;
-}
-
 export interface ModeInstance {
     name: string;
     statusLine: string;
     priority: number;
     activatedOnElement: boolean;
-    mappings: TrieMappings;
-    map_node: TrieMappings;
-    addEventListener(evtName: string, handler: (event: SKKeyboardEvent) => void): ModeInstance;
+    mappings: {
+        add(keys: string, meta: unknown): void;
+        remove(keys: string): unknown;
+        find(keys: string): unknown;
+    };
+    addEventListener(evtName: string, handler: (event: KeyboardEvent) => void): ModeInstance;
     enter(priority?: number, reentrant?: boolean): number;
     exit(peek?: boolean): void;
     onEnter?(): void;
-    onExit?(pos?: number): void;
-    [key: string]: unknown;
+    onExit?(pos: number): void;
 }
 
 export interface RuntimeMessage {
@@ -215,7 +164,7 @@ export interface CommandAPI {
     unmap(keystroke: string, domain?: RegExp): void;
     unmapAllExcept(keystrokes: string[], domain?: RegExp): void;
     mapcmdkey(keys: string, unique_id: string, options?: MapKeyOptions): void;
-    addSearchAlias(alias: string, prompt: string, url: string, searchLeaderKey?: string, suggestionUrl?: string, callbackToParseSuggestions?: (response: string) => string[] | Array<{ title?: string; url?: string }>): void;
+    addSearchAlias(alias: string, prompt: string, url: string, searchLeaderKey?: string, suggestionUrl?: string, callbackToParseSuggestions?: (response: string) => string[]): void;
     searchSelectedWith(se: string, onlyOnce?: boolean, query?: string, alias?: string): void;
     readText(text: string, tone?: number): void;
     RUNTIME(action: string, args?: Record<string, unknown> | null, callback?: (response: unknown) => void): void;
@@ -302,183 +251,4 @@ declare global {
         dispatch(action: string, payload?: unknown, expectResponse?: boolean): unknown;
         listActions(): string[];
     } | undefined;
-}
-
-// ─── SK Keyboard Event ────────────────────────────────────────────────────────
-/** KeyboardEvent extended by SurfingKeys with additional properties */
-export interface SKKeyboardEvent extends KeyboardEvent {
-    sk_keyName: string;
-    sk_suppressed?: boolean;
-    sk_stopPropagation?: boolean;
-}
-
-// ─── Mode types ───────────────────────────────────────────────────────────────
-/** Constructor type for the Mode class */
-export interface ModeConstructor {
-    new(name: string, statusLine?: string): ModeInstance;
-    handleMapKey(key: string): boolean;
-    showStatus(): void;
-    isSpecialKeyOf(key: string, specialKey: string): boolean;
-    init(): void;
-    stack(): ModeInstance[];
-}
-
-// ─── Trie constructor ─────────────────────────────────────────────────────────
-/** Constructor type for the Trie class (plain function constructor) */
-export interface TrieConstructor {
-    new(...args: unknown[]): TrieMappings;
-}
-
-// ─── Hints module ─────────────────────────────────────────────────────────────
-export type HintCallback = (element: Element | [Node, number, string], shiftKey: boolean) => void;
-
-export interface HintsModule {
-    create(cssSelector: string | RegExp | Element[], callback: ((element: Element | [Node, number, string], shiftKey?: boolean) => void) | null, attrs?: Record<string, unknown>): Promise<number>;
-    createInputLayer(): void;
-    dispatchMouseClick(element: Element | [Node, number, string], shiftKey?: boolean): void;
-    click(links: string | Element[], force?: boolean): void;
-    style(css: string, mode?: string): void;
-    setCharacters(chars: string): void;
-    setNumeric(): void;
-    getSelector?(): string | RegExp | Element[];
-}
-
-// ─── Clipboard manager ────────────────────────────────────────────────────────
-export interface ClipboardResponse {
-    data: string;
-}
-
-export interface ClipboardManager {
-    write(text: string): void;
-    read(callback: (response: ClipboardResponse) => void): void;
-}
-
-// ─── Front API ────────────────────────────────────────────────────────────────
-export interface FrontCommand {
-    action: string;
-    toFrontend?: boolean;
-    origin?: string;
-    id?: string;
-    ack?: boolean;
-    [key: string]: unknown;
-}
-
-export interface FrontAPI {
-    command(args: FrontCommand): void;
-    showEditor(element: string | Element, callback?: ((text: string) => void) | null, type?: string | null, useNeovim?: boolean): void;
-    showBanner(msg: string, timeout?: number): void;
-    showPopup(content: string): void;
-    hidePopup(): void;
-    openOmnibar?(args: Record<string, unknown>): void;
-    addSearchAlias?(alias: string, prompt: string, url: string, suggestionURL?: string, listSuggestion?: ((response: string, request?: Record<string, string>) => string[] | Promise<string[]>) | null, options?: Record<string, unknown>): void;
-    removeSearchAlias?(alias: string): void;
-    setHintsCharacters?(chars: string): void;
-    executeCommand?(cmd: string): void;
-    registerInlineQuery?(): void;
-    showUsage?(): void;
-    getUsage?(cb: (data: unknown) => void): void;
-    performInlineQuery?(query: string, pos: Record<string, number>, callback: (pos: Record<string, number>, result: unknown) => void): void;
-}
-
-// ─── Browser adapter ─────────────────────────────────────────────────────────
-export interface BrowserAdapter {
-    RUNTIME(action: string, args?: Record<string, unknown>, callback?: (response: unknown) => void): void;
-    readText(textOrCallback: string | ((text: string) => void)): void;
-}
-
-// ─── LLM types ────────────────────────────────────────────────────────────────
-export interface LLMMessage {
-    role: 'system' | 'user' | 'assistant';
-    content: string;
-}
-
-export interface LLMProvider {
-    name: string;
-    models: string[];
-    apiKey?: string;
-    baseUrl?: string;
-}
-
-// ─── Omnibar types ────────────────────────────────────────────────────────────
-export interface OmnibarItem {
-    title: string;
-    url?: string;
-    [key: string]: unknown;
-}
-
-export interface OmnibarHandler {
-    onEnter(item: OmnibarItem, ctrlKey: boolean, shiftKey: boolean): void;
-    onInput?(text: string): void;
-    onTabKey?(text: string): void;
-}
-
-// ─── Inline query config ─────────────────────────────────────────────────────
-export interface InlineQueryConfig {
-    url: string | ((query: string) => string);
-    headers?: Record<string, string>;
-    parseResult: (res: string) => string | string[];
-}
-
-// ─── Command registrar ────────────────────────────────────────────────────────
-export type CommandRegistrar = (
-    id: string,
-    annotation: MapKeyAnnotation | string,
-    handler: (args: string[]) => boolean | void
-) => void;
-
-// ─── Normal mode module ───────────────────────────────────────────────────────
-export interface NormalModule {
-    feedkeys(keys: string): void;
-    refreshScrollableElements(): Element[];
-    addVIMark(mark: string): void;
-    jumpVIMark(mark: string): void;
-    highlightElement(element: Element): void;
-    rotateFrame(): void;
-    [key: string]: unknown;
-}
-
-// ─── Visual mode module ───────────────────────────────────────────────────────
-export interface VisualModule {
-    toggle(mode?: string): void;
-    restore(): void;
-    star(): void;
-    feedkeys(keys: string): void;
-    next(backward: boolean): void;
-    getCursorPixelPos(): { top: number; left: number; height: number; width: number };
-    [key: string]: unknown;
-}
-
-// ─── Insert mode module ───────────────────────────────────────────────────────
-export interface InsertModule {
-    exit(): void;
-    [key: string]: unknown;
-}
-
-// ─── Extended Front API ───────────────────────────────────────────────────────
-/** Full FrontAPI including omnibar and tab methods available in command files */
-export interface FrontendAPI extends FrontAPI {
-    openOmnibar(args: Record<string, unknown>): void;
-    openOmniquery(args: { query: string; style?: string }): void;
-    chooseTab(): void;
-    groupTab(): void;
-    toggleStatus(on: boolean): void;
-    showUsage(): void;
-    performInlineQuery(
-        query: string,
-        pos: Record<string, number>,
-        callback: (pos: Record<string, number>, result: unknown) => void
-    ): void;
-}
-
-// ─── Chrome surfingkeys extension ─────────────────────────────────────────────
-/** Extended chrome namespace for Surfingkeys-native builds that expose extra APIs */
-export interface ChromeSurfingkeysAPI {
-    sendMouseEvent(type: number, x: number, y: number, flags: number): void;
-    translateCurrentPage(): void;
-}
-
-// ─── RUNTIME function with repeats ────────────────────────────────────────────
-export interface RuntimeFunction {
-    (action: string, args?: Record<string, unknown> | null, callback?: (response: Record<string, unknown>) => void): void;
-    repeats: number;
 }

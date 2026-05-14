@@ -1,35 +1,5 @@
 import { AwsClient } from 'aws4fetch';
 
-interface ParsedHeaders {
-    [name: string]: string | number | boolean | Uint8Array | Date;
-}
-
-interface ParsedMessage {
-    headers: ParsedHeaders;
-    payload: unknown;
-}
-
-interface LLMOpts {
-    onComplete: (message: Record<string, unknown>) => void;
-    onChunk: (chunk: string) => void;
-    model?: string;
-}
-
-interface LLMMessageContent {
-    type: string;
-    text?: string;
-}
-
-interface LLMMessageItem {
-    role: string;
-    content: string | LLMMessageContent[];
-}
-
-interface LLMRequest {
-    messages: LLMMessageItem[];
-    tools?: unknown;
-}
-
 class EventStreamParser {
     // https://smithy.io/2.0/aws/amazon-eventstream.html
     buffer: Uint8Array;
@@ -42,15 +12,14 @@ class EventStreamParser {
      * @param {Uint8Array|Buffer} chunk - Raw binary data chunk
      * @returns {Array} Array of parsed messages
      */
-    parse(chunk: Uint8Array | ArrayBuffer): ParsedMessage[] {
-        const chunkArray = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+    parse(chunk: any) {
         // Append new chunk to existing buffer
-        const newBuffer = new Uint8Array(this.buffer.length + chunkArray.length);
+        const newBuffer = new Uint8Array(this.buffer.length + chunk.length);
         newBuffer.set(this.buffer);
-        newBuffer.set(chunkArray, this.buffer.length);
+        newBuffer.set(chunk, this.buffer.length);
         this.buffer = newBuffer;
 
-        const messages: ParsedMessage[] = [];
+        const messages: any[] = [];
 
         while (this.buffer.length >= 16) { // Minimum message size is 16 bytes
             // Read total length (4 bytes)
@@ -75,7 +44,7 @@ class EventStreamParser {
             const payload = this.buffer.slice(payloadStart, payloadStart + payloadLength);
 
             // Create message object
-            const message: ParsedMessage = {
+            const message = {
                 headers,
                 payload: this.decodePayload(payload, headers)
             };
@@ -92,7 +61,7 @@ class EventStreamParser {
     /**
      * Read a 32-bit integer from the buffer
      */
-    readInt32(offset: number): number {
+    readInt32(offset: any) {
         return (this.buffer[offset] << 24) |
             (this.buffer[offset + 1] << 16) |
             (this.buffer[offset + 2] << 8) |
@@ -102,8 +71,8 @@ class EventStreamParser {
     /**
      * Parse headers from the buffer
      */
-    parseHeaders(start: number, length: number): ParsedHeaders {
-        const headers: ParsedHeaders = {};
+    parseHeaders(start: any, length: any) {
+        const headers: Record<string, any> = {};
         let position = start;
         const end = start + length;
 
@@ -140,7 +109,7 @@ class EventStreamParser {
     /**
      * Parse header value based on type
      */
-    parseHeaderValue(type: number, data: Uint8Array): string | number | boolean | Uint8Array | Date {
+    parseHeaderValue(type: any, data: any) {
         switch (type) {
             case 0: // boolean false
                 return true;
@@ -169,7 +138,7 @@ class EventStreamParser {
     /**
      * Decode payload based on content-type header
      */
-    decodePayload(payload: Uint8Array, headers: ParsedHeaders): unknown {
+    decodePayload(payload: any, headers: any) {
         const contentType = headers[':content-type'];
 
         if (!contentType) {
@@ -180,7 +149,7 @@ class EventStreamParser {
             return JSON.parse(new TextDecoder().decode(payload));
         }
 
-        if (typeof contentType === 'string' && contentType.startsWith('text/')) {
+        if (contentType.startsWith('text/')) {
             return new TextDecoder().decode(payload);
         }
 
@@ -188,28 +157,16 @@ class EventStreamParser {
     }
 }
 
-interface BedrockFunction {
-    (req: LLMRequest, opts: LLMOpts): void;
-    init?: (opts: BedrockInitOpts) => void;
-}
-
-interface BedrockInitOpts {
-    accessKeyId: string;
-    secretAccessKey: string;
-    sessionToken?: string;
-    model?: string;
-}
-
 let awsClient: (AwsClient & { bedrockModel?: string }) | null = null;
-const bedrock: BedrockFunction = function(req: LLMRequest, opts: LLMOpts) {
+function bedrock(req: any, opts: any) {
     if (!awsClient) {
         opts.onChunk("Please set up bedrock correctly.");
         opts.onComplete({});
         return;
     }
 
-    function transformMessages(messages: LLMMessageItem[]) {
-        return messages.map((m: LLMMessageItem) => {
+    function transformMessages(messages: any) {
+        return messages.map((m: any) => {
             if (typeof(m.content) === "string") {
                 return {"role": m.role, "content": [ {"type": "text", "text": m.content} ]};
             } else {
@@ -243,8 +200,8 @@ const bedrock: BedrockFunction = function(req: LLMRequest, opts: LLMOpts) {
     }).then(response => {
         const reader = response.body!.getReader();
 
-        let content_block: Record<string, unknown> = {};
-        let message: Record<string, unknown> = {};
+        let content_block: any = {};
+        let message: any = {};
         function readStream() {
             reader.read().then(({done, value}) => {
                 if (done) {
@@ -254,52 +211,44 @@ const bedrock: BedrockFunction = function(req: LLMRequest, opts: LLMOpts) {
                 // Convert the chunk to text
                 const messages = parser.parse(value);
                 for (var m of messages) {
-                    const msgHeaders = m.headers as ParsedHeaders;
-                    const msgPayload = m.payload as Record<string, unknown>;
-                    if (msgHeaders[":message-type"] === "exception") {
-                        opts.onChunk((msgPayload as { message: string }).message);
+                    if (m.headers[":message-type"] === "exception") {
+                        opts.onChunk(m.payload.message);
                         opts.onComplete({});
                     } else {
-                        const e = JSON.parse(atob(msgPayload.bytes as string)) as Record<string, unknown>;
+                        let e = JSON.parse(atob(m.payload.bytes));
                         switch (e.type) {
-                            case "message_start": {
-                                const em = e.message as Record<string, unknown>;
-                                message = { "role": em.role, "content": [] };
+                            case "message_start":
+                                message = { "role": e.message.role, "content": [] };
                                 break;
-                            }
-                            case "content_block_start": {
-                                const cb = e.content_block as Record<string, unknown>;
-                                switch (cb.type) {
+                            case "content_block_start":
+                                switch (e.content_block.type) {
                                     case "text":
-                                        content_block = cb;
-                                        opts.onChunk(content_block.text as string);
+                                        content_block = e.content_block;
+                                        opts.onChunk(content_block.text);
                                         break;
                                     case "tool_use":
-                                        content_block = cb;
+                                        content_block = e.content_block;
                                         content_block.input_json = "";
                                         break;
                                 }
                                 break;
-                            }
-                            case "content_block_delta": {
-                                const delta = e.delta as Record<string, unknown>;
-                                switch (delta.type) {
+                            case "content_block_delta":
+                                switch (e.delta.type) {
                                     case "text_delta":
-                                        opts.onChunk(delta.text as string);
-                                        content_block.text = (content_block.text as string ?? '') + (delta.text as string);
+                                        opts.onChunk(e.delta.text);
+                                        content_block.text += e.delta.text;
                                         break;
                                     case "input_json_delta":
-                                        content_block.input_json = (content_block.input_json as string ?? '') + (delta.partial_json as string);
+                                        content_block.input_json += e.delta.partial_json;
                                         break;
                                 }
                                 break;
-                            }
                             case "content_block_stop":
                                 if (content_block.type === "tool_use") {
-                                    content_block.input = JSON.parse(content_block.input_json as string);
+                                    content_block.input = JSON.parse(content_block.input_json);
                                     delete content_block.input_json;
                                 }
-                                (message.content as unknown[]).push(content_block);
+                                message.content.push(content_block);
                                 break;
                             case "message_stop":
                                 opts.onComplete(message);
@@ -323,9 +272,9 @@ const bedrock: BedrockFunction = function(req: LLMRequest, opts: LLMOpts) {
             });
         }
     }).catch(error => console.error('Error:', error));
-};
+}
 
-bedrock.init = function(opts: BedrockInitOpts) {
+bedrock.init = function(opts: any) {
     const clientOpts = {
         accessKeyId: opts.accessKeyId,
         secretAccessKey: opts.secretAccessKey,
@@ -335,25 +284,20 @@ bedrock.init = function(opts: BedrockInitOpts) {
     awsClient.bedrockModel = opts.model;
 };
 
-interface OllamaFunction {
-    (req: LLMRequest, opts: LLMOpts): void;
-    model?: string;
-}
-
-const ollama: OllamaFunction = function(req: LLMRequest, opts: LLMOpts) {
+function ollama(req: any, opts: any) {
     const decoder = new TextDecoder();
 
     fetch('http://localhost:11434/api/chat', {
         method: 'POST',
         body: JSON.stringify({
-            "model": ollama.model || 'qwen2.5-coder:32b',
+            "model": (ollama as any).model || 'qwen2.5-coder:32b',
             "tools": req.tools,
             "messages": req.messages
         })
     }).then(response => {
         const reader = response.body!.getReader();
 
-        let toolCalls: unknown[] = [];
+        let toolCalls: any[] = [];
         let content = "";
         function readStream() {
             reader.read().then(({done, value}) => {
@@ -365,19 +309,18 @@ const ollama: OllamaFunction = function(req: LLMRequest, opts: LLMOpts) {
                 try {
                     const chunk = decoder.decode(value).trim();
                     for (const c of chunk.split("\n")) {
-                        const o = JSON.parse(c) as Record<string, unknown>;
-                        const omsg = o.message as Record<string, unknown>;
-                        if (omsg.content) {
-                            content += omsg.content as string;
-                            opts.onChunk(omsg.content as string);
+                        const o = JSON.parse(c);
+                        if (o.message.content) {
+                            content += o.message.content;
+                            opts.onChunk(o.message.content);
                         }
-                        if (omsg.tool_calls) {
-                            toolCalls.push(...(omsg.tool_calls as unknown[]));
+                        if (o.message.tool_calls) {
+                            toolCalls.push(...o.message.tool_calls);
                         }
                         if (o.done) {
-                            omsg.content = (omsg.content as string) + content;
-                            omsg.tool_calls = toolCalls;
-                            opts.onComplete(omsg);
+                            o.message.content = o.message.content + content;
+                            o.message.tool_calls = toolCalls;
+                            opts.onComplete(o.message);
                         }
                     }
                 } catch (e) {
@@ -396,39 +339,33 @@ const ollama: OllamaFunction = function(req: LLMRequest, opts: LLMOpts) {
             readStream();
         }
     }).catch(error => console.error('Error:', error));
-};
-
-interface DeepseekFunction {
-    (req: LLMRequest, opts: LLMOpts): void;
-    apiKey?: string;
-    model?: string;
 }
 
-const deepseek: DeepseekFunction = function(req: LLMRequest, opts: LLMOpts) {
+function deepseek(req: any, opts: any) {
     const decoder = new TextDecoder();
-    if (!deepseek.apiKey) {
+    if (!(deepseek as any).apiKey) {
         opts.onChunk("Please set api key for DeepSeek correctly.");
         opts.onComplete({});
         return;
     }
 
-    function transformMessages(reqMsgs: LLMMessageItem[]) {
-        return reqMsgs.map((m: LLMMessageItem) => {
+    function transformMessages(reqMsgs: any) {
+        return reqMsgs.map((m: any) => {
             if (typeof(m.content) === "string") {
                 return m;
             } else {
-                return {"role": m.role, "content": (m.content[0] as LLMMessageContent).text};
+                return {"role": m.role, "content": m.content[0].text};
             }
         });
     }
     fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
         headers: {
-            "Authorization": `Bearer ${deepseek.apiKey}`,
+            "Authorization": `Bearer ${(deepseek as any).apiKey}`,
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            "model": deepseek.model || 'deepseek-chat',
+            "model": (deepseek as any).model || 'deepseek-chat',
             "stream": true,
             "messages": transformMessages(req.messages)
         })
@@ -457,12 +394,10 @@ const deepseek: DeepseekFunction = function(req: LLMRequest, opts: LLMOpts) {
                             opts.onComplete({role: "assistant", content: [content_block]});
                             return;
                         }
-                        const o = JSON.parse(data) as Record<string, unknown>;
-                        const choices = o.choices as Array<Record<string, unknown>>;
-                        if (choices && (choices[0].delta as Record<string, unknown>)) {
-                            const delta = choices[0].delta as Record<string, unknown>;
-                            opts.onChunk(delta.content as string);
-                            content_block.text += delta.content as string;
+                        const o = JSON.parse(data);
+                        if (o.choices && o.choices[0].delta) {
+                            opts.onChunk(o.choices[0].delta.content);
+                            content_block.text += o.choices[0].delta.content;
                         }
                     }
                 } catch (e) {
@@ -476,43 +411,38 @@ const deepseek: DeepseekFunction = function(req: LLMRequest, opts: LLMOpts) {
 
         readStream();
     }).catch(error => console.error('Error:', error));
-};
-
-interface GeminiFunction {
-    (req: LLMRequest, opts: LLMOpts): void;
-    apiKey?: string;
 }
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference
-const gemini: GeminiFunction = function(req: LLMRequest, opts: LLMOpts) {
+function gemini(req: any, opts: any) {
     const decoder = new TextDecoder();
-    if (!gemini.apiKey) {
+    if (!(gemini as any).apiKey) {
         opts.onChunk("Please set api key for Gemini correctly.");
         opts.onComplete({});
         return;
     }
 
     let model = opts.model || "gemini-2.0-flash";
-    function buildParts(m: LLMMessageItem) {
+    function buildParts(m: any) {
         if (typeof(m.content) === "string") {
             return {"role": m.role, "parts": [ {"text": m.content} ]};
         } else {
-            return {"role": m.role, "parts": [ {"text": (m.content[0] as LLMMessageContent).text} ]};
+            return {"role": m.role, "parts": [ {"text": m.content[0].text} ]};
         }
     }
-    function transformMessages(reqMsgs: LLMMessageItem[]) {
-        const result: Record<string, unknown> = {};
+    function transformMessages(reqMsgs: any) {
+        let req: any = {};
         if (reqMsgs.length > 0 && reqMsgs[0].role === "system") {
             const text = reqMsgs[0].content;
-            result.systemInstruction = { "parts": [ { text } ] };
-            result.contents = reqMsgs.slice(1).map(buildParts);
+            req.systemInstruction = { "parts": [ { text } ] };
+            req.contents = reqMsgs.slice(1).map(buildParts);
         } else {
-            result.contents = reqMsgs.map(buildParts);
+            req.contents = reqMsgs.map(buildParts);
         }
-        return result;
+        return req;
     }
 
-    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${gemini.apiKey}`, {
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${(gemini as any).apiKey}`, {
         method: 'POST',
         headers: {
             "Content-Type": "application/json",
@@ -537,21 +467,19 @@ const gemini: GeminiFunction = function(req: LLMRequest, opts: LLMOpts) {
                         return readStream();
                     }
                     if (buffer[buffer.length - 1] === "]") {
-                        const messages = JSON.parse(buffer) as Array<Record<string, unknown>>;
+                        const messages = JSON.parse(buffer);
                         for (const o of messages) {
-                            if (o.error && (o.error as Record<string, unknown>).message) {
-                                opts.onChunk((o.error as Record<string, unknown>).message as string);
+                            if (o.error && o.error.message) {
+                                opts.onChunk(o.error.message);
                                 opts.onComplete({});
                                 return;
                             }
                             if (o.candidates) {
-                                const candidates = o.candidates as Array<Record<string, unknown>>;
-                                if (candidates[0].content) {
-                                    const parts = ((candidates[0].content as Record<string, unknown>).parts as Array<Record<string, unknown>>);
-                                    opts.onChunk(parts[0].text as string);
-                                    content_block.text += parts[0].text as string;
+                                if (o.candidates[0].content) {
+                                    opts.onChunk(o.candidates[0].content.parts[0].text);
+                                    content_block.text += o.candidates[0].content.parts[0].text;
                                 }
-                                if (candidates[0].finishReason && candidates[0].finishReason === "STOP") {
+                                if (o.candidates[0].finishReason && o.candidates[0].finishReason === "STOP") {
                                     opts.onComplete({role: "assistant", content: [content_block]});
                                 }
                             }
@@ -569,47 +497,40 @@ const gemini: GeminiFunction = function(req: LLMRequest, opts: LLMOpts) {
 
         readStream();
     }).catch(error => console.error('Error:', error));
-};
-
-interface CustomFunction {
-    (req: LLMRequest, opts: LLMOpts): (() => void) | void;
-    serviceUrl?: string;
-    apiKey?: string;
-    model?: string;
 }
 
-const custom: CustomFunction = function(req: LLMRequest, opts: LLMOpts) {
+function custom(req: any, opts: any) {
     const decoder = new TextDecoder();
     const abortCtrl = new AbortController();
 
-    if (!custom.serviceUrl) {
+    if (!(custom as any).serviceUrl) {
         opts.onChunk('Please set service URL correctly.');
         opts.onComplete({});
         return;
     }
-    if (!custom.apiKey) {
+    if (!(custom as any).apiKey) {
         opts.onChunk('Please set API key correctly.');
         opts.onComplete({});
         return;
     }
-    if (!custom.model) {
+    if (!(custom as any).model) {
         opts.onChunk('Please set model correctly.');
         opts.onComplete({});
         return;
     }
 
-    const transformMessages = (msgs: LLMMessageItem[]) => msgs.map((m: LLMMessageItem) =>
-        typeof m.content === 'string' ? m : { role: m.role, content: (m.content[0] as LLMMessageContent).text }
+    const transformMessages = (msgs: any) => msgs.map((m: any) =>
+        typeof m.content === 'string' ? m : { role: m.role, content: m.content[0].text }
     );
 
-    fetch(custom.serviceUrl, {
+    fetch((custom as any).serviceUrl, {
         method: 'POST',
         headers: {
-            Authorization: `Bearer ${custom.apiKey}`,
+            Authorization: `Bearer ${(custom as any).apiKey}`,
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            model: custom.model,
+            model: (custom as any).model,
             stream: true,
             messages: transformMessages(req.messages),
         }),
@@ -638,11 +559,9 @@ const custom: CustomFunction = function(req: LLMRequest, opts: LLMOpts) {
                                     opts.onComplete({ role: 'assistant', content: [contentBlock] });
                                     return;
                                 }
-                                const o = JSON.parse(data) as Record<string, unknown>;
-                                const choices = o.choices as Array<Record<string, unknown>> | undefined;
-                                const delta = choices?.[0]?.delta as Record<string, unknown> | undefined;
-                                if (delta?.content) {
-                                    const txt = delta.content as string;
+                                const o = JSON.parse(data);
+                                if (o.choices?.[0]?.delta?.content) {
+                                    const txt = o.choices[0].delta.content;
                                     opts.onChunk(txt);
                                     contentBlock.text += txt;
                                 }
@@ -654,7 +573,7 @@ const custom: CustomFunction = function(req: LLMRequest, opts: LLMOpts) {
                         readStream();
                     })
                     .catch(err => {
-                        if ((err as Error).name !== 'AbortError') {
+                        if (err.name !== 'AbortError') {
                             console.error('Stream error:', err);
                         }
                     });
@@ -663,13 +582,13 @@ const custom: CustomFunction = function(req: LLMRequest, opts: LLMOpts) {
             readStream();
         })
         .catch(err => {
-            if ((err as Error).name !== 'AbortError') {
+            if (err.name !== 'AbortError') {
                 console.error('Fetch error:', err);
             }
         });
 
     return () => abortCtrl.abort();
-};
+}
 
 export default {
     bedrock,

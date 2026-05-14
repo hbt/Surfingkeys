@@ -1,22 +1,11 @@
 import { LOG } from '../common/utils.js';
 import { runtime } from './common/runtime.js';
 import {
+    getBrowserName,
     getDocumentOrigin
 } from './common/utils.js';
 
-
-interface UIMessage {
-    action?: string;
-    toFrontend?: boolean;
-    toContent?: boolean;
-    origin?: string;
-    frameHeight?: string;
-    pointerEvents?: string;
-    data?: unknown;
-    [key: string]: unknown;
-}
-
-function createUiHost(browser: Record<string, unknown>, onload: (host: HTMLDivElement) => void) {
+function createUiHost(browser: any, onload: any) {
     var uiHost = document.createElement("div");
     uiHost.style.display = "block";
     uiHost.style.opacity = "1";
@@ -38,8 +27,8 @@ function createUiHost(browser: Record<string, unknown>, onload: (host: HTMLDivEl
     uiHost.attachShadow({ mode: 'open' });
     uiHost.shadowRoot!.appendChild(ifr);
 
-    function _onWindowMessage(event: MessageEvent) {
-        var _message = event.data && event.data.surfingkeys_uihost_data as UIMessage | undefined;
+    function _onWindowMessage(event: any) {
+        var _message = event.data && event.data.surfingkeys_uihost_data;
         if (_message === undefined) {
             return;
         }
@@ -47,7 +36,7 @@ function createUiHost(browser: Record<string, unknown>, onload: (host: HTMLDivEl
             // forward message to frontend
             ifr.contentWindow!.postMessage({surfingkeys_frontend_data: _message}, frontEndURL);
             if (_message.toFrontend && event.source
-                && ['showStatus', 'showEditor', 'openOmnibar', 'openFinder', 'chooseTab'].indexOf(_message.action!) !== -1) {
+                && ['showStatus', 'showEditor', 'openOmnibar', 'openFinder', 'chooseTab'].indexOf(_message.action) !== -1) {
                 if (!activeContent || activeContent.window !== event.source) {
                     // reset active Content
 
@@ -59,8 +48,8 @@ function createUiHost(browser: Record<string, unknown>, onload: (host: HTMLDivEl
                     }
 
                     activeContent = {
-                        window: event.source as Window,
-                        origin: _message.origin!
+                        window: event.source,
+                        origin: _message.origin
                     };
 
                     activeContent.window.postMessage({surfingkeys_content_data: {
@@ -95,13 +84,13 @@ function createUiHost(browser: Record<string, unknown>, onload: (host: HTMLDivEl
 
     }, {once: true});
 
-    var lastStateOfPointerEvents = "none", _origOverflowY: string | undefined;
-    var _actions: Record<string, (msg: UIMessage) => void> = {}, activeContent: { window: Window; origin: string } | null = null;
-    _actions['initFrontendAck'] = function(_response: UIMessage) {
+    var lastStateOfPointerEvents = "none", _origOverflowY: any;
+    var _actions: Record<string, any> = {}, activeContent: { window: any; origin: any } | null = null;
+    _actions['initFrontendAck'] = function(_response: any) {
         onload(uiHost);
     };
-    _actions['setFrontFrame'] = function(response: UIMessage) {
-        ifr.style.height = response.frameHeight ?? "";
+    _actions['setFrontFrame'] = function(response: any) {
+        ifr.style.height = response.frameHeight;
         if (response.pointerEvents) {
             ifr.style.pointerEvents = response.pointerEvents;
         }
@@ -110,8 +99,8 @@ function createUiHost(browser: Record<string, unknown>, onload: (host: HTMLDivEl
             ifr.blur();
             // test with https://docs.google.com/ and https://web.whatsapp.com/
             if (lastStateOfPointerEvents !== response.pointerEvents && activeContent) {
-                if (typeof browser.getBackFocusFromFrontend === 'function') {
-                    (browser.getBackFocusFromFrontend as () => void)();
+                if (browser.getBackFocusFromFrontend) {
+                    browser.getBackFocusFromFrontend();
                 } else {
                     activeContent.window.postMessage({surfingkeys_content_data: {
                         action: 'getBackFocus'
@@ -120,11 +109,11 @@ function createUiHost(browser: Record<string, unknown>, onload: (host: HTMLDivEl
             }
             if (document.body) {
                 document.body.style.animationFillMode = "";
-                document.body.style.overflowY = _origOverflowY ?? "";
+                document.body.style.overflowY = _origOverflowY;
             }
         } else {
-            if (typeof browser.focusFrontend === 'function') {
-                (browser.focusFrontend as (ifr: HTMLIFrameElement) => void)(ifr);
+            if (browser.focusFrontend) {
+                browser.focusFrontend(ifr);
             }
             if (document.body) {
                 document.body.style.animationFillMode = "none";
@@ -134,21 +123,21 @@ function createUiHost(browser: Record<string, unknown>, onload: (host: HTMLDivEl
                 document.body.style.overflowY = 'visible';
             }
         }
-        lastStateOfPointerEvents = response.pointerEvents ?? "";
+        lastStateOfPointerEvents = response.pointerEvents;
     };
 
-    (uiHost as HTMLDivElement & { tryDetach: () => void }).tryDetach = function() {
+    (uiHost as any).tryDetach = function() {
         ifr.contentWindow!.postMessage({surfingkeys_frontend_data: {
             action: 'destroyFrontend',
             ack: true,
             origin: getDocumentOrigin()
         }}, frontEndURL);
     };
-    _actions['destroyFrontendAck'] = function(response: UIMessage) {
+    _actions['destroyFrontendAck'] = function(response: any) {
         if (response.data === true) {
             runtime.postTopMessage({surfingkeys_content_data: {
                 action: 'frontendDestroyed',
-            }} as unknown as Parameters<typeof runtime.postTopMessage>[0]);
+            }} as any);
             window.removeEventListener('message', _onWindowMessage, true);
             uiHost.remove();
         } else {

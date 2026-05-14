@@ -1,11 +1,11 @@
-import { RUNTIME } from '../content_scripts/common/runtime';
+import { RUNTIME } from '../content_scripts/common/runtime.ts';
 import {
     setSanitizedContent,
-} from '../content_scripts/common/utils';
+} from '../content_scripts/common/utils.ts';
 document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
     const { normal, api } = (evt as CustomEvent).detail;
 
-    const np  = new Promise((resolve, _reject) => {
+    const np  = new Promise((resolve, reject) => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore: neovim_lib.js is a runtime-only module without type declarations
         import(/* webpackIgnore: true */ './neovim_lib.js').then((nvimlib: { default: () => Promise<{ nvim: unknown; destroy: unknown }> }) => {

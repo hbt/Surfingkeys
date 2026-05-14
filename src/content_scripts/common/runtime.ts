@@ -1,10 +1,5 @@
 import type { SurfingKeysConf, RuntimeMessage } from '../../../@types/surfingkeys';
 
-// Response type from background: a dynamic object — callers destructure it by expected keys.
-// Using Record<string, unknown> would force callers to narrow on every property access,
-// so we use a branded index-signature type to carry the semantics without `any`.
-export type RuntimeResponse = Record<string, unknown>;
-
 function dispatchSKEvent(type: string, args?: unknown[], target?: EventTarget): void {
     if (target === undefined) {
         target = document;
@@ -25,28 +20,25 @@ function dispatchSKEvent(type: string, args?: unknown[], target?: EventTarget): 
  *   console.log(response);
  * });
  */
-function RUNTIME(action: string, args?: Record<string, unknown> | null, callback?: (response: Record<string, unknown>) => void): void {
+function RUNTIME(action: string, args?: Record<string, unknown> | null, callback?: (response: any) => void): void {
     var actionsRepeatBackground = ['closeTab', 'nextTab', 'previousTab', 'moveTab', 'moveToWindowMagic', 'copyTabUrlsMagic', 'reloadTab', 'setZoom', 'focusTabByIndex', 'closeTabMagic', 'reloadTabMagic', 'tabGotoIndex'];
     (args = args || {}).action = action;
     if (actionsRepeatBackground.indexOf(action) !== -1) {
         // if the action can only be repeated in background, pass repeats to background with args,
         // and set RUNTIME.repeats 1, so that it won't be repeated in foreground's _handleMapKey
-        args.repeats = (RUNTIME as unknown as { repeats: number }).repeats;
-        (RUNTIME as unknown as { repeats: number }).repeats = 1;
+        args.repeats = (RUNTIME as any).repeats;
+        (RUNTIME as any).repeats = 1;
     }
     try {
         args.needResponse = callback !== undefined;
-        chrome.runtime.sendMessage(args as unknown as Record<string, string>, callback as unknown as (response: unknown) => void);
+        chrome.runtime.sendMessage(args as any, callback as any);
         if (action === 'read') {
-            runtime.on('onTtsEvent', callback as unknown as (msg: RuntimeMessage, sender: chrome.runtime.MessageSender, response: (r: unknown) => void) => void);
+            runtime.on('onTtsEvent', callback as any);
         }
     } catch (e) {
         dispatchSKEvent("front", ['showPopup', '[runtime exception] ' + e]);
     }
 }
-
-// Internal handler map type
-type HandlerMap = Record<string, (msg: RuntimeMessage, sender: chrome.runtime.MessageSender, response: (r: unknown) => void) => void>;
 
 const runtime = (function() {
     const self: {
@@ -59,12 +51,12 @@ const runtime = (function() {
         getCaseSensitive(query: string): boolean;
     } = {
         // Methods are assigned below
-        on: null as unknown as (message: string, cb: (msg: RuntimeMessage, sender: chrome.runtime.MessageSender, response: (r: unknown) => void) => void) => void,
-        bookMessage: null as unknown as (message: string, cb: (msg: RuntimeMessage, sender: chrome.runtime.MessageSender, response: (r: unknown) => void) => void) => boolean,
-        releaseMessage: null as unknown as (message: string) => void,
-        getTopURL: null as unknown as (cb: (url: string) => void) => void,
-        postTopMessage: null as unknown as (msg: RuntimeMessage) => void,
-        getCaseSensitive: null as unknown as (query: string) => boolean,
+        on: null as any,
+        bookMessage: null as any,
+        releaseMessage: null as any,
+        getTopURL: null as any,
+        postTopMessage: null as any,
+        getCaseSensitive: null as any,
         conf: {
             autoSpeakOnInlineQuery: false,
             lastKeys: [] as string[],
@@ -125,36 +117,36 @@ const runtime = (function() {
             useNeovim: false,
             useLocalMarkdownAPI: true
         },
-    }, _handlers: HandlerMap = {};
+    }, _handlers = {};
 
     const getTopURLPromise = new Promise(function(resolve, _reject) {
         if (window === top) {
             resolve(window.location.href);
         } else {
             RUNTIME("getTopURL", null, function(rs) {
-                resolve((rs as { url: string }).url);
+                resolve(rs.url);
             });
         }
     });
 
     self.on = function(message, cb) {
-        _handlers[message] = cb;
+        (_handlers as any)[message] = cb;
     };
     self.bookMessage = function(message, cb) {
-        if (_handlers[message]) {
+        if ((_handlers as any)[message]) {
             return false;
         } else {
-            _handlers[message] = cb;
+            (_handlers as any)[message] = cb;
             return true;
         }
     };
     self.releaseMessage = function(message) {
-        delete _handlers[message];
+        delete (_handlers as any)[message];
     };
 
     chrome.runtime.onMessage.addListener(function(msg, sender, response) {
-        if (_handlers[msg.subject]) {
-            _handlers[msg.subject](msg, sender, response);
+        if ((_handlers as any)[msg.subject]) {
+            (_handlers as any)[msg.subject](msg, sender, response);
         }
     });
 

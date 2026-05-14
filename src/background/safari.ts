@@ -5,7 +5,7 @@ import {
     start
 } from './start.js';
 
-function loadRawSettings(keys: string | string[] | null, cb: (data: Record<string, unknown>) => void, defaultSet: Record<string, unknown>) {
+function loadRawSettings(keys: any, cb: any, defaultSet: any) {
     var rawSet = defaultSet || {};
     chrome.storage.local.get(null, function(localSet) {
         var localSavedAt = localSet.savedAt || 0;
@@ -32,17 +32,17 @@ function loadRawSettings(keys: string | string[] | null, cb: (data: Record<strin
     });
 }
 
-function _applyProxySettings(_proxyConf: unknown) {
+function _applyProxySettings(_proxyConf: any) {
 }
 
 function _setNewTabUrl(){
     return  "favorites://";
 }
 
-function _getContainerName(_self: unknown, _response: unknown){
+function _getContainerName(_self: any, _response: any){
 }
 
-function getLatestHistoryItem(_text: string, _maxResults: number, _cb: (items: chrome.history.HistoryItem[]) => void) {
+function getLatestHistoryItem(_text: any, _maxResults: any, _cb: any) {
 }
 
 start({

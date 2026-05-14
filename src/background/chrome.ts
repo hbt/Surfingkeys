@@ -48,7 +48,7 @@ installErrorHandlers('background');
  * @param {string} extensionId - The extension ID
  * @returns {Promise<void>}
  */
-async function openRequiredExtensionTabs(extensionId: string) {
+async function openRequiredExtensionTabs(extensionId: any) {
     const extensionsPageUrl = 'chrome://extensions/';
     const errorsPageUrl = `chrome://extensions/?errors=${extensionId}`;
 
@@ -131,7 +131,7 @@ async function detectDebugMode() {
  * @param {string} targetUrl - The chrome://extensions URL to search for
  * @returns {Promise<chrome.tabs.Tab|null>} Existing tab or null
  */
-async function findExtensionTab(targetUrl: string): Promise<chrome.tabs.Tab | null> {
+async function findExtensionTab(targetUrl: any): Promise<chrome.tabs.Tab | null> {
     return new Promise((resolve) => {
         chrome.tabs.query({}, (tabs) => {
             // Chrome doesn't allow extensions to see chrome:// URLs in tab.url
@@ -147,7 +147,7 @@ async function findExtensionTab(targetUrl: string): Promise<chrome.tabs.Tab | nu
     });
 }
 
-function loadRawSettings(keys: string | string[] | null, cb: (data: Record<string, unknown>) => void, defaultSet: Record<string, unknown>) {
+function loadRawSettings(keys: any, cb: any, defaultSet: any) {
     var rawSet = defaultSet || {};
     chrome.storage.local.get(null, function(localSet) {
         var localSavedAt = localSet.savedAt || 0;
@@ -176,7 +176,7 @@ function loadRawSettings(keys: string | string[] | null, cb: (data: Record<strin
     });
 }
 
-function _applyProxySettings(proxyConf: Record<string, unknown> & { proxyMode?: string; autoproxy_hosts?: string[][]; proxy?: string[] }) {
+function _applyProxySettings(proxyConf: any) {
     // Chrome doesn't allow modifying regular-scoped settings in incognito contexts
     if (chrome.extension.inIncognitoContext) {
         console.warn('[PROXY] Skipping proxy settings in incognito context');
@@ -186,19 +186,18 @@ function _applyProxySettings(proxyConf: Record<string, unknown> & { proxyMode?: 
     if (!proxyConf.proxyMode || proxyConf.proxyMode === 'clear') {
         chrome.proxy.settings.clear({scope: 'regular'});
     } else {
-        var autoproxy_pattern = proxyConf.autoproxy_hosts!.map(function(h: string[]) {
-            return h.filter(function(a: string) {
+        var autoproxy_pattern = proxyConf.autoproxy_hosts.map(function(h: any) {
+            return h.filter(function(a: any) {
                 return a.indexOf('*') !== -1;
             }).join('|');
         });
-        var autoproxy_hosts = proxyConf.autoproxy_hosts!.map(function(h: string[]) {
-            return dictFromArray(h.filter(function(a: string) {
+        var autoproxy_hosts = proxyConf.autoproxy_hosts.map(function(h: any) {
+            return dictFromArray(h.filter(function(a: any) {
                 return a.indexOf('*') === -1;
             }), 1);
         });
-        const modeStr = (["always", "byhost", "bypass"].indexOf(proxyConf.proxyMode ?? '') !== -1) ? "pac_script" : (proxyConf.proxyMode ?? 'direct');
-        var config: chrome.proxy.ProxyConfig = {
-            mode: modeStr as chrome.proxy.ProxyConfig['mode'],
+        var config = {
+            mode: (["always", "byhost", "bypass"].indexOf(proxyConf.proxyMode) !== -1) ? "pac_script" : proxyConf.proxyMode,
             pacScript: {
                 data: `var pacGlobal = {
                         hosts: ${JSON.stringify(autoproxy_hosts)},
@@ -248,14 +247,14 @@ function _setNewTabUrl(){
     return  "https://www.google.com";
 }
 
-function _getContainerName(_self: unknown, _response: unknown){
+function _getContainerName(_self: any, _response: any){
 }
 
-function getLatestHistoryItem(text: string, maxResults: number, cb: (items: chrome.history.HistoryItem[]) => void) {
+function getLatestHistoryItem(text: any, maxResults: any, cb: any) {
     const _caseSensitive = text.toLowerCase() !== text;
     let endTime = new Date().getTime();
     let results: chrome.history.HistoryItem[] = [];
-    const impl = (endTime: number, maxResults: number, cb: (items: chrome.history.HistoryItem[]) => void) => {
+    const impl = (endTime: any, maxResults: any, cb: any) => {
         const prefetch = maxResults * Math.pow(10, Math.min(2, text.length));
         chrome.history.search({
             startTime: 0,
@@ -263,7 +262,7 @@ function getLatestHistoryItem(text: string, maxResults: number, cb: (items: chro
             text: "",
             maxResults: prefetch
         }, function(items) {
-            const filtered = filterByTitleOrUrl(items, text, false) as chrome.history.HistoryItem[];
+            const filtered = filterByTitleOrUrl(items, text, false);
             results = [...results, ...filtered];
             if (items.length < maxResults || results.length >= maxResults) {
                 // all items are scanned or we have got what we want
@@ -328,7 +327,7 @@ function generatePassword() {
 }
 
 let nativeConnected = false;
-const nvimServer: Record<string, unknown> = {};
+const nvimServer: any = {};
 function startNative() {
     return new Promise((resolve, _reject) => {
         const nm = chrome.runtime.connectNative("surfingkeys");

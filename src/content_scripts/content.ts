@@ -25,21 +25,13 @@ import createDefaultMappings from './common/default.js';
 
 import KeyboardUtils from './common/keyboardUtils';
 
-import type { CommandAPI, ModeInstance, SurfingKeysConf, BrowserAdapter } from '../../@types/surfingkeys';
-
-interface NormalModeInstance extends ModeInstance {
-    disable(onElement?: boolean): void;
-    enable(): void;
-    startLurk(): string;
-}
-
 /*
  * Apply custom key mappings for basic users, the input is like
  * {"a": "b", "b": "a", "c": "d"}
  */
-function applyBasicMappings(api: CommandAPI, normal: NormalModeInstance, mappings: Record<string, string>) {
+function applyBasicMappings(api: any, normal: any, mappings: any) {
     const originKeys = new Set(Object.keys(mappings));
-    const originMappings: Record<string, unknown> = {};
+    const originMappings: Record<string, any> = {};
     for (const originKey in mappings) {
         const newKey = mappings[originKey];
         // current new key is one original key that will be overrode later
@@ -61,15 +53,14 @@ function applyBasicMappings(api: CommandAPI, normal: NormalModeInstance, mapping
     }
 }
 
-function ensureRegex(regexName: keyof SurfingKeysConf) {
-    const confAny = runtime.conf as unknown as Record<string, unknown>;
-    const r = confAny[regexName];
-    if (r && typeof r === 'object' && 'source' in r && !(r instanceof RegExp)) {
-        confAny[regexName] = new RegExp((r as { source: string; flags: string }).source, (r as { source: string; flags: string }).flags);
+function ensureRegex(regexName: any) {
+    const r = (runtime.conf as any)[regexName];
+    if (r && r.source && !(r instanceof RegExp)) {
+        (runtime.conf as any)[regexName] = new RegExp(r.source, r.flags);
     }
 }
 
-function applyRuntimeConf(normal: NormalModeInstance) {
+function applyRuntimeConf(normal: any) {
     ensureRegex("prevLinkRegex");
     ensureRegex("nextLinkRegex");
     ensureRegex("clickablePat");
@@ -77,16 +68,15 @@ function applyRuntimeConf(normal: NormalModeInstance) {
         blocklistPattern: runtime.conf.blocklistPattern ? runtime.conf.blocklistPattern : undefined,
         lurkingPattern: runtime.conf.lurkingPattern ? runtime.conf.lurkingPattern : undefined
     }, function (resp) {
-        const r = resp as { state: string; noPdfViewer?: boolean; proxyMode?: string; proxy?: string };
-        let state = r.state;
+        let state = resp.state;
         if (state === "disabled") {
             normal.disable();
             dispatchSKEvent("front", ['showStatus', [undefined, undefined, undefined, ""]]);
         } else if (state === "lurking") {
             state = normal.startLurk();
         } else {
-            if (document.contentType === "application/pdf" && !r.noPdfViewer) {
-                _browser.usePdfViewer?.();
+            if (document.contentType === "application/pdf" && !resp.noPdfViewer) {
+                _browser.usePdfViewer();
             } else {
                 normal.enable();
             }
@@ -98,10 +88,10 @@ function applyRuntimeConf(normal: NormalModeInstance) {
                 status: state
             });
             var proxyMode = "";
-            if (state === "enabled" && runtime.conf.showProxyInStatusBar && r.proxyMode) {
-                proxyMode = r.proxyMode;
-                if (["byhost", "always"].indexOf(r.proxyMode) !== -1) {
-                    proxyMode = "{0}: {1}".format(r.proxyMode, r.proxy ?? "");
+            if (state === "enabled" && runtime.conf.showProxyInStatusBar && resp.proxyMode) {
+                proxyMode = resp.proxyMode;
+                if (["byhost", "always"].indexOf(resp.proxyMode) !== -1) {
+                    proxyMode = "{0}: {1}".format(resp.proxyMode, resp.proxy);
                 }
             }
             dispatchSKEvent("front", ['showStatus', [undefined, undefined, undefined, proxyMode]]);
@@ -110,29 +100,28 @@ function applyRuntimeConf(normal: NormalModeInstance) {
 }
 
 
-function applySettings(api: CommandAPI, normal: NormalModeInstance, rs: Record<string, unknown>) {
+function applySettings(api: any, normal: any, rs: any) {
     for (var k in rs) {
         if (runtime.conf.hasOwnProperty(k)) {
-            (runtime.conf as unknown as Record<string, unknown>)[k] = rs[k];
+            (runtime.conf as any)[k] = rs[k];
         }
     }
     if ('findHistory' in rs) {
-        const fh = rs.findHistory as string[];
-        runtime.conf.lastQuery = fh.length ? fh[0] : "";
+        runtime.conf.lastQuery = rs.findHistory.length ? rs.findHistory[0] : "";
     }
     if (!rs.showAdvanced) {
         if (rs.basicMappings) {
-            applyBasicMappings(api, normal, rs.basicMappings as Record<string, string>);
+            applyBasicMappings(api, normal, rs.basicMappings);
         }
         if (rs.disabledSearchAliases) {
-            for (const key in rs.disabledSearchAliases as Record<string, unknown>) {
-                (api as CommandAPI & { removeSearchAlias?: (key: string) => void }).removeSearchAlias?.(key);
+            for (const key in rs.disabledSearchAliases) {
+                api.removeSearchAlias(key);
             }
         }
     } else if (!rs.isMV3 && rs.snippets && !document.location.href.startsWith(chrome.runtime.getURL("/"))) {
-        var settings: Record<string, unknown> = {}, error = "";
+        var settings = {}, error = "";
         try {
-            (new Function('settings', 'api', rs.snippets as string))(settings, api);
+            (new Function('settings', 'api', rs.snippets))(settings, api);
         } catch (e) {
             error = (e as Error).toString();
         }
@@ -150,7 +139,7 @@ function applySettings(api: CommandAPI, normal: NormalModeInstance, rs: Record<s
  * @param {Object} modes - Object containing mode instances {normal, insert, visual, hints}
  * @returns {Map} Registry mapping unique_id -> command metadata
  */
-function buildCommandRegistry(modes: Record<string, ModeInstance | null>) {
+function buildCommandRegistry(modes: any) {
     const registry = new Map();
     const modesToScan = [modes.normal, modes.insert, modes.visual, modes.hints];
 
@@ -158,17 +147,15 @@ function buildCommandRegistry(modes: Record<string, ModeInstance | null>) {
         if (!mode || !mode.mappings) return;
 
         // getMetas requires a criterion function, we use it to collect all metas
-        const getMetas = mode.mappings.getMetas as ((filter: () => boolean) => Array<Record<string, unknown>>) | undefined;
-        if (!getMetas) return;
-        const allMetas = getMetas(() => true);
+        const allMetas = mode.mappings.getMetas(() => true);
 
-        allMetas.forEach((meta: Record<string, unknown>) => {
+        allMetas.forEach((meta: any) => {
             // Check if annotation has unique_id
             const annotation = meta.annotation;
             let unique_id = null;
 
             if (typeof annotation === 'object' && annotation !== null && !Array.isArray(annotation)) {
-                unique_id = (annotation as Record<string, unknown>).unique_id;
+                unique_id = annotation.unique_id;
             }
 
             if (unique_id) {
@@ -202,7 +189,6 @@ function _initModules() {
     const front = createFront(insert, normal, hints, visual, _browser);
 
     const api = createAPI(clipboard, insert, normal, hints, visual, front, _browser);
-    const apiCmd = api as unknown as CommandAPI;
     createDefaultMappings(api, clipboard, insert, normal, hints, visual, front, _browser);
 
     // Build and inject command registry after all default mappings are loaded
@@ -237,11 +223,10 @@ function _initModules() {
 
                 // Mirror _handleMapKey: ensure RUNTIME.repeats defaults to 1
                 // so background actions (reloadTab, closeTab, etc.) get a valid repeat count.
-                const runtimeWithRepeats = RUNTIME as unknown as { repeats: number };
                 if (repeatsOverride !== undefined) {
-                    runtimeWithRepeats.repeats = repeatsOverride;
-                } else if (runtimeWithRepeats.repeats === undefined || runtimeWithRepeats.repeats === null) {
-                    runtimeWithRepeats.repeats = 1;
+                    (RUNTIME as any).repeats = repeatsOverride;
+                } else if ((RUNTIME as any).repeats === undefined || (RUNTIME as any).repeats === null) {
+                    (RUNTIME as any).repeats = 1;
                 }
                 cmd.code();
                 document.documentElement.dataset.skInvokeResult = 'true';
@@ -262,7 +247,7 @@ function _initModules() {
     document.addEventListener('__sk_conf_override', (e) => {
         const { key, value } = (e as CustomEvent).detail;
         if (Object.prototype.hasOwnProperty.call(runtime.conf, key)) {
-            (runtime.conf as unknown as Record<string, unknown>)[key] = value;
+            (runtime.conf as any)[key] = value;
             document.documentElement.dataset.skConfOverrideResult = 'true';
         } else {
             document.documentElement.dataset.skConfOverrideResult = 'false';
@@ -275,43 +260,27 @@ function _initModules() {
         _browser.plugin({ front });
     }
 
-    dispatchSKEvent('defaultSettingsLoaded', [{normal, api: apiCmd}] as unknown[]);
+    dispatchSKEvent('defaultSettingsLoaded', [{normal, api}] as any);
     RUNTIME('getSettings', null, function(response) {
-        var rs = (response as { settings: Record<string, unknown> }).settings;
-        applySettings(apiCmd, normal, rs);
-        const disabledSearchAliases = rs['disabledSearchAliases'];
+        var rs = response.settings;
+        applySettings(api, normal, rs);
+        const disabledSearchAliases = rs.disabledSearchAliases;
         const getUsage = front.getUsage;
         const frontCommand = front.command;
-        dispatchSKEvent('userSettingsLoaded', [{settings: rs, disabledSearchAliases, getUsage, frontCommand}] as unknown[]);
+        dispatchSKEvent('userSettingsLoaded', [{settings: rs, disabledSearchAliases, getUsage, frontCommand}] as any);
     });
     return {
-        normal: normal as NormalModeInstance,
-        front: front as unknown as FrontModule,
-        api: apiCmd,
+        normal,
+        front,
+        api,
     };
 }
 
 
-type WindowWithSKExtras = Window & typeof globalThis & { frameId?: string; getFrameId?: () => string | undefined };
-
-interface FrontModule {
-    attach(): void;
-    detach(): void;
-    getUsage?: unknown;
-    command?: unknown;
-    [key: string]: unknown;
-}
-
-interface ModesResult {
-    normal: NormalModeInstance;
-    front: FrontModule;
-    api: CommandAPI;
-}
-
-function _initContent(modes: ModesResult) {
-    (window as WindowWithSKExtras).frameId = generateQuickGuid();
+function _initContent(modes: any) {
+    (window as any).frameId = generateQuickGuid();
     runtime.on('settingsUpdated', response => {
-        var rs = response.settings as Record<string, unknown>;
+        var rs = response.settings;
         applySettings(modes.api, modes.normal, rs);
     });
 
@@ -324,8 +293,8 @@ function _initContent(modes: ModesResult) {
     }
 }
 
-(window as WindowWithSKExtras).getFrameId = function () {
-    if (!(window as WindowWithSKExtras).frameId && window.innerWidth > 16 && window.innerHeight > 16
+(window as any).getFrameId = function () {
+    if (!(window as any).frameId && window.innerWidth > 16 && window.innerHeight > 16
         && document.body && document.body.childElementCount > 0
         && runtime.conf.ignoredFrameHosts.indexOf(window.origin) === -1
         && (!window.frameElement || (parseInt("0" + getComputedStyle(window.frameElement).zIndex) >= 0
@@ -338,28 +307,24 @@ function _initContent(modes: ModesResult) {
             dispatchSKEvent('user', ["runUserScript"]);
         }, 100);
     }
-    return (window as WindowWithSKExtras).frameId;
+    return (window as any).frameId;
 };
 Mode.init(window === top ? undefined : ()=> {
     window.addEventListener("focus", () => {
-        (window as WindowWithSKExtras).getFrameId?.();
+        (window as any).getFrameId();
     }, {once: true});
 });
 
-type BrowserModule = { RUNTIME: BrowserAdapter['RUNTIME']; readText: BrowserAdapter['readText']; usePdfViewer?: () => void; plugin?: (opts: Record<string, unknown>) => void; [key: string]: unknown };
-let _browser: BrowserModule;
-function start(browser?: Record<string, unknown>) {
-    _browser = (browser as BrowserModule | undefined) || {
-        RUNTIME: (action: string, args?: Record<string, unknown> | null, callback?: (response: unknown) => void) => {
-            RUNTIME(action, args, callback as ((response: Record<string, unknown>) => void) | undefined);
-        },
-        readText: () => {},
+let _browser: any;
+function start(browser?: any) {
+    _browser = browser || {
         usePdfViewer: () => {},
+        readText: () => {},
     };
     if (window === top) {
-        new Promise<ModesResult>((r, _j) => {
+        new Promise<any>((r, _j) => {
             if (window.location.href === chrome.runtime.getURL("/pages/options.html")) {
-                // @ts-expect-error — dynamic import of generated file, no type declarations
+                // @ts-ignore — dynamic import of generated file, no type declarations
                 import(/* webpackIgnore: true */ './pages/options.js').then((optionsLib) => {
                     optionsLib.default(
                         RUNTIME,
@@ -393,14 +358,14 @@ function start(browser?: Record<string, unknown>) {
             runtime.on('tabDeactivated', function() {
                 modes.front.detach();
             });
-            runtime.on('setScrollPos', function(msg: Record<string, unknown>, _sender, _response) {
+            runtime.on('setScrollPos', function(msg: any, _sender, _response) {
                 setTimeout(() => {
-                    document.scrollingElement!.scrollLeft = msg.scrollLeft as number;
-                    document.scrollingElement!.scrollTop = msg.scrollTop as number;
+                    document.scrollingElement!.scrollLeft = msg.scrollLeft;
+                    document.scrollingElement!.scrollTop = msg.scrollTop;
                 }, 1000);
             });
             runtime.on('showBanner', function(msg, _sender, _response) {
-                showBanner(msg.message as string, 3000);
+                showBanner(msg.message, 3000);
             });
             document.addEventListener("surfingkeys:ensureFrontEnd", function(_evt) {
                 modes.front.attach();
@@ -410,14 +375,14 @@ function start(browser?: Record<string, unknown>) {
                 title: document.title,
                 url: window.location.href
             }, function (resp) {
-                const r = resp as { index: number };
-                if (r.index > 0) {
+
+                if (resp.index > 0) {
                     var showTabIndexInTitle = function () {
                         skipObserver = true;
                         document.title = '[' + myTabIndex + '] ' + originalTitle;
                     };
 
-                    var myTabIndex = r.index,
+                    var myTabIndex = resp.index,
                         skipObserver = false,
                         originalTitle = document.title;
 
@@ -433,9 +398,8 @@ function start(browser?: Record<string, unknown>) {
                     showTabIndexInTitle();
 
                     runtime.on('tabIndexChange', function(msg, _sender, _response) {
-                        const tabIndex = msg.index as number;
-                        if (tabIndex !== myTabIndex) {
-                            myTabIndex = tabIndex;
+                        if (msg.index !== myTabIndex) {
+                            myTabIndex = msg.index;
                             showTabIndexInTitle();
                         }
                     });
