@@ -1,4 +1,7 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
+import * as fs from 'fs';
+
+const isDocker = fs.existsSync('/.dockerenv');
 import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { coverageSlug, readCoverageStats } from '../utils/coverage-utils';
@@ -121,6 +124,7 @@ test.describe('cmd_tab_close_playing (Playwright)', () => {
     });
 
     test('gxp closes an audible tab when one exists (may skip in headless)', async () => {
+        test.skip(!isDocker, 'audio playback detection requires Docker environment');
         // Open audio fixture page
         const audioPage = await context.newPage();
         await audioPage.goto(AUDIO_FIXTURE_URL, { waitUntil: 'load' });

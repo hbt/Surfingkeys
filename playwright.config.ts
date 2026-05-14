@@ -16,6 +16,7 @@ export default defineConfig({
     workers: 1,
     projects: [{ name: '' }],
     retries: 2,
+    maxFailures: process.env.PW_MAX_FAILURES !== undefined ? parseInt(process.env.PW_MAX_FAILURES) : 1,
     timeout: 30_000,
     globalTimeout: parseInt(process.env.PW_GLOBAL_TIMEOUT ?? String(5 * 60_000)),
     use: {
