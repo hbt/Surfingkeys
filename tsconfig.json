@@ -6,7 +6,7 @@
     "allowJs": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
-    "strictFunctionTypes": false,
+    "strictFunctionTypes": true,
     "strictBindCallApply": false,
     "noImplicitThis": true,
     "alwaysStrict": true,
