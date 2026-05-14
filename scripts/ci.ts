@@ -7,11 +7,14 @@ if (cmd === "report") {
   await import("./ci-report.ts").then(m => m.run(process.argv.slice(3)));
 } else if (cmd === "stop") {
   await import("./ci-stop.ts").then(m => m.run(process.argv.slice(3)));
+} else if (cmd === "restart") {
+  await import("./ci-restart.ts").then(m => m.run(process.argv.slice(3)));
 } else {
   console.error(
     "Usage: bun scripts/ci.ts <subcommand>\n" +
-    "  report   Show CI queue and run history\n" +
-    "  stop     Kill running Docker container on ctms-ops and clear the queue"
+    "  report    Show CI queue and run history\n" +
+    "  stop      Kill running Docker container on ctms-ops and clear the queue\n" +
+    "  restart   Stop container, clear queue, pull latest, restart ci-worker service"
   );
   process.exit(1);
 }
