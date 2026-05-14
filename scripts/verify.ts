@@ -5,7 +5,7 @@ export {};
  * Unified verification runner.
  *
  * Usage:
- *   bun scripts/verify.ts              # fast checks: lint + integrity + validate
+ *   bun scripts/verify.ts              # fast checks: lint + integrity + issues + typecheck + build
  *   bun scripts/verify.ts --tests      # fast + Playwright tests
  *   bun scripts/verify.ts --coverage   # fast + Playwright with V8 coverage
  *   bun scripts/verify.ts --full       # fast + coverage (subsumes tests)
@@ -48,6 +48,18 @@ const CHECKS: Check[] = [
         group: 'fast',
     },
     {
+        id: 'typecheck',
+        label: 'TypeScript (tsc --noEmit)',
+        cmd: ['tsc', '--noEmit'],
+        group: 'fast',
+    },
+    {
+        id: 'build',
+        label: 'Build (esbuild dev)',
+        cmd: ['npm', 'run', 'build:dev'],
+        group: 'fast',
+    },
+    {
         id: 'tests',
         // TODO(hbt) NEXT [verify] remove --grep-invert once capture tests Docker popup timing is fixed
         label: 'Playwright tests (Docker)',
@@ -76,6 +88,12 @@ const CHECKS: Check[] = [
         cmd: ['bun', 'scripts/check-upstream.ts'],
         group: 'personal',
     },
+    {
+        id: 'config-lint',
+        label: 'Config file lint',
+        cmd: ['bun', 'scripts/lint-config.ts'],
+        group: 'personal',
+    },
 ];
 
 function printHelp() {
@@ -86,10 +104,10 @@ Usage:
   bun scripts/verify.ts [flags]
 
 Flags:
-  (none)            Run fast checks (default): lint, integrity, issues
-  --fast    -f      Run fast checks: lint, integrity, issues
+  (none)            Run fast checks (default): lint, integrity, issues, typecheck, build
+  --fast    -f      Run fast checks: lint, integrity, issues, typecheck, build
   --slow    -s      Run slow checks: tests, coverage
-  --personal  -p    Run personal checks: custom-mappings audit
+  --personal  -p    Run personal checks: custom-mappings, upstream, config-lint
   --full            Run all checks: fast + slow + personal
   --only <id>       Run a single check by ID
   --help    -h      Print this usage message
