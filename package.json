@@ -34,7 +34,7 @@
     "test:playwright": "CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test npm run build:dev && bunx playwright test",
     "test:playwright:parallel": "CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test npm run build:dev && bun scripts/test-parallel.ts",
     "docker:build": "docker compose build",
-    "docker:test:playwright": "docker compose run --rm tests bash -c 'CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test node ./config/esbuild.config.js development && bunx playwright test'",
+    "docker:test:playwright": "docker compose run --rm tests bash -c 'CONFIG_SERVER_PORT=9602 BUILD_SUFFIX=-test node ./config/esbuild.config.js development && bunx playwright test \"$@\"' --",
     "docker:test:playwright:parallel": "GIT_HASH=$(git rev-parse --short HEAD) docker compose run --rm tests",
     "docker:cov:sequential": "GIT_HASH=$(git rev-parse --short HEAD) docker compose run --rm tests npm run cov:sequential",
     "docker:cov:parallel": "GIT_HASH=$(git rev-parse --short HEAD) docker compose run --rm tests npm run cov:parallel",
