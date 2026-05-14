@@ -272,7 +272,7 @@ Mode.finish = function (mode) {
     return ret;
 };
 
-Mode.handleMapKey = function(this: any, event, onNoMatched) {
+Mode.handleMapKey = function(this: any, event, onNoMatched?) {
     var key = event.sk_keyName;
     this.isTrustedEvent = this.__trust_all_events__ || event.isTrusted;
 
