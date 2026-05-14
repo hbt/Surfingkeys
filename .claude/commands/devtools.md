@@ -22,19 +22,31 @@ The eval relay lets you run arbitrary JS inside the Surfingkeys Chrome extension
 
 ## step0.session-checklist
 
-Run these before any eval call. Both must pass.
+Run the single canonical pre-eval check before any eval call:
 
 ```bash
-# 1. Config server running?
-./bin/dbg server-status
-# Expected: { "running": true }
-
-# 2. Panel connected? (requires F12 open in gchrb, Surfingkeys tab selected)
-curl -s http://localhost:9600/eval-status | jq .
-# Expected: { "panelConnected": true, "subscribers": 1 }
+./bin/dbg devtools-status
+# Expected: { "ok": true, "checks": [ ... all true ... ] }
 ```
 
-If either check fails, see the troubleshooting table below before proceeding.
+If `panel_connected` fails → run the automated fix:
+
+```bash
+./bin/dbg devtools-start | jq .
+# Expected: { "ok": true, "panelConnected": true, "windowId": "0x...", "elapsedMs": ... }
+
+# If it fails, inspect the step log:
+cat /tmp/dbg-devtools-start.jsonl | jq .
+```
+
+| Check | Fix |
+|-------|-----|
+| `server_reachable` fails | `./bin/dbg server-start` |
+| `panel_connected` fails | `./bin/dbg devtools-start` (automated) |
+| `sw_debugger_attached` fails | Close + reopen F12, click Surfingkeys tab |
+| `page_eval_works` fails | Ensure F12 is open on a regular page |
+
+If any check fails, see the troubleshooting table below before proceeding.
 
 ---
 
