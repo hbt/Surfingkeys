@@ -16,8 +16,8 @@ function isElementPositionRelative(elm) {
 }
 
 function startScrollNodeObserver(normal) {
-    var pendingUpdater = undefined, DOMObserver = new MutationObserver(function (mutations) {
-        var addedNodes = [];
+    var pendingUpdater: ReturnType<typeof setTimeout> | undefined = undefined, DOMObserver = new MutationObserver(function (mutations) {
+        var addedNodes: Node[] = [];
         for (var m of mutations) {
             for (var n of m.addedNodes) {
                 if (n.nodeType === Node.ELEMENT_NODE && !(n as any).fromSurfingKeys) {

@@ -71,7 +71,7 @@ export default function registerMisc(
                     window.location.replace(pdfUrl);
                 });
             } else {
-                if (document.querySelector("EMBED") && document.querySelector("EMBED").getAttribute("type") === "application/pdf") {
+                if (document.querySelector("EMBED") && document.querySelector("EMBED")!.getAttribute("type") === "application/pdf") {
                     RUNTIME('updateSettings', {
                         settings: {
                             "noPdfViewer": 0

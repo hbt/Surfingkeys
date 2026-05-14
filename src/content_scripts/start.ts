@@ -10,16 +10,16 @@ RUNTIME("getTopSites", null, function(response) {
         return `<li><a href="${u.url}"><i style="background:url(${favUrl}) no-repeat"></i>${u.title}</a></li>`;
     });
     setSanitizedContent(document.querySelector("#topSites>ul"), urls.join("\n"));
-    var source = document.getElementById('quickIntroSource').innerHTML;
+    var source = document.getElementById('quickIntroSource')!.innerHTML;
     setSanitizedContent(document.querySelector('#quickIntro'), marked.parse(source));
 
-    var screen1 = document.querySelector("#screen1");
+    var screen1 = document.querySelector("#screen1") as any;
     screen1.show();
     screen1.classList.add("fadeIn");
 
-    var screen2 = document.querySelector("#screen2");
+    var screen2 = document.querySelector("#screen2") as any;
 
-    document.getElementById('back').onclick = function() {
+    document.getElementById('back')!.onclick = function() {
         var cl = screen2.classList;
         cl.remove("fadeOut");
         cl.remove("fadeIn");
@@ -31,7 +31,7 @@ RUNTIME("getTopSites", null, function(response) {
         });
     };
 
-    document.querySelector('#show-full-list-of-surfingkeys>a').onclick = function() {
+    document.querySelector('#show-full-list-of-surfingkeys>a')!.onclick = function() {
         var cl = screen1.classList;
         cl.remove("fadeOut");
         cl.remove("fadeIn");
@@ -47,19 +47,19 @@ RUNTIME("getTopSites", null, function(response) {
 document.addEventListener("surfingkeys:userSettingsLoaded", function(evt) {
     const { getUsage } = (evt as CustomEvent).detail[0];
     getUsage(function(usage) {
-        var _usage = document.getElementById('sk_usage');
+        var _usage = document.getElementById("sk_usage") as any;
         setSanitizedContent(_usage, usage);
-        var keys = Array.from(_usage.querySelectorAll('div')).filter(function(d) {
-            return d.firstElementChild.matches(".kbd-span");
+        var keys: any[] = Array.from(_usage.querySelectorAll('div')).filter(function(d: any) {
+            return d.firstElementChild!.matches(".kbd-span");
         });
-        var randomTip = document.getElementById("randomTip");
+        var randomTip = document.getElementById("randomTip") as any;
         setInterval(function() {
             var i = Math.floor(Math.random()*100000%keys.length);
             var cl = randomTip.classList;
             cl.remove("fadeOut");
             cl.remove("fadeIn");
             cl.add("fadeOut");
-            randomTip.one('animationend', function() {
+            randomTip.one("animationend", function(this: any) {
                 setSanitizedContent(this, keys[i].innerHTML);
                 this.classList.add("fadeIn");
             });

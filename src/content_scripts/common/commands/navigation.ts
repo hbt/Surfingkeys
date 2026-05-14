@@ -148,8 +148,8 @@ export default function registerNavigation(
         description: "Open selected text or clipboard content as URL",
         tags: ["navigation", "clipboard", "link"]
     }, function() {
-        if (window.getSelection().toString()) {
-            tabOpenLink(window.getSelection().toString());
+        if (window.getSelection()?.toString()) {
+            tabOpenLink(window.getSelection()!.toString());
         } else {
             (clipboard as any).read(function(response: any) {
                 tabOpenLink(response.data);

@@ -626,7 +626,7 @@ function createOmnibar(front, clipboard) {
         setSanitizedContent(resultPageSpan, `${si + 1} - ${ei} / ${total}`);
         _page = _items.slice(si, ei);
         var query = self.input.value.trim();
-        var rxp = null;
+        var rxp: RegExp | null = null;
         if (query.length) {
             rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
         }
@@ -653,7 +653,7 @@ function createOmnibar(front, clipboard) {
         handler = handlers[args.type];
         if (!self.input) {
             self.input = _createInput();
-            document.querySelector("#sk_omnibarSearchArea").insertBefore(self.input, resultPageSpan);
+            document.querySelector("#sk_omnibarSearchArea")!.insertBefore(self.input, resultPageSpan);
         }
         _savedAargs = args;
         ui.classList.remove("sk_omnibar_middle");
@@ -1262,10 +1262,10 @@ function CloseTabs(omnibar) {
     };
     self.onEnter = function() {
         var items = omnibar.resultsDiv.querySelectorAll('#sk_omnibarSearchResult>ul>li');
-        var tabIds = [];
+        var tabIds: number[] = [];
         items.forEach(function(li) {
-            if (li.uid && li.uid[0] === 'T') {
-                var parts = li.uid.substr(1).split(":");
+            if ((li as any).uid && (li as any).uid[0] === 'T') {
+                var parts = (li as any).uid.substr(1).split(":");
                 tabIds.push(parseInt(parts[1]));
             }
         });
@@ -1313,12 +1313,12 @@ function OpenWindows(omnibar, front) {
             }
             let filtered = cached;
             const query = omnibar.input.value;
-            let rxp = null;
+            let rxp: RegExp | null = null;
             if (query && query.length) {
                 rxp = regexFromString(query, runtime.getCaseSensitive(query), false);
                 filtered = cached.filter(function(w) {
                     for (const t of w.tabs) {
-                        if (rxp.test(t.title) || rxp.test(t.url)) {
+                        if (rxp!.test(t.title) || rxp!.test(t.url)) {
                             return true;
                         }
                     }
@@ -1358,7 +1358,7 @@ function OpenVIMarks(omnibar) {
 
     self.onOpen = function() {
         var query = omnibar.input.value;
-        var urls = [];
+        var urls: any[] = [];
         RUNTIME('getSettings', {
             key: 'marks'
         }, function(response) {
@@ -1391,7 +1391,7 @@ function SearchEngine(omnibar, front) {
     var self: any = {};
     self.aliases = {};
 
-    var _pendingRequest = undefined; // timeout ID
+    var _pendingRequest: ReturnType<typeof setTimeout> | undefined = undefined; // timeout ID
     function clearPendingRequest() {
         if (_pendingRequest) {
             clearTimeout(_pendingRequest);
@@ -1537,7 +1537,7 @@ function Commands(omnibar, front) {
     var self: any = {
         focusFirstCandidate: false,
         prompt: ':',
-    }, items = {};
+    }, items: Record<string, any> = {};
 
     var _historyInc = 0;
 
@@ -1598,7 +1598,7 @@ function Commands(omnibar, front) {
 
     function parseCommand(cmdline) {
         var cmdline = cmdline.trim();
-        var tokens = [];
+        var tokens: string[] = [];
         var pendingToken = false;
         var part = '';
         for (var i = 0; i < cmdline.length; i++) {
@@ -1619,7 +1619,7 @@ function Commands(omnibar, front) {
 
     function execute(cmdline) {
         var args = parseCommand(cmdline);
-        var cmd = args.shift();
+        var cmd = args.shift()!;
         if (items.hasOwnProperty(cmd)) {
             var meta = items[cmd];
             meta.code.call(meta.code, args);

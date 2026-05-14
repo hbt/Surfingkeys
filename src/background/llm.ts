@@ -19,7 +19,7 @@ class EventStreamParser {
         newBuffer.set(chunk, this.buffer.length);
         this.buffer = newBuffer;
 
-        const messages = [];
+        const messages: any[] = [];
 
         while (this.buffer.length >= 16) { // Minimum message size is 16 bytes
             // Read total length (4 bytes)
@@ -157,7 +157,7 @@ class EventStreamParser {
     }
 }
 
-let awsClient = null;
+let awsClient: (AwsClient & { bedrockModel?: string }) | null = null;
 function bedrock(req, opts) {
     if (!awsClient) {
         opts.onChunk("Please set up bedrock correctly.");
@@ -177,7 +177,7 @@ function bedrock(req, opts) {
 
     const parser = new EventStreamParser();
 
-    awsClient.fetch(`https://bedrock-runtime.us-west-2.amazonaws.com/model/${awsClient.bedrockModel}/invoke-with-response-stream`, {
+    awsClient!.fetch(`https://bedrock-runtime.us-west-2.amazonaws.com/model/${awsClient!.bedrockModel}/invoke-with-response-stream`, {
         method: 'POST',
         headers: {
             "accept": "application/vnd.amazon.eventstream",
@@ -198,7 +198,7 @@ function bedrock(req, opts) {
             "messages": transformMessages(req.messages.slice(1))
         })
     }).then(response => {
-        const reader = response.body.getReader();
+        const reader = response.body!.getReader();
 
         let content_block: any = {};
         let message: any = {};
@@ -265,7 +265,7 @@ function bedrock(req, opts) {
         if (response.status == 200) {
             readStream();
         } else {
-            reader.read().then(({_done, value}) => {
+            reader.read().then(({value}) => {
                 const err = new TextDecoder().decode(value);
                 opts.onChunk(err);
                 opts.onComplete({});
@@ -295,9 +295,9 @@ function ollama(req, opts) {
             "messages": req.messages
         })
     }).then(response => {
-        const reader = response.body.getReader();
+        const reader = response.body!.getReader();
 
-        let toolCalls = [];
+        let toolCalls: any[] = [];
         let content = "";
         function readStream() {
             reader.read().then(({done, value}) => {
@@ -370,7 +370,7 @@ function deepseek(req, opts) {
             "messages": transformMessages(req.messages)
         })
     }).then(response => {
-        const reader = response.body.getReader();
+        const reader = response.body!.getReader();
 
         let content_block = { type: "text", text: "" };
         function readStream() {
@@ -449,7 +449,7 @@ function gemini(req, opts) {
         },
         body: JSON.stringify(transformMessages(req.messages))
     }).then(response => {
-        const reader = response.body.getReader();
+        const reader = response.body!.getReader();
 
         let buffer = "";
         let content_block = { type: "text", text: "" };
@@ -537,7 +537,7 @@ function custom(req, opts) {
         signal: abortCtrl.signal,
     })
         .then(resp => {
-            const reader = resp.body.getReader();
+            const reader = resp.body!.getReader();
             let contentBlock = { type: 'text', text: '' };
 
             const readStream = () => {

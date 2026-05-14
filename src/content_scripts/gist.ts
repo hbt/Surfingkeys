@@ -94,6 +94,6 @@ var Gist = (function() {
 
     return self;
 })();
-Gist.initGist('****************************************');
-Gist.readComment(1);
+Gist.initGist!('****************************************');
+Gist.readComment!(1);
 // Gist.newComment("abc");

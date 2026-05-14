@@ -9,7 +9,7 @@ function LOG(level, msg) {
 }
 
 function regexFromString(str, caseSensitive, highlight) {
-    var rxp = null;
+    var rxp: RegExp | null = null;
     const flags = caseSensitive ? "" : "i";
     str = str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
     if (highlight) {
@@ -27,7 +27,7 @@ function filterByTitleOrUrl(urls, query, caseSensitive) {
     if (query && query.length) {
         var rxp = regexFromString(query, caseSensitive, false);
         urls = urls.filter(function(b) {
-            return rxp.test(b.title) || rxp.test(b.url);
+            return rxp!.test(b.title) || rxp!.test(b.url);
         });
     }
     return urls;

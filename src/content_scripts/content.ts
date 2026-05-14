@@ -123,7 +123,7 @@ function applySettings(api, normal, rs) {
         try {
             (new Function('settings', 'api', rs.snippets))(settings, api);
         } catch (e) {
-            error = e.toString();
+            error = (e as Error).toString();
         }
         applyUserSettings({settings, error});
     }
@@ -360,8 +360,8 @@ function start(browser?) {
             });
             runtime.on('setScrollPos', function(msg: any, _sender, _response) {
                 setTimeout(() => {
-                    document.scrollingElement.scrollLeft = msg.scrollLeft;
-                    document.scrollingElement.scrollTop = msg.scrollTop;
+                    document.scrollingElement!.scrollLeft = msg.scrollLeft;
+                    document.scrollingElement!.scrollTop = msg.scrollTop;
                 }, 1000);
             });
             runtime.on('showBanner', function(msg, _sender, _response) {
@@ -393,7 +393,7 @@ function start(browser?) {
                             originalTitle = document.title;
                             showTabIndexInTitle();
                         }
-                    }).observe(document.querySelector("title"), { childList: true });;
+                    }).observe(document.querySelector("title")!, { childList: true });;
 
                     showTabIndexInTitle();
 

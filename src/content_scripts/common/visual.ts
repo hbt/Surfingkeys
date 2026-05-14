@@ -65,8 +65,8 @@ function createVisual(clipboard, hints) {
         matches.forEach(function(m) {
             const r = getTextRect(m[0], m[1])[0];
             m[2].forEach((mi) => {
-                mi.style.left = document.scrollingElement.scrollLeft + r.left + 'px';
-                mi.style.top = document.scrollingElement.scrollTop + r.top + 'px';
+                mi.style.left = document.scrollingElement!.scrollLeft + r.left + 'px';
+                mi.style.top = document.scrollingElement!.scrollTop + r.top + 'px';
             });
         });
     });
@@ -105,7 +105,7 @@ function createVisual(clipboard, hints) {
             select(matches[currentOccurrence]);
         }
     });
-    let selectionMark_ = null;
+    let selectionMark_: any[] | null = null;
     const clearSelectionMark = () => {
         if (selectionMark_) {
             selectionMark_.forEach((m) => {
@@ -287,7 +287,7 @@ function createVisual(clipboard, hints) {
         },
         feature_group: 9,
         code: function() {
-            document.scrollingElement.scrollTop = document.scrollingElement.scrollHeight;
+            document.scrollingElement!.scrollTop = document.scrollingElement!.scrollHeight;
             if (getBrowserName() !== "Firefox") {
                 modifySelection();
             } else {
@@ -314,7 +314,7 @@ function createVisual(clipboard, hints) {
             // there may be some fixed-position div for navbar on top on some pages.
             // so scrollIntoView can not send us top, as it's already in view.
             // explicitly set scrollTop 0 here.
-            document.scrollingElement.scrollTop = 0;
+            document.scrollingElement!.scrollTop = 0;
             currentOccurrence = 0;
             if (matches.length) {
                 dispatchSKEvent("front", ['showStatus', [undefined, undefined, currentOccurrence + 1 + ' / ' + matches.length]]);
@@ -414,7 +414,7 @@ function createVisual(clipboard, hints) {
         },
         feature_group: 9,
         code: function() {
-            clickLink(selection.focusNode.parentNode, false);
+            clickLink(selection.focusNode!.parentNode, false);
         }
     });
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Enter>"), {
@@ -427,7 +427,7 @@ function createVisual(clipboard, hints) {
         },
         feature_group: 9,
         code: function() {
-            clickLink(selection.focusNode.parentNode, true);
+            clickLink(selection.focusNode!.parentNode, true);
         }
     });
     self.mappings.add("zt", {
@@ -442,7 +442,7 @@ function createVisual(clipboard, hints) {
         code: function() {
             var offset = cursor.getBoundingClientRect().top;
             self.hideCursor();
-            document.scrollingElement.scrollTop += offset;
+            document.scrollingElement!.scrollTop += offset;
             self.showCursor();
         }
     });
@@ -458,7 +458,7 @@ function createVisual(clipboard, hints) {
         code: function() {
             var offset = cursor.getBoundingClientRect().top - window.innerHeight/2;
             self.hideCursor();
-            document.scrollingElement.scrollTop += offset;
+            document.scrollingElement!.scrollTop += offset;
             self.showCursor();
         }
     });
@@ -474,7 +474,7 @@ function createVisual(clipboard, hints) {
         code: function() {
             var offset = window.innerHeight - cursor.getBoundingClientRect().bottom;
             self.hideCursor();
-            document.scrollingElement.scrollTop -= offset;
+            document.scrollingElement!.scrollTop -= offset;
             self.showCursor();
         }
     });
@@ -551,7 +551,7 @@ function createVisual(clipboard, hints) {
         code: function() {
             var p = selection.focusNode;
             while (p !== document.body) {
-                p = p.parentElement;
+                p = p!.parentElement;
                 var textNodes = getTextNodes(p, /./);
                 var lastNode = textNodes[textNodes.length-1];
                 var range = selection.getRangeAt(0);
@@ -586,8 +586,8 @@ function createVisual(clipboard, hints) {
         }
     });
 
-    var selection = document.getSelection(),
-        matches = [],
+    var selection = document.getSelection()!,
+        matches: any[] = [],
         currentOccurrence = 0,
         state = 0,
         status = ['', 'Caret', 'Range'],
@@ -597,7 +597,7 @@ function createVisual(clipboard, hints) {
     cursor.style.zIndex = "2147483299";
 
     // f in visual mode
-    var visualf = 0, lastF = null;
+    var visualf = 0, lastF: any[] | null = null;
 
     function visualSeek(dir, chr) {
         self.hideCursor();
@@ -627,7 +627,7 @@ function createVisual(clipboard, hints) {
     }
 
     function getTextNodeByY(y) {
-        var node = null;
+        var node: Node | null = null;
         var treeWalker = getTextNodes(document.body, /./, 0);
         while (treeWalker.nextNode()) {
             var br = treeWalker.currentNode.parentNode.getBoundingClientRect();
@@ -647,7 +647,7 @@ function createVisual(clipboard, hints) {
     };
 
     self.showCursor = function () {
-        if (selection.focusNode && ((selection.focusNode as any).offsetHeight > 0 || (selection.focusNode.parentNode as any).offsetHeight > 0)) {
+        if (selection.focusNode && ((selection.focusNode as any).offsetHeight > 0 || (selection.focusNode!.parentNode as any).offsetHeight > 0)) {
             // https://developer.mozilla.org/en-US/docs/Web/API/Selection
             // If focusNode is a text node, this is the number of characters within focusNode preceding the focus. If focusNode is an element, this is the number of child nodes of the focusNode preceding the focus.
             let r = locateFocusNode(selection);
@@ -714,8 +714,8 @@ function createVisual(clipboard, hints) {
             return;
         }
 
-        let firstTextNode = null;
-        let firstAnyTextNode = null;
+        let firstTextNode: Node | null = null;
+        let firstAnyTextNode: Node | null = null;
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
         while (walker.nextNode()) {
             const n = walker.currentNode;
@@ -748,8 +748,8 @@ function createVisual(clipboard, hints) {
                 mark.className = className;
                 mark.style.position = "absolute";
                 mark.style.zIndex = "2147483299";
-                mark.style.left = document.scrollingElement.scrollLeft + r.left + 'px';
-                mark.style.top = document.scrollingElement.scrollTop + r.top + 'px';
+                mark.style.left = document.scrollingElement!.scrollLeft + r.left + 'px';
+                mark.style.top = document.scrollingElement!.scrollTop + r.top + 'px';
                 mark.style.width = r.width + 'px';
                 mark.style.height = r.height + 'px';
                 markHolder_.appendChild(mark);
@@ -811,7 +811,7 @@ function createVisual(clipboard, hints) {
     };
 
     self.emptySelection = function() {
-        document.getSelection().empty();
+        document.getSelection()!.empty();
     };
 
     self.onEnter = function() {
@@ -842,7 +842,7 @@ function createVisual(clipboard, hints) {
     self.toggle = function(ex) {
         switch (state) {
             case 1:
-                selection.extend(selection.anchorNode, selection.anchorOffset);
+                selection.extend(selection.anchorNode!, selection.anchorOffset);
                 _incState();
                 break;
             case 2:
@@ -874,12 +874,12 @@ function createVisual(clipboard, hints) {
     self.star = function() {
         if (selection.focusNode && selection.focusNode.nodeValue) {
             var query = getWordUnderCursor();
-            if (query.length && query !== ".") {
+            if (query && query.length && query !== ".") {
                 self.hideCursor();
                 var pos = [selection.focusNode, selection.focusOffset];
                 RUNTIME('updateInputHistory', { find: query });
                 self.visualClear();
-                highlight(new RegExp(query, runtime.getCaseSensitive(query) ? "" : "i"));
+                highlight(new RegExp(query!, runtime.getCaseSensitive(query!) ? "" : "i"));
                 selection.setPosition(pos[0] as Node, pos[1] as number);
                 self.showCursor();
             }
@@ -914,7 +914,7 @@ function createVisual(clipboard, hints) {
     function findNextTextNodeBy(query, caseSensitive, backwards) {
         var found = false;
         // window.find sometimes does not move selection forward
-        var firstNode = null;
+        var firstNode: Node | null = null;
         while (window.find(query, caseSensitive, backwards)) {
             if ((selection.anchorNode as any).splitText) {
                 found = true;
@@ -933,7 +933,7 @@ function createVisual(clipboard, hints) {
         // set caret to top in view
         selection.setPosition(getTextNodeByY(0), 0);
 
-        var scrollTop = document.scrollingElement.scrollTop,
+        var scrollTop = document.scrollingElement!.scrollTop,
             posToStartFind = [selection.anchorNode, selection.anchorOffset];
 
         var caseSensitive = runtime.getCaseSensitive(query);
@@ -945,17 +945,17 @@ function createVisual(clipboard, hints) {
         }
 
         if (findNextTextNodeBy(query, caseSensitive, false)) {
-            if (document.scrollingElement.scrollTop !== scrollTop) {
+            if (document.scrollingElement!.scrollTop !== scrollTop) {
                 // set new start position if there is no occurrence in current view.
-                scrollTop = document.scrollingElement.scrollTop;
+                scrollTop = document.scrollingElement!.scrollTop;
                 posToStartFind = [selection.anchorNode, selection.anchorOffset];
             }
             createMatchMark(selection.anchorNode, selection.anchorOffset, selection.focusNode, selection.focusOffset);
 
-            while (document.scrollingElement.scrollTop === scrollTop && findNextTextNodeBy(query, caseSensitive, false)) {
+            while (document.scrollingElement!.scrollTop === scrollTop && findNextTextNodeBy(query, caseSensitive, false)) {
                 createMatchMark(selection.anchorNode, selection.anchorOffset, selection.focusNode, selection.focusOffset);
             }
-            document.scrollingElement.scrollTop = scrollTop;
+            document.scrollingElement!.scrollTop = scrollTop;
             selection.setPosition(posToStartFind[0] as Node, posToStartFind[1] as number);
         }
 

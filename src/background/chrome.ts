@@ -52,7 +52,7 @@ async function openRequiredExtensionTabs(extensionId) {
     const extensionsPageUrl = 'chrome://extensions/';
     const errorsPageUrl = `chrome://extensions/?errors=${extensionId}`;
 
-    const promises = [];
+    const promises: Promise<unknown>[] = [];
 
     // Check if main extensions page exists
     const existingExtensionsTab = await findExtensionTab(extensionsPageUrl);
@@ -253,7 +253,7 @@ function _getContainerName(_self, _response){
 function getLatestHistoryItem(text, maxResults, cb) {
     const _caseSensitive = text.toLowerCase() !== text;
     let endTime = new Date().getTime();
-    let results = [];
+    let results: chrome.history.HistoryItem[] = [];
     const impl = (endTime, maxResults, cb) => {
         const prefetch = maxResults * Math.pow(10, Math.min(2, text.length));
         chrome.history.search({
@@ -268,7 +268,7 @@ function getLatestHistoryItem(text, maxResults, cb) {
                 // all items are scanned or we have got what we want
                 cb(results.slice(0, maxResults));
             } else {
-                endTime = items[items.length-1].lastVisitTime - 0.01;
+                endTime = (items[items.length-1]?.lastVisitTime ?? 0) - 0.01;
                 impl(endTime, maxResults, cb);
             }
         });
@@ -286,7 +286,7 @@ chrome.commands.onCommand.addListener(function(command) {
             chrome.tabs.query({}, function(tabs) {
                 console.log('[RESTARTEXT] Reloading', tabs.length, 'tabs');
                 tabs.forEach(function(tab) {
-                    chrome.tabs.reload(tab.id);
+                    chrome.tabs.reload(tab.id!);
                 });
 
                 // Delay reload so logs are visible
@@ -313,7 +313,7 @@ chrome.commands.onCommand.addListener(function(command) {
         case 'closeTab':
             chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
                 if (tabs.length > 0) {
-                    chrome.tabs.remove(tabs[0].id);
+                    chrome.tabs.remove(tabs[0].id!);
                 }
             });
             break;

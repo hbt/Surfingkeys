@@ -23,7 +23,7 @@ function createFront(insert, normal, hints, visual, browser) {
     // that will live in all content window except the frontend.html
     // as there is no need to make this object live in frontend.html.
 
-    var _uiUserSettings = [];
+    var _uiUserSettings: any[] = [];
     function applyUserSettings() {
         for (var cmd of _uiUserSettings) {
             self.command(cmd);
@@ -107,7 +107,7 @@ function createFront(insert, normal, hints, visual, browser) {
     var skCallbacks = {};
 
     self.performInlineQueryOnSelection = function(word) {
-        var b = document.getSelection().getRangeAt(0).getClientRects()[0];
+        var b = document.getSelection()!.getRangeAt(0).getClientRects()[0];
         self.performInlineQuery(word, b, function(pos, queryResult) {
             if (queryResult) {
                 dispatchSKEvent("front", ['showBubble', {
@@ -120,7 +120,7 @@ function createFront(insert, normal, hints, visual, browser) {
         });
     };
     function querySelectedWord() {
-        var selection = document.getSelection();
+        var selection = document.getSelection()!;
         var word = selection.toString().trim();
         if (word && !/[\W_]/.test(word) && word.length && selection.type === "Range") {
             self.performInlineQueryOnSelection(word);
@@ -136,7 +136,7 @@ function createFront(insert, normal, hints, visual, browser) {
     };
 
     _actions["getSearchSuggestions"] = function (message) {
-        var ret = null;
+        var ret: Promise<unknown> | null = null;
         if (_listSuggestions.hasOwnProperty(message.url)) {
             const listSuggestion = _listSuggestions[message.url];
             if (typeof listSuggestion === "function") {
@@ -224,7 +224,7 @@ function createFront(insert, normal, hints, visual, browser) {
         // https://brookhong.github.io/2021/04/18/brook-build-of-chromium.html
         if (elementBehindEditor.nodeName === "DIV") {
             if (elementBehindEditor.className === "CodeMirror-code") {
-                window.getSelection().selectAllChildren(elementBehindEditor);
+                window.getSelection()!.selectAllChildren(elementBehindEditor);
                 let dataTransfer = new DataTransfer();
                 dataTransfer.items.add(data, 'text/plain');
                 elementBehindEditor.dispatchEvent(new ClipboardEvent('paste', {clipboardData: dataTransfer}));
@@ -422,7 +422,7 @@ function createFront(insert, normal, hints, visual, browser) {
             _showQueryResult = function(result) {
                 showQueryResult(pos, result);
             };
-            (document.getElementById("proxyFrame") as HTMLIFrameElement).contentWindow.postMessage({surfingkeys_content_data: {
+            (document.getElementById("proxyFrame") as HTMLIFrameElement).contentWindow!.postMessage({surfingkeys_content_data: {
                 action: "performInlineQuery",
                 pos: pos,
                 query: query
@@ -473,7 +473,7 @@ function createFront(insert, normal, hints, visual, browser) {
         });
     };
 
-    let onDialogResponseOk = null;
+    let onDialogResponseOk: (() => void) | null = null;
     _actions["dialogResponse"] = function (message) {
         if (message.result === "Ok" && onDialogResponseOk) {
             onDialogResponseOk();

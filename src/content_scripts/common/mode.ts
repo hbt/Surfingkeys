@@ -9,7 +9,7 @@ import KeyboardUtils from './keyboardUtils';
 import { trackCommandUsage } from '../../common/usageTracker.js';
 import { getAnnotationString } from '../../common/commandMetadata.js';
 
-var mode_stack = [];
+var mode_stack: any[] = [];
 
 const Mode = function(this: any, name: string, statusLine?: string) {
     this.name = name;
@@ -111,7 +111,7 @@ Mode.isSpecialKeyOf = function(specialKey: string, keyToCheck: string): boolean 
 // This setting now is only turned on for Normal.
 // For Hints, we could not turn on it, as keyup should be propagated to Normal
 // to stop scrolling when holding a key.
-var keysNeedKeyupSuppressed = [];
+var keysNeedKeyupSuppressed: any[] = [];
 Mode.suppressKeyUp = function(keyCode) {
     if (keysNeedKeyupSuppressed.indexOf(keyCode) === -1) {
         keysNeedKeyupSuppressed.push(keyCode);
@@ -214,7 +214,7 @@ Mode.getScrollableElements = function () {
     nodes.sort(function(a, b) {
         if (b.contains(a)) return 1;
         else if (a.contains(b)) return -1;
-        return b.scrollHeight * b.scrollWidth - a.scrollHeight * a.scrollWidth;
+        return (b as Element).scrollHeight * (b as Element).scrollWidth - (a as Element).scrollHeight * (a as Element).scrollWidth;
     });
     // document.scrollingElement will be null when document.body.tagName === "FRAMESET", for example http://www.knoppix.org/
     if (document.scrollingElement && (document.scrollingElement.scrollHeight > window.innerHeight

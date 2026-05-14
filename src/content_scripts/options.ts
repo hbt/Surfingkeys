@@ -10,7 +10,7 @@ export default function(
     setSanitizedContent,
     showBanner,
 ) {
-    var mappingsEditor = null;
+    var mappingsEditor: any = null;
     function createMappingEditor(elmId) {
         var _ace = ace.edit(elmId);
         _ace.mode = "normal";
@@ -31,11 +31,11 @@ export default function(
                 && _ace.mode === 'normal' // vim in normal mode
                 && (_ace.state.cm.state.vim.status === null || _ace.state.cm.state.vim.status === "") // and no pending normal operation
             ) {
-                document.activeElement.blur();
+                (document.activeElement as HTMLElement).blur();
                 self.exit();
             }
         });
-        document.querySelector('#mappings textarea').onfocus = function() {
+        (document.querySelector('#mappings textarea') as HTMLElement)!.onfocus = function() {
             setTimeout(function() {
                 self.enter(0, true);
             }, 10);
@@ -74,16 +74,16 @@ export default function(
     }
 
     if (getBrowserName() === "Firefox") {
-        document.querySelector("#localPathForSettings").style.display = "";
-        document.querySelector("#proxySettings").style.display = "none";
+        (document.querySelector("#localPathForSettings") as HTMLElement)!.style.display = "";
+        (document.querySelector("#proxySettings") as HTMLElement)!.style.display = "none";
     } else if (getBrowserName().startsWith("Safari")) {
-        document.querySelector("#localPathHelpForFile").remove();
-        document.querySelector("#proxySettings").style.display = "none";
-        document.querySelector("#donationDiv").style.display = "none";
+        document.querySelector("#localPathHelpForFile")!.remove();
+        (document.querySelector("#proxySettings") as HTMLElement)!.style.display = "none";
+        (document.querySelector("#donationDiv") as HTMLElement)!.style.display = "none";
     }
-    var proxyModeSelect = document.querySelector("#proxyMode>select");
-    var proxyGroup = document.getElementById("proxyMode").parentElement;
-    var addProxyPair = document.getElementById('addProxyPair');
+    var proxyModeSelect = document.querySelector("#proxyMode>select") as HTMLSelectElement;
+    var proxyGroup = document.getElementById("proxyMode")!.parentElement!;
+    var addProxyPair = document.getElementById('addProxyPair')!;
     addProxyPair.onclick = function () {
         _updateProxy({
             number: document.querySelectorAll('div.proxyPair').length,
@@ -146,15 +146,15 @@ export default function(
     }
 
     function renderProxyPair(proxy, number) {
-        var divProxyPair = document.querySelector(`div.proxyPair[number='${number}']`);
-        if (divProxyPair === null) {
+        var divProxyPair: Element = document.querySelector(`div.proxyPair[number='${number}']`) as Element;
+        if (!divProxyPair) {
             divProxyPair = createElementWithContent('div',
-                document.getElementById("templateProxyPair").innerHTML.trim(), {"class": "proxyPair", "number": number});
+                document.getElementById("templateProxyPair")!.innerHTML.trim(), {"class": "proxyPair", "number": number});
             proxyGroup.insertBefore(divProxyPair, addProxyPair);
         }
 
-        var proxySelect = divProxyPair.querySelector(".proxy>select");
-        var proxyInput = divProxyPair.querySelector(".proxy>input");
+        var proxySelect = divProxyPair.querySelector(".proxy>select") as HTMLSelectElement;
+        var proxyInput = divProxyPair.querySelector(".proxy>input") as HTMLInputElement;
 
         function __updateProxy(_data) {
             let v = proxyInput.value.replace(/\W+([0-9]+)$/, ":$1");
@@ -178,8 +178,8 @@ export default function(
     }
 
     function renderProxySettings(rs) {
-        proxyModeSelect.value = rs.proxyMode;
-        proxyModeSelect.onchange = function() {
+        (proxyModeSelect as HTMLSelectElement).value = rs.proxyMode;
+        (proxyModeSelect as HTMLSelectElement).onchange = function() {
             _updateProxy({
                 mode: this.value
             });
@@ -187,18 +187,18 @@ export default function(
         document.querySelectorAll('#proxyMode span[mode]').forEach(function(span) {
             span.hide();
         });
-        document.querySelector(`#proxyMode span[mode=${rs.proxyMode}]`).show();
+        (document.querySelector(`#proxyMode span[mode=${rs.proxyMode}]`) as any)?.show();
         if (rs.proxyMode === "always" || rs.proxyMode === "byhost" || rs.proxyMode === "bypass") {
 
             document.querySelectorAll('div.proxyPair').remove();
             if (rs.proxyMode === "always") {
                 var pp = renderProxyPair(rs.proxy[0], 0);
-                pp.querySelector('.autoproxy_hosts').hide();
+                (pp.querySelector('.autoproxy_hosts') as any)?.hide();
                 addProxyPair.hide();
             } else {
                 rs.proxy.forEach(function(proxy, number) {
                     var pp = renderProxyPair(proxy, number);
-                    pp.querySelector('.autoproxy_hosts').show();
+                    (pp.querySelector('.autoproxy_hosts') as any)?.show();
                     renderAutoproxyHosts(rs, pp, number);
                 });
                 addProxyPair.show();
@@ -218,10 +218,10 @@ export default function(
         });
     }
 
-    const basicSettingsDiv = document.getElementById("basicSettings");
-    const basicMappingsDiv = document.getElementById("basicMappings");
-    const advancedSettingDiv = document.getElementById("advancedSetting");
-    const advancedToggler = document.getElementById("advancedToggler");
+    const basicSettingsDiv = document.getElementById("basicSettings")!;
+    const basicMappingsDiv = document.getElementById("basicMappings")!;
+    const advancedSettingDiv = document.getElementById("advancedSetting")!;
+    const advancedToggler = document.getElementById("advancedToggler") as HTMLInputElement;
     function showAdvanced(flag) {
         if (flag) {
             basicSettingsDiv.hide();
@@ -235,11 +235,11 @@ export default function(
     }
 
     var localPathSaved = "";
-    var localPathInput = document.getElementById("localPath");
-    var sample = document.getElementById("sample").innerHTML;
+    var localPathInput = document.getElementById("localPath") as HTMLInputElement;
+    var sample = document.getElementById("sample")!.innerHTML;
     function renderSettings(rs) {
         if (rs.isMV3) {
-            document.getElementById("advancedTip").innerText = "First turn on 'Developer mode' in chrome://extensions/, then turn on 'Allow User Scripts' in Surfingkeys extension details, then toggle the 'Advanced mode' flag here.";
+            document.getElementById("advancedTip")!.innerText = "First turn on 'Developer mode' in chrome://extensions/, then turn on 'Allow User Scripts' in Surfingkeys extension details, then toggle the 'Advanced mode' flag here.";
             advancedToggler.disabled = !rs.isUserScriptsAvailable;
             showAdvanced(rs.isUserScriptsAvailable && rs.showAdvanced);
         } else {
@@ -275,7 +275,7 @@ export default function(
             }
         });
     };
-    document.getElementById('resetSettings').onclick = function() {
+    document.getElementById('resetSettings')!.onclick = function() {
         if (this.innerText === "Reset") {
             this.innerText = "WARNING! This will clear all your settings. Click this again to continue.";
         } else {
@@ -287,12 +287,12 @@ export default function(
         }
     };
 
-    document.querySelector('.infoPointer').onclick = function() {
-        var f = document.getElementById(this.getAttribute("for"));
-        if (f.style.display === "none") {
-            f.style.display = "";
+    (document.querySelector('.infoPointer') as HTMLElement)!.onclick = function() {
+        var f = document.getElementById(this.getAttribute("for")!);
+        if (f!.style.display === "none") {
+            f!.style.display = "";
         } else {
-            f.style.display = "none";
+            f!.style.display = "none";
         }
     };
 
@@ -333,7 +333,7 @@ export default function(
             showBanner('Settings saved', 1000);
         }
     }
-    document.getElementById('save_button').onclick = saveSettings;
+    document.getElementById('save_button')!.onclick = saveSettings;
 
     var basicMappings: any[] = ['d', 'R', 'f', 'E', 'e', 'x', 'gg', 'j', '/', 'n', 'r', 'k', 'S', 'C', 'on', 'G', 'v', 'i', ';e', 'og', 'g0', 't', '<Ctrl-6>', 'yy', 'g$', 'D', 'ob', 'X', 'sg', 'cf', 'yv', 'yt', 'N', 'l', 'cc', '$', 'yf', 'w', '0', 'yg', 'ow', 'cs', 'b', 'om', 'ya', 'h', 'gU', 'W', 'B', 'F', ';j'];
 
@@ -382,7 +382,7 @@ export default function(
             for (const key in allAliases) {
                 const { prompt, checked } = allAliases[key];
                 const elm = createElementWithContent("div", `<div class='remove'><input type="checkbox" ${checked} /></div><span class='prompt'>${prompt}</span>`);
-                document.querySelector("#searchAliases").appendChild(elm);
+                document.querySelector("#searchAliases")!.appendChild(elm);
 
                 elm.querySelector("input").onchange = () => {
                     if (disabledSearchAliases.hasOwnProperty(key)) {
@@ -446,7 +446,7 @@ export default function(
         }
 
         var _key = "";
-        var keyPickerDiv = document.getElementById("keyPicker");
+        var keyPickerDiv = document.getElementById("keyPicker") as any;
         self.addEventListener('keydown', function(event) {
             if (event.keyCode === 27) {
                 keyPickerDiv.hide();
@@ -461,11 +461,11 @@ export default function(
                 self.exit();
                 setSanitizedContent(_elm, (_key !== "") ? htmlEncode(_key) : "🚫");
                 _elm.dataset.custom = _key;
-                const realDefMap = {};
+                const realDefMap: Record<string, any> = {};
                 Array.from(basicMappingsDiv.querySelectorAll("kbd")).forEach((m) => {
-                    var n = m.dataset.custom;
-                    if (m.dataset.origin !== n) {
-                        realDefMap[m.dataset.origin] = n;
+                    var n = (m as HTMLElement).dataset.custom;
+                    if ((m as HTMLElement).dataset.origin !== n) {
+                        realDefMap[(m as HTMLElement).dataset.origin!] = n;
                     }
                 });
                 RUNTIME('updateSettings', {

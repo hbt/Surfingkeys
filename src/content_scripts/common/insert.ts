@@ -31,13 +31,13 @@ function createInsert() {
             if (element.childNodes.length > 0) {
                 var node = element.childNodes[element.childNodes.length -1];
                 if (node.nodeType === Node.TEXT_NODE) {
-                    document.getSelection().setPosition(node, (node as any).data.length);
+                    document.getSelection()!.setPosition(node, (node as any).data.length);
                 } else {
                     let codeMirrorNode = node.querySelector(".CodeMirror-line");
                     if (codeMirrorNode) {
                         setEndOfContenteditable(element);
                     } else {
-                        document.getSelection().setPosition(node, node.childNodes.length);
+                        document.getSelection()!.setPosition(node, node.childNodes.length);
                     }
                 }
             }
@@ -49,7 +49,7 @@ function createInsert() {
         let range = document.createRange();//Create a range (a range is a like the selection but invisible)
         range.selectNodeContents(contentEditableElement);//Select the entire contents of the element with the range
         range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
-        let selection = window.getSelection();//get the selection object (allows you to change selection)
+        let selection = window.getSelection()!;//get the selection object (allows you to change selection)
         selection.removeAllRanges();//remove any selections already made
         selection.addRange(range);//make the range you have just created the visible selection
     }
@@ -77,7 +77,7 @@ function createInsert() {
                 element.setSelectionRange(0, 0);
             } else {
                 // for contenteditable div
-                var selection = document.getSelection();
+                var selection = document.getSelection()!;
                 selection.setPosition(selection.focusNode, 0);
             }
         }
@@ -98,7 +98,7 @@ function createInsert() {
                 element.setSelectionRange(0, 0);
             } else {
                 // for contenteditable div
-                var selection = document.getSelection();
+                var selection = document.getSelection()!;
                 (selection.focusNode as any).data = (selection.focusNode as any).data.substr(selection.focusOffset);
             }
         }
@@ -119,7 +119,7 @@ function createInsert() {
                 element.setSelectionRange(pos, pos);
             } else {
                 // for contenteditable div
-                document.getSelection().modify("move", "backward", "word");
+                document.getSelection()!.modify("move", "backward", "word");
             }
         }
     });
@@ -139,7 +139,7 @@ function createInsert() {
                 element.setSelectionRange(pos, pos);
             } else {
                 // for contenteditable div
-                document.getSelection().modify("move", "forward", "word");
+                document.getSelection()!.modify("move", "forward", "word");
             }
         }
     });
@@ -160,9 +160,9 @@ function createInsert() {
                 element.setSelectionRange(pos[1], pos[1]);
             } else {
                 // for contenteditable div
-                var selection = document.getSelection();
+                var selection = document.getSelection()!;
                 var p0 = selection.focusOffset;
-                document.getSelection().modify("move", "backward", "word");
+                document.getSelection()!.modify("move", "backward", "word");
                 var v = (selection.focusNode as any).data, p1 = selection.focusOffset;
                 (selection.focusNode as any).data = v.substr(0, p1) + v.substr(p0);
                 selection.setPosition(selection.focusNode, p1);
@@ -186,9 +186,9 @@ function createInsert() {
                 element.setSelectionRange(pos[1], pos[1]);
             } else {
                 // for contenteditable div
-                var selection = document.getSelection();
+                var selection = document.getSelection()!;
                 var p0 = selection.focusOffset;
-                document.getSelection().modify("move", "forward", "word");
+                document.getSelection()!.modify("move", "forward", "word");
                 var v = (selection.focusNode as any).data, p1 = selection.focusOffset;
                 (selection.focusNode as any).data = v.substr(0, p0) + v.substr(p1);
                 selection.setPosition(selection.focusNode, p0);

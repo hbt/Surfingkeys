@@ -218,7 +218,7 @@ function generateQuickGuid() {
 }
 
 function listElements(root, whatToShow, filter) {
-    const elms = [];
+    const elms: Node[] = [];
     let currentNode;
     const nodeIterator = document.createNodeIterator(
         root,
@@ -426,7 +426,7 @@ function isElementPartiallyInViewport(el, ignoreSize?) {
 
 function getVisibleElements(filter) {
     var all = Array.from(document.documentElement.getElementsByTagName("*"));
-    var visibleElements = [];
+    var visibleElements: Element[] = [];
     for (var i = 0; i < all.length; i++) {
         var e = all[i];
         // include elements in a shadowRoot.
@@ -497,21 +497,21 @@ function getLargeElements(minWidth = 0.3, minHeight = 0.3) {
 
 function actionWithSelectionPreserved(cb) {
     var selection = document.getSelection();
-    var pos = [selection.type, selection.anchorNode, selection.anchorOffset, selection.focusNode, selection.focusOffset];
+    var pos = [selection!.type, selection!.anchorNode, selection!.anchorOffset, selection!.focusNode, selection!.focusOffset];
 
-    var dt = document.scrollingElement.scrollTop;
+    var dt = (document.scrollingElement as Element).scrollTop;
 
     cb(selection);
 
-    document.scrollingElement.scrollTop = dt;
+    (document.scrollingElement as Element).scrollTop = dt;
 
     if (pos[0] === "None") {
-        selection.empty();
+        selection!.empty();
     } else if (pos[0] === "Caret") {
-        selection.setPosition(pos[3] as Node, pos[4] as number);
+        selection!.setPosition(pos[3] as Node, pos[4] as number);
     } else if (pos[0] === "Range") {
-        selection.setPosition(pos[1] as Node, pos[2] as number);
-        selection.extend(pos[3] as Node, pos[4] as number);
+        selection!.setPosition(pos[1] as Node, pos[2] as number);
+        selection!.extend(pos[3] as Node, pos[4] as number);
     }
 }
 
@@ -521,7 +521,7 @@ function filterAncestors(elements) {
     }
 
     // filter out element which has its children covered
-    var result = [];
+    var result: any[] = [];
     elements.forEach(function(e, _i) {
         if (isExplicitlyRequested(e)) {
             result.push(e);
@@ -635,7 +635,7 @@ function getTextNodes(root, pattern, flag?): any {
             }
         });
 
-    var nodes = [];
+    var nodes: (Node | null)[] = [];
     if (flag === 1) {
         nodes.push(treeWalker.firstChild());
     } else if (flag === -1) {
@@ -652,8 +652,8 @@ function getTextNodes(root, pattern, flag?): any {
 
 function getTextNodePos(node, offset, length?) {
     var selection = document.getSelection();
-    selection.setBaseAndExtent(node, offset, node, length ? (offset + length) : (node as any).data.length);
-    var br = selection.rangeCount > 0 ? selection.getRangeAt(0).getClientRects()[0] : null;
+    selection!.setBaseAndExtent(node, offset, node, length ? (offset + length) : (node as any).data.length);
+    var br = selection!.rangeCount > 0 ? selection!.getRangeAt(0).getClientRects()[0] : null;
     var pos: any = {
         left: -1,
         top: -1
@@ -749,16 +749,16 @@ function getNearestWord(text, offset) {
     return ret;
 }
 
-var _clickPos = null;
+var _clickPos: number[] | null = null;
 document.addEventListener('mousedown', event => {
     _clickPos = [event.clientX, event.clientY];
 });
 function getWordUnderCursor(mouseCursor?) {
     var selection = document.getSelection();
-    if (selection.focusNode && selection.focusNode.textContent) {
-        var range = getNearestWord(selection.focusNode.textContent, selection.focusOffset);
-        var selRect = getTextRect(selection.focusNode, range[0], range[0] + range[1])[0];
-        var word = selection.focusNode.textContent.substr(range[0], range[1]);
+    if (selection!.focusNode && selection!.focusNode.textContent) {
+        var range = getNearestWord(selection!.focusNode.textContent, selection!.focusOffset);
+        var selRect = getTextRect(selection!.focusNode, range[0], range[0] + range[1])[0];
+        var word = selection!.focusNode.textContent.substr(range[0], range[1]);
         if (selRect && word) {
             if (!mouseCursor || _clickPos && selRect.has(_clickPos[0], _clickPos[1], 0, 0)) {
                 return word.trim();

@@ -34,7 +34,7 @@ function _breakOn(property, flag, expected) {
 function _stackTrace() {
     var err = new Error();
     console.log(new Date().toLocaleString());
-    console.log(err.stack.substr(6));
+    console.log(err.stack?.substr(6));
 }
 
 function _time(fn) {

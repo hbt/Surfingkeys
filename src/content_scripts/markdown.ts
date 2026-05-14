@@ -110,7 +110,7 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
         tags: ['markdown', 'clipboard'],
         feature_group: 99,
     }, function() {
-        Clipboard.write(markdownBody.innerHTML);
+        Clipboard.write(markdownBody!.innerHTML);
     });
 
     var mdUrl = window.location.search.substr(3);

@@ -49,7 +49,7 @@ Trie.prototype = {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         var found = this;
         const len = word.length;
-        const ancestor = [];
+        const ancestor: any[] = [];
         for (var i = 0; i < len && found; i++) {
             // keep node in path for later to remove empty nodes
             ancestor.push(found);
@@ -71,7 +71,7 @@ Trie.prototype = {
     },
 
     getWords: function(prefix, withoutStem) {
-        var ret = [], prefix = (prefix || "") + (withoutStem ? "" : (this.stem || ""));
+        var ret: any[] = [], prefix = (prefix || "") + (withoutStem ? "" : (this.stem || ""));
         if (this.hasOwnProperty('meta')) {
             ret.push(prefix);
         }
@@ -84,7 +84,7 @@ Trie.prototype = {
     },
 
     getMetas: function(criterion) {
-        var ret = [];
+        var ret: any[] = [];
         if (this.hasOwnProperty('meta') && criterion(this.meta)) {
             ret.push(this.meta);
         }

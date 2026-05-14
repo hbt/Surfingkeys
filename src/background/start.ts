@@ -17,7 +17,7 @@ function request(url, onReady, headers?, data?, onException?) {
         headers,
         body: data,
     }).then(res => {
-        const cs = res.headers.get('content-type') ? res.headers.get('content-type').match(CHARTSET_RE) : [];
+        const cs = res.headers.get('content-type') ? res.headers.get('content-type')!.match(CHARTSET_RE) : [];
 
         return Promise.all([
             Promise.resolve(cs && cs.length > 1 ? cs[1] : "utf-8"),
@@ -217,7 +217,7 @@ function start(browser) {
     const SETTINGS_SNIPPET_SCRIPT_ID = 'settingsSnippets';
     const extensionRootUrl = chrome.runtime.getURL("/");
     let userScriptsWorldConfigured = false;
-    let snippetScriptCodeCache = undefined;
+    let snippetScriptCodeCache: string | null | undefined = undefined;
     let snippetSyncChain = Promise.resolve();
 
     // Expose snippet sync chain for testing/debugging (eliminates arbitrary waitAfterSetMs delays in tests)
@@ -398,7 +398,7 @@ function start(browser) {
         }
     }
 
-    var tabHistory = [],
+    var tabHistory: number[] = [],
         tabHistoryIndex = 0,
         chromelikeNewTabPosition = 0,
         historyTabAction = false;
@@ -418,7 +418,7 @@ function start(browser) {
         interceptedErrors: []
     };
 
-    var bookmarkFolders = [];
+    var bookmarkFolders: { id: any; title: string }[] = [];
     function getFolders(tree, root) {
         var cd = root;
         if (tree.title !== "" && (!tree.hasOwnProperty('url') || tree.url === undefined)) {
@@ -686,7 +686,7 @@ function start(browser) {
                 chrome.tabs.query({}, function(tabs) {
                     console.log('[RESTARTEXT] Reloading', tabs.length, 'tabs');
                     tabs.forEach(function(tab) {
-                        chrome.tabs.reload(tab.id);
+                        chrome.tabs.reload(tab.id!);
                     });
                     chrome.runtime.reload();
                 });
@@ -1005,15 +1005,15 @@ function start(browser) {
                         self.openLink(markInfo, sender, sendResponse);
                     } else {
                         if (markInfo.scrollLeft || markInfo.scrollTop) {
-                            tabMessages[tabs[0].id] = {
+                            tabMessages[tabs[0].id!] = {
                                 scrollLeft: markInfo.scrollLeft,
                                 scrollTop: markInfo.scrollTop
                             };
                         }
                         if (tabs[0].id === sender.tab.id) {
-                            _setScrollPos_bg(tabs[0].id);
+                            _setScrollPos_bg(tabs[0].id!);
                         } else {
-                            chrome.tabs.update(tabs[0].id, {
+                            chrome.tabs.update(tabs[0].id!, {
                                 active: true
                             });
                         }
@@ -1090,13 +1090,13 @@ function start(browser) {
     }
     self.getRecentlyClosed = function(message, sender, sendResponse) {
         chrome.sessions.getRecentlyClosed({}, function(sessions) {
-            var tabs = [];
+            var tabs: any[] = [];
             for (var i = 0; i < sessions.length; i ++) {
                 var s = sessions[i];
                 if (s.hasOwnProperty('window')) {
-                    tabs = tabs.concat(s.window.tabs);
+                    tabs = tabs.concat(s.window!.tabs);
                 } else if (s.hasOwnProperty('tab')) {
-                    tabs.push(s.tab);
+                    tabs.push(s.tab!);
                 }
             }
             tabs = _filterByTitleOrUrl(tabs, message.query);
@@ -1162,8 +1162,8 @@ function start(browser) {
                 });
                 tabs.sort(function(x, y) {
                     // Shift tabs without "last access" data to the end
-                    var a = x.lastAccessed || tabActivated[x.id];
-                    var b = y.lastAccessed || tabActivated[y.id];
+                    var a = x.lastAccessed || tabActivated[x.id!];
+                    var b = y.lastAccessed || tabActivated[y.id!];
 
                     if (!isFinite(a) && !isFinite(b)) {
                         return 0;
@@ -1501,7 +1501,7 @@ function start(browser) {
             var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, windowTabs, allTabs);
             var tabMap = {};
             allTabs.forEach(function(t) {
-                tabMap[t.id] = t;
+                tabMap[t.id!] = t;
             });
             var urls = tabIds.map(function(id) {
                 var tab = tabMap[id];
@@ -1518,7 +1518,7 @@ function start(browser) {
             var repeats = message.repeats || 1;
             var tabIds = tabHandleMagic(message.magic, sender.tab, repeats, tabs);
             var pinStateMap = {};
-            tabs.forEach(function(t) { pinStateMap[t.id] = t.pinned; });
+            tabs.forEach(function(t) { pinStateMap[t.id!] = t.pinned; });
             tabIds.forEach(function(id) {
                 chrome.tabs.update(id, { pinned: !pinStateMap[id] });
             });
@@ -1550,7 +1550,7 @@ function start(browser) {
     self.closeAudibleTab = function(_message, _sender, _sendResponse) {
         chrome.tabs.query({audible: true}, function(tabs) {
             if (tabs) {
-                chrome.tabs.remove(tabs[0].id);
+                chrome.tabs.remove(tabs[0].id!);
             }
         });
     };
@@ -1631,7 +1631,7 @@ function start(browser) {
         const windowId = sender.tab.windowId;
         chrome.tabs.query({currentWindow: false}, function(tabs) {
             tabs.forEach(function(tab) {
-                chrome.tabs.move(tab.id, {windowId, index: -1});
+                chrome.tabs.move(tab.id!, {windowId, index: -1});
             });
         });
     };
@@ -1749,7 +1749,7 @@ function start(browser) {
             openerTabId: currentTab.id
         }, function(tab) {
             if (message.scrollLeft || message.scrollTop) {
-                tabMessages[tab.id] = {
+                tabMessages[tab!.id!] = {
                     scrollLeft: message.scrollLeft,
                     scrollTop: message.scrollTop
                 };
@@ -1782,7 +1782,7 @@ function start(browser) {
                     pinned: message.tab.pinned || sender.tab.pinned
                 }, function(tab) {
                     if (message.scrollLeft || message.scrollTop) {
-                        tabMessages[tab.id] = {
+                        tabMessages[tab!.id!] = {
                             scrollLeft: message.scrollLeft,
                             scrollTop: message.scrollTop
                         };
@@ -1898,7 +1898,7 @@ function start(browser) {
         return { error };
     };
     self.updateInputHistory = function(message, sender, sendResponse) {
-        let key = undefined, value;
+        let key: string | undefined = undefined, value;
         for (var k in message) {
             key = k + "History";
             value = message[k];
@@ -1906,8 +1906,8 @@ function start(browser) {
         }
         if (key) {
             loadSettings(key, function(data) {
-                let curr = data[key] || [];
-                let toUpdate = {};
+                let curr = data[key!] || [];
+                let toUpdate: Record<string, any> = {};
                 if (value.constructor.name === "Array") {
                     toUpdate[key] = value;
                     _updateAndPostSettings(toUpdate);
@@ -1962,12 +1962,12 @@ function start(browser) {
         }).then(img => {
             const canvas = new OffscreenCanvas(img.width, img.height);
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0,0, canvas.width, canvas.height);
+            ctx!.drawImage(img, 0,0, canvas.width, canvas.height);
             canvas.convertToBlob().then(blob => {
                 const fr = new FileReader();
                 fr.onload = function(e) {
                     _response(message, sendResponse, {
-                        text: e.target.result
+                        text: e.target!.result
                     });
                 };
                 fr.readAsDataURL(blob);
@@ -2027,7 +2027,7 @@ function start(browser) {
             populate: false
         }, function(windows) {
             windows.forEach(function(w) {
-                chrome.windows.remove(w.id);
+                chrome.windows.remove(w.id!);
             });
         });
     }
@@ -2048,10 +2048,10 @@ function start(browser) {
                         }
                     }
                 });
-                var tabg = [];
+                var tabg: any[] = [];
                 for (var k in tabGroup) {
-                    if (tabGroup[k].length) {
-                        tabg.push(tabGroup[k]);
+                    if ((tabGroup as any)[k].length) {
+                        tabg.push((tabGroup as any)[k]);
                     }
                 }
                 data.sessions[message.name] = {};
@@ -2078,7 +2078,7 @@ function start(browser) {
                     chrome.windows.create({}, function(win) {
                         a.forEach(function(url) {
                             chrome.tabs.create({
-                                windowId: win.id,
+                                windowId: win!.id,
                                 url: url,
                                 active: false,
                                 pinned: false
@@ -2090,7 +2090,7 @@ function start(browser) {
                     url: conf.newTabUrl
                 }, function(tabs) {
                     chrome.tabs.remove(tabs.map(function(t) {
-                        return t.id;
+                        return t.id!;
                     }));
                 });
             }
@@ -2297,7 +2297,7 @@ function start(browser) {
         }
     };
     self.captureVisibleTab = function(message, sender, sendResponse) {
-        chrome.tabs.captureVisibleTab(null, {format: "png"}, function(dataUrl) {
+        chrome.tabs.captureVisibleTab({format: "png"}, function(dataUrl) {
             if (chrome.runtime.lastError || !dataUrl) {
                 console.error("[capture] captureVisibleTab failed:", chrome.runtime.lastError?.message);
                 _response(message, sendResponse, { dataUrl: null });
@@ -2309,7 +2309,7 @@ function start(browser) {
         });
     };
     self.getCaptureSize = function(message, sender, sendResponse) {
-        chrome.tabs.captureVisibleTab(null, {format: "png"}, function(dataUrl) {
+        chrome.tabs.captureVisibleTab({format: "png"}, function(dataUrl) {
             if (chrome.runtime.lastError || !dataUrl) {
                 _response(message, sendResponse, { width: 0, height: 0 });
                 return;

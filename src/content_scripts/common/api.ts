@@ -469,7 +469,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      * searchSelectedWith('https://translate.google.com/?hl=en#auto/en/');
      */
     function searchSelectedWith(se, onlyThisSite?, interactive?, alias?) {
-        let query = window.getSelection().toString();
+        let query = window.getSelection()!.toString();
         clipboard.read(function(response) {
             query = query || response.data;
             if (onlyThisSite) {

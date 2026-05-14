@@ -23,14 +23,14 @@ export default function (omnibar, front) {
     ];
     let response = "";
     let provider = "";
-    let providers = [];
+    let providers: any[] = [];
 
     const dots = [ "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" ];
     let spinnerIndex = 0;
     let spinnerInterval: any = 0;
 
     let userInput = "";
-    let inputs = [];
+    let inputs: any[] = [];
     let curInputIdx = 0;
 
     const _tools = [
@@ -59,7 +59,7 @@ export default function (omnibar, front) {
 
     const providerClients = {
         "ollama": (resp) => {
-            const toolResults = [];
+            const toolResults: any[] = [];
             if (!resp.message.tool_calls) {
                 return false;
             }
@@ -77,7 +77,7 @@ export default function (omnibar, front) {
             return false;
         },
         "bedrock": (resp) => {
-            const toolResults = [];
+            const toolResults: any[] = [];
             if (!resp.message.content) {
                 return false;
             }
@@ -104,7 +104,7 @@ export default function (omnibar, front) {
     };
     function llmRequest(req, onChunk) {
         // req.tools = tools;
-        if (runtime.bookMessage('llmResponse', (resp) => {
+        if ((runtime as any).bookMessage('llmResponse', (resp: any) => {
             if (resp.chunk) {
                 onChunk(resp.chunk);
             } else if (resp.done) {
@@ -122,7 +122,7 @@ export default function (omnibar, front) {
                     runtime.releaseMessage('llmResponse');
                 }
             }
-        })) {
+        }) as any) {
             RUNTIME("llmRequest", req);
             return true;
         }
@@ -194,7 +194,7 @@ export default function (omnibar, front) {
             }
         }
 
-        const readables = [];
+        const readables: any[] = [];
         let currentRole = "";
         for (const m of messages.slice(RESERVED_MESSAGE_COUNT)) {
             const content = getReadableContent(m.content);
@@ -285,7 +285,7 @@ export default function (omnibar, front) {
         }
     };
 
-    let lastResponseItem = null;
+    let lastResponseItem: any = null;
     self.onEnter = function() {
         const prompt = omnibar.input.value;
         if (!prompt) {

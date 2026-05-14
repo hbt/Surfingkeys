@@ -31,9 +31,9 @@ function RUNTIME(action: string, args?: Record<string, unknown> | null, callback
     }
     try {
         args.needResponse = callback !== undefined;
-        chrome.runtime.sendMessage(args, callback);
+        chrome.runtime.sendMessage(args as any, callback as any);
         if (action === 'read') {
-            runtime.on('onTtsEvent', callback);
+            runtime.on('onTtsEvent', callback as any);
         }
     } catch (e) {
         dispatchSKEvent("front", ['showPopup', '[runtime exception] ' + e]);
@@ -112,7 +112,7 @@ const runtime = (function() {
             ignoredFrameHosts: ["https://tpc.googlesyndication.com"],
             scrollFriction: 0,
             aceKeybindings: "vim",
-            caretViewport: null,
+            caretViewport: [] as number[],
             mouseSelectToQuery: [],
             useNeovim: false,
             useLocalMarkdownAPI: true
@@ -166,7 +166,7 @@ const runtime = (function() {
             if (topUrl === "null" || new URL(topUrl).origin === "file://") {
                 topUrl = "*";
             }
-            top.postMessage(msg, topUrl);
+            top!.postMessage(msg, topUrl);
         });
     };
 

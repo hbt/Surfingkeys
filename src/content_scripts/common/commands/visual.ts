@@ -18,7 +18,7 @@ function _getSentence(textNode: Text, offset: number): string {
 }
 
 function openGoogleTranslate(searchSelectedWith: CommandAPI['searchSelectedWith']): void {
-    if (window.getSelection().toString()) {
+    if (window.getSelection()?.toString()) {
         (searchSelectedWith as any)('https://translate.google.com/?hl=en#auto/en/', false, false, '');
     } else {
         tabOpenLink("https://translate.google.com/translate?js=n&sl=auto&tl=zh-CN&u=" + window.location.href);
@@ -176,7 +176,7 @@ export default function registerVisual(
         description: "Open LLM chat with selected text as context",
         tags: ["visual", "llm", "ai"]
     }, function() {
-        const sel = window.getSelection().toString();
+        const sel = window.getSelection()?.toString() ?? '';
         (front as any).openOmnibar({type: "LLMChat", extra: {
             system: sel
         }});
@@ -191,7 +191,7 @@ export default function registerVisual(
             description: "Read selected text aloud using text-to-speech",
             tags: ["visual", "tts", "accessibility"]
         }, function() {
-            readText(window.getSelection().toString(), {verbose: true} as any);
+            readText(window.getSelection()?.toString() ?? '', {verbose: true} as any);
         });
     }
 }

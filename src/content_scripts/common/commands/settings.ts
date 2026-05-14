@@ -125,7 +125,7 @@ export default function registerSettings(
             tags: ["settings", "tts", "accessibility"]
         }, function() {
             (clipboard as any).read(function(response: any) {
-                readText(window.getSelection().toString() || response.data, {verbose: true} as any);
+                readText(window.getSelection()?.toString() || response.data, {verbose: true} as any);
             });
         });
 

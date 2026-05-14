@@ -50,6 +50,6 @@ export default function registerFrames(
         description: "Focus the top-level window from an iframe",
         tags: ["frames", "window", "focus"]
     }, function() {
-        top.focus();
+        top!.focus();
     });
 }

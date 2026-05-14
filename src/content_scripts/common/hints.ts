@@ -72,7 +72,7 @@ kbd {
     margin-right: 4px;
 }
 `);
-    regionalHintsHost.shadowRoot.appendChild(hintsStyle);
+    regionalHintsHost!.shadowRoot!.appendChild(hintsStyle);
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
         annotation: {
@@ -160,7 +160,7 @@ kbd {
         Mode.handleMapKey.call(self, event);
     });
 
-    let overlay = null;
+    let overlay: any = null;
     self.onExit = function() {
         overlay.remove();
         regionalHintsHost.remove();
@@ -168,7 +168,7 @@ kbd {
     self.attach = (elm) => {
         if (overlay) overlay.remove();
         overlay = elm;
-        regionalHintsHost.shadowRoot.appendChild(overlay);
+        regionalHintsHost!.shadowRoot!.appendChild(overlay);
         placeHintsHost(regionalHintsHost);
         overlay.appendChild(menu);
         self.enter();
@@ -238,7 +238,7 @@ div.hint-scrollable {
         hintsHost.style.width = `${width}px`;
     };
 
-    hintsHost.shadowRoot.appendChild(hintsStyle);
+    hintsHost!.shadowRoot!.appendChild(hintsStyle);
     const regionalHints = createRegionalHints(clipboard);
 
     let numeric = false;
@@ -263,7 +263,7 @@ div.hint-scrollable {
      * @example
      * Hints.setCharacters("asdgqwertzxcvb");
      */
-    let excludedScrollKeys = [];
+    let excludedScrollKeys: any[] = [];
     self.setCharacters = function(chars) {
         characters = chars;
         for (const c of chars) {
@@ -408,7 +408,7 @@ div.hint-scrollable {
                     dispatchMouseEvent(element, behaviours.mouseEvents, mouseEventModifiers);
                     dispatchSKEvent("observer", ['turnOn']);
                     lastMouseTarget = element;
-                    if (document.activeElement.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
+                    if (document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
                         setTimeout(() => {
                             normal.disable(true);
                         }, 100);
@@ -686,7 +686,7 @@ div.hint-scrollable {
         // a hack to get co-ordinate
         var link = createElementWithContent('div', 'A', {style: "top: 0; left: 0;"});
         holder.prepend(link);
-        hintsHost.shadowRoot.appendChild(holder);
+        hintsHost!.shadowRoot!.appendChild(holder);
         var br = link.getBoundingClientRect();
         var ret = {
             top: br.top + window.pageYOffset - document.documentElement.clientTop,
@@ -785,7 +785,7 @@ div.hint-scrollable {
             }
             bcr = getRealRect(h);
         }
-        hintsHost.shadowRoot.appendChild(holder);
+        hintsHost!.shadowRoot!.appendChild(holder);
     }
 
     function createHintsForElements(elements, attrs) {
@@ -845,7 +845,7 @@ div.hint-scrollable {
         var elements = getVisibleElements(function(e, v) {
             var aa = e.childNodes;
             for (var i = 0, len = aa.length; i < len; i++) {
-                if (aa[i].nodeType == Node.TEXT_NODE && aa[i].data.length > 0) {
+                if (aa[i].nodeType == Node.TEXT_NODE && (aa[i] as Text).data.length > 0) {
                     v.push(e);
                     break;
                 }
@@ -853,16 +853,16 @@ div.hint-scrollable {
         });
         elements = elements.flatMap(function (e) {
             var aa = e.childNodes;
-            var bb = [];
+            var bb: any[] = [];
             for (var i = 0, len = aa.length; i < len; i++) {
-                if (aa[i].nodeType == Node.TEXT_NODE && aa[i].data.trim().length > 1) {
+                if (aa[i].nodeType == Node.TEXT_NODE && (aa[i] as Text).data.trim().length > 1) {
                     bb.push(aa[i]);
                 }
             }
             return bb;
         });
 
-        var positions;
+        var positions: any[];
         if (rxp.flags.indexOf('g') === -1) {
             positions = elements.map(function(e) {
                 return [e, 0, ""];
@@ -871,7 +871,7 @@ div.hint-scrollable {
             positions = [];
             for (var i = 0, length = elements.length; i < length; i++) {
                 var e = elements[i], match;
-                while ((match = rxp.exec(e.data)) != null) {
+                while ((match = rxp.exec((e as any).data)) != null) {
                     positions.push([e, match.index, match[0]]);
                 }
             }
@@ -906,22 +906,22 @@ div.hint-scrollable {
         }).filter(function(e) {
             return e !== null;
         });
-        if (document.getSelection().anchorNode) {
-            document.getSelection().collapseToStart();
+        if (document.getSelection()!.anchorNode) {
+            document.getSelection()!.collapseToStart();
         }
 
         if (elements.length > 0) {
             _initHolder('text');
             var hintLabels = self.genLabels(elements.length);
             elements.forEach(function(e, i) {
-                e.label = hintLabels[i];
+                (e as any).label = hintLabels[i];
                 setSanitizedContent(e, hintLabels[i]);
                 holder.append(e);
             });
 
             var style = createElementWithContent('style', _styleForText);
             holder.prepend(style);
-            hintsHost.shadowRoot.appendChild(holder);
+            hintsHost!.shadowRoot!.appendChild(holder);
         }
 
         return elements.length;
@@ -949,7 +949,7 @@ div.hint-scrollable {
         });
 
         if (elements.length === 0 && document.querySelector(cssSelector) !== null) {
-            document.querySelector(cssSelector).scrollIntoView();
+            document.querySelector(cssSelector)!.scrollIntoView();
             elements = getVisibleElements(function(e, v) {
                 if (e.matches(cssSelector) && !e.disabled && !e.readOnly) {
                     v.push(e);
@@ -974,7 +974,7 @@ div.hint-scrollable {
                 mask.link = e;
                 holder.append(mask);
             });
-            hintsHost.shadowRoot.appendChild(holder);
+            hintsHost!.shadowRoot!.appendChild(holder);
             _lastCreateAttrs.activeInput = 0;
             const ai = holder.querySelector('[mode=input]>mask');
             ai.classList.add("activeInput");
@@ -982,7 +982,7 @@ div.hint-scrollable {
             ai.link.focus();
         } else if (elements.length === 1) {
             normal.passFocus(true);
-            elements[0].focus();
+            (elements[0] as HTMLElement).focus();
             insert.enter(elements[0]);
         }
     };

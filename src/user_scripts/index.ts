@@ -82,7 +82,7 @@ let onClipboardReadFn;
 let onEditorWriteFn;
 let userScriptTask = () => {};
 let hintsCreationResolve;
-let _pendingOnEnter = null;
+let _pendingOnEnter: ((...args: any[]) => void) | null = null;
 initSKFunctionListener("user", {
     callUserFunction: (keys, para) => {
         if (userDefinedFunctions.hasOwnProperty(keys)) {
@@ -319,7 +319,7 @@ export default (extensionRootUrl, uf) => {
         try {
             uf(api, settings);
         } catch(e) {
-            error = e.toString();
+            error = (e as Error).toString();
             console.error(e);
         }
         applyUserSettings({settings, error});

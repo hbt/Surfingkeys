@@ -28,7 +28,7 @@ function createDisabled(normal) {
     self.addEventListener('keydown', function(event) {
         // prevent this event to be handled by Surfingkeys' other listeners
         event.sk_suppressed = true;
-        if (self.activatedOnElement && !document.activeElement.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
+        if (self.activatedOnElement && !document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
             normal.enable();
             self.activatedOnElement = false;
         } else if (Mode.isSpecialKeyOf("<Alt-s>", event.sk_keyName)) {
@@ -153,13 +153,13 @@ function createNormal(insert) {
         _passFocus = pf;
     };
 
-    let _lurk = undefined;
+    let _lurk: any = undefined;
     self.startLurk = () => {
         let state = "lurking";
         if (!_lurk) {
             self.exit();
             _lurk = createLurk(self);
-            _lurkMaps.forEach((keymap) => {
+            _lurkMaps!.forEach((keymap) => {
                 mapInMode(_lurk, keymap[0], keymap[1]);
                 _lurk.mappings.remove(KeyboardUtils.encodeKeystroke(keymap[1]));
             });
@@ -182,9 +182,9 @@ function createNormal(insert) {
     self.getLurkMode = () => {
         return _lurk;
     };
-    let _lurkMaps = [];
+    let _lurkMaps: any[] | undefined = [];
     self.addLurkMap = (new_keystroke, old_keystroke) => {
-        _lurkMaps.push([new_keystroke, old_keystroke]);
+        _lurkMaps!.push([new_keystroke, old_keystroke]);
     };
 
     var _once = false;
@@ -295,7 +295,7 @@ function createNormal(insert) {
             insert.exit();
         }
 
-        if (document.activeElement.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
+        if (document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
             setTimeout(() => {
                 self.disable(true);
             }, 100);
@@ -377,7 +377,7 @@ function createNormal(insert) {
         return (t === d) ? b + c : c * (-Math.pow(2, -10 * t / d) + 1) + b;
     }
 
-    var _nodesHasSKScroll = [];
+    var _nodesHasSKScroll: any[] = [];
     function initScroll(elm) {
         elm.skScrollBy = function(x, y) {
             if (runtime.conf.smartPageBoundary && ((this === document.scrollingElement)
@@ -727,8 +727,8 @@ function createNormal(insert) {
         var mo = {};
         mo[mark] = {
             url: url,
-            scrollLeft: document.scrollingElement.scrollLeft,
-            scrollTop: document.scrollingElement.scrollTop
+            scrollLeft: document.scrollingElement!.scrollLeft,
+            scrollTop: document.scrollingElement!.scrollTop
         };
         RUNTIME('addVIMark', {mark: mo});
         showBanner("Mark '{0}' added for: {1}.".format(mark, url));
@@ -818,7 +818,7 @@ function createNormal(insert) {
             var img = document.createElement( "img" );
 
             img.onload = function() {
-                ctx.drawImage(img, sx, sy, sw, sh, dx, dy, sw, sh);
+                ctx!.drawImage(img, sx, sy, sw, sh, dx, dy, sw, sh);
                 if (lastScrollTop === elm.scrollTop) {
                     if (lastScrollLeft === elm.scrollLeft) {
                         // done
@@ -1176,7 +1176,7 @@ function createNormal(insert) {
         }
     }
 
-    var _disabled = null;
+    var _disabled: any = null;
     self.disable = function(onElement) {
         if (!_disabled) {
             _disabled = createDisabled(self);

@@ -22,7 +22,7 @@ export function fuzzyMatch(text, query) {
     let queryIdx = 0;
     let score = 0;
     let lastMatchIdx = -1;
-    const positions = [];
+    const positions: number[] = [];
 
     for (let i = 0; i < lowerText.length && queryIdx < lowerQuery.length; i++) {
         if (lowerText[i] === lowerQuery[queryIdx]) {
@@ -111,8 +111,8 @@ export function setupHelpFilter(usageContainer) {
     `;
 
     // Parse all help items from ALL groups
-    const allItems = [];
-    const allGroupData = [];  // Track group wrappers and their headers
+    const allItems: any[] = [];
+    const allGroupData: any[] = [];  // Track group wrappers and their headers
 
     groupWrappers.forEach((groupWrapper: any, groupIdx) => {
         const children: any[] = Array.from(groupWrapper.querySelectorAll(':scope > div'));

@@ -110,7 +110,7 @@ class CursorPrompt {
             this.parentElement.setSelectionRange(newPos, newPos);
         } else {
             // for contenteditable div
-            const selection = document.getSelection(), val = (selection.focusNode as any).data;
+            const selection = document.getSelection()!, val = (selection.focusNode as any).data;
             (selection.focusNode as any).data = val.substr(0, this.matchStart + this.insertOffset) + d + val.substr(selection.focusOffset);
             selection.setPosition(selection.focusNode, newPos);
         }
@@ -124,7 +124,7 @@ class CursorPrompt {
             return [this.parentElement.value, this.parentElement.selectionStart];
         } else {
             // for contenteditable div
-            const selection = document.getSelection();
+            const selection = document.getSelection()!;
             return [(selection.focusNode as any).data, selection.focusOffset];
         }
     }
@@ -152,7 +152,7 @@ class CursorPrompt {
             query = this.parentElement.value.substr(this.matchStart, this.parentElement.selectionStart - this.matchStart);
         } else {
             // for contenteditable div
-            const selection = document.getSelection();
+            const selection = document.getSelection()!;
             query = (selection.focusNode as any).data.substr(this.matchStart, selection.focusOffset - this.matchStart);
         }
         if (query.length < this.threshold || query[0] === " ") {

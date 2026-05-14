@@ -25,7 +25,7 @@ function createUiHost(browser, onload) {
     ifr.style.height = "0";
     ifr.style.zIndex = "2147483647";
     uiHost.attachShadow({ mode: 'open' });
-    uiHost.shadowRoot.appendChild(ifr);
+    uiHost.shadowRoot!.appendChild(ifr);
 
     function _onWindowMessage(event) {
         var _message = event.data && event.data.surfingkeys_uihost_data;
@@ -34,7 +34,7 @@ function createUiHost(browser, onload) {
         }
         if (_message.toFrontend) {
             // forward message to frontend
-            ifr.contentWindow.postMessage({surfingkeys_frontend_data: _message}, frontEndURL);
+            ifr.contentWindow!.postMessage({surfingkeys_frontend_data: _message}, frontEndURL);
             if (_message.toFrontend && event.source
                 && ['showStatus', 'showEditor', 'openOmnibar', 'openFinder', 'chooseTab'].indexOf(_message.action) !== -1) {
                 if (!activeContent || activeContent.window !== event.source) {
@@ -73,7 +73,7 @@ function createUiHost(browser, onload) {
     // frontend -> top:
     // top -> top: apply user settings
     ifr.addEventListener("load", function() {
-        this.contentWindow.postMessage({surfingkeys_frontend_data: {
+        this.contentWindow!.postMessage({surfingkeys_frontend_data: {
             action: 'initFrontend',
             ack: true,
             winSize: [window.innerWidth, window.innerHeight],
@@ -85,7 +85,7 @@ function createUiHost(browser, onload) {
     }, {once: true});
 
     var lastStateOfPointerEvents = "none", _origOverflowY;
-    var _actions = {}, activeContent = null;
+    var _actions = {}, activeContent: { window: any; origin: any } | null = null;
     _actions['initFrontendAck'] = function(_response) {
         onload(uiHost);
     };
@@ -127,7 +127,7 @@ function createUiHost(browser, onload) {
     };
 
     (uiHost as any).tryDetach = function() {
-        ifr.contentWindow.postMessage({surfingkeys_frontend_data: {
+        ifr.contentWindow!.postMessage({surfingkeys_frontend_data: {
             action: 'destroyFrontend',
             ack: true,
             origin: getDocumentOrigin()

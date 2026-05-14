@@ -147,7 +147,7 @@ const initKeyboard = ({ nvim, screen }: { nvim: Nvim; screen: Screen }): Keyboar
     let disableNextInput = false;
     let inputKey: string | null = null;
     let isComposing = false;
-    let compositionValue = null;
+    let compositionValue: string | null = null;
     let insertMode = false;
 
     const input = document.createElement('input');
@@ -202,7 +202,7 @@ const initKeyboard = ({ nvim, screen }: { nvim: Nvim; screen: Screen }): Keyboar
     };
 
     const handleCompositionUpdate = (event: CompositionEvent) => {
-        nvim.input(`${'<BS>'.repeat(compositionValue.length)}${event.data}`);
+        nvim.input(`${'<BS>'.repeat(compositionValue!.length)}${event.data}`);
         compositionValue = event.data;
     };
 

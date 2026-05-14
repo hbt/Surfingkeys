@@ -43,7 +43,7 @@ const Front = (function() {
     const self = new Mode("Front");
     self._actions = {};
     self.topSize = [0, 0];
-    let destroyListeners = [];
+    let destroyListeners: ((...args: any[]) => void)[] = [];
     self.addDestroyListener = (task) => {
         destroyListeners.push(task);
     };
@@ -70,11 +70,11 @@ const Front = (function() {
             args.ack = true;
             _callbacks[args.id] = successById;
         }
-        top.postMessage({surfingkeys_uihost_data: args}, self.topOrigin);
+        top!.postMessage({surfingkeys_uihost_data: args}, self.topOrigin);
     };
 
     self.postMessage = function(args) {
-        top.postMessage({surfingkeys_uihost_data: args}, self.topOrigin);
+        top!.postMessage({surfingkeys_uihost_data: args}, self.topOrigin);
     };
 
     var pressedHintKeys = "";
@@ -123,7 +123,7 @@ const Front = (function() {
             }
             // eslint-disable-next-line @typescript-eslint/no-this-alias
             _state = this;
-            top.postMessage({surfingkeys_uihost_data: {
+            top!.postMessage({surfingkeys_uihost_data: {
                 action: 'setFrontFrame',
                 pointerEvents: pointerEvents,
                 frameHeight: frameHeight
@@ -188,12 +188,12 @@ const Front = (function() {
 
     const _omnibar: any = document.getElementById('sk_omnibar');
     self.statusBar = document.getElementById('sk_status');
-    const _usage = document.getElementById('sk_usage');
-    const _popup = document.getElementById('sk_popup');
-    const _editor = document.getElementById('sk_editor');
-    const _nvim = document.getElementById('sk_nvim');
-    const _tabs = document.getElementById('sk_tabs');
-    const _banner = document.getElementById('sk_banner');
+    const _usage = document.getElementById('sk_usage')!;
+    const _popup = document.getElementById('sk_popup')!;
+    const _editor = document.getElementById('sk_editor')!;
+    const _nvim = document.getElementById('sk_nvim')!;
+    const _tabs = document.getElementById('sk_tabs')!;
+    const _banner = document.getElementById('sk_banner')!;
     const _bubble: any = document.getElementById('sk_bubble');
     const sk_bubble_content: any = _bubble.querySelector("div.sk_bubble_content");
     const sk_bubble_arrow: any = _bubble.querySelector('div.sk_arrow');
@@ -213,13 +213,13 @@ const Front = (function() {
             sk_bubbleClassList.add("sk_scroller_indicator_middle");
         }
     };
-    var keystroke = document.getElementById('sk_keystroke');
+    var keystroke = document.getElementById('sk_keystroke')!;
 
     self.startInputGuard = () => {
         if (getBrowserName().startsWith("Safari")) {
             var inputGuard = setInterval(() => {
-                let input = null;
-                for (const a of document.querySelectorAll("input, textarea")) {
+                let input: HTMLInputElement | HTMLTextAreaElement | null = null;
+                for (const a of document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea")) {
                     if (a.getBoundingClientRect().width) {
                         input = a;
                         break;
@@ -229,7 +229,7 @@ const Front = (function() {
                     input.focus();
                     input.value = " ";
                     setTimeout(() => {
-                        input.value = "";
+                        input!.value = "";
                     }, 10);
                 } else {
                     clearInterval(inputGuard);
@@ -496,7 +496,7 @@ const Front = (function() {
         // send response in callback from buildUsage
         delete message.ack;
         buildUsage(message.metas, function(usage) {
-            top.postMessage({surfingkeys_uihost_data: {
+            top!.postMessage({surfingkeys_uihost_data: {
                 data: usage,
                 toContent: true,
                 id: message.id
@@ -584,7 +584,7 @@ const Front = (function() {
     };
 
     self.vimMappings = [];
-    let _aceEditor = null;
+    let _aceEditor: Promise<unknown> | null = null;
     function renderAceEditor(message) {
         if (!_aceEditor) {
             _aceEditor = new Promise((resolve, _reject) => {
@@ -594,11 +594,11 @@ const Front = (function() {
                 });
             });
         }
-        _aceEditor.then((editor) => {
+        _aceEditor.then((editor: any) => {
             editor.show(message);
         });
     }
-    let _neovim = null;
+    let _neovim: Promise<unknown> | null = null;
     function renderNvim(message) {
         if (!_neovim) {
             _neovim  = new Promise((resolve, _reject) => {
@@ -632,7 +632,7 @@ const Front = (function() {
                 });
             });
         }
-        _neovim.then((nvim) => {
+        _neovim.then((nvim: any) => {
             normal.exit();
             RUNTIME('connectNative', {mode: "embed"}, (resp) => {
                 nvim.connect(resp.url, () => {
@@ -892,7 +892,7 @@ const Front = (function() {
         } else if (_message.action && _actions.hasOwnProperty(_message.action)) {
             var ret = _actions[_message.action](_message);
             if (_message.ack) {
-                top.postMessage({surfingkeys_uihost_data: {
+                top!.postMessage({surfingkeys_uihost_data: {
                     data: ret,
                     action: _message.action + "Ack",
                     toContent: true,
@@ -920,7 +920,7 @@ const Front = (function() {
             });
             window.removeEventListener("resize", onResize);
         } else {
-            var sel = window.getSelection().toString().trim() || getWordUnderCursor(true);
+            var sel = window.getSelection()?.toString().trim() || getWordUnderCursor(true);
             if (sel && sel.length > 0) {
                 self.contentCommand({
                     action: 'updateInlineQuery',
@@ -951,7 +951,7 @@ const Front = (function() {
  */
 var StatusBar = (function() {
     var self: any = {};
-    var timerHide = null;
+    var timerHide: ReturnType<typeof setTimeout> | null = null;
     var ui = Front.statusBar;
 
     // 4 spans
@@ -1095,7 +1095,7 @@ var Find = (function() {
 
 function createAceEditor(normal, front) {
     var self = new Mode("AceEditor");
-    document.getElementById("sk_editor").style.height = "30%";
+    document.getElementById("sk_editor")!.style.height = "30%";
     var _ace = ace.edit('sk_editor');
 
     var originValue;
@@ -1206,7 +1206,7 @@ function createAceEditor(normal, front) {
         };
     }
 
-    var wordsOnPage = null;
+    var wordsOnPage: any[] | null = null;
     function getWordsOnPage(message) {
         var splitRegex = /[^a-zA-Z_0-9\$\-\u00C0-\u1FFF\u2C00-\uD7FF\w]+/;
         var words = message.split(splitRegex);
@@ -1254,7 +1254,7 @@ function createAceEditor(normal, front) {
             mod.Autocomplete.prototype.commands['Tab'] = mod.Autocomplete.prototype.commands['Down'];
             mod.Autocomplete.prototype.commands['Shift-Tab'] = mod.Autocomplete.prototype.commands['Up'];
             mod.FilteredList.prototype.filterCompletions = function(items, needle) {
-                var results = [];
+                var results: any[] = [];
                 var upper = needle.toUpperCase();
                 loop: for (var i = 0, item; item = items[i]; i++) {
                     var caption = item.value.toUpperCase();
