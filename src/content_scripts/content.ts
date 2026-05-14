@@ -201,7 +201,7 @@ function _initModules() {
     //   document.dispatchEvent(new CustomEvent('__sk_invoke', {detail: 'cmd_insert_cursor_end'}))
     //   document.documentElement.dataset.skInvokeResult  // 'true' | 'false'
     document.addEventListener('__sk_invoke', (e) => {
-        const detail = e.detail;
+        const detail = (e as CustomEvent).detail;
         const unique_id = typeof detail === 'string' ? detail : detail.unique_id;
         const repeatsOverride = typeof detail === 'object' && detail.repeats !== undefined ? detail.repeats : undefined;
         const cmd = commandRegistry.get(unique_id);
@@ -224,9 +224,9 @@ function _initModules() {
                 // Mirror _handleMapKey: ensure RUNTIME.repeats defaults to 1
                 // so background actions (reloadTab, closeTab, etc.) get a valid repeat count.
                 if (repeatsOverride !== undefined) {
-                    RUNTIME.repeats = repeatsOverride;
-                } else if (RUNTIME.repeats === undefined || RUNTIME.repeats === null) {
-                    RUNTIME.repeats = 1;
+                    (RUNTIME as any).repeats = repeatsOverride;
+                } else if ((RUNTIME as any).repeats === undefined || (RUNTIME as any).repeats === null) {
+                    (RUNTIME as any).repeats = 1;
                 }
                 cmd.code();
                 document.documentElement.dataset.skInvokeResult = 'true';
@@ -245,7 +245,7 @@ function _initModules() {
     // Test hook: override runtime.conf values from main world via DOM CustomEvent.
     // Usage: document.dispatchEvent(new CustomEvent('__sk_conf_override', { detail: { key: 'digitForRepeat', value: false } }))
     document.addEventListener('__sk_conf_override', (e) => {
-        const { key, value } = e.detail;
+        const { key, value } = (e as CustomEvent).detail;
         if (Object.prototype.hasOwnProperty.call(runtime.conf, key)) {
             runtime.conf[key] = value;
             document.documentElement.dataset.skConfOverrideResult = 'true';
@@ -260,14 +260,14 @@ function _initModules() {
         _browser.plugin({ front });
     }
 
-    dispatchSKEvent('defaultSettingsLoaded', {normal, api});
+    dispatchSKEvent('defaultSettingsLoaded', [{normal, api}] as any);
     RUNTIME('getSettings', null, function(response) {
         var rs = response.settings;
         applySettings(api, normal, rs);
         const disabledSearchAliases = rs.disabledSearchAliases;
         const getUsage = front.getUsage;
         const frontCommand = front.command;
-        dispatchSKEvent('userSettingsLoaded', {settings: rs, disabledSearchAliases, getUsage, frontCommand});
+        dispatchSKEvent('userSettingsLoaded', [{settings: rs, disabledSearchAliases, getUsage, frontCommand}] as any);
     });
     return {
         normal,
@@ -278,7 +278,7 @@ function _initModules() {
 
 
 function _initContent(modes) {
-    window.frameId = generateQuickGuid();
+    (window as any).frameId = generateQuickGuid();
     runtime.on('settingsUpdated', response => {
         var rs = response.settings;
         applySettings(modes.api, modes.normal, rs);
@@ -293,12 +293,12 @@ function _initContent(modes) {
     }
 }
 
-window.getFrameId = function () {
-    if (!window.frameId && window.innerWidth > 16 && window.innerHeight > 16
+(window as any).getFrameId = function () {
+    if (!(window as any).frameId && window.innerWidth > 16 && window.innerHeight > 16
         && document.body && document.body.childElementCount > 0
         && runtime.conf.ignoredFrameHosts.indexOf(window.origin) === -1
         && (!window.frameElement || (parseInt("0" + getComputedStyle(window.frameElement).zIndex) >= 0
-            && window.frameElement.offsetWidth > 16 && window.frameElement.offsetWidth > 16))
+            && (window.frameElement as HTMLElement).offsetWidth > 16 && (window.frameElement as HTMLElement).offsetWidth > 16))
     ) {
         _initContent(_initModules());
 
@@ -307,11 +307,11 @@ window.getFrameId = function () {
             dispatchSKEvent('user', ["runUserScript"]);
         }, 100);
     }
-    return window.frameId;
+    return (window as any).frameId;
 };
 Mode.init(window === top ? undefined : ()=> {
     window.addEventListener("focus", () => {
-        getFrameId();
+        (window as any).getFrameId();
     }, {once: true});
 });
 
@@ -322,8 +322,9 @@ function start(browser?) {
         readText: () => {},
     };
     if (window === top) {
-        new Promise((r, _j) => {
+        new Promise<any>((r, _j) => {
             if (window.location.href === chrome.runtime.getURL("/pages/options.html")) {
+                // @ts-ignore — dynamic import of generated file, no type declarations
                 import(/* webpackIgnore: true */ './pages/options.js').then((optionsLib) => {
                     optionsLib.default(
                         RUNTIME,
@@ -357,7 +358,7 @@ function start(browser?) {
             runtime.on('tabDeactivated', function() {
                 modes.front.detach();
             });
-            runtime.on('setScrollPos', function(msg, _sender, _response) {
+            runtime.on('setScrollPos', function(msg: any, _sender, _response) {
                 setTimeout(() => {
                     document.scrollingElement.scrollLeft = msg.scrollLeft;
                     document.scrollingElement.scrollTop = msg.scrollTop;

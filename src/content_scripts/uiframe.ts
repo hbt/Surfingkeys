@@ -1,29 +1,29 @@
 import { LOG } from '../common/utils.js';
 import { runtime } from './common/runtime.js';
 import {
-    _getBrowserName,
+    getBrowserName,
     getDocumentOrigin
 } from './common/utils.js';
 
 function createUiHost(browser, onload) {
     var uiHost = document.createElement("div");
     uiHost.style.display = "block";
-    uiHost.style.opacity = 1;
+    uiHost.style.opacity = "1";
     uiHost.style.colorScheme = "light";
     var frontEndURL = chrome.runtime.getURL('pages/frontend.html');
     var ifr = document.createElement("iframe");
-    ifr.setAttribute('allowtransparency', true);
-    ifr.setAttribute('frameborder', 0);
+    ifr.setAttribute('allowtransparency', "true");
+    ifr.setAttribute('frameborder', "0");
     ifr.setAttribute('scrolling', "no");
     ifr.setAttribute('class', "sk_ui");
     ifr.setAttribute('src', frontEndURL);
     ifr.setAttribute('title', "Surfingkeys");
     ifr.style.position = "fixed";
-    ifr.style.left = 0;
-    ifr.style.bottom = 0;
+    ifr.style.left = "0";
+    ifr.style.bottom = "0";
     ifr.style.width = "100%";
-    ifr.style.height = 0;
-    ifr.style.zIndex = 2147483647;
+    ifr.style.height = "0";
+    ifr.style.zIndex = "2147483647";
     uiHost.attachShadow({ mode: 'open' });
     uiHost.shadowRoot.appendChild(ifr);
 
@@ -126,7 +126,7 @@ function createUiHost(browser, onload) {
         lastStateOfPointerEvents = response.pointerEvents;
     };
 
-    uiHost.tryDetach = function() {
+    (uiHost as any).tryDetach = function() {
         ifr.contentWindow.postMessage({surfingkeys_frontend_data: {
             action: 'destroyFrontend',
             ack: true,
@@ -137,7 +137,7 @@ function createUiHost(browser, onload) {
         if (response.data === true) {
             runtime.postTopMessage({surfingkeys_content_data: {
                 action: 'frontendDestroyed',
-            }});
+            }} as any);
             window.removeEventListener('message', _onWindowMessage, true);
             uiHost.remove();
         } else {

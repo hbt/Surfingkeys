@@ -1,5 +1,11 @@
+declare function httpRequest(opts: { url: string; headers?: Record<string, string>; data?: string }, callback: (res: { text: string }) => void): void;
+
 var Gist = (function() {
-    var self = {};
+    var self: {
+        initGist?: (token: string, onGistReady?: (gist: string) => void) => void;
+        newComment?: (text: string) => void;
+        readComment?: (nr: number) => void;
+    } = {};
 
     function _initGist(token, magic_word, onGistReady) {
         httpRequest({

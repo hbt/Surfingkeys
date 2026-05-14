@@ -45,7 +45,7 @@ RUNTIME("getTopSites", null, function(response) {
 });
 
 document.addEventListener("surfingkeys:userSettingsLoaded", function(evt) {
-    const { getUsage } = evt.detail;
+    const { getUsage } = (evt as CustomEvent).detail[0];
     getUsage(function(usage) {
         var _usage = document.getElementById('sk_usage');
         setSanitizedContent(_usage, usage);

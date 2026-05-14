@@ -267,7 +267,7 @@ function createFront(insert, normal, hints, visual, browser) {
      *     }, 'url');
      * });
      */
-    self.showEditor = function(element, onWrite, type, useNeovim) {
+    self.showEditor = function(element: any, onWrite, type, useNeovim) {
         var content,
             type = type || element.localName,
             initial_line = 0;
@@ -276,7 +276,7 @@ function createFront(insert, normal, hints, visual, browser) {
             elementBehindEditor = document.body;
         } else if (type === 'select') {
             var selected = element.value;
-            content = Array.from(element.querySelectorAll('option')).map(function(n, i) {
+            content = Array.from(element.querySelectorAll('option')).map(function(n: any, i) {
                 if (n.value === selected) {
                     initial_line = i;
                 }
@@ -288,7 +288,7 @@ function createFront(insert, normal, hints, visual, browser) {
             if (elementBehindEditor.nodeName === "DIV") {
                 if (elementBehindEditor.className === "CodeMirror-code") {
                     let codeMirrorLines = elementBehindEditor.querySelectorAll(".CodeMirror-line");
-                    content = Array.from(codeMirrorLines).map(el => el.innerText).join("\n");
+                    content = Array.from(codeMirrorLines).map((el: any) => el.innerText).join("\n");
                     // Remove the red dot (char code 8226) that CodeMirror uses to visualize the zero-width space.
                     content = content.replace(/\u200B/g, "");
 
@@ -300,7 +300,13 @@ function createFront(insert, normal, hints, visual, browser) {
             }
         }
         onEditorSaved = onWrite || updateElementBehindEditor;
-        const cmd = {
+        const cmd: {
+            action: string;
+            type: any;
+            initial_line: number;
+            content: any;
+            file_name?: string;
+        } = {
             action: 'showEditor',
             type: type || "textarea",
             initial_line: initial_line,
@@ -383,7 +389,7 @@ function createFront(insert, normal, hints, visual, browser) {
     var _inlineQuery = false;
     var _showQueryResult;
     self.performInlineQuery = function (query, pos, showQueryResult) {
-        if (document.dictEnabled !== undefined) {
+        if ((document as any).dictEnabled !== undefined) {
             if (window.location.href.startsWith("chrome://dictorium-query/")) {
                 if (window === top) {
                     window.location.href = `chrome://dictorium-query/${query}`;
@@ -416,7 +422,7 @@ function createFront(insert, normal, hints, visual, browser) {
             _showQueryResult = function(result) {
                 showQueryResult(pos, result);
             };
-            document.getElementById("proxyFrame").contentWindow.postMessage({surfingkeys_content_data: {
+            (document.getElementById("proxyFrame") as HTMLIFrameElement).contentWindow.postMessage({surfingkeys_content_data: {
                 action: "performInlineQuery",
                 pos: pos,
                 query: query
@@ -570,8 +576,8 @@ function createFront(insert, normal, hints, visual, browser) {
                 pos.winX = 0;
                 pos.winY = 0;
                 if (window.frameElement) {
-                    pos.winX = window.frameElement.offsetLeft;
-                    pos.winY = window.frameElement.offsetTop;
+                    pos.winX = (window.frameElement as HTMLElement).offsetLeft;
+                    pos.winY = (window.frameElement as HTMLElement).offsetTop;
                 }
                 self.command({
                     action: "showBubble",
@@ -674,7 +680,7 @@ function createFront(insert, normal, hints, visual, browser) {
             frontendPromise.then((uiHost) => {
                 if (uiHost.shadowRoot.contains(document.activeElement)) {
                     // fix for Firefox, blur from iframe for frontend after Omnibar closed.
-                    document.activeElement.blur();
+                    (document.activeElement as HTMLElement).blur();
                 }
             });
         }
@@ -730,7 +736,7 @@ function createFront(insert, normal, hints, visual, browser) {
     };
 
     runtime.on('focusFrame', function(msg, _sender, _response) {
-        if (msg.frameId === window.frameId) {
+        if (msg.frameId === (window as any).frameId) {
             window.focus();
             document.body.scrollIntoView({
                 behavior: 'auto',
@@ -756,7 +762,7 @@ function createFront(insert, normal, hints, visual, browser) {
         }
         if (_message.action === "performInlineQuery") {
             self.performInlineQuery(_message.query, _message.pos, function (pos, queryResult) {
-                event.source.postMessage({surfingkeys_content_data: {
+                (event.source as Window).postMessage({surfingkeys_content_data: {
                     action: "performInlineQueryResult",
                     pos: pos,
                     result: queryResult

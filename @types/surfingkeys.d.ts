@@ -7,9 +7,51 @@
 declare global {
     const __CONFIG_SERVER_PORT__: string;
 
+    // ace editor (loaded externally)
+    const ace: any;
+
     // String.prototype.format extension (defined in content_scripts/common/utils.ts)
     interface String {
         format(...args: unknown[]): string;
+    }
+
+    // HTMLElement extensions added by content_scripts/common/utils.ts
+    interface HTMLElement {
+        show(): void;
+        hide(): void;
+        one(evt: string, handler: (this: HTMLElement, e: Event) => void): void;
+    }
+
+    // Element extensions (querySelector results)
+    interface Element {
+        show(): void;
+        hide(): void;
+        one(evt: string, handler: (this: Element, e: Event) => void): void;
+        // HTML-like properties commonly used on Element without proper cast
+        style: CSSStyleDeclaration;
+        value: string;
+        onclick: ((this: Element, ev: MouseEvent) => any) | null;
+        onchange: ((this: Element, ev: Event) => any) | null;
+        onblur: ((this: Element, ev: FocusEvent) => any) | null;
+        onfocus: ((this: Element, ev: FocusEvent) => any) | null;
+        blur(): void;
+        innerText: string;
+        disabled: boolean;
+        checked: boolean;
+    }
+
+    // NodeList/NodeListOf extensions
+    interface NodeList {
+        show(): void;
+        hide(): void;
+        remove(): void;
+    }
+
+    // NodeListOf extensions
+    interface NodeListOf<TNode extends Node> {
+        show(): void;
+        hide(): void;
+        remove(): void;
     }
 }
 

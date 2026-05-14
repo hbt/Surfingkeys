@@ -27,7 +27,12 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
     let commandRegistry = new Map();
 
     function createKeyTarget(code, ag, repeatIgnore) {
-        var keybound = {
+        var keybound: {
+            code: any;
+            repeatIgnore?: any;
+            feature_group?: any;
+            annotation?: any;
+        } = {
             code: code
         };
         if (repeatIgnore) {
@@ -50,7 +55,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         options = options || {};
         if (_isDomainApplicable(options.domain)) {
             keys = KeyboardUtils.encodeKeystroke(keys);
-            var old = mode.mappings.remove(keys);
+            var old = mode.mappings.remove(keys) as any;
             if (old) {
                 var warning;
                 if (old.meta) {
@@ -64,7 +69,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
             } else if (keys.length > 1) {
                 var p = keys.substr(0, keys.length - 1);
                 while (p.length > 0) {
-                    old = mode.mappings.find(p);
+                    old = mode.mappings.find(p) as any;
                     if (old && old.meta) {
                         LOG("warn", `${old.meta.word} for [${old.meta.annotation}] precedes ${keys}.`);
                         return;
@@ -225,7 +230,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      * @example
      * unmap("<<", /youtube.com/);
      */
-    function unmap(keystroke, domain) {
+    function unmap(keystroke, domain?) {
         if (_isDomainApplicable(domain)) {
             var old_map = normal.mappings.find(KeyboardUtils.encodeKeystroke(keystroke));
             if (old_map) {
@@ -341,7 +346,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      *
      * @see unmap
      */
-    function vunmap(keystroke, domain) {
+    function vunmap(keystroke, domain?) {
         if (_isDomainApplicable(domain)) {
             visual.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
         }
@@ -397,8 +402,8 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         function ssw() {
             searchSelectedWith(search_url);
         }
-        mapkey((search_leader_key || 's') + alias, ['#6Search selected with {0}', prompt], ssw);
-        mapkey('o' + alias, ['#8Open Omnibar for {0} Search', prompt], () => {
+        mapkey((search_leader_key || 's') + alias, ['#6Search selected with {0}', prompt] as any, ssw);
+        mapkey('o' + alias, ['#8Open Omnibar for {0} Search', prompt] as any, () => {
             front.openOmnibar({type: "SearchEngine", extra: alias});
         });
         vmapkey((search_leader_key || 's') + alias, '', ssw);
@@ -463,7 +468,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
      * @example
      * searchSelectedWith('https://translate.google.com/?hl=en#auto/en/');
      */
-    function searchSelectedWith(se, onlyThisSite, interactive, alias) {
+    function searchSelectedWith(se, onlyThisSite?, interactive?, alias?) {
         let query = window.getSelection().toString();
         clipboard.read(function(response) {
             query = query || response.data;
@@ -518,7 +523,7 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
             RUNTIME('userLog', { msg, fromUserScript: true });
         },
         mapcmdkey: (keys, unique_id, options) => {
-            window.__mapcmdkey_call_count = (window.__mapcmdkey_call_count || 0) + 1;
+            (window as any).__mapcmdkey_call_count = ((window as any).__mapcmdkey_call_count || 0) + 1;
             mapcmdkey(keys, unique_id, options);
         },
         listCommands: () => {
@@ -539,9 +544,9 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         },
         mapkey: (keys, annotation, options) => {
             if (options.codeHasParameter) {
-                mapkey(keys, annotation, (key) => {
+                mapkey(keys, annotation, ((key) => {
                     dispatchSKEvent('user', ["callUserFunction", `normal:${keys}`, key]);
-                }, options);
+                }) as unknown as () => void, options);
             } else {
                 mapkey(keys, annotation, () => {
                     dispatchSKEvent('user', ["callUserFunction", `normal:${keys}`]);

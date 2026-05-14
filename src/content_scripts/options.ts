@@ -335,11 +335,11 @@ export default function(
     }
     document.getElementById('save_button').onclick = saveSettings;
 
-    var basicMappings = ['d', 'R', 'f', 'E', 'e', 'x', 'gg', 'j', '/', 'n', 'r', 'k', 'S', 'C', 'on', 'G', 'v', 'i', ';e', 'og', 'g0', 't', '<Ctrl-6>', 'yy', 'g$', 'D', 'ob', 'X', 'sg', 'cf', 'yv', 'yt', 'N', 'l', 'cc', '$', 'yf', 'w', '0', 'yg', 'ow', 'cs', 'b', 'om', 'ya', 'h', 'gU', 'W', 'B', 'F', ';j'];
+    var basicMappings: any[] = ['d', 'R', 'f', 'E', 'e', 'x', 'gg', 'j', '/', 'n', 'r', 'k', 'S', 'C', 'on', 'G', 'v', 'i', ';e', 'og', 'g0', 't', '<Ctrl-6>', 'yy', 'g$', 'D', 'ob', 'X', 'sg', 'cf', 'yv', 'yt', 'N', 'l', 'cc', '$', 'yf', 'w', '0', 'yg', 'ow', 'cs', 'b', 'om', 'ya', 'h', 'gU', 'W', 'B', 'F', ';j'];
 
 
     document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
-        const { normal } = evt.detail;
+        const { normal } = (evt as CustomEvent).detail[0];
         basicMappings = basicMappings.map(function(w, _i) {
             const binding = normal.mappings.find(KeyboardUtils.encodeKeystroke(w));
             if (binding) {
@@ -354,7 +354,7 @@ export default function(
     });
 
     function renderSearchAlias(frontCommand, disabledSearchAliases) {
-        new Promise((r, _j) => {
+        new Promise<any>((r, _j) => {
             const getSearchAliases = () => {
                 frontCommand({
                     action: 'getSearchAliases'
@@ -424,7 +424,7 @@ export default function(
     }
 
     document.addEventListener("surfingkeys:userSettingsLoaded", function(evt) {
-        const { settings, disabledSearchAliases, frontCommand } = evt.detail;
+        const { settings, disabledSearchAliases, frontCommand } = (evt as CustomEvent).detail[0];
         mappingsEditor = createMappingEditor('mappings');
         renderSettings(settings);
         if ('error' in settings) {
