@@ -9,7 +9,7 @@
     "strictFunctionTypes": false,
     "strictBindCallApply": false,
     "noImplicitThis": false,
-    "alwaysStrict": false,
+    "alwaysStrict": true,
     "strictPropertyInitialization": false,
     "useUnknownInCatchVariables": false,
     "moduleResolution": "node",
