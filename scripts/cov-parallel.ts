@@ -31,12 +31,19 @@ const reportPath = path.resolve('test-artifacts/reports', 'runs', `${runId}.json
 fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 
 const playwrightArgs = process.argv.slice(2);
-const cmd = ['playwright', 'test', '--workers=3', ...playwrightArgs];
+const workers = process.env.WORKERS ?? '6';
+const cmd = ['playwright', 'test', `--workers=${workers}`, ...playwrightArgs];
 
 console.log(`\n[cov:parallel] Running: COVERAGE=true bunx ${cmd.join(' ')}`);
 const run = spawnSync('bunx', cmd, {
     stdio: 'inherit',
-    env: { ...process.env, COVERAGE: 'true', COVERAGE_OUTPUT_DIR: coverageRoot, PLAYWRIGHT_JSON_OUTPUT: reportPath },
+    env: {
+        ...process.env,
+        COVERAGE: 'true',
+        COVERAGE_OUTPUT_DIR: coverageRoot,
+        PLAYWRIGHT_JSON_OUTPUT: reportPath,
+        PW_GLOBAL_TIMEOUT: process.env.PW_GLOBAL_TIMEOUT ?? String(30 * 60_000),
+    },
 });
 
 function listV8JsonFiles(dir: string): string[] {
