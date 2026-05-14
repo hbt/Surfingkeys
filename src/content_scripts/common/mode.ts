@@ -277,7 +277,7 @@ interface ModeWithMapState {
 interface MapMeta {
     word: string;
     annotation: unknown;
-    code: Array<() => void>;
+    code: ((...args: never[]) => void) & { length: number };
     stopPropagation?: (key: string) => boolean;
     feature_group?: number;
     repeatIgnore?: boolean;
@@ -376,13 +376,13 @@ Mode.handleMapKey = function(this: ModeWithMapState, event: SKKeyboardEvent, onN
                         const annotationStr = getAnnotationString(this.map_node.meta.annotation);
                         dispatchSKEvent("front", ['showDialog', `Do you really want to repeat this action (${annotationStr}) ${(RUNTIME as unknown as { repeats: number }).repeats} times?`, () => {
                             while((RUNTIME as unknown as { repeats: number }).repeats > 0) {
-                                code[0]();
+                                code();
                                 (RUNTIME as unknown as { repeats: number }).repeats--;
                             }
                         }]);
                     } else {
                         while((RUNTIME as unknown as { repeats: number }).repeats > 0) {
-                            code[0]();
+                            code();
                             (RUNTIME as unknown as { repeats: number }).repeats--;
                         }
                     }
