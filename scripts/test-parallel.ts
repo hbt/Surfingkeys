@@ -38,7 +38,7 @@ console.log(`\n[test:parallel] Report → ${reportPath}`);
 if (fs.existsSync(reportPath)) {
   try {
     const data = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-    data.host = os.hostname();
+    data.host = process.env.HOST_MACHINE || os.hostname();
     fs.writeFileSync(reportPath, JSON.stringify(data));
   } catch {}
 }
