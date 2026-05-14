@@ -25,7 +25,7 @@ export function parseMapkeyPatternsAST(
     try {
         ast = parse(code, {
             sourceType: 'module',
-            plugins: ['jsx']
+            plugins: ['jsx', 'typescript']
         });
     } catch (e) {
         // Skip files that can't be parsed
@@ -98,7 +98,7 @@ export function parseMappingsAddPatternsAST(
     try {
         ast = parse(code, {
             sourceType: 'module',
-            plugins: ['jsx']
+            plugins: ['jsx', 'typescript']
         });
     } catch (e) {
         return;
@@ -218,7 +218,7 @@ export function parseCommandPatternsAST(
     try {
         ast = parse(code, {
             sourceType: 'module',
-            plugins: ['jsx']
+            plugins: ['jsx', 'typescript']
         });
     } catch (e) {
         return;
@@ -274,7 +274,7 @@ export function parseSearchAliasPatternsAST(
     try {
         ast = parse(code, {
             sourceType: 'module',
-            plugins: ['jsx']
+            plugins: ['jsx', 'typescript']
         });
     } catch (e) {
         return;

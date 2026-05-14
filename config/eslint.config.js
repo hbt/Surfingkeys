@@ -78,7 +78,7 @@ module.exports = [
             sourceType: 'module',
             parser: typescriptEslintParser,
             parserOptions: {
-                project: './tsconfig.json'
+                project: ['./tsconfig.json', './tsconfig.scripts.json']
             },
             globals: {
                 // Browser globals
