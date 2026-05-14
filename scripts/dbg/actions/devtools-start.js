@@ -1,0 +1,254 @@
+/**
+ * DevTools Start Action
+ *
+ * Deterministic, zero-shot sequence that:
+ *   1. Snapshots existing windows
+ *   2. Launches gchrb
+ *   3. Finds + moves + maximizes the new window
+ *   4. Activates it and sends F12 / Surfingkeys panel key sequence
+ *   5. Polls until panelConnected === true
+ *
+ * Every step is followed by a verification.
+ * All steps write to /tmp/dbg-devtools-start.jsonl — one JSON object per line.
+ *
+ * Output: JSON to stdout
+ */
+
+const { spawnSync, execSync } = require('child_process');
+const fs = require('fs');
+const http = require('http');
+
+const LOG_FILE = '/tmp/dbg-devtools-start.jsonl';
+const SERVER_PORT = 9600;
+const TARGET_WORKSPACE = 5;
+
+// ── Logging ───────────────────────────────────────────────────────────────────
+
+let logFd;
+
+function openLog() {
+  logFd = fs.openSync(LOG_FILE, 'w');
+}
+
+function writeLog(obj) {
+  const line = JSON.stringify({ ts: Math.floor(Date.now() / 1000), ...obj });
+  fs.writeSync(logFd, line + '\n');
+}
+
+function closeLog() {
+  if (logFd !== undefined) fs.closeSync(logFd);
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function cmd(command) {
+  try {
+    return execSync(command, { encoding: 'utf8' }).trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+function getWindowSet() {
+  const out = cmd('wmctrl -l');
+  const ids = new Set();
+  for (const line of out.split('\n')) {
+    const m = line.match(/^(0x[0-9a-f]+)/i);
+    if (m) ids.add(m[1].toLowerCase());
+  }
+  return ids;
+}
+
+function getWindowDesktop(winId) {
+  const out = cmd('wmctrl -l');
+  for (const line of out.split('\n')) {
+    const m = line.match(/^(0x[0-9a-f]+)\s+(\d+)/i);
+    if (m && m[1].toLowerCase() === winId.toLowerCase()) {
+      return parseInt(m[2], 10);
+    }
+  }
+  return null;
+}
+
+function getActiveWindow() {
+  return cmd('xdotool getactivewindow').trim();
+}
+
+function winIdToInt(id) {
+  // xdotool returns decimal; wmctrl returns 0x hex — normalize both to integer
+  const s = String(id).trim();
+  if (s.startsWith('0x') || s.startsWith('0X')) return parseInt(s, 16);
+  return parseInt(s, 10);
+}
+
+function winIdsMatch(a, b) {
+  return winIdToInt(a) === winIdToInt(b);
+}
+
+function getScreenDimensions() {
+  const out = cmd('xdpyinfo | grep dimensions');
+  const m = out.match(/(\d+)x(\d+) pixels/);
+  if (m) return { w: parseInt(m[1], 10), h: parseInt(m[2], 10) };
+  return null;
+}
+
+function getWindowGeometry(winId) {
+  const out = cmd(`xdotool getwindowgeometry ${winId}`);
+  const wm = out.match(/Geometry:\s+(\d+)x(\d+)/);
+  if (wm) return { w: parseInt(wm[1], 10), h: parseInt(wm[2], 10) };
+  return null;
+}
+
+function httpGet(url) {
+  return new Promise((resolve) => {
+    http.get(url, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try { resolve({ ok: res.statusCode === 200, body: JSON.parse(body) }); }
+        catch (_) { resolve({ ok: res.statusCode === 200, body }); }
+      });
+    }).on('error', (err) => resolve({ ok: false, error: err.message }));
+  });
+}
+
+// ── Bail helper ───────────────────────────────────────────────────────────────
+
+function bail(step, detail, hint) {
+  const obj = { ok: false, error: step, detail, log: LOG_FILE, ...(hint ? { hint } : {}) };
+  writeLog({ step, error: true, detail });
+  closeLog();
+  console.log(JSON.stringify(obj, null, 2));
+  process.exit(1);
+}
+
+// ── Steps ─────────────────────────────────────────────────────────────────────
+
+async function run() {
+  openLog();
+  const startMs = Date.now();
+
+  // STEP 1: snapshot windows
+  const setA = getWindowSet();
+  if (setA.size === 0) bail('snapshot', 'wmctrl returned no windows');
+  writeLog({ step: 'snapshot', windowCount: setA.size });
+
+  // STEP 2: launch gchrb
+  const launch = spawnSync('gchrb', [], { encoding: 'utf8' });
+  if (launch.error) bail('gchrb_launch', launch.error.message);
+  writeLog({ step: 'gchrb_launch', exitCode: launch.status ?? 0 });
+
+  // STEP 3: find new window (poll up to 8s)
+  let newWin = null;
+  const findStart = Date.now();
+  while (Date.now() - findStart < 8000) {
+    await sleep(200);
+    const setB = getWindowSet();
+    const diff = [...setB].filter(id => !setA.has(id));
+    if (diff.length === 1) {
+      newWin = diff[0];
+      break;
+    }
+    if (diff.length > 1) {
+      // Take the last one (most recently appeared)
+      newWin = diff[diff.length - 1];
+      break;
+    }
+  }
+  const findElapsed = Date.now() - findStart;
+  if (!newWin) bail('find_window', 'new window never appeared within 8s', 'gchrb may have failed to start');
+  writeLog({ step: 'find_window', windowId: newWin, elapsedMs: findElapsed });
+
+  // STEP 4: move to workspace
+  cmd(`wmctrl -i -r ${newWin} -t ${TARGET_WORKSPACE}`);
+  await sleep(300);
+  const actualDesktop = getWindowDesktop(newWin);
+  writeLog({ step: 'move_workspace', windowId: newWin, target: TARGET_WORKSPACE, actual: actualDesktop });
+  if (actualDesktop !== TARGET_WORKSPACE) {
+    bail('move_workspace', `expected desktop ${TARGET_WORKSPACE}, got ${actualDesktop}`);
+  }
+
+  // STEP 5: maximize
+  cmd(`wmctrl -i -r ${newWin} -b add,maximized_vert,maximized_horz`);
+  await sleep(400);
+  const screen = getScreenDimensions();
+  const geom = getWindowGeometry(newWin);
+  writeLog({ step: 'maximize', ...(geom || {}), ...(screen ? { screenW: screen.w, screenH: screen.h } : {}) });
+
+  // STEP 6: switch to target workspace, then activate window
+  cmd(`wmctrl -s ${TARGET_WORKSPACE}`);
+  await sleep(400);
+  cmd(`wmctrl -i -a ${newWin}`);
+  let activateOk = false;
+  for (let i = 0; i < 3; i++) {
+    await sleep(300);
+    const active = getActiveWindow();
+    if (winIdsMatch(active, newWin)) { activateOk = true; break; }
+  }
+  const activeAfter = getActiveWindow();
+  writeLog({ step: 'activate', expected: newWin, actual: activeAfter, ok: activateOk });
+  if (!activateOk) bail('activate', `window ${newWin} did not become active (got ${activeAfter})`);
+
+  // STEP 7: xdotool windowfocus
+  cmd(`xdotool windowfocus --sync ${newWin}`);
+  await sleep(200);
+  const focusedActive = getActiveWindow();
+  const focusOk = winIdsMatch(focusedActive, newWin);
+  writeLog({ step: 'windowfocus', ok: focusOk, actual: focusedActive, expected: newWin });
+  if (!focusOk) bail('windowfocus', `window focus mismatch: got ${focusedActive}, expected ${newWin}`);
+
+  // STEP 8: settle
+  await sleep(500);
+  writeLog({ step: 'settle', ms: 500 });
+
+  // STEP 9: press F12
+  cmd(`xdotool key --window ${newWin} F12`);
+  await sleep(1500);
+  writeLog({ step: 'key_F12', sent: true });
+
+  // STEP 10: click the Surfingkeys tab in DevTools directly by screen coords
+  cmd(`xdotool mousemove 183 579 click 1`);
+  await sleep(500);
+  writeLog({ step: 'click_surfingkeys_tab', sent: true });
+
+
+  // STEP 14: poll panel connected (up to 10s)
+  let panelConnected = false;
+  let pollAttempts = 0;
+  const pollStart = Date.now();
+  while (Date.now() - pollStart < 10000) {
+    await sleep(500);
+    pollAttempts++;
+    const res = await httpGet(`http://localhost:${SERVER_PORT}/eval-status`);
+    if (res.ok && res.body && res.body.panelConnected === true) {
+      panelConnected = true;
+      break;
+    }
+  }
+  const pollElapsed = Date.now() - pollStart;
+  writeLog({ step: 'panel_connected', ok: panelConnected, attempts: pollAttempts, elapsedMs: pollElapsed });
+  if (!panelConnected) {
+    bail('panel_connected', 'panel never connected within 10s',
+      'check log, try ./bin/dbg devtools-start again or manually open F12 and click Surfingkeys tab');
+  }
+
+  // STEP 15: output result
+  const elapsedMs = Date.now() - startMs;
+  closeLog();
+  console.log(JSON.stringify({
+    ok: true,
+    windowId: newWin,
+    workspace: TARGET_WORKSPACE,
+    panelConnected: true,
+    elapsedMs,
+    log: LOG_FILE,
+  }, null, 2));
+
+  process.exit(0);
+}
+
+module.exports = { run };

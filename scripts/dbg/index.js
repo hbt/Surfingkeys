@@ -56,6 +56,7 @@ const ACTIONS = {
     'server-stop': 'Stop local config server',
     'server-status': 'Check local config server status',
     'devtools-status': 'Check sk-devtools eval relay (server + panel + SW debugger + page eval)',
+    'devtools-start': 'Open gchrb window on workspace 6, open DevTools + connect Surfingkeys panel',
     'config-clear': 'Wipe all config state (localPath, snippets, showAdvanced, savedAt)'
 };
 
