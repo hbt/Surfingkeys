@@ -2,6 +2,7 @@ import {
     filterByTitleOrUrl,
 } from '../common/utils.js';
 import llmClients from './llm.js';
+import type { RuntimeAction } from '../../@types/surfingkeys';
 
 // TEMPORARY ERROR FOR TESTING RELOAD EDGE CASE
 // throw new Error('TEST ERROR: Simulating background script failure');
@@ -730,7 +731,7 @@ function start(browser) {
         }
         sendResponse(result);
     }
-    function handleMessage(_message, _sender, _sendResponse) {
+    function handleMessage(_message: RuntimeAction, _sender: chrome.runtime.MessageSender, _sendResponse: (response?: unknown) => void) {
         if (self.hasOwnProperty(_message.action)) {
             var result = self[_message.action](_message, _sender, _sendResponse);
             if (_message.needResponse) {
