@@ -14,11 +14,9 @@
  * Output: JSON to stdout
  */
 
-export {};
-
-const { spawnSync, execSync } = require('child_process');
-const fs = require('fs');
-const http = require('http');
+import { spawnSync, execSync } from 'child_process';
+import fs from 'fs';
+import http from 'http';
 
 const LOG_FILE = '/tmp/dbg-devtools-start.jsonl';
 const SERVER_PORT = 9600;
@@ -34,7 +32,7 @@ function openLog() {
 
 function writeLog(obj: Record<string, unknown>) {
   const line = JSON.stringify({ ts: Math.floor(Date.now() / 1000), ...obj });
-  fs.writeSync(logFd, line + '\n');
+  fs.writeSync(logFd!, line + '\n');
 }
 
 function closeLog() {
@@ -256,4 +254,4 @@ async function run() {
   process.exit(0);
 }
 
-module.exports = { run };
+export { run };

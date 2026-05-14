@@ -17,15 +17,13 @@
  * Logs: Written to /tmp/dbg-config-set-<timestamp>.log
  */
 
-export {};
-
-const WebSocket = require('ws');
-const http = require('http');
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
-const vm = require('vm');
-const crypto = require('crypto');
+import WebSocket from 'ws';
+import http from 'http';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import vm from 'vm';
+import crypto from 'crypto';
 
 let messageId = 1;
 const CDP_PORT = process.env.CDP_PORT || 9222;
@@ -596,4 +594,4 @@ async function run(args: unknown[]) {
     }
 }
 
-module.exports = { run };
+export { run };

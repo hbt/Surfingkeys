@@ -5,10 +5,8 @@
  * Used by: reload.js, errors-list.js, errors-clear.js, etc.
  */
 
-export {};
-
-const WebSocket = require('ws');
-const http = require('http');
+import WebSocket from 'ws';
+import http from 'http';
 
 const CDP_PORT = process.env.CDP_PORT || 9222;
 const CDP_ENDPOINT = `http://localhost:${CDP_PORT}`;
@@ -39,7 +37,7 @@ function fetchJson(path: string) {
  * Send CDP command via WebSocket
  */
 function sendCommand(ws: unknown, method: string, params: unknown = {}) {
-    return new Promise((resolve, reject) => {
+    return new Promise<any>((resolve, reject) => {
         const id = messageId++;
         const timeout = setTimeout(() => reject(new Error('Timeout')), 10000);
 
@@ -217,7 +215,7 @@ async function findServiceWorker(log: (msg: string) => void = () => {}) {
     return result ? result.wsUrl : null;
 }
 
-module.exports = {
+export {
     fetchJson,
     sendCommand,
     detectExtension,

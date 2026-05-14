@@ -5,10 +5,8 @@
  * Output: JSON only to stdout
  */
 
-export {};
-
-const fs = require('fs');
-const { config, outputJSON } = require('./proxy-config');
+import fs from 'fs';
+import { config, outputJSON } from './proxy-config';
 
 /**
  * Main action runner
@@ -75,4 +73,4 @@ async function run(args: unknown[]) {
   }
 }
 
-module.exports = { run };
+export { run };

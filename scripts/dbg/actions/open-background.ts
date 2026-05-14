@@ -7,10 +7,8 @@
  * Independent implementation - does not depend on debug/ directory
  */
 
-export {};
-
-const WebSocket = require('ws');
-const { detectExtension, fetchJson, sendCommand, CDP_PORT } = require('../lib/extension-utils');
+import WebSocket from 'ws';
+import { detectExtension, fetchJson, sendCommand, CDP_PORT } from '../lib/extension-utils';
 
 // Color utilities
 const colors = {
@@ -169,4 +167,4 @@ async function run(args: unknown[]) {
     });
 }
 
-module.exports = { run };
+export { run };

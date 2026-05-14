@@ -5,11 +5,9 @@
  * Output: JSON only to stdout
  */
 
-export {};
-
-const fs = require('fs');
-const http = require('http');
-const path = require('path');
+import fs from 'fs';
+import http from 'http';
+import path from 'path';
 
 const CONFIG_SERVER_PID_FILE = '/tmp/sk-config-server-9600.pid';
 const PORT = 9600;
@@ -92,4 +90,4 @@ async function run(args: unknown[]) {
   }, running ? 0 : 1);
 }
 
-module.exports = { run };
+export { run };

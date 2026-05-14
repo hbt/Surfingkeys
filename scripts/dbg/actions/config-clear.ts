@@ -9,10 +9,8 @@
  * Requires: gchrb-dev with CDP on port 9222
  */
 
-export {};
-
-const WebSocket = require('ws');
-const { detectExtension, sendCommand, CDP_PORT } = require('../lib/extension-utils');
+import WebSocket from 'ws';
+import { detectExtension, sendCommand, CDP_PORT } from '../lib/extension-utils';
 
 const colors = {
     reset: '\x1b[0m',
@@ -55,7 +53,7 @@ async function run(args: unknown[]) {
 
     console.log(`  Extension ID: ${colors.bright}${extInfo.id}${colors.reset}\n`);
 
-    const ws = new WebSocket(extInfo.wsUrl);
+    const ws = new WebSocket(extInfo.wsUrl!);
 
     ws.on('open', async () => {
         try {
@@ -129,4 +127,4 @@ async function run(args: unknown[]) {
     });
 }
 
-module.exports = { run };
+export { run };

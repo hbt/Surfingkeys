@@ -26,10 +26,8 @@
  *   bin/dbg errors-clear
  */
 
-export {};
-
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 // Color utilities
 const colors = {
@@ -108,7 +106,7 @@ async function main() {
     }
 
     // Load and execute action
-    const actionPath = path.join(__dirname, 'actions', `${action}.js`);
+    const actionPath = path.join(__dirname, 'actions', `${action}.ts`);
 
     if (!fs.existsSync(actionPath)) {
         console.error(`${colors.red}Error: Action file not found: ${actionPath}${colors.reset}\n`);
@@ -116,7 +114,7 @@ async function main() {
     }
 
     try {
-        const actionModule = require(actionPath);
+        const actionModule = await import(actionPath);
         const actionArgs = args.slice(1);
         await actionModule.run(actionArgs);
     } catch (error) {

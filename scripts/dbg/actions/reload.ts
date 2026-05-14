@@ -11,14 +11,12 @@
  * Independent implementation - does not depend on debug/ directory
  */
 
-export {};
-
-const WebSocket = require('ws');
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const { spawn, execSync } = require('child_process');
+import WebSocket from 'ws';
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { spawn, execSync } from 'child_process';
 
 let messageId = 1;
 const CDP_PORT = process.env.CDP_PORT || 9222;
@@ -1681,4 +1679,4 @@ async function run(args: unknown[]) {
     }
 }
 
-module.exports = { run };
+export { run };

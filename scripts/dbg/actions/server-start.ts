@@ -7,12 +7,10 @@
  * Output: JSON only to stdout
  */
 
-export {};
-
-const fs = require('fs');
-const path = require('path');
-const { spawn } = require('child_process');
-const http = require('http');
+import fs from 'fs';
+import path from 'path';
+import { spawn } from 'child_process';
+import http from 'http';
 
 const CONFIG_SERVER_PID_FILE = '/tmp/sk-config-server-9600.pid';
 const CONFIG_SERVER_LOG_FILE = '/tmp/sk-config-server.log';
@@ -91,7 +89,7 @@ async function run(args: unknown[]) {
     } else {
       // Check if process is still alive
       try {
-        process.kill(server.pid, 0);
+        process.kill(server.pid!, 0);
         outputJSON({
           success: false,
           error: 'Config server started but health check failed',
@@ -118,4 +116,4 @@ async function run(args: unknown[]) {
   }
 }
 
-module.exports = { run };
+export { run };

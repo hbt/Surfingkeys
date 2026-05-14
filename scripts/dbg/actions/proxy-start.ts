@@ -9,12 +9,10 @@
  * Logs: Written to /tmp/dbg-proxy.jsonl (JSONL format, one JSON object per line)
  */
 
-export {};
-
-const fs = require('fs');
-const path = require('path');
-const { createProxy } = require('../lib/proxy-core');
-const { config, outputJSON, isProxyRunning } = require('./proxy-config');
+import fs from 'fs';
+import path from 'path';
+import { createProxy } from '../lib/proxy-core';
+import { config, outputJSON, isProxyRunning } from './proxy-config';
 
 /**
  * Main action runner
@@ -100,4 +98,4 @@ async function run(args: unknown[]) {
   }
 }
 
-module.exports = { run };
+export { run };

@@ -18,11 +18,9 @@
  *   // result.shutdown - Function to gracefully shutdown
  */
 
-export {};
-
-const WebSocket = require('ws');
-const http = require('http');
-const fs = require('fs');
+import WebSocket, { WebSocketServer } from 'ws';
+import http from 'http';
+import fs from 'fs';
 
 /**
  * Create and start a proxy instance
@@ -437,7 +435,7 @@ async function createProxy(options: ProxyOptions = {}) {
   function startProxyServer() {
     return new Promise((resolve, reject) => {
       const server = http.createServer();
-      const wss = new WebSocket.Server({ server });
+      const wss = new WebSocketServer({ server });
 
       wss.on('connection', (clientWs: unknown) => {
         const cws = clientWs as { on: (event: string, cb: unknown) => void; send: (data: string) => void; readyState: number };
@@ -583,4 +581,4 @@ async function createProxy(options: ProxyOptions = {}) {
   }
 }
 
-module.exports = { createProxy };
+export { createProxy };

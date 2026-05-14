@@ -604,7 +604,7 @@ function formatMarkdownTable(input: unknown) {
     return formatRows(rows).join('\n');
 }
 
-module.exports = {
+export {
     getDisplayWidth,
     formatMarkdownTable
 };

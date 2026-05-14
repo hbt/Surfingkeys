@@ -8,11 +8,9 @@
  * Independent implementation - does not depend on debug/ directory
  */
 
-export {};
-
-const WebSocket = require('ws');
-const http = require('http');
-const { detectExtension, sendCommand, CDP_PORT } = require('../lib/extension-utils');
+import WebSocket from 'ws';
+import http from 'http';
+import { detectExtension, sendCommand, CDP_PORT } from '../lib/extension-utils';
 
 // Color utilities
 const colors = {
@@ -224,7 +222,7 @@ async function run(args: unknown[]) {
     // Connect to service worker
     console.log(`${colors.cyan}Connecting to service worker...${colors.reset}`);
 
-    const ws = new WebSocket(swWsUrl);
+    const ws = new WebSocket(swWsUrl!);
 
     ws.on('open', async () => {
         try {
@@ -370,4 +368,4 @@ async function run(args: unknown[]) {
     });
 }
 
-module.exports = { run };
+export { run };

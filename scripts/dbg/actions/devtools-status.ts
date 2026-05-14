@@ -10,9 +10,7 @@
  * Output: JSON only to stdout
  */
 
-export {};
-
-const http = require('http');
+import http from 'http';
 
 const SERVER_PORT = 9600;
 const EVAL_TIMEOUT_MS = 6000;
@@ -141,4 +139,4 @@ async function run() {
   process.exit(allOk ? 0 : 1);
 }
 
-module.exports = { run };
+export { run };

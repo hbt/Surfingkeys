@@ -5,10 +5,8 @@
  * Loads .env silently from project root.
  */
 
-export {};
-
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 // Load .env from project root before anything else (quietly)
 const envPath = path.resolve(__dirname, '../../../.env');
@@ -55,4 +53,4 @@ function isProxyRunning() {
   }
 }
 
-module.exports = { config, outputJSON, isProxyRunning };
+export { config, outputJSON, isProxyRunning };
