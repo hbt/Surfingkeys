@@ -110,7 +110,6 @@ async function runCheck(check: Check): Promise<CheckResult> {
     const start = Date.now();
     const binPath = `${process.cwd()}/node_modules/.bin`;
     const env = { ...process.env, PATH: `${binPath}:${process.env.PATH}` };
-    // @ts-expect-error bun-types spawn overload mismatch
     const proc = Bun.spawn(check.cmd, {
         stdout: 'pipe',
         stderr: 'pipe',
