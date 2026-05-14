@@ -34,7 +34,7 @@ _dbg() {
 
     # Dynamically discover actions from filesystem
     if [[ -d "$actions_dir" ]]; then
-        for action_file in "$actions_dir"/*.js; do
+        for action_file in "$actions_dir"/*.ts; do
             if [[ -f "$action_file" ]]; then
                 local action="${action_file:t:r}"  # Get basename without extension
                 local description=""
