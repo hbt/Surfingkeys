@@ -34,7 +34,7 @@ npm run build:doc-chrome-api
 
 The documentation fetcher uses a CLI wrapper around the MCP (Model Context Protocol) fetch server:
 
-1. **`scripts/mcp-fetch-cli.js`** - Node.js wrapper that communicates with MCP server via JSON-RPC
+1. **`scripts/mcp-fetch-cli.ts`** - Node.js wrapper that communicates with MCP server via JSON-RPC
 2. **`scripts/fetch-chrome-api.sh`** - Bash script that fetches and post-processes markdown
 3. **`scripts/fetch-all-chrome-apis.sh`** - Batch fetcher for all APIs
 

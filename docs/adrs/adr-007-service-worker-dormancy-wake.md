@@ -99,7 +99,7 @@ detectExtensionId()
 
 ### decision.code_changes
 
-**File:** `scripts/dbg/actions/reload.js`
+**File:** `scripts/dbg/actions/reload.ts`
 
 | Function | Purpose |
 |----------|---------|
@@ -129,6 +129,6 @@ detectExtensionId()
 
 ## references
 
-- Implementation: `scripts/dbg/actions/reload.js`
+- Implementation: `scripts/dbg/actions/reload.ts`
 - Chrome Service Worker Lifecycle: https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
 - CDP Target Domain: https://chromedevtools.github.io/devtools-protocol/tot/Target/

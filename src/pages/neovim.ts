@@ -1,7 +1,7 @@
-import { RUNTIME } from '../content_scripts/common/runtime.js';
+import { RUNTIME } from '../content_scripts/common/runtime.ts';
 import {
     setSanitizedContent,
-} from '../content_scripts/common/utils.js';
+} from '../content_scripts/common/utils.ts';
 document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
     const { normal, api } = (evt as CustomEvent).detail;
 

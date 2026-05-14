@@ -32,7 +32,7 @@ const CHECKS: Check[] = [
     {
         id: 'lint',
         label: 'ESLint + Stylelint',
-        cmd: ['bun', 'scripts/run-lint.js'],
+        cmd: ['bun', 'scripts/run-lint.ts'],
         group: 'fast',
     },
     {
