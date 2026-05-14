@@ -101,3 +101,58 @@ export interface RuntimeMessage {
     repeats?: number;
     [key: string]: unknown;
 }
+
+export interface CommandAPI {
+    mapkey(keys: string, annotation: MapKeyAnnotation | string, fn: () => void, options?: MapKeyOptions): void;
+    vmapkey(keys: string, annotation: MapKeyAnnotation | string, fn: () => void, options?: MapKeyOptions): void;
+    imapkey(keys: string, annotation: MapKeyAnnotation | string, fn: () => void, options?: MapKeyOptions): void;
+    map(new_keystroke: string, old_keystroke: string, domain?: RegExp, new_annotation?: string): void;
+    vmap(new_keystroke: string, old_keystroke: string, domain?: RegExp, new_annotation?: string): void;
+    cmap(new_keystroke: string, old_keystroke: string, domain?: RegExp, new_annotation?: string): void;
+    unmap(keystroke: string, domain?: RegExp): void;
+    unmapAllExcept(keystrokes: string[], domain?: RegExp): void;
+    mapcmdkey(keys: string, unique_id: string, options?: MapKeyOptions): void;
+    addSearchAlias(alias: string, prompt: string, url: string, searchLeaderKey?: string, suggestionUrl?: string, callbackToParseSuggestions?: (response: string) => string[]): void;
+    searchSelectedWith(se: string, onlyOnce?: boolean, query?: string, alias?: string): void;
+    readText(text: string, tone?: number): void;
+    RUNTIME(action: string, args?: Record<string, unknown> | null, callback?: (response: unknown) => void): void;
+}
+
+// The 12 repeat-background actions (typed precisely):
+type RepeatAction =
+    | { action: 'closeTab'; repeats?: number }
+    | { action: 'nextTab'; repeats?: number }
+    | { action: 'previousTab'; repeats?: number }
+    | { action: 'moveTab'; repeats?: number; position?: number }
+    | { action: 'moveToWindowMagic'; repeats?: number; direction?: string }
+    | { action: 'copyTabUrlsMagic'; repeats?: number; direction?: string }
+    | { action: 'reloadTab'; repeats?: number; nocache?: boolean }
+    | { action: 'setZoom'; zoomFactor?: number }
+    | { action: 'focusTabByIndex'; repeats?: number }
+    | { action: 'closeTabMagic'; repeats?: number; magic?: string }
+    | { action: 'reloadTabMagic'; repeats?: number; magic?: string }
+    | { action: 'tabGotoIndex'; repeats?: number };
+
+// 13 common query/mutation actions:
+type NamedAction =
+    | { action: 'getTabs'; queryInfo?: Record<string, unknown>; filter?: string; tabsThreshold?: number }
+    | { action: 'getHistory'; query?: string; max_results?: number }
+    | { action: 'getBookmarks'; query?: string }
+    | { action: 'createBookmark'; url: string; title?: string; path?: string }
+    | { action: 'removeBookmark'; url: string }
+    | { action: 'openNewtab'; url?: string; active?: boolean }
+    | { action: 'openLink'; url: string; tab?: Record<string, unknown> }
+    | { action: 'updateSettings'; settings: Record<string, unknown> }
+    | { action: 'getSettings' }
+    | { action: 'toggleBlocklist'; url?: string }
+    | { action: 'read'; text: string; tone?: number }
+    | { action: 'getTopURL' }
+    | { action: 'userLog'; message: string; level?: string };
+
+// Catch-all for the remaining actions:
+type UnknownAction = { action: string; [key: string]: unknown };
+
+export type RuntimeAction = (RepeatAction | NamedAction | UnknownAction) & {
+    needResponse?: boolean;
+    repeats?: number;
+};
