@@ -116,8 +116,8 @@ const Front = (function() {
     });
 
     var _state;
-    function State(pointerEvents, frameHeight, onEnter?) {
-        this.enter = function() {
+    function State(this: any, pointerEvents, frameHeight, onEnter?) {
+        this.enter = function(this: any) {
             if (onEnter) {
                 onEnter();
             }
@@ -129,7 +129,7 @@ const Front = (function() {
                 frameHeight: frameHeight
             }}, self.topOrigin);
         };
-        this.nextState = function () {
+        this.nextState = function (this: any) {
             var visibleDivs = Array.from(document.body.querySelectorAll("body>div")).filter(function(n: any) {
                 return n.style.display !== "none";
             });
@@ -932,7 +932,7 @@ const Front = (function() {
         }
     };
 
-    _bubble.querySelector("div.sk_bubble_content").addEventListener("mousewheel", function (evt) {
+    _bubble.querySelector("div.sk_bubble_content").addEventListener("mousewheel", function (this: any, evt) {
         if (evt.deltaY > 0 && this.scrollTop + this.offsetHeight >= this.scrollHeight || evt.deltaY < 0 && this.scrollTop <= 0) {
             evt.preventDefault();
         }

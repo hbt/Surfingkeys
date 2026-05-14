@@ -11,7 +11,7 @@ import { getAnnotationString } from '../../common/commandMetadata.js';
 
 var mode_stack = [];
 
-const Mode = function(name: string, statusLine?: string) {
+const Mode = function(this: any, name: string, statusLine?: string) {
     this.name = name;
     this.statusLine = statusLine;
     this.eventListeners = {};
@@ -272,7 +272,7 @@ Mode.finish = function (mode) {
     return ret;
 };
 
-Mode.handleMapKey = function(event, onNoMatched) {
+Mode.handleMapKey = function(this: any, event, onNoMatched) {
     var key = event.sk_keyName;
     this.isTrustedEvent = this.__trust_all_events__ || event.isTrusted;
 

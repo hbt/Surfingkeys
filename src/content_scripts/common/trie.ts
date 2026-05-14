@@ -5,7 +5,7 @@
  *  one character, taken to be child of the node.
  *
  */
-function Trie() {
+function Trie(this: any) {
     if (arguments.length > 0) {
         this.stem = arguments[0];
     }

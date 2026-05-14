@@ -398,12 +398,12 @@ function createOmnibar(front, clipboard) {
     var resultPageSpan = ui.querySelector('#sk_omnibarSearchArea>span.resultPage');
     self.resultsDiv = ui.querySelector('#sk_omnibarSearchResult');
 
-    function _onIput() {
+    function _onIput(this: any) {
         if (lastInput !== self.input.value) {
             lastInput = self.input.value;
         }
         if (handler.onInput) {
-            handler.onInput.call(this);
+            handler.onInput.call(this as any);
         }
     }
     function _onKeyDown(evt) {

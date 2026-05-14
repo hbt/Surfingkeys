@@ -8,7 +8,7 @@
     "strictNullChecks": false,
     "strictFunctionTypes": false,
     "strictBindCallApply": false,
-    "noImplicitThis": false,
+    "noImplicitThis": true,
     "alwaysStrict": true,
     "strictPropertyInitialization": false,
     "useUnknownInCatchVariables": false,

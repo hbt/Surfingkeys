@@ -798,12 +798,11 @@ function initL10n(cb) {
     }
 }
 
-String.prototype.format = function() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    var result = this;
-    for (var i = 0; i < arguments.length; i++) {
+String.prototype.format = function(this: string, ...args: unknown[]) {
+    var result: string = this;
+    for (var i = 0; i < args.length; i++) {
         var regexp = new RegExp('\\{' + i + '\\}', 'gi');
-        result = result.replace(regexp, arguments[i]);
+        result = result.replace(regexp, String(args[i]));
     }
     return result;
 };
@@ -995,10 +994,11 @@ function htmlEncode(str) {
     return _divForHtmlEncoder.innerHTML;
 }
 
-(HTMLElement.prototype as any).one = function (evt, handler) {
+(HTMLElement.prototype as any).one = function (this: HTMLElement, evt, handler) {
+    const self = this;
     function _onceHandler() {
-        handler.call(this);
-        this.removeEventListener(evt, _onceHandler);
+        handler.call(self);
+        self.removeEventListener(evt, _onceHandler);
     }
     this.addEventListener(evt, _onceHandler);
 };

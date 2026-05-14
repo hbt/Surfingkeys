@@ -18,10 +18,7 @@
 function installErrorHandlers(context) {
     // Use globalThis for compatibility with both window and service worker contexts
     // Service workers don't have 'window', they have 'self'
-    const globalScope = typeof globalThis !== 'undefined' ? globalThis :
-                       typeof self !== 'undefined' ? self :
-                       typeof window !== 'undefined' ? window :
-                       this;
+    const globalScope: any = globalThis;
 
     // Don't install if already installed
     if (globalScope._surfingkeysErrorHandlersInstalled) {
@@ -149,10 +146,7 @@ function getStoredErrors() {
  * @returns {Promise<void>}
  */
 function clearStoredErrors() {
-    const globalScope = typeof globalThis !== 'undefined' ? globalThis :
-                       typeof self !== 'undefined' ? self :
-                       typeof window !== 'undefined' ? window :
-                       this;
+    const globalScope: any = globalThis;
 
     return new Promise((resolve) => {
         chrome.storage.local.set({ surfingkeys_errors: [] }, () => {
@@ -170,10 +164,7 @@ function clearStoredErrors() {
  * @returns {Array} Array of error objects
  */
 function getMemoryErrors() {
-    const globalScope = typeof globalThis !== 'undefined' ? globalThis :
-                       typeof self !== 'undefined' ? self :
-                       typeof window !== 'undefined' ? window :
-                       this;
+    const globalScope: any = globalThis;
 
     return globalScope._surfingkeysErrors || [];
 }
@@ -185,10 +176,7 @@ function getMemoryErrors() {
  * @param {object} details - Additional details
  */
 function reportError(type, message, details = {}) {
-    const globalScope = typeof globalThis !== 'undefined' ? globalThis :
-                       typeof self !== 'undefined' ? self :
-                       typeof window !== 'undefined' ? window :
-                       this;
+    const globalScope: any = globalThis;
 
     const errorData = {
         context: 'manual',
