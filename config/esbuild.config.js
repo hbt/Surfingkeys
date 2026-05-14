@@ -114,7 +114,7 @@ async function build() {
         'pages/frontend': `./src/content_scripts/ui/frontend.js`,
         'pages/start': './src/content_scripts/start.js',
         'pages/ace': './src/content_scripts/ace.js',
-        'pages/error-viewer': './src/pages/error-viewer.js',
+        'pages/error-viewer': './src/pages/error-viewer.ts',
     };
 
     const moduleEntries = {
@@ -126,7 +126,7 @@ async function build() {
     }
 
     if (browser === 'chrome') {
-        regularEntries['pages/neovim'] = './src/pages/neovim.js';
+        regularEntries['pages/neovim'] = './src/pages/neovim.ts';
         moduleEntries['pages/neovim_lib'] = './src/nvim/renderer.ts';
         moduleEntries['api'] = './src/user_scripts/index.js';
     }

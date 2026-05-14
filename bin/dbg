@@ -25,4 +25,4 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # // TODO(hbt) NEXT [dev] rewrite those in ts to experiment
-exec bun "$PROJECT_ROOT/scripts/dbg/index.js" "$@"
+exec bun "$PROJECT_ROOT/scripts/dbg/index.ts" "$@"
