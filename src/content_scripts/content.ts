@@ -316,7 +316,7 @@ Mode.init(window === top ? undefined : ()=> {
 });
 
 let _browser;
-function start(browser) {
+function start(browser?) {
     _browser = browser || {
         usePdfViewer: () => {},
         readText: () => {},

@@ -2,6 +2,7 @@ import { AwsClient } from 'aws4fetch';
 
 class EventStreamParser {
     // https://smithy.io/2.0/aws/amazon-eventstream.html
+    buffer: Uint8Array;
     constructor() {
         this.buffer = new Uint8Array(0);
     }
@@ -199,8 +200,8 @@ function bedrock(req, opts) {
     }).then(response => {
         const reader = response.body.getReader();
 
-        let content_block = {};
-        let message = {};
+        let content_block: any = {};
+        let message: any = {};
         function readStream() {
             reader.read().then(({done, value}) => {
                 if (done) {
@@ -289,7 +290,7 @@ function ollama(req, opts) {
     fetch('http://localhost:11434/api/chat', {
         method: 'POST',
         body: JSON.stringify({
-            "model": ollama.model || 'qwen2.5-coder:32b',
+            "model": (ollama as any).model || 'qwen2.5-coder:32b',
             "tools": req.tools,
             "messages": req.messages
         })
@@ -342,7 +343,7 @@ function ollama(req, opts) {
 
 function deepseek(req, opts) {
     const decoder = new TextDecoder();
-    if (!deepseek.apiKey) {
+    if (!(deepseek as any).apiKey) {
         opts.onChunk("Please set api key for DeepSeek correctly.");
         opts.onComplete({});
         return;
@@ -360,11 +361,11 @@ function deepseek(req, opts) {
     fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
         headers: {
-            "Authorization": `Bearer ${deepseek.apiKey}`,
+            "Authorization": `Bearer ${(deepseek as any).apiKey}`,
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            "model": deepseek.model || 'deepseek-chat',
+            "model": (deepseek as any).model || 'deepseek-chat',
             "stream": true,
             "messages": transformMessages(req.messages)
         })
@@ -415,7 +416,7 @@ function deepseek(req, opts) {
 // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference
 function gemini(req, opts) {
     const decoder = new TextDecoder();
-    if (!gemini.apiKey) {
+    if (!(gemini as any).apiKey) {
         opts.onChunk("Please set api key for Gemini correctly.");
         opts.onComplete({});
         return;
@@ -430,7 +431,7 @@ function gemini(req, opts) {
         }
     }
     function transformMessages(reqMsgs) {
-        let req = {};
+        let req: any = {};
         if (reqMsgs.length > 0 && reqMsgs[0].role === "system") {
             const text = reqMsgs[0].content;
             req.systemInstruction = { "parts": [ { text } ] };
@@ -441,7 +442,7 @@ function gemini(req, opts) {
         return req;
     }
 
-    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${gemini.apiKey}`, {
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${(gemini as any).apiKey}`, {
         method: 'POST',
         headers: {
             "Content-Type": "application/json",
@@ -502,17 +503,17 @@ function custom(req, opts) {
     const decoder = new TextDecoder();
     const abortCtrl = new AbortController();
 
-    if (!custom.serviceUrl) {
+    if (!(custom as any).serviceUrl) {
         opts.onChunk('Please set service URL correctly.');
         opts.onComplete({});
         return;
     }
-    if (!custom.apiKey) {
+    if (!(custom as any).apiKey) {
         opts.onChunk('Please set API key correctly.');
         opts.onComplete({});
         return;
     }
-    if (!custom.model) {
+    if (!(custom as any).model) {
         opts.onChunk('Please set model correctly.');
         opts.onComplete({});
         return;
@@ -522,14 +523,14 @@ function custom(req, opts) {
         typeof m.content === 'string' ? m : { role: m.role, content: m.content[0].text }
     );
 
-    fetch(custom.serviceUrl, {
+    fetch((custom as any).serviceUrl, {
         method: 'POST',
         headers: {
-            Authorization: `Bearer ${custom.apiKey}`,
+            Authorization: `Bearer ${(custom as any).apiKey}`,
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            model: custom.model,
+            model: (custom as any).model,
             stream: true,
             messages: transformMessages(req.messages),
         }),

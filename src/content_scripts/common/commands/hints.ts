@@ -130,9 +130,9 @@ export default function registerHints(
         tags: ["hints", "mouse", "event"]
     }, function() {
         (hints as any).create("", (element: any, event: any) => {
-            if (chrome.surfingkeys) {
+            if ((chrome as any).surfingkeys) {
                 const r = element.getClientRects()[0];
-                chrome.surfingkeys.sendMouseEvent(2, Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2), 0);
+                (chrome as any).surfingkeys.sendMouseEvent(2, Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2), 0);
             } else {
                 (hints as any).dispatchMouseClick(element, event);
             }

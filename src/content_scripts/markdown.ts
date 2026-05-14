@@ -5,12 +5,12 @@ import {
     htmlEncode,
     httpRequest,
     setSanitizedContent,
-    _showBanner,
+    showBanner,
 } from './common/utils.js';
 import { marked } from 'marked';
 
 document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
-    const { normal, api } = evt.detail;
+    const { normal, api } = (evt as any).detail;
     const {
         mapkey,
         Clipboard,
@@ -134,8 +134,8 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
     function previewMarkdownFile() {
         reader.readAsText(inputFile);
     }
-    var inputFileDiv = document.querySelector("input[type=file]");
-    inputFileDiv.onchange = function(evt) {
+    var inputFileDiv: any = document.querySelector("input[type=file]");
+    inputFileDiv.onchange = function(evt: any) {
         inputFile = evt.target.files[0];
         previewMarkdownFile();
     };

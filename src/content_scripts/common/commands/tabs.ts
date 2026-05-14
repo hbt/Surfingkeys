@@ -43,7 +43,7 @@ export default function registerTabs(
         (front as any).groupTab();
     });
 
-    map('g0', ':feedkeys 99E', 0, {
+    map('g0', ':feedkeys 99E', null as any, {
         short: "Go to first tab",
         unique_id: "cmd_tab_first",
         feature_group: 3,
@@ -51,7 +51,7 @@ export default function registerTabs(
         description: "Go to the first tab in the tab bar",
         tags: ["tabs", "navigation", "jump"]
     });
-    map('g$', ':feedkeys 99R', 0, {
+    map('g$', ':feedkeys 99R', null as any, {
         short: "Go to last tab",
         unique_id: "cmd_tab_last",
         feature_group: 3,

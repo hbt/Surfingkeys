@@ -42,8 +42,8 @@ export default function registerNavigation(
         var pathname = location.pathname;
         if (pathname.length > 1) {
             pathname = pathname.endsWith('/') ? pathname.substr(0, pathname.length - 1) : pathname;
-            var last = pathname.lastIndexOf('/'), repeats = RUNTIME.repeats;
-            RUNTIME.repeats = 1;
+            var last = pathname.lastIndexOf('/'), repeats = (RUNTIME as any).repeats;
+            (RUNTIME as any).repeats = 1;
             while (repeats-- > 1) {
                 var p = pathname.lastIndexOf('/', last - 1);
                 if (p === -1) {
@@ -185,8 +185,8 @@ export default function registerNavigation(
         description: "Navigate to root of current URL hierarchy, supports count prefix",
         tags: ["navigation", "url", "root"]
     }, function() {
-        window.location.href = window.location.href.replace(new RegExp('(://([^/]+/){'+RUNTIME.repeats+'}).*'), '$1');
-        RUNTIME.repeats = 1;
+        window.location.href = window.location.href.replace(new RegExp('(://([^/]+/){'+(RUNTIME as any).repeats+'}).*'), '$1');
+        (RUNTIME as any).repeats = 1;
     });
 
     mapkey('O', {

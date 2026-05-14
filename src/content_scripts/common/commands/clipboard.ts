@@ -241,14 +241,14 @@ export default function registerClipboard(
         description: "Copy current page URL to clipboard",
         tags: ["clipboard", "yank", "url"]
     }, function() {
-        if (RUNTIME.repeats > 1) {
-            const num = RUNTIME.repeats;
+        if ((RUNTIME as any).repeats > 1) {
+            const num = (RUNTIME as any).repeats;
             RUNTIME('getTabs', null, function (response: any) {
                 const start = response.tabs.findIndex((t: any) => t.active);
                 const range = response.tabs.slice(start, start + num);
                 (clipboard as any).write(range.map((tab: any) => tab.url).join('\n'));
             });
-            RUNTIME.repeats = 1;
+            (RUNTIME as any).repeats = 1;
         } else {
             var url = window.location.href;
             if (url.indexOf(chrome.runtime.getURL("/pages/pdf_viewer.html")) === 0) {

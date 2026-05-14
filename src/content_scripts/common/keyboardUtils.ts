@@ -1,4 +1,4 @@
-const KeyboardUtils = {
+const KeyboardUtils: any = {
     keyCodesMac: {
         Minus: ["-", "_"],
         Equal: ["=", "+"],

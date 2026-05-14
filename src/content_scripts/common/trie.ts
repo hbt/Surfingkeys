@@ -32,6 +32,7 @@ Trie.prototype = {
         for (var i = 0; i < len; i++) {
             var c = word[i];
             if (!node.hasOwnProperty(c)) {
+                // @ts-ignore
                 var t = new Trie(c);
                 node[c] = t;
                 node = t;

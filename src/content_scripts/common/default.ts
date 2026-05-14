@@ -14,7 +14,7 @@ import registerChrome from './commands/chrome.js';
 import registerProxy from './commands/proxy.js';
 import registerMisc from './commands/misc.js';
 
-export default function(api: unknown, clipboard: unknown, insert: unknown, normal: unknown, hints: unknown, visual: unknown, front: unknown, browser: unknown): void {
+export default function(api: unknown, clipboard: unknown, insert: unknown, normal: unknown, hints: unknown, visual: unknown, front: unknown, browser?: unknown): void {
     registerHelp(api as any, clipboard, insert, normal, hints, visual, front, browser);
     registerNavigation(api as any, clipboard, insert, normal, hints, visual, front, browser);
     registerHints(api as any, clipboard, insert, normal, hints, visual, front, browser);

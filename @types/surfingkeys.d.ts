@@ -3,9 +3,19 @@
  * Shared interfaces used across content scripts, api, and mode system.
  */
 
+// Build-time defines (replaced by esbuild)
+declare global {
+    const __CONFIG_SERVER_PORT__: string;
+
+    // String.prototype.format extension (defined in content_scripts/common/utils.ts)
+    interface String {
+        format(...args: unknown[]): string;
+    }
+}
+
 export interface SurfingKeysConf {
     autoSpeakOnInlineQuery: boolean;
-    lastKeys: string;
+    lastKeys: string[];
     blocklistPattern: RegExp | undefined;
     lurkingPattern: RegExp | undefined;
     disabledOnActiveElementPattern: RegExp | undefined;
@@ -57,7 +67,7 @@ export interface SurfingKeysConf {
     ignoredFrameHosts: string[];
     scrollFriction: number;
     aceKeybindings: string;
-    caretViewport: unknown;
+    caretViewport: number[];
     mouseSelectToQuery: unknown[];
     useNeovim: boolean;
     useLocalMarkdownAPI: boolean;
@@ -103,12 +113,12 @@ export interface RuntimeMessage {
 }
 
 export interface CommandAPI {
-    mapkey(keys: string, annotation: MapKeyAnnotation | string, fn: () => void, options?: MapKeyOptions): void;
-    vmapkey(keys: string, annotation: MapKeyAnnotation | string, fn: () => void, options?: MapKeyOptions): void;
-    imapkey(keys: string, annotation: MapKeyAnnotation | string, fn: () => void, options?: MapKeyOptions): void;
-    map(new_keystroke: string, old_keystroke: string, domain?: RegExp, new_annotation?: string): void;
-    vmap(new_keystroke: string, old_keystroke: string, domain?: RegExp, new_annotation?: string): void;
-    cmap(new_keystroke: string, old_keystroke: string, domain?: RegExp, new_annotation?: string): void;
+    mapkey(keys: string, annotation: MapKeyAnnotation | string, fn: (...args: any[]) => void, options?: MapKeyOptions): void;
+    vmapkey(keys: string, annotation: MapKeyAnnotation | string, fn: (...args: any[]) => void, options?: MapKeyOptions): void;
+    imapkey(keys: string, annotation: MapKeyAnnotation | string, fn: (...args: any[]) => void, options?: MapKeyOptions): void;
+    map(new_keystroke: string, old_keystroke: string, domain?: RegExp | null, new_annotation?: string | MapKeyAnnotation): void;
+    vmap(new_keystroke: string, old_keystroke: string, domain?: RegExp | null, new_annotation?: string | MapKeyAnnotation): void;
+    cmap(new_keystroke: string, old_keystroke: string, domain?: RegExp | null, new_annotation?: string | MapKeyAnnotation): void;
     unmap(keystroke: string, domain?: RegExp): void;
     unmapAllExcept(keystrokes: string[], domain?: RegExp): void;
     mapcmdkey(keys: string, unique_id: string, options?: MapKeyOptions): void;

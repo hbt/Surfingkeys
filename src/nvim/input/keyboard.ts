@@ -225,7 +225,7 @@ const initKeyboard = ({ nvim, screen }: { nvim: Nvim; screen: Screen }): Keyboar
     const attach = () => {
         document.addEventListener('keydown', handleKeydown);
 
-        // @ts-expect-error input event type is incorrect
+        // @ts-ignore input event type is incorrect
         input.addEventListener('input', handleInput);
         input.addEventListener('compositionstart', handleCompositionStart);
         input.addEventListener('compositionupdate', handleCompositionUpdate);
@@ -240,7 +240,7 @@ const initKeyboard = ({ nvim, screen }: { nvim: Nvim; screen: Screen }): Keyboar
     const detach = () => {
         document.removeEventListener('keydown', handleKeydown);
 
-        // @ts-expect-error input event type is incorrect
+        // @ts-ignore input event type is incorrect
         input.removeEventListener('input', handleInput);
         input.removeEventListener('compositionstart', handleCompositionStart);
         input.removeEventListener('compositionupdate', handleCompositionUpdate);

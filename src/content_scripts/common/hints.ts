@@ -28,7 +28,7 @@ import {
 } from './utils.js';
 
 function placeHintsHost(host) {
-    let topLayerElement = document.querySelector("dialog");
+    let topLayerElement: any = document.querySelector("dialog");
     if (!topLayerElement || !isElementDrawn(topLayerElement)) {
         topLayerElement = document.documentElement;
     }
@@ -408,7 +408,7 @@ div.hint-scrollable {
                     dispatchMouseEvent(element, behaviours.mouseEvents, mouseEventModifiers);
                     dispatchSKEvent("observer", ['turnOn']);
                     lastMouseTarget = element;
-                    if (document.activeElement.matches(runtime.conf.disabledOnActiveElementPattern)) {
+                    if (document.activeElement.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
                         setTimeout(() => {
                             normal.disable(true);
                         }, 100);
@@ -427,12 +427,12 @@ div.hint-scrollable {
     var prefix = "",
         textFilter = "",
         lastMouseTarget = null,
-        behaviours = {
+        behaviours: any = {
             mouseEvents: MOUSE_EVENTS
         },
         holder = createElementWithContent('section', '', {style: "display: block; opacity: 1;"}),
         shiftKey = false;
-    var _lastCreateAttrs = {},
+    var _lastCreateAttrs: any = {},
         _onHintKey = self.dispatchMouseClick,
         _cssSelector = "";
 
@@ -451,7 +451,7 @@ div.hint-scrollable {
         return z;
     }
 
-    function handleHint(evt) {
+    function handleHint(evt?) {
         const hints = holder.querySelectorAll('div:not(:empty)');
         const hintState = refreshHints(hints, prefix);
         const elm = hintState.matched;
@@ -460,7 +460,7 @@ div.hint-scrollable {
             if (typeof(_onHintKey) === 'function') {
                 if (behaviours.regionalHints) {
                     setTimeout(() => {
-                        const overlay = createOverlay(elm, elm.skColorIndex, "99");
+                        const overlay: any = createOverlay(elm, elm.skColorIndex, "99");
                         overlay.link = elm;
                         regionalHints.attach(overlay);
                     }, 10);
@@ -658,11 +658,11 @@ div.hint-scrollable {
     initSKFunctionListener("hints", {
         scrollStarted: () => {
             const mode = Mode.getCurrent();
-            if (mode.onScrollStarted) mode.onScrollStarted();
+            if ((mode as any).onScrollStarted) (mode as any).onScrollStarted();
         },
         scrollDone: () => {
             const mode = Mode.getCurrent();
-            if (mode.onScrollDone) mode.onScrollDone();
+            if ((mode as any).onScrollDone) (mode as any).onScrollDone();
         },
         topBoundaryHit: self.previousPage,
         bottomBoundaryHit: self.nextPage,
@@ -715,7 +715,7 @@ div.hint-scrollable {
         frame.style.left = be.left + "px";
         frame.style.width = be.width - 4 + "px";
         frame.style.height = be.height - 4 + "px";
-        frame.style.zIndex = z + 9999;
+        frame.style.zIndex = String(z + 9999);
         frame.style.background = getColor(i) + alpha;
         frame.style.border = `2px solid ${getColor(i)}`;
         return frame;
@@ -760,7 +760,7 @@ div.hint-scrollable {
             }
             link.style.top = lTop + "px";
             link.style.left = left + "px";
-            link.style.zIndex = z + 9999;
+            link.style.zIndex = String(z + 9999);
             if (behaviours.regionalHints) {
                 link.style.background = getColor(i);
             }
@@ -883,7 +883,7 @@ div.hint-scrollable {
             if (runtime.conf.caretViewport && runtime.conf.caretViewport.length === 4) {
                 caretViewport = runtime.conf.caretViewport;
             }
-            if (e[0].data.trim().length === 0
+            if ((e[0] as any).data.trim().length === 0
                 || pos.top < caretViewport[0]
                 || pos.left < caretViewport[1]
                 || pos.top > caretViewport[2]
@@ -891,14 +891,14 @@ div.hint-scrollable {
                 return null;
             } else {
                 var z = getZIndex(e[0].parentNode);
-                var link = document.createElement('div');
+                var link: any = document.createElement('div');
                 if (e[1] === 0) {
                     link.className = "begin";
                 }
                 link.style.position = "fixed";
                 link.style.top = pos.top + "px";
                 link.style.left = pos.left + "px";
-                link.style.zIndex = z + 9999;
+                link.style.zIndex = String(z + 9999);
                 link.zIndex = link.style.zIndex;
                 link.link = e;
                 return link;
@@ -964,13 +964,13 @@ div.hint-scrollable {
                 var be = e.getBoundingClientRect();
                 var z = getZIndex(e);
 
-                var mask = document.createElement('mask');
+                var mask: any = document.createElement('mask');
                 mask.style.position = "fixed";
                 mask.style.top = be.top + "px";
                 mask.style.left = be.left + "px";
                 mask.style.width = be.width + "px";
                 mask.style.height = be.height + "px";
-                mask.style.zIndex = z + 9999;
+                mask.style.zIndex = String(z + 9999);
                 mask.link = e;
                 holder.append(mask);
             });

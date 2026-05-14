@@ -5,6 +5,8 @@ import {
 } from '../common/utils.js';
 import { RUNTIME } from '../common/runtime.js';
 
+declare const readText: any;
+
 export default (normal, command, omnibar) => {
     command('setProxy', {
         short: "Configure HTTP proxy settings",

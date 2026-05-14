@@ -7,7 +7,7 @@ import {
     getBrowserName,
     getDocumentOrigin,
     getElements,
-    _httpRequest,
+    httpRequest,
     initSKFunctionListener,
     isEditable,
     isInUIFrame,
@@ -18,7 +18,7 @@ import { RUNTIME, dispatchSKEvent, runtime } from './common/runtime.js';
 import createUiHost from './uiframe.js';
 
 function createFront(insert, normal, hints, visual, browser) {
-    var self = {};
+    var self: any = {};
     // The agent is a front stub to talk with pages/frontend.html
     // that will live in all content window except the frontend.html
     // as there is no need to make this object live in frontend.html.
@@ -51,7 +51,7 @@ function createFront(insert, normal, hints, visual, browser) {
             _callbacks[args.id] = successById;
         }
         if (window !== top) {
-            runtime.postTopMessage({surfingkeys_uihost_data: args});
+            runtime.postTopMessage({surfingkeys_uihost_data: args} as any);
         } else {
             if (!frontendPromise) {
                 // no need to create frontend iframe if the action is to hide key stroke
@@ -62,7 +62,7 @@ function createFront(insert, normal, hints, visual, browser) {
                 newFrontEnd();
             }
             frontendPromise.then(function() {
-                runtime.postTopMessage({surfingkeys_uihost_data: args});
+                runtime.postTopMessage({surfingkeys_uihost_data: args} as any);
             });
         }
     };
@@ -785,7 +785,7 @@ function createFront(insert, normal, hints, visual, browser) {
                           toFrontend: true,
                           origin: _message.origin,
                           id: _message.id
-                      }}));
+                      }} as any));
                 }
             }
         } else if (_message.action === "activated") {

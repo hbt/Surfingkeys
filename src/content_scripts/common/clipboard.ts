@@ -7,11 +7,11 @@ import {
 } from './utils.js';
 
 function createClipboard() {
-    var self = {};
+    var self: any = {};
 
     var holder = document.createElement('textarea');
-    holder.contentEditable = true;
-    holder.enableAutoFocus = true;
+    holder.contentEditable = "true";
+    (holder as any).enableAutoFocus = true;
     holder.id = 'sk_clipboard';
 
     function clipboardActionWithSelectionPreserved(cb) {

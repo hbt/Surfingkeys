@@ -3,12 +3,12 @@ import { runtime } from './runtime.js';
 import Mode from './mode';
 import KeyboardUtils from './keyboardUtils';
 import {
-    _createElementWithContent,
+    createElementWithContent,
     getRealEdit,
     isEditable,
-    _locateFocusNode,
-    _scrollIntoViewIfNeeded,
-    _setSanitizedContent,
+    locateFocusNode,
+    scrollIntoViewIfNeeded,
+    setSanitizedContent,
 } from './utils.js';
 
 function createInsert() {
@@ -31,7 +31,7 @@ function createInsert() {
             if (element.childNodes.length > 0) {
                 var node = element.childNodes[element.childNodes.length -1];
                 if (node.nodeType === Node.TEXT_NODE) {
-                    document.getSelection().setPosition(node, node.data.length);
+                    document.getSelection().setPosition(node, (node as any).data.length);
                 } else {
                     let codeMirrorNode = node.querySelector(".CodeMirror-line");
                     if (codeMirrorNode) {
@@ -99,7 +99,7 @@ function createInsert() {
             } else {
                 // for contenteditable div
                 var selection = document.getSelection();
-                selection.focusNode.data = selection.focusNode.data.substr(selection.focusOffset);
+                (selection.focusNode as any).data = (selection.focusNode as any).data.substr(selection.focusOffset);
             }
         }
     });
@@ -163,8 +163,8 @@ function createInsert() {
                 var selection = document.getSelection();
                 var p0 = selection.focusOffset;
                 document.getSelection().modify("move", "backward", "word");
-                var v = selection.focusNode.data, p1 = selection.focusOffset;
-                selection.focusNode.data = v.substr(0, p1) + v.substr(p0);
+                var v = (selection.focusNode as any).data, p1 = selection.focusOffset;
+                (selection.focusNode as any).data = v.substr(0, p1) + v.substr(p0);
                 selection.setPosition(selection.focusNode, p1);
             }
         }
@@ -189,8 +189,8 @@ function createInsert() {
                 var selection = document.getSelection();
                 var p0 = selection.focusOffset;
                 document.getSelection().modify("move", "forward", "word");
-                var v = selection.focusNode.data, p1 = selection.focusOffset;
-                selection.focusNode.data = v.substr(0, p0) + v.substr(p1);
+                var v = (selection.focusNode as any).data, p1 = selection.focusOffset;
+                (selection.focusNode as any).data = v.substr(0, p0) + v.substr(p1);
                 selection.setPosition(selection.focusNode, p0);
             }
         }
@@ -242,13 +242,13 @@ function createInsert() {
                         var range = elm.getRangeAt(0);
                         var n = document.createTextNode(pw);
                         if (elm.type === "Caret") {
-                            str = elm.focusNode.data;
+                            str = (elm.focusNode as any).data;
                             if (str === undefined) {
                                 range.insertNode(n);
                                 elm.setPosition(n, n.length);
                             } else {
                                 pos = elm.focusOffset;
-                                elm.focusNode.data = str.substr(0, pos) + pw + str.substr(pos);
+                                (elm.focusNode as any).data = str.substr(0, pos) + pw + str.substr(pos);
                                 elm.setPosition(elm.focusNode, pos + pw.length);
                             }
                         } else {

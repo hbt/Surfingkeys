@@ -50,7 +50,7 @@ const initMouse = ({ screen, nvim }: { screen: Screen; nvim: Nvim }): Mouse => {
     };
 
     const buttonName = (event: MouseEvent) =>
-        // @ts-expect-error TODO
+        // @ts-ignore TODO
         event.type === 'wheel' ? MOUSE_BUTTON.WHEEL : MOUSE_BUTTON[event.button];
 
     const mouseInput = (event: MouseEvent, action: Action) => {

@@ -84,7 +84,7 @@ export function setupHelpFilter(usageContainer) {
     // Check if already setup
     const existingSearch = usageContainer.querySelector('#sk_fuzzy_search');
     if (existingSearch) {
-        return { searchInput: existingSearch, filter: window._skFuzzyFilter, destroy: () => {} };
+        return { searchInput: existingSearch, filter: (window as any)._skFuzzyFilter, destroy: () => {} };
     }
 
     // Get all group wrappers (direct children of #sk_usage, excluding non-div elements like <p>)
@@ -114,8 +114,8 @@ export function setupHelpFilter(usageContainer) {
     const allItems = [];
     const allGroupData = [];  // Track group wrappers and their headers
 
-    groupWrappers.forEach((groupWrapper, groupIdx) => {
-        const children = Array.from(groupWrapper.querySelectorAll(':scope > div'));
+    groupWrappers.forEach((groupWrapper: any, groupIdx) => {
+        const children: any[] = Array.from(groupWrapper.querySelectorAll(':scope > div'));
         let headerDiv = null;
         let categoryName = '';
 
@@ -185,7 +185,7 @@ export function setupHelpFilter(usageContainer) {
     }
 
     // Store globally for debugging
-    window._skFuzzyFilter = filter;
+    (window as any)._skFuzzyFilter = filter;
 
     // Event listener
     const onInput = (e) => filter(e.target.value);
@@ -217,7 +217,7 @@ export function setupHelpFilter(usageContainer) {
         searchInput.removeEventListener('input', onInput);
         document.removeEventListener('keydown', onKeydown, true);
         searchInput.remove();
-        delete window._skFuzzyFilter;
+        delete (window as any)._skFuzzyFilter;
     }
 
     return { searchInput, filter, destroy, itemCount: allItems.length };

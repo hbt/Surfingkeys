@@ -1,13 +1,14 @@
 import {
     filterByTitleOrUrl,
 } from '../common/utils.js';
-import llmClients from './llm.js';
+import llmClientsRaw from './llm.js';
+const llmClients: any = llmClientsRaw;
 import type { RuntimeAction } from '../../@types/surfingkeys';
 
 // TEMPORARY ERROR FOR TESTING RELOAD EDGE CASE
 // throw new Error('TEST ERROR: Simulating background script failure');
 
-function request(url, onReady, headers, data, onException) {
+function request(url, onReady, headers?, data?, onException?) {
     headers = headers || {};
     const CHARTSET_RE = /(?:charset|encoding)\s*=\s*['"]? *([\w\-]+)/i;
 
@@ -64,7 +65,7 @@ function getSubSettings(set, keys) {
     return subset;
 }
 
-function _save(storage, data, cb) {
+function _save(storage, data, cb?) {
     if (storage === chrome.storage.sync) {
         // don't store snippets from localPath into sync storage, since sync storage has its quota.
         if (data.localPath) {
@@ -89,7 +90,7 @@ function _save(storage, data, cb) {
 }
 
 var Gist = (function() {
-    var self = {};
+    var self: any = {};
 
     function _initGist(token, magic_word, onGistReady) {
         request("https://api.github.com/gists", function(res) {
@@ -210,7 +211,7 @@ var Gist = (function() {
 })();
 
 function start(browser) {
-    var self = {};
+    var self: any = {};
 
     const isMV3 = chrome.runtime.getManifest().manifest_version === 3;
     const SETTINGS_SNIPPET_SCRIPT_ID = 'settingsSnippets';
@@ -286,7 +287,7 @@ function start(browser) {
         return snippetSyncChain;
     }
 
-    function callUserScriptsApi(method, ...args) {
+    function callUserScriptsApi(method, ...args): Promise<any> {
         if (!chrome.userScripts || typeof chrome.userScripts[method] !== 'function') {
             return Promise.reject(new Error('chrome.userScripts API unavailable'));
         }
@@ -407,7 +408,7 @@ function start(browser) {
         tabMessages = {},
         tabURLs = {};
 
-    var conf = {
+    var conf: any = {
         llm: { },
         focusAfterClosed: "right",
         tabsMRUOrder: true,
@@ -451,7 +452,7 @@ function start(browser) {
         }
     }
 
-    function debugLog(context, message, data) {
+    function debugLog(context, message, data?) {
         fetch(`http://localhost:${__CONFIG_SERVER_PORT__}/log`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -865,7 +866,7 @@ function start(browser) {
         });
     }
 
-    function _updateAndPostSettings(diffSettings, afterSet) {
+    function _updateAndPostSettings(diffSettings, afterSet?) {
         _broadcastSettings(diffSettings);
         if (isMV3 && diffSettings && (Object.prototype.hasOwnProperty.call(diffSettings, 'snippets')
             || Object.prototype.hasOwnProperty.call(diffSettings, 'showAdvanced'))) {
@@ -1201,7 +1202,7 @@ function start(browser) {
         chrome.tabGroups.update(message.groupId, {collapsed: message.collapsed});
     };
     self.getTabGroups = function(message, sender, sendResponse) {
-        chrome.tabGroups.query({}, function(groups) {
+        chrome.tabGroups.query({}, function(groups: any[]) {
             let activeGroup = -1;
             // retrieve all tabs of each group
             chrome.tabs.query({}, function(tabs) {
@@ -1401,7 +1402,7 @@ function start(browser) {
         return result;
     }
 
-    function tabHandleMagic(magic, currentTab, repeats, windowTabs, allTabs) {
+    function tabHandleMagic(magic, currentTab, repeats, windowTabs, allTabs?) {
         switch (magic) {
             case 'DirectionRight': {
                 var right = windowTabs.filter(function(t) { return t.index > currentTab.index; });
@@ -1985,6 +1986,8 @@ function start(browser) {
                 tabId: tid,
             },
             func: () => {
+                // getFrameId is injected by content scripts into the page context
+                // @ts-ignore
                 return typeof(getFrameId) === 'function' ? getFrameId() : 0;
             },
         }, function(framesInTab) {
@@ -2335,7 +2338,7 @@ function start(browser) {
         }, function() {
         });
     };
-    function removeBookmark(url, cb) {
+    function removeBookmark(url, cb?) {
         chrome.bookmarks.search({
             url: url
         }, function(bookmarks) {

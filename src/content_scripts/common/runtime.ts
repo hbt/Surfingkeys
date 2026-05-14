@@ -1,6 +1,6 @@
 import type { SurfingKeysConf, RuntimeMessage } from '../../../@types/surfingkeys';
 
-function dispatchSKEvent(type: string, args: unknown[], target?: EventTarget): void {
+function dispatchSKEvent(type: string, args?: unknown[], target?: EventTarget): void {
     if (target === undefined) {
         target = document;
     }
@@ -20,14 +20,14 @@ function dispatchSKEvent(type: string, args: unknown[], target?: EventTarget): v
  *   console.log(response);
  * });
  */
-function RUNTIME(action: string, args?: Record<string, unknown> | null, callback?: (response: unknown) => void): void {
+function RUNTIME(action: string, args?: Record<string, unknown> | null, callback?: (response: any) => void): void {
     var actionsRepeatBackground = ['closeTab', 'nextTab', 'previousTab', 'moveTab', 'moveToWindowMagic', 'copyTabUrlsMagic', 'reloadTab', 'setZoom', 'focusTabByIndex', 'closeTabMagic', 'reloadTabMagic', 'tabGotoIndex'];
     (args = args || {}).action = action;
     if (actionsRepeatBackground.indexOf(action) !== -1) {
         // if the action can only be repeated in background, pass repeats to background with args,
         // and set RUNTIME.repeats 1, so that it won't be repeated in foreground's _handleMapKey
-        args.repeats = RUNTIME.repeats;
-        RUNTIME.repeats = 1;
+        args.repeats = (RUNTIME as any).repeats;
+        (RUNTIME as any).repeats = 1;
     }
     try {
         args.needResponse = callback !== undefined;
@@ -50,9 +50,16 @@ const runtime = (function() {
         postTopMessage(msg: RuntimeMessage): void;
         getCaseSensitive(query: string): boolean;
     } = {
+        // Methods are assigned below
+        on: null as any,
+        bookMessage: null as any,
+        releaseMessage: null as any,
+        getTopURL: null as any,
+        postTopMessage: null as any,
+        getCaseSensitive: null as any,
         conf: {
             autoSpeakOnInlineQuery: false,
-            lastKeys: "",
+            lastKeys: [] as string[],
             // local part from settings
             blocklistPattern: undefined,
             lurkingPattern: undefined,
@@ -145,12 +152,13 @@ const runtime = (function() {
 
     self.getTopURL = function(cb) {
         getTopURLPromise.then(function(url) {
-            cb(url);
+            cb(url as string);
         });
     };
 
     self.postTopMessage = function(msg) {
-        getTopURLPromise.then(function(topUrl) {
+        getTopURLPromise.then(function(topUrlRaw) {
+            let topUrl: string = topUrlRaw as string;
             if (window === top) {
                 // Firefox use "resource://pdf.js" as window.origin for pdf viewer
                 topUrl = window.location.origin;

@@ -1,6 +1,8 @@
 import Trie from '../common/trie';
 import KeyboardUtils from '../common/keyboardUtils';
 import Mode from '../common/mode';
+
+declare const Normal: any;
 import { debounce } from 'lodash';
 import {
     filterByTitleOrUrl,
@@ -239,7 +241,7 @@ function createOmnibar(front, clipboard) {
         },
         feature_group: 8,
         code: function () {
-            var uids = Array.from(self.resultsDiv.querySelectorAll('#sk_omnibarSearchResult>ul>li')).map(function(li) {
+            var uids = Array.from(self.resultsDiv.querySelectorAll('#sk_omnibarSearchResult>ul>li')).map(function(li: any) {
                 return li.uid;
             }).filter(function(u) {
                 return u;
@@ -309,8 +311,8 @@ function createOmnibar(front, clipboard) {
     var handlers = {},
         bookmarkFolders;
 
-    var lastInput = "", handler, lastHandler = null;
-    var ui = document.getElementById('sk_omnibar');
+    var lastInput = "", handler: any, lastHandler: any = null;
+    var ui: any = document.getElementById('sk_omnibar');
 
     self.triggerInput = function() {
         var event = new Event('input', {
@@ -614,10 +616,10 @@ function createOmnibar(front, clipboard) {
     };
 
     function _listResultPage() {
-        var si = (_start - 1) * runtime.conf.omnibarMaxResults,
-            ei = si + runtime.conf.omnibarMaxResults,
-            ei = ei > _items.length ? _items.length : ei,
-            total = _items.length;
+        var si = (_start - 1) * runtime.conf.omnibarMaxResults;
+        var ei: any = si + runtime.conf.omnibarMaxResults;
+        ei = ei > _items.length ? _items.length : ei;
+        var total = _items.length;
         if (total === runtime.conf.omnibarHistoryCacheSize) {
             total = total + "+";
         }
@@ -891,7 +893,7 @@ function createOmnibar(front, clipboard) {
 }
 
 function OpenBookmarks(omnibar) {
-    var self = {
+    var self: any = {
         prompt: `bookmark${separatorHtml}`,
         inFolder: []
     };
@@ -1044,7 +1046,7 @@ function OpenBookmarks(omnibar) {
 }
 
 function AddBookmark(omnibar) {
-    var self = {
+    var self: any = {
         focusFirstCandidate: true,
         prompt: `add bookmark${separatorHtml}`
     }, folders, _origFFC;
@@ -1146,7 +1148,7 @@ function AddBookmark(omnibar) {
 }
 
 function OpenURLs(prompt, omnibar, queryFn) {
-    var self = { prompt }, sequenceNumber;
+    var self: any = { prompt }, sequenceNumber;
 
     const queryAndList = () => {
         let myseq = ++sequenceNumber;
@@ -1189,11 +1191,11 @@ function OpenURLs(prompt, omnibar, queryFn) {
 }
 
 function OpenTabs(omnibar) {
-    var self = {
+    var self: any = {
         focusFirstCandidate: true,
     };
 
-    var getTabsArgs = {};
+    var getTabsArgs: any = {};
     self.getResults = function () {
         omnibar.cachedPromise = new Promise(function(resolve, _reject) {
             getTabsArgs.tabsThreshold = Math.min(runtime.conf.tabsThreshold, Math.ceil(window.innerWidth / 26));
@@ -1233,7 +1235,7 @@ function OpenTabs(omnibar) {
 }
 
 function CloseTabs(omnibar) {
-    var self = {
+    var self: any = {
         focusFirstCandidate: true,
     };
 
@@ -1276,7 +1278,7 @@ function CloseTabs(omnibar) {
 }
 
 function OpenWindows(omnibar, front) {
-    const self = {
+    const self: any = {
         prompt: `Move current tab to window${separatorHtml}`
     };
 
@@ -1349,7 +1351,7 @@ function OpenWindows(omnibar, front) {
 }
 
 function OpenVIMarks(omnibar) {
-    var self = {
+    var self: any = {
         focusFirstCandidate: true,
         prompt: `VIMarks${separatorHtml}`
     };
@@ -1386,7 +1388,7 @@ function OpenVIMarks(omnibar) {
 }
 
 function SearchEngine(omnibar, front) {
-    var self = {};
+    var self: any = {};
     self.aliases = {};
 
     var _pendingRequest = undefined; // timeout ID
@@ -1532,7 +1534,7 @@ function SearchEngine(omnibar, front) {
 }
 
 function Commands(omnibar, front) {
-    var self = {
+    var self: any = {
         focusFirstCandidate: false,
         prompt: ':',
     }, items = {};
@@ -1631,7 +1633,7 @@ function Commands(omnibar, front) {
     };
 
     omnibar.command = function (cmd, annotation, jscode) {
-        var cmd_code = {
+        var cmd_code: any = {
             code: jscode
         };
         var ag = parseAnnotation({annotation: annotation, feature_group: 14});
@@ -1644,7 +1646,7 @@ function Commands(omnibar, front) {
 }
 
 function OmniQuery(omnibar, front) {
-    var self = {
+    var self: any = {
         prompt: 'ǭ'
     };
 
@@ -1653,7 +1655,7 @@ function OmniQuery(omnibar, front) {
     }
     var _words;
     self.onOpen = function(arg) {
-        if (arg && document.dictEnabled === undefined) {
+        if (arg && (document as any).dictEnabled === undefined) {
             omnibar.input.value = arg;
             front.contentCommand({
                 action: 'omnibar_query_entered',
@@ -1695,7 +1697,7 @@ function OmniQuery(omnibar, front) {
 }
 
 function OpenUserURLs(omnibar, front) {
-    var self = {
+    var self: any = {
         focusFirstCandidate: true,
         prompt: `UserURLs${separatorHtml}`
     };

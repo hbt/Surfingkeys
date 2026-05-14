@@ -265,7 +265,7 @@ function isElementClickable(e) {
  * @example
  * Front.showBanner(window.location.href);
  */
-function showBanner(msg, timeout) {
+function showBanner(msg, timeout?) {
     dispatchSKEvent("front", ['showBanner', msg, timeout]);
 }
 
@@ -290,12 +290,12 @@ function openOmnibar(args) {
     dispatchSKEvent("front", ['openOmnibar', args]);
 }
 
-function initSKFunctionListener(name, interfaces, capture) {
+function initSKFunctionListener(name, interfaces, capture?) {
     const callbacks = {};
 
     const opts = capture ? {capture: true} : {};
     document.addEventListener(`surfingkeys:${name}`, function(evt) {
-        let args = evt.detail;
+        let args = (evt as any).detail;
         const fk = args.shift();
         if (capture) {
             if (args.length > 0 && args[0].constructor.name === "Array" && args[0][0] === "__EVENT_TARGET__") {
@@ -333,7 +333,7 @@ function dispatchMouseEvent(element, events, modifiers) {
     });
 }
 
-function getRealEdit(event) {
+function getRealEdit(event?) {
     var rt = event ? event.target : document.activeElement;
     // on some pages like chrome://history/, input is in shadowRoot of several other recursive shadowRoots.
     while (rt && rt.shadowRoot) {
@@ -392,7 +392,7 @@ function reportIssue(title, description) {
     showPopup(error);
 }
 
-function scrollIntoViewIfNeeded(elm, ignoreSize) {
+function scrollIntoViewIfNeeded(elm, ignoreSize?) {
     if (elm.scrollIntoViewIfNeeded) {
         elm.scrollIntoViewIfNeeded();
     } else if (!isElementPartiallyInViewport(elm, ignoreSize)) {
@@ -400,7 +400,7 @@ function scrollIntoViewIfNeeded(elm, ignoreSize) {
     }
 }
 
-function isElementDrawn(e, rect) {
+function isElementDrawn(e, rect?) {
     var min = isEditable(e) ? 1 : 4;
     rect = rect || e.getBoundingClientRect();
     return rect.width > min && rect.height > min && (parseFloat(getComputedStyle(e).opacity) > 0.1 || e.tagName == "INPUT" && e.type != "text");
@@ -414,7 +414,7 @@ function isElementDrawn(e, rect) {
  * @returns {boolean}
  *
  */
-function isElementPartiallyInViewport(el, ignoreSize) {
+function isElementPartiallyInViewport(el, ignoreSize?) {
     var rect = el.getBoundingClientRect();
     var windowHeight = (window.innerHeight || document.documentElement.clientHeight);
     var windowWidth = (window.innerWidth || document.documentElement.clientWidth);
@@ -487,7 +487,7 @@ function getLargeElements(minWidth = 0.3, minHeight = 0.3) {
         if (rect.width < minWidthPx && rect.height < minHeightPx) return;
         if ((rect.width / viewportWidth) * (rect.height / viewportHeight) < minWidth * minHeight / 6) return;
         const style = getComputedStyle(element);
-        if (style.opacity > 0.1 && style.visibility !== 'hidden' && style.display !== 'none') {
+        if (parseFloat(style.opacity) > 0.1 && style.visibility !== 'hidden' && style.display !== 'none') {
             visibleElements.push(element);
             lastRect = rect;
         }
@@ -508,10 +508,10 @@ function actionWithSelectionPreserved(cb) {
     if (pos[0] === "None") {
         selection.empty();
     } else if (pos[0] === "Caret") {
-        selection.setPosition(pos[3], pos[4]);
+        selection.setPosition(pos[3] as Node, pos[4] as number);
     } else if (pos[0] === "Range") {
-        selection.setPosition(pos[1], pos[2]);
-        selection.extend(pos[3], pos[4]);
+        selection.setPosition(pos[1] as Node, pos[2] as number);
+        selection.extend(pos[3] as Node, pos[4] as number);
     }
 }
 
@@ -603,7 +603,7 @@ function filterOverlapElements(elements) {
  * @example
  * var elms = getClickableElements("[rel=link]", /click this/);
  */
-function getClickableElements(selectorString, pattern) {
+function getClickableElements(selectorString, pattern?) {
     var nodes = listElements(document.body, NodeFilter.SHOW_ELEMENT, function(n) {
         return n.offsetHeight && n.offsetWidth
             && getComputedStyle(n).cursor === "pointer"
@@ -616,12 +616,12 @@ function getClickableElements(selectorString, pattern) {
     return filterOverlapElements(nodes);
 }
 
-function getTextNodes(root, pattern, flag) {
+function getTextNodes(root, pattern, flag?): any {
     var skip_tags = ['script', 'style', 'noscript', 'surfingkeys_mark'];
     var treeWalker = document.createTreeWalker(
         root,
         NodeFilter.SHOW_TEXT, {
-            acceptNode: function(node) {
+            acceptNode: function(node: any) {
                 if (!node.data.trim() || !node.parentNode.offsetParent || skip_tags.indexOf(node.parentNode.localName.toLowerCase()) !== -1 || !pattern.test(node.data)) {
                     // node changed, reset pattern.lastIndex
                     pattern.lastIndex = 0;
@@ -633,7 +633,7 @@ function getTextNodes(root, pattern, flag) {
                 }
                 return NodeFilter.FILTER_ACCEPT;
             }
-        }, false);
+        });
 
     var nodes = [];
     if (flag === 1) {
@@ -650,11 +650,11 @@ function getTextNodes(root, pattern, flag) {
     return nodes;
 }
 
-function getTextNodePos(node, offset, length) {
+function getTextNodePos(node, offset, length?) {
     var selection = document.getSelection();
-    selection.setBaseAndExtent(node, offset, node, length ? (offset + length) : node.data.length);
+    selection.setBaseAndExtent(node, offset, node, length ? (offset + length) : (node as any).data.length);
     var br = selection.rangeCount > 0 ? selection.getRangeAt(0).getClientRects()[0] : null;
-    var pos = {
+    var pos: any = {
         left: -1,
         top: -1
     };
@@ -668,18 +668,18 @@ function getTextNodePos(node, offset, length) {
 }
 
 var _focusedRange = document.createRange();
-function getTextRect() {
-    let rects = [];
+function getTextRect(...args: any[]) {
+    let rects: any = [];
     try {
-        let start = arguments[1];
+        let start = args[1];
         while (rects.length === 0 && start >= 0) {
-            _focusedRange.setStart(arguments[0], start);
-            if (arguments.length > 3) {
-                _focusedRange.setEnd(arguments[2], arguments[3]);
-            } else if (arguments.length > 2) {
-                _focusedRange.setEnd(arguments[0], arguments[2]);
+            _focusedRange.setStart(args[0], start);
+            if (args.length > 3) {
+                _focusedRange.setEnd(args[2], args[3]);
+            } else if (args.length > 2) {
+                _focusedRange.setEnd(args[0], args[2]);
             } else {
-                _focusedRange.setEnd(arguments[0], arguments[1]);
+                _focusedRange.setEnd(args[0], args[1]);
             }
             rects = _focusedRange.getClientRects();
             start --;
@@ -753,7 +753,7 @@ var _clickPos = null;
 document.addEventListener('mousedown', event => {
     _clickPos = [event.clientX, event.clientY];
 });
-function getWordUnderCursor(mouseCursor) {
+function getWordUnderCursor(mouseCursor?) {
     var selection = document.getSelection();
     if (selection.focusNode && selection.focusNode.textContent) {
         var range = getNearestWord(selection.focusNode.textContent, selection.focusOffset);
@@ -768,7 +768,7 @@ function getWordUnderCursor(mouseCursor) {
     return null;
 }
 
-DOMRect.prototype.has = function (x, y, ex, ey) {
+(DOMRect.prototype as any).has = function (x, y, ex, ey) {
     // allow some errors of x and y as ex and ey respectively.
     return (y > this.top - ey && y < this.bottom + ey
         && x > this.left - ex && x < this.right + ex);
@@ -808,11 +808,11 @@ String.prototype.format = function() {
     return result;
 };
 
-String.prototype.reverse = function() {
+(String.prototype as any).reverse = function() {
     return this.split("").reverse().join("");
 };
 
-RegExp.prototype.toJSON = function() {
+(RegExp.prototype as any).toJSON = function() {
     return {source: this.source, flags: this.flags};
 };
 
@@ -849,7 +849,7 @@ function parseAnnotation(ag) {
     return ag;
 }
 
-function mapInMode(mode, nks, oks, new_annotation) {
+function mapInMode(mode, nks, oks, new_annotation?) {
     oks = KeyboardUtils.encodeKeystroke(oks);
     var old_map = mode.mappings.find(oks);
     if (old_map) {
@@ -907,14 +907,14 @@ function constructSearchURL(se, word) {
  *
  * @example tabOpenLink('https://github.com/brookhong/Surfingkeys')
  */
-function tabOpenLink(str, simultaneousness) {
+function tabOpenLink(str, simultaneousness?) {
     simultaneousness = simultaneousness || 5;
 
     var urls;
     if (str.constructor.name === "Array") {
         urls = str;
     } else if (str instanceof NodeList) {
-        urls = Array.from(str).map(function(n) {
+        urls = Array.from(str).map(function(n: any) {
             return n.href;
         });
     } else {
@@ -974,8 +974,8 @@ function setSanitizedContent(elm, str) {
     elm.innerHTML = DOMPurify.sanitize(str);
 }
 
-function createElementWithContent(tag, content, attributes) {
-    var elm = document.createElement(tag);
+function createElementWithContent(tag, content?, attributes?): any {
+    var elm: any = document.createElement(tag);
     if (content) {
         setSanitizedContent(elm, content);
     }
@@ -995,7 +995,7 @@ function htmlEncode(str) {
     return _divForHtmlEncoder.innerHTML;
 }
 
-HTMLElement.prototype.one = function (evt, handler) {
+(HTMLElement.prototype as any).one = function (evt, handler) {
     function _onceHandler() {
         handler.call(this);
         this.removeEventListener(evt, _onceHandler);
@@ -1003,20 +1003,20 @@ HTMLElement.prototype.one = function (evt, handler) {
     this.addEventListener(evt, _onceHandler);
 };
 
-HTMLElement.prototype.show = function () {
+(HTMLElement.prototype as any).show = function () {
     this.style.display = "";
 };
 
-HTMLElement.prototype.hide = function () {
+(HTMLElement.prototype as any).hide = function () {
     this.style.display = "none";
 };
 
-HTMLElement.prototype.removeAttributes = function () {
+(HTMLElement.prototype as any).removeAttributes = function () {
     while (this.attributes.length > 0) {
         this.removeAttribute(this.attributes[0].name);
     }
 };
-HTMLElement.prototype.containsWithShadow = function (e) {
+(HTMLElement.prototype as any).containsWithShadow = function (e) {
     const roots = [this];
     while (roots.length) {
         const root = roots.shift();
@@ -1034,17 +1034,17 @@ HTMLElement.prototype.containsWithShadow = function (e) {
     return false;
 };
 
-NodeList.prototype.remove = function() {
+(NodeList.prototype as any).remove = function() {
     this.forEach(function(node) {
         node.remove();
     });
 };
-NodeList.prototype.show = function() {
+(NodeList.prototype as any).show = function() {
     this.forEach(function(node) {
         node.show();
     });
 };
-NodeList.prototype.hide = function() {
+(NodeList.prototype as any).hide = function() {
     this.forEach(function(node) {
         node.hide();
     });
@@ -1091,7 +1091,7 @@ function getCssSelectorsOfEditable() {
 }
 
 function refreshHints(hints, pressedKeys) {
-    const result = {candidates: 0};
+    const result: any = {candidates: 0};
     if (pressedKeys.length > 0) {
         for (const hint of hints) {
             const label = hint.label;

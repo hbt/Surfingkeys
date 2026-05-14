@@ -48,7 +48,7 @@ export default function registerProxy(
     });
 
     // create shortcuts for the command with different parameters
-    map(';pa', ':setProxyMode always', 0, {
+    map(';pa', ':setProxyMode always', null as any, {
         short: "Set proxy mode always",
         unique_id: "cmd_proxy_mode_always",
         feature_group: 13,
@@ -56,7 +56,7 @@ export default function registerProxy(
         description: "Set proxy mode to always use proxy for all sites",
         tags: ["proxy", "network", "mode"]
     });
-    map(';pb', ':setProxyMode byhost', 0, {
+    map(';pb', ':setProxyMode byhost', null as any, {
         short: "Set proxy mode byhost",
         unique_id: "cmd_proxy_mode_byhost",
         feature_group: 13,
@@ -64,7 +64,7 @@ export default function registerProxy(
         description: "Set proxy mode to use proxy based on hostname rules",
         tags: ["proxy", "network", "mode"]
     });
-    map(';pd', ':setProxyMode direct', 0, {
+    map(';pd', ':setProxyMode direct', null as any, {
         short: "Set proxy mode direct",
         unique_id: "cmd_proxy_mode_direct",
         feature_group: 13,
@@ -72,7 +72,7 @@ export default function registerProxy(
         description: "Set proxy mode to direct connection without proxy",
         tags: ["proxy", "network", "mode"]
     });
-    map(';ps', ':setProxyMode system', 0, {
+    map(';ps', ':setProxyMode system', null as any, {
         short: "Set proxy mode system",
         unique_id: "cmd_proxy_mode_system",
         feature_group: 13,
@@ -80,7 +80,7 @@ export default function registerProxy(
         description: "Set proxy mode to use system proxy settings",
         tags: ["proxy", "network", "mode"]
     });
-    map(';pc', ':setProxyMode clear', 0, {
+    map(';pc', ':setProxyMode clear', null as any, {
         short: "Set proxy mode clear",
         unique_id: "cmd_proxy_mode_clear",
         feature_group: 13,

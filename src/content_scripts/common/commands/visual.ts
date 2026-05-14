@@ -19,7 +19,7 @@ function _getSentence(textNode: Text, offset: number): string {
 
 function openGoogleTranslate(searchSelectedWith: CommandAPI['searchSelectedWith']): void {
     if (window.getSelection().toString()) {
-        searchSelectedWith('https://translate.google.com/?hl=en#auto/en/', false, false, '');
+        (searchSelectedWith as any)('https://translate.google.com/?hl=en#auto/en/', false, false, '');
     } else {
         tabOpenLink("https://translate.google.com/translate?js=n&sl=auto&tl=zh-CN&u=" + window.location.href);
     }

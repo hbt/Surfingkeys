@@ -4,6 +4,8 @@ import {
     start
 } from './start.js';
 
+declare const browser: any;
+
 function loadRawSettings(keys, cb, defaultSet) {
     var rawSet = defaultSet || {};
     chrome.storage.local.get(null, function(localSet) {

@@ -131,7 +131,7 @@ async function detectDebugMode() {
  * @param {string} targetUrl - The chrome://extensions URL to search for
  * @returns {Promise<chrome.tabs.Tab|null>} Existing tab or null
  */
-async function findExtensionTab(targetUrl) {
+async function findExtensionTab(targetUrl): Promise<chrome.tabs.Tab | null> {
     return new Promise((resolve) => {
         chrome.tabs.query({}, (tabs) => {
             // Chrome doesn't allow extensions to see chrome:// URLs in tab.url
@@ -327,7 +327,7 @@ function generatePassword() {
 }
 
 let nativeConnected = false;
-const nvimServer = {};
+const nvimServer: any = {};
 function startNative() {
     return new Promise((resolve, _reject) => {
         const nm = chrome.runtime.connectNative("surfingkeys");

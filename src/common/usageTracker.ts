@@ -33,7 +33,7 @@ function trackCommandUsage(key, annotation, mode = 'Normal') {
     const commandId = getCommandId(annotation, key);  // Unique ID that persists across remaps
 
     chrome.storage.local.get([STORAGE_KEY], (result) => {
-        const usage = result[STORAGE_KEY] || {
+        const usage: any = (result[STORAGE_KEY] as any) || {
             commands: {},
             recentHistory: [],
             stats: {
@@ -97,7 +97,7 @@ function trackCommandUsage(key, annotation, mode = 'Normal') {
  * Get all usage statistics
  * @returns {Promise<object>} Usage statistics
  */
-function getUsageStats() {
+function getUsageStats(): Promise<any> {
     return new Promise((resolve) => {
         chrome.storage.local.get([STORAGE_KEY], (result) => {
             resolve(result[STORAGE_KEY] || {
@@ -121,7 +121,7 @@ function getUsageStats() {
 async function getFrequentCommands(limit = 20) {
     const usage = await getUsageStats();
     return Object.entries(usage.commands)
-        .map(([key, data]) => ({ key, ...data }))
+        .map(([key, data]) => ({ key, ...(data as any) }))
         .sort((a, b) => b.count - a.count)
         .slice(0, limit);
 }
@@ -154,7 +154,7 @@ function clearUsageStats() {
             }
         }, () => {
             console.log('[USAGE TRACKER] Cleared all usage statistics');
-            resolve();
+            resolve(undefined);
         });
     });
 }

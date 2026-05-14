@@ -29,6 +29,8 @@ import createOmnibar from './omnibar.js';
 import createCommands from './command.js';
 import { setupHelpFilter } from './fuzzyFilter.js';
 
+declare const ace: any;
+
 const Front = (function() {
     const clipboard = createClipboard();
     Mode.init();
@@ -76,7 +78,7 @@ const Front = (function() {
     };
 
     var pressedHintKeys = "";
-    var _display;
+    var _display: any;
     self.addEventListener('keydown', function(event) {
         if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
             self.hidePopup();
@@ -114,7 +116,7 @@ const Front = (function() {
     });
 
     var _state;
-    function State(pointerEvents, frameHeight, onEnter) {
+    function State(pointerEvents, frameHeight, onEnter?) {
         this.enter = function() {
             if (onEnter) {
                 onEnter();
@@ -128,10 +130,10 @@ const Front = (function() {
             }}, self.topOrigin);
         };
         this.nextState = function () {
-            var visibleDivs = Array.from(document.body.querySelectorAll("body>div")).filter(function(n) {
+            var visibleDivs = Array.from(document.body.querySelectorAll("body>div")).filter(function(n: any) {
                 return n.style.display !== "none";
             });
-            var pointerEvents = visibleDivs.map(function(d) {
+            var pointerEvents = visibleDivs.map(function(d: any) {
                 var id = d.id;
                 var divNoPointerEvents = ["sk_keystroke", "sk_banner"];
                 if (divNoPointerEvents.indexOf(id) !== -1) {
@@ -147,12 +149,12 @@ const Front = (function() {
             });
             // to make pointerEvents not empty
             pointerEvents.push(false);
-            pointerEvents = pointerEvents.reduce(function(a, b) {
+            const pointerEventsAny: any = pointerEvents.reduce(function(a: any, b: any) {
                 return a || b;
             });
 
             var ns;
-            if (pointerEvents) {
+            if (pointerEventsAny) {
                 ns = stateInteractive;
             } else if (visibleDivs.length > 0) {
                 ns = stateVisible;
@@ -184,7 +186,7 @@ const Front = (function() {
         }
     };
 
-    const _omnibar = document.getElementById('sk_omnibar');
+    const _omnibar: any = document.getElementById('sk_omnibar');
     self.statusBar = document.getElementById('sk_status');
     const _usage = document.getElementById('sk_usage');
     const _popup = document.getElementById('sk_popup');
@@ -192,9 +194,9 @@ const Front = (function() {
     const _nvim = document.getElementById('sk_nvim');
     const _tabs = document.getElementById('sk_tabs');
     const _banner = document.getElementById('sk_banner');
-    const _bubble = document.getElementById('sk_bubble');
-    const sk_bubble_content = _bubble.querySelector("div.sk_bubble_content");
-    const sk_bubble_arrow = _bubble.querySelector('div.sk_arrow');
+    const _bubble: any = document.getElementById('sk_bubble');
+    const sk_bubble_content: any = _bubble.querySelector("div.sk_bubble_content");
+    const sk_bubble_arrow: any = _bubble.querySelector('div.sk_arrow');
     const sk_bubbleClassList = sk_bubble_content.classList;
     function clearScrollerIndicator() {
         sk_bubbleClassList.remove("sk_scroller_indicator_top");
@@ -247,7 +249,7 @@ const Front = (function() {
     };
     self.hidePopup = _actions['hidePopup'];
 
-    function setDisplay(td, render) {
+    function setDisplay(td, render?) {
         if (_display && _display.style.display !== "none") {
             _display.style.display = "none";
             if (_display.onHide) {
@@ -262,7 +264,7 @@ const Front = (function() {
         self.startInputGuard();
     }
 
-    function showElement(td, render, onHit) {
+    function showElement(td, render?, onHit?) {
         self.enter(0, true);
         td.onHit = onHit;
         setDisplay(td, render);
@@ -351,10 +353,10 @@ const Front = (function() {
                     const collapsedState = g.collapsed ? '☑' : '☐';
                     setSanitizedContent(group.querySelector("span.sk_tab_group_state"), collapsedState + "Collapsed");
                     const tabHints = group.querySelectorAll("div.sk_tab_hint");
-                    tabHints[0].label = labels[0];
-                    tabHints[0].link = {id: g.id, active: g.active, action: "group"};
-                    tabHints[1].label = labels[1];
-                    tabHints[1].link = {id: g.id, collapsed: g.collapsed, action: "collapse"};
+                    (tabHints[0] as any).label = labels[0];
+                    (tabHints[0] as any).link = {id: g.id, active: g.active, action: "group"};
+                    (tabHints[1] as any).label = labels[1];
+                    (tabHints[1] as any).link = {id: g.id, collapsed: g.collapsed, action: "collapse"};
                     _tabs.append(group);
                 });
                 const newTabGroup = createElementWithContent('div', `<div class=sk_tab_hint>${hintLabels[groups.length*2]}</div> New tab group`, { "class": 'sk_tab_group' });
@@ -412,7 +414,7 @@ const Front = (function() {
         ];
 
         initL10n(function(locale) {
-            var help_groups = feature_groups.map(function(){return [];});
+            var help_groups: any = feature_groups.map(function(){return [];});
             const lh = Mode.specialKeys["<Alt-s>"].length;
             if (lh > 0) {
                 help_groups[0].push("<div><span class=kbd-span><kbd>{0}</kbd></span><span class=annotation>{1}</span></div>".format(
@@ -569,10 +571,10 @@ const Front = (function() {
             setSanitizedContent(_popup, `<div>${message.question}</div><div><div class=sk_tab_hint>${hintLabels[0]}</div><span class=sk_tab_group_title>Ok</span><div class=sk_tab_hint>${hintLabels[1]}</div><span class=sk_tab_group_title>Cancel</span></div>`);
             const tabHints = _popup.querySelectorAll("div.sk_tab_hint");
             _popup.style.textAlign = "center";
-            tabHints[0].link = "Ok";
-            tabHints[0].label = hintLabels[0];
-            tabHints[1].link = "Cancel";
-            tabHints[1].label = hintLabels[1];
+            (tabHints[0] as any).link = "Ok";
+            (tabHints[0] as any).label = hintLabels[0];
+            (tabHints[1] as any).link = "Cancel";
+            (tabHints[1] as any).label = hintLabels[1];
         }, (matched) => {
             self.contentCommand({
                 action: 'dialogResponse',
@@ -586,6 +588,7 @@ const Front = (function() {
     function renderAceEditor(message) {
         if (!_aceEditor) {
             _aceEditor = new Promise((resolve, _reject) => {
+                // @ts-ignore
                 import(/* webpackIgnore: true */ './ace.js').then(() => {
                     resolve(createAceEditor(normal, self));
                 });
@@ -599,6 +602,7 @@ const Front = (function() {
     function renderNvim(message) {
         if (!_neovim) {
             _neovim  = new Promise((resolve, _reject) => {
+                // @ts-ignore
                 import(/* webpackIgnore: true */ './neovim_lib.js').then((nvimlib) => {
                     nvimlib.default(_nvim).then(({nvim, destroy}) => {
                         function quitNvim() {
@@ -946,7 +950,7 @@ const Front = (function() {
  * @return {StatusBar} StatusBar instance
  */
 var StatusBar = (function() {
-    var self = {};
+    var self: any = {};
     var timerHide = null;
     var ui = Front.statusBar;
 
@@ -1119,7 +1123,7 @@ function createAceEditor(normal, front) {
     })();
 
     function _close() {
-        document.activeElement.blur();
+        (document.activeElement as HTMLElement).blur();
         front.hidePopup();
     }
 
@@ -1293,8 +1297,8 @@ function createAceEditor(normal, front) {
         });
         cm.on('0-register-set', function(data) {
             var lf = document.activeElement;
-            Clipboard.write(data.text);
-            lf.focus();
+            (Clipboard as any).write(data.text);
+            (lf as HTMLElement).focus();
         });
         var vim = cm.constructor.Vim;
         vim.defineEx("write", "w", function(_cm, _input) {
@@ -1364,7 +1368,7 @@ function createAceEditor(normal, front) {
     _ace.$blockScrolling = Infinity;
 
     self.show = function(message) {
-        keybindingsDeferred.then(function(vim) {
+        keybindingsDeferred.then(function(vim: any) {
             _ace.setValue(message.content, -1);
             originValue = message.content;
             _ace.container.querySelector('textarea').focus();

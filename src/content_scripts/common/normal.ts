@@ -10,7 +10,7 @@ import {
     isInUIFrame,
     mapInMode,
     scrollIntoViewIfNeeded,
-    _setSanitizedContent,
+    setSanitizedContent,
     showBanner,
     showPopup,
 } from './utils.js';
@@ -28,7 +28,7 @@ function createDisabled(normal) {
     self.addEventListener('keydown', function(event) {
         // prevent this event to be handled by Surfingkeys' other listeners
         event.sk_suppressed = true;
-        if (self.activatedOnElement && !document.activeElement.matches(runtime.conf.disabledOnActiveElementPattern)) {
+        if (self.activatedOnElement && !document.activeElement.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
             normal.enable();
             self.activatedOnElement = false;
         } else if (Mode.isSpecialKeyOf("<Alt-s>", event.sk_keyName)) {
@@ -295,7 +295,7 @@ function createNormal(insert) {
             insert.exit();
         }
 
-        if (document.activeElement.matches(runtime.conf.disabledOnActiveElementPattern)) {
+        if (document.activeElement.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
             setTimeout(() => {
                 self.disable(true);
             }, 100);
@@ -389,10 +389,10 @@ function createNormal(insert) {
                     return dispatchSKEvent("hints", ['bottomBoundaryHit']);
                 }
             }
-            if (RUNTIME.repeats > 1) {
-                x = RUNTIME.repeats * x;
-                y = RUNTIME.repeats * y;
-                RUNTIME.repeats = 0;
+            if ((RUNTIME as any).repeats > 1) {
+                x = (RUNTIME as any).repeats * x;
+                y = (RUNTIME as any).repeats * y;
+                (RUNTIME as any).repeats = 0;
             }
             if (runtime.conf.smoothScroll) {
                 var d = Math.max(100, 20 * Math.log(Math.abs( x || y)));
@@ -517,7 +517,7 @@ function createNormal(insert) {
             }
         }]);
     };
-    function changeScrollTarget(silent) {
+    function changeScrollTarget(silent?) {
         scrollNodes = Mode.getScrollableElements();
         if (scrollNodes.length > 0) {
             scrollIndex = (scrollIndex + 1) % scrollNodes.length;
@@ -569,7 +569,7 @@ function createNormal(insert) {
      */
     self.scroll = function(type) {
         initScrollIndex();
-        var scrollNode = document.scrollingElement;
+        var scrollNode: any = document.scrollingElement;
         if (scrollNodes.length > 0) {
             scrollNode = scrollNodes[scrollIndex];
             if (scrollNode !== document.scrollingElement && scrollNode !== document.body) {
@@ -652,8 +652,8 @@ function createNormal(insert) {
                 scrollNode.skScrollBy(scrollNode.scrollWidth - scrollNode.scrollLeft - size[0] + 20, 0);
                 break;
             case 'byRatio':
-                var y = parseInt(RUNTIME.repeats * scrollNode.scrollHeight / 100) - size[1] / 2 - scrollNode.scrollTop;
-                RUNTIME.repeats = 0;
+                var y = Math.floor((RUNTIME as any).repeats * scrollNode.scrollHeight / 100) - size[1] / 2 - scrollNode.scrollTop;
+                (RUNTIME as any).repeats = 0;
                 scrollNode.skScrollBy(0, y);
                 break;
             default:
@@ -678,7 +678,7 @@ function createNormal(insert) {
 
     self.rotateFrame = function() {
         RUNTIME('nextFrame', {
-            frameId: window.frameId
+            frameId: (window as any).frameId
         });
     };
 
@@ -693,7 +693,7 @@ function createNormal(insert) {
         setTimeout(function() {
             var evt = new Event("keydown");
             for (var i = 0; i < keys.length; i ++) {
-                evt.sk_keyName = keys[i];
+                (evt as any).sk_keyName = keys[i];
                 Mode.handleMapKey.call(self, evt);
             }
         }, 1);
@@ -743,7 +743,7 @@ function createNormal(insert) {
      */
     self.jumpVIMark = function(mark) {
         if (mark === "'") {
-            let scrollNode = document.scrollingElement;
+            let scrollNode: any = document.scrollingElement;
             initScrollIndex();
             if (scrollNodes.length > 0) {
                 scrollNode = scrollNodes[scrollIndex];

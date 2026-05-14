@@ -14,7 +14,7 @@ export default function registerMisc(
 ): void {
     const { mapkey, map, cmap } = api;
 
-    map('ZQ', ':quit', 0, {
+    map('ZQ', ':quit', null as any, {
         short: "Quit without saving",
         unique_id: "cmd_misc_quit",
         feature_group: 16,
@@ -22,7 +22,7 @@ export default function registerMisc(
         description: "Quit and close all tabs without saving session",
         tags: ["misc", "quit", "session"]
     });
-    map('u', 'e', 0, {
+    map('u', 'e', null as any, {
         short: "Alias for e",
         unique_id: "cmd_misc_alias_u",
         feature_group: 16,
@@ -30,7 +30,7 @@ export default function registerMisc(
         description: "Alias for 'e' - scroll up half page",
         tags: ["misc", "alias", "scroll"]
     });
-    map('C', 'gf', 0, {
+    map('C', 'gf', null as any, {
         short: "Alias for gf",
         unique_id: "cmd_misc_alias_c",
         feature_group: 16,
@@ -38,7 +38,7 @@ export default function registerMisc(
         description: "Alias for 'gf' - open link in non-active new tab",
         tags: ["misc", "alias", "hints"]
     });
-    map('<Ctrl-i>', 'I', 0, {
+    map('<Ctrl-i>', 'I', null as any, {
         short: "Alias for I",
         unique_id: "cmd_misc_alias_ctrl_i",
         feature_group: 16,

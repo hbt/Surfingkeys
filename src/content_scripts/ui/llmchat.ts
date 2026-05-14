@@ -9,13 +9,13 @@ import {
 } from '../common/utils.js';
 
 export default function (omnibar, front) {
-    const self = {
+    const self: any = {
         prompt: '🐝',
         omnibarPosition: "bottom",
     };
 
     const RESERVED_MESSAGE_COUNT = 1;
-    let messages = [
+    let messages: any[] = [
         {
             "content": "",
             "role": "system"
@@ -27,7 +27,7 @@ export default function (omnibar, front) {
 
     const dots = [ "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" ];
     let spinnerIndex = 0;
-    let spinnerInterval = 0;
+    let spinnerInterval: any = 0;
 
     let userInput = "";
     let inputs = [];

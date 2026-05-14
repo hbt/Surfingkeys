@@ -10,8 +10,20 @@ import Trie from '../common/trie';
 
 class CursorPrompt {
     #suppressKeyup = false;
+    element: any;
+    renderer: any;
+    picker: any;
+    fetcher: any;
+    mode: any;
+    insertOffset: any;
+    threshold: any;
+    parentElement: any;
+    isNativeInput: any;
+    matchStart: any;
+    activator: any;
+    data: any;
 
-    constructor(renderer, picker, fetcher) {
+    constructor(renderer, picker, fetcher?) {
         this.element = createElementWithContent('div', '', {class: "sk_cursor_prompt", style: "display: block; opacity: 1;"});
         this.renderer = renderer;
         this.picker = picker;
@@ -48,7 +60,7 @@ class CursorPrompt {
         this.mode = mode;
     }
 
-    activate(parentElement, data, threshold, insertOffset) {
+    activate(parentElement, data, threshold?, insertOffset?) {
         this.insertOffset = insertOffset || 0;
         this.threshold = threshold || 0;
         this.parentElement = parentElement;
@@ -76,7 +88,7 @@ class CursorPrompt {
     }
 
     rotate(backward) {
-        const items = Array.from(this.element.children);
+        const items: any[] = Array.from(this.element.children);
         if (items.length === 1) {
             this.onEnter();
             return;
@@ -98,8 +110,8 @@ class CursorPrompt {
             this.parentElement.setSelectionRange(newPos, newPos);
         } else {
             // for contenteditable div
-            const selection = document.getSelection(), val = selection.focusNode.data;
-            selection.focusNode.data = val.substr(0, this.matchStart + this.insertOffset) + d + val.substr(selection.focusOffset);
+            const selection = document.getSelection(), val = (selection.focusNode as any).data;
+            (selection.focusNode as any).data = val.substr(0, this.matchStart + this.insertOffset) + d + val.substr(selection.focusOffset);
             selection.setPosition(selection.focusNode, newPos);
         }
 
@@ -113,7 +125,7 @@ class CursorPrompt {
         } else {
             // for contenteditable div
             const selection = document.getSelection();
-            return [selection.focusNode.data, selection.focusOffset];
+            return [(selection.focusNode as any).data, selection.focusOffset];
         }
     }
 
@@ -141,7 +153,7 @@ class CursorPrompt {
         } else {
             // for contenteditable div
             const selection = document.getSelection();
-            query = selection.focusNode.data.substr(this.matchStart, selection.focusOffset - this.matchStart);
+            query = (selection.focusNode as any).data.substr(this.matchStart, selection.focusOffset - this.matchStart);
         }
         if (query.length < this.threshold || query[0] === " ") {
             this.element.remove();
@@ -195,7 +207,7 @@ class CursorPrompt {
         if (pos === input.value.length) {
             mask.appendChild(span);
         } else {
-            var fp = mask.childNodes[0].splitText(pos);
+            var fp = (mask.childNodes[0] as any).splitText(pos);
             mask.insertBefore(span, fp);
         }
         document.body.appendChild(mask);

@@ -308,7 +308,7 @@ const screen = ({
         const key = `${char}:${hlId}`;
         if (!PIXI.TextureCache[key]) {
             const props = highlightTable[hlId].calculated;
-            // @ts-expect-error getCharBitmap returns ImageBitmap that can be used as texture
+            // @ts-ignore
             PIXI.Texture.addToCache(PIXI.Texture.from(getCharBitmap(char, props)), key);
         }
         return PIXI.Texture.from(key);
@@ -543,9 +543,9 @@ const screen = ({
 
         option_set: (options) => {
             options.forEach(([option, value]) => {
-                // @ts-expect-error TODO
+                // @ts-ignore TODO
                 if (optionSet[option]) {
-                    // @ts-expect-error TODO
+                    // @ts-ignore TODO
                     optionSet[option](value);
                 } else {
                     // console.warn('Unknown option', option, value); // eslint-disable-line no-console
@@ -786,7 +786,7 @@ const screen = ({
         args.forEach(([cmd, ...props]) => {
             const command = redrawCmd[cmd];
             if (command) {
-                // @ts-expect-error TODO: find the way to type it without errors
+                // @ts-ignore TODO: find the way to type it without errors
                 command(props);
             } else {
                 console.warn('Unknown redraw command', cmd, props); // eslint-disable-line no-console
@@ -877,12 +877,12 @@ const screen = ({
         ];
 
         Object.keys(newSettings).forEach((key) => {
-            // @ts-expect-error TODO
+            // @ts-ignore TODO
             if (handleSet[key]) {
                 requireRedraw = requireRedraw || requireRedrawProps.includes(key);
                 requireRecalculateHighlight =
                     requireRecalculateHighlight || requireRecalculateHighlightProps.includes(key);
-                // @ts-expect-error TODO
+                // @ts-ignore TODO
                 handleSet[key](newSettings[key]);
             }
         });

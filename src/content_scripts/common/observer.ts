@@ -20,8 +20,8 @@ function startScrollNodeObserver(normal) {
         var addedNodes = [];
         for (var m of mutations) {
             for (var n of m.addedNodes) {
-                if (n.nodeType === Node.ELEMENT_NODE && !n.fromSurfingKeys) {
-                    n.newlyCreated = true;
+                if (n.nodeType === Node.ELEMENT_NODE && !(n as any).fromSurfingKeys) {
+                    (n as any).newlyCreated = true;
                     addedNodes.push(n);
                 }
             }
@@ -51,19 +51,19 @@ function startScrollNodeObserver(normal) {
             }, 200);
         }
     });
-    DOMObserver.isConnected = false;
+    (DOMObserver as any).isConnected = false;
 
     initSKFunctionListener("observer", {
         turnOn: () => {
-            if (!DOMObserver.isConnected) {
+            if (!(DOMObserver as any).isConnected) {
                 DOMObserver.observe(document, { childList: true, subtree:true });
-                DOMObserver.isConnected = true;
+                (DOMObserver as any).isConnected = true;
             }
         },
         turnOff: () => {
-            if (DOMObserver.isConnected) {
+            if ((DOMObserver as any).isConnected) {
                 DOMObserver.disconnect();
-                DOMObserver.isConnected = false;
+                (DOMObserver as any).isConnected = false;
             }
         },
     });

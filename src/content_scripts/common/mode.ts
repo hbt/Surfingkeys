@@ -125,7 +125,7 @@ function onAfterHandler(mode, event) {
     }
 }
 
-function handleStack(eventName, event, cb) {
+function handleStack(eventName, event, cb?) {
     for (var i = 0; i < mode_stack.length && !event.sk_stopPropagation; i++) {
         var m = mode_stack[i];
         if (!event.sk_suppressed && m.eventListeners.hasOwnProperty(eventName)) {
@@ -179,7 +179,7 @@ var suppressScrollEvent = 0, _listenedEvents = {
     }
 };
 
-function init(cb) {
+function init(cb?) {
     mode_stack = [];
     for (var evtName in _listenedEvents) {
         window.addEventListener(evtName, _listenedEvents[evtName], true);
@@ -224,7 +224,7 @@ Mode.getScrollableElements = function () {
     return nodes;
 };
 
-Mode.init = (cb)=> {
+Mode.init = (cb?)=> {
     // For blank page in frames, we defer init to page loaded
     // as document.write will clear added eventListeners.
     if (window.location.href === "about:blank" && window.frameElement &&
@@ -342,21 +342,21 @@ Mode.handleMapKey = function(event, onNoMatched) {
                         this.map_node.meta.annotation,
                         this.name
                     );
-                    RUNTIME.repeats = parseInt(this.repeats) || 1;
+                    (RUNTIME as any).repeats = parseInt(this.repeats) || 1;
                     event.sk_stopPropagation = (!this.map_node.meta.stopPropagation
                         || this.map_node.meta.stopPropagation(key));
-                    if (RUNTIME.repeats > runtime.conf.repeatThreshold) {
+                    if ((RUNTIME as any).repeats > runtime.conf.repeatThreshold) {
                         const annotationStr = getAnnotationString(this.map_node.meta.annotation);
-                        dispatchSKEvent("front", ['showDialog', `Do you really want to repeat this action (${annotationStr}) ${RUNTIME.repeats} times?`, () => {
-                            while(RUNTIME.repeats > 0) {
+                        dispatchSKEvent("front", ['showDialog', `Do you really want to repeat this action (${annotationStr}) ${(RUNTIME as any).repeats} times?`, () => {
+                            while((RUNTIME as any).repeats > 0) {
                                 code();
-                                RUNTIME.repeats--;
+                                (RUNTIME as any).repeats--;
                             }
                         }]);
                     } else {
-                        while(RUNTIME.repeats > 0) {
+                        while((RUNTIME as any).repeats > 0) {
                             code();
-                            RUNTIME.repeats--;
+                            (RUNTIME as any).repeats--;
                         }
                     }
                     actionDone = Mode.finish(this);

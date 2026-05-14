@@ -41,7 +41,7 @@ function installErrorHandlers(context) {
      */
     function saveError(errorData) {
         chrome.storage.local.get([STORAGE_KEY], (result) => {
-            const errors = result[STORAGE_KEY] || [];
+            const errors: any[] = (result[STORAGE_KEY] as any[]) || [];
             errors.push(errorData);
 
             // Keep last MAX_ERRORS errors
@@ -160,7 +160,7 @@ function clearStoredErrors() {
             if (globalScope._surfingkeysErrors) {
                 globalScope._surfingkeysErrors = [];
             }
-            resolve();
+            resolve(undefined);
         });
     });
 }
@@ -203,7 +203,7 @@ function reportError(type, message, details = {}) {
     console.error('[ERROR COLLECTOR] Manual error report:', errorData.message);
 
     chrome.storage.local.get(['surfingkeys_errors'], (result) => {
-        const errors = result.surfingkeys_errors || [];
+        const errors: any[] = (result.surfingkeys_errors as any[]) || [];
         errors.push(errorData);
 
         // Keep last 100 errors

@@ -1,6 +1,5 @@
 import {
     _save,
-    _dictFromArray,
     extendObject,
     getSubSettings,
     start

@@ -14,9 +14,9 @@ import {
     getVisibleElements,
     getWordUnderCursor,
     locateFocusNode,
-    _scrollIntoViewIfNeeded,
+    scrollIntoViewIfNeeded,
     setSanitizedContent,
-    _tabOpenLink,
+    tabOpenLink,
 } from './utils.js';
 
 function createVisual(clipboard, hints) {
@@ -338,7 +338,7 @@ function createVisual(clipboard, hints) {
             self.hideCursor();
             var pos = [selection.anchorNode, selection.anchorOffset];
             selection.collapse(selection.focusNode, selection.focusOffset);
-            selection.extend(pos[0], pos[1]);
+            selection.extend(pos[0] as Node, pos[1] as number);
             self.showCursor();
         }
     });
@@ -366,7 +366,7 @@ function createVisual(clipboard, hints) {
             _selectUnit(w);
             clipboard.write(selection.toString());
             selection.collapseToStart();
-            selection.setPosition(pos[0], pos[1]);
+            selection.setPosition(pos[0] as Node, pos[1] as number);
             self.showCursor();
         }
     }, {
@@ -376,7 +376,7 @@ function createVisual(clipboard, hints) {
             var pos = [selection.focusNode, selection.focusOffset];
             clipboard.write(selection.toString());
             if (runtime.conf.modeAfterYank === "Caret") {
-                selection.setPosition(pos[0], pos[1]);
+                selection.setPosition(pos[0] as Node, pos[1] as number);
                 self.showCursor();
                 state = 1;
                 _onStateChange();
@@ -594,7 +594,7 @@ function createVisual(clipboard, hints) {
         mark_template = document.createElement("div"),
         cursor = document.createElement("div");
     cursor.className = "surfingkeys_cursor";
-    cursor.style.zIndex = 2147483299;
+    cursor.style.zIndex = "2147483299";
 
     // f in visual mode
     var visualf = 0, lastF = null;
@@ -617,11 +617,11 @@ function createVisual(clipboard, hints) {
             } else {
                 var found = [selection.focusNode, selection.focusOffset - 1];
                 selection.collapseToStart();
-                selection.setPosition(lastPosBeforeF[0], lastPosBeforeF[1]);
-                selection.extend(found[0], found[1]);
+                selection.setPosition(lastPosBeforeF[0] as Node, lastPosBeforeF[1] as number);
+                selection.extend(found[0] as Node, found[1] as number);
             }
         } else {
-            selection.setPosition(lastPosBeforeF[0], lastPosBeforeF[1]);
+            selection.setPosition(lastPosBeforeF[0] as Node, lastPosBeforeF[1] as number);
         }
         self.showCursor();
     }
@@ -647,7 +647,7 @@ function createVisual(clipboard, hints) {
     };
 
     self.showCursor = function () {
-        if (selection.focusNode && (selection.focusNode.offsetHeight > 0 || selection.focusNode.parentNode.offsetHeight > 0)) {
+        if (selection.focusNode && ((selection.focusNode as any).offsetHeight > 0 || (selection.focusNode.parentNode as any).offsetHeight > 0)) {
             // https://developer.mozilla.org/en-US/docs/Web/API/Selection
             // If focusNode is a text node, this is the number of characters within focusNode preceding the focus. If focusNode is an element, this is the number of child nodes of the focusNode preceding the focus.
             let r = locateFocusNode(selection);
@@ -668,7 +668,7 @@ function createVisual(clipboard, hints) {
     function select(found) {
         self.hideCursor();
         if (selection.anchorNode && state === 2) {
-            selection.extend(found[0], found[1]);
+            selection.extend(found[0] as Node, found[1] as number);
         } else {
             selection.setPosition(found[0], found[1]);
         }
@@ -742,12 +742,12 @@ function createVisual(clipboard, hints) {
             // avoid hangs due to huge amounts of selection
             return [];
         }
-        const marks = Array.from(rects).map((r) => {
+        const marks = Array.from(rects).map((r: any) => {
             if (r.width > 0 && r.height > 0) {
-                var mark = mark_template.cloneNode(false);
+                var mark: any = mark_template.cloneNode(false);
                 mark.className = className;
                 mark.style.position = "absolute";
-                mark.style.zIndex = 2147483299;
+                mark.style.zIndex = "2147483299";
                 mark.style.left = document.scrollingElement.scrollLeft + r.left + 'px';
                 mark.style.top = document.scrollingElement.scrollTop + r.top + 'px';
                 mark.style.width = r.width + 'px';
@@ -880,7 +880,7 @@ function createVisual(clipboard, hints) {
                 RUNTIME('updateInputHistory', { find: query });
                 self.visualClear();
                 highlight(new RegExp(query, runtime.getCaseSensitive(query) ? "" : "i"));
-                selection.setPosition(pos[0], pos[1]);
+                selection.setPosition(pos[0] as Node, pos[1] as number);
                 self.showCursor();
             }
         }
@@ -905,7 +905,7 @@ function createVisual(clipboard, hints) {
         setTimeout(function() {
             var evt = new Event("keydown");
             for (var i = 0; i < keys.length; i ++) {
-                evt.sk_keyName = keys[i];
+                (evt as any).sk_keyName = keys[i];
                 Mode.handleMapKey.call(self, evt);
             }
         }, 1);
@@ -916,7 +916,7 @@ function createVisual(clipboard, hints) {
         // window.find sometimes does not move selection forward
         var firstNode = null;
         while (window.find(query, caseSensitive, backwards)) {
-            if (selection.anchorNode.splitText) {
+            if ((selection.anchorNode as any).splitText) {
                 found = true;
                 break;
             } else if (firstNode === null) {
@@ -938,7 +938,7 @@ function createVisual(clipboard, hints) {
 
         var caseSensitive = runtime.getCaseSensitive(query);
         if (findNextTextNodeBy(query, caseSensitive, false)) {
-            selection.setPosition(posToStartFind[0], posToStartFind[1]);
+            selection.setPosition(posToStartFind[0] as Node, posToStartFind[1] as number);
         } else {
             // start from beginning if no found from current position
             selection.setPosition(document.body.firstChild, 0);
@@ -956,7 +956,7 @@ function createVisual(clipboard, hints) {
                 createMatchMark(selection.anchorNode, selection.anchorOffset, selection.focusNode, selection.focusOffset);
             }
             document.scrollingElement.scrollTop = scrollTop;
-            selection.setPosition(posToStartFind[0], posToStartFind[1]);
+            selection.setPosition(posToStartFind[0] as Node, posToStartFind[1] as number);
         }
 
     };
@@ -995,7 +995,7 @@ function createVisual(clipboard, hints) {
         return sentence;
     };
 
-    var _style = {};
+    var _style: any = {};
     /**
      * Set styles for visual mode.
      *
