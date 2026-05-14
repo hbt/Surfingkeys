@@ -226,8 +226,16 @@ async function main() {
     } else {
         console.log(`  ❌ ${blockingFailed.length} of ${results.length} check${results.length === 1 ? '' : 's'} failed\n`);
         for (const r of blockingFailed) {
-            console.log(`\n--- ${r.id} output ---`);
-            console.log(r.output || '(no output)');
+            const logPath = `/tmp/verify-${r.id}-${Date.now()}.log`;
+            const logContent = r.output || '(no output)';
+            await Bun.write(logPath, logContent);
+            const lines = logContent.split('\n');
+            const preview = lines.slice(0, 5).join('\n');
+            const truncated = lines.length > 5;
+            console.log(`\n--- ${r.id} (${lines.length} lines) ---`);
+            console.log(preview);
+            if (truncated) console.log(`  … (${lines.length - 5} more lines)`);
+            console.log(`  Full log: ${logPath}`);
         }
         console.log();
     }
