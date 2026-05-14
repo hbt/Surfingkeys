@@ -5,6 +5,8 @@
  * Used by: reload.js, errors-list.js, errors-clear.js, etc.
  */
 
+export {};
+
 const WebSocket = require('ws');
 const http = require('http');
 
@@ -16,16 +18,17 @@ let messageId = 1;
 /**
  * Fetch JSON from CDP endpoint
  */
-function fetchJson(path) {
+function fetchJson(path: string) {
     return new Promise((resolve, reject) => {
-        http.get(`${CDP_ENDPOINT}${path}`, (res) => {
+        http.get(`${CDP_ENDPOINT}${path}`, (res: unknown) => {
+            const r = res as { on: (event: string, cb: (...args: unknown[]) => void) => void };
             let body = '';
-            res.on('data', chunk => body += chunk);
-            res.on('end', () => {
+            r.on('data', (chunk: unknown) => body += String(chunk));
+            r.on('end', () => {
                 try {
                     resolve(JSON.parse(body));
                 } catch (error) {
-                    reject(new Error(`Failed to parse JSON: ${error.message}`));
+                    reject(new Error(`Failed to parse JSON: ${(error as Error).message}`));
                 }
             });
         }).on('error', reject);
@@ -35,16 +38,16 @@ function fetchJson(path) {
 /**
  * Send CDP command via WebSocket
  */
-function sendCommand(ws, method, params = {}) {
+function sendCommand(ws: unknown, method: string, params: unknown = {}) {
     return new Promise((resolve, reject) => {
         const id = messageId++;
         const timeout = setTimeout(() => reject(new Error('Timeout')), 10000);
 
-        const handler = (data) => {
-            const msg = JSON.parse(data.toString());
+        const handler = (data: unknown) => {
+            const msg = JSON.parse((data as Buffer).toString());
             if (msg.id === id) {
                 clearTimeout(timeout);
-                ws.removeListener('message', handler);
+                (ws as { removeListener: (event: string, cb: unknown) => void }).removeListener('message', handler);
                 if (msg.error) {
                     reject(new Error(msg.error.message));
                 } else {
@@ -53,8 +56,9 @@ function sendCommand(ws, method, params = {}) {
             }
         };
 
-        ws.on('message', handler);
-        ws.send(JSON.stringify({ id, method, params }));
+        const w = ws as { on: (event: string, cb: unknown) => void; send: (data: string) => void };
+        w.on('message', handler);
+        w.send(JSON.stringify({ id, method, params }));
     });
 }
 
@@ -62,7 +66,7 @@ function sendCommand(ws, method, params = {}) {
  * Detect extension ID from service worker (only works when SW is awake)
  */
 async function detectFromServiceWorker() {
-    const targets = await fetchJson('/json');
+    const targets = await fetchJson('/json') as Array<{ type: string; url?: string; webSocketDebuggerUrl?: string }>;
 
     const sw = targets.find(t =>
         t.type === 'service_worker' &&
@@ -83,7 +87,7 @@ async function detectFromServiceWorker() {
  * Detect extension ID from iframe (works even when SW is dormant)
  */
 async function detectFromIframe() {
-    const targets = await fetchJson('/json');
+    const targets = await fetchJson('/json') as Array<{ type: string; url?: string; webSocketDebuggerUrl?: string }>;
 
     const iframe = targets.find(t =>
         t.type === 'iframe' &&
@@ -104,10 +108,10 @@ async function detectFromIframe() {
 /**
  * Wake dormant service worker via browser CDP Target.createTarget
  */
-async function wakeServiceWorker(extensionId, log = () => {}) {
+async function wakeServiceWorker(extensionId: string, log: (msg: string) => void = () => {}) {
     log('Service worker is dormant - waking up via browser CDP...');
 
-    const versionInfo = await fetchJson('/json/version');
+    const versionInfo = await fetchJson('/json/version') as { webSocketDebuggerUrl?: string };
     const browserWsUrl = versionInfo.webSocketDebuggerUrl;
 
     if (!browserWsUrl) {
@@ -130,7 +134,7 @@ async function wakeServiceWorker(extensionId, log = () => {}) {
 
                 const result = await sendCommand(ws, 'Target.createTarget', {
                     url: optionsUrl
-                });
+                }) as { targetId?: string };
 
                 clearTimeout(timeout);
                 ws.close();
@@ -143,13 +147,13 @@ async function wakeServiceWorker(extensionId, log = () => {}) {
                 }
             } catch (error) {
                 clearTimeout(timeout);
-                log(`Error waking service worker: ${error.message}`);
+                log(`Error waking service worker: ${(error as Error).message}`);
                 ws.close();
-                resolve({ success: false, error: error.message });
+                resolve({ success: false, error: (error as Error).message });
             }
         });
 
-        ws.on('error', (error) => {
+        ws.on('error', (error: Error) => {
             clearTimeout(timeout);
             log(`WebSocket error: ${error.message}`);
             resolve({ success: false, error: error.message });
@@ -163,7 +167,7 @@ async function wakeServiceWorker(extensionId, log = () => {}) {
  *
  * @param {Function} log - Optional logging function
  */
-async function detectExtension(log = () => {}) {
+async function detectExtension(log: (msg: string) => void = () => {}) {
     // First try: service worker (ideal case - SW is awake)
     let result = await detectFromServiceWorker();
     if (result) {
@@ -183,7 +187,7 @@ async function detectExtension(log = () => {}) {
     log(`Extension detected from iframe: ${iframeInfo.id}`);
 
     // Wake the service worker
-    const wakeResult = await wakeServiceWorker(iframeInfo.id, log);
+    const wakeResult = await wakeServiceWorker(iframeInfo.id, log) as { success: boolean };
 
     if (!wakeResult.success) {
         log('Failed to wake service worker');
@@ -208,7 +212,7 @@ async function detectExtension(log = () => {}) {
 /**
  * Find service worker WebSocket URL (with auto-wake)
  */
-async function findServiceWorker(log = () => {}) {
+async function findServiceWorker(log: (msg: string) => void = () => {}) {
     const result = await detectExtension(log);
     return result ? result.wsUrl : null;
 }

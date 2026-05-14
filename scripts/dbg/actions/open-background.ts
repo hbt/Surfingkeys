@@ -7,6 +7,8 @@
  * Independent implementation - does not depend on debug/ directory
  */
 
+export {};
+
 const WebSocket = require('ws');
 const { detectExtension, fetchJson, sendCommand, CDP_PORT } = require('../lib/extension-utils');
 
@@ -23,17 +25,17 @@ const colors = {
 /**
  * Find chrome://extensions tab
  */
-async function findExtensionsTab(extensionId) {
-    const targets = await fetchJson('/json');
+async function findExtensionsTab(extensionId: string) {
+    const targets = await fetchJson('/json') as Array<{ type: string; url?: string; webSocketDebuggerUrl?: string }>;
 
     // Try exact match first
-    let tab = targets.find(t =>
+    let tab = targets.find((t: { type: string; url?: string }) =>
         t.type === 'page' && t.url?.includes(`chrome://extensions/?errors=${extensionId}`)
     );
 
     // Fall back to any chrome://extensions page
     if (!tab) {
-        tab = targets.find(t =>
+        tab = targets.find((t: { type: string; url?: string }) =>
             t.type === 'page' && t.url?.startsWith('chrome://extensions')
         );
     }
@@ -44,7 +46,7 @@ async function findExtensionsTab(extensionId) {
 /**
  * Evaluate code in chrome://extensions context
  */
-async function evaluateCode(ws, expression) {
+async function evaluateCode(ws: unknown, expression: string) {
     const result = await sendCommand(ws, 'Runtime.evaluate', {
         expression,
         returnByValue: true,
@@ -61,12 +63,12 @@ async function evaluateCode(ws, expression) {
 /**
  * Main action runner
  */
-async function run(args) {
+async function run(args: unknown[]) {
     console.log(`${colors.bright}Open Background DevTools Console${colors.reset}\n`);
 
     // Detect extension (with auto-wake if dormant)
     console.log(`${colors.cyan}Detecting extension...${colors.reset}`);
-    const logFn = (msg) => console.log(`  ${colors.dim || ''}${msg}${colors.reset}`);
+    const logFn = (msg: string) => console.log(`  ${msg}${colors.reset}`);
     const extInfo = await detectExtension(logFn);
 
     if (!extInfo) {
@@ -155,13 +157,13 @@ async function run(args) {
             }
 
         } catch (error) {
-            console.error(`${colors.red}Error: ${error.message}${colors.reset}\n`);
+            console.error(`${colors.red}Error: ${(error as Error).message}${colors.reset}\n`);
             ws.close();
             process.exit(1);
         }
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => {
         console.error(`${colors.red}WebSocket error: ${error.message}${colors.reset}\n`);
         process.exit(1);
     });

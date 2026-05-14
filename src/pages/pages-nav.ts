@@ -1,6 +1,6 @@
 // Shared Navigation for extension pages
 (function() {
-    const pageMap = {
+    const pageMap: Record<string, string> = {
         'options': 'chrome-extension://{extensionId}/pages/options.html',
         'errors': 'chrome-extension://{extensionId}/pages/error-viewer.html',
         'stats': 'chrome-extension://{extensionId}/pages/stats-viewer.html'
@@ -13,7 +13,8 @@
         // Update active nav item
         const navLinks = document.querySelectorAll('.pages-nav a');
         navLinks.forEach(link => {
-            if (link.dataset.page === currentPage) {
+            const el = link as HTMLElement;
+            if (el.dataset['page'] === currentPage) {
                 link.classList.add('active');
             } else {
                 link.classList.remove('active');
@@ -24,8 +25,9 @@
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                const targetPage = link.dataset.page;
-                navigateToPage(targetPage);
+                const el = link as HTMLElement;
+                const targetPage = el.dataset['page'];
+                if (targetPage) navigateToPage(targetPage);
             });
         });
     }
@@ -38,7 +40,7 @@
         return null;
     }
 
-    function navigateToPage(page) {
+    function navigateToPage(page: string) {
         // Get the extension ID from current URL
         const extensionId = chrome.runtime.id;
         const pageUrl = pageMap[page].replace('{extensionId}', extensionId);

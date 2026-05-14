@@ -10,27 +10,33 @@ const CONFIG_SERVER = 'http://localhost:9600';
 const EXTENSION_ID = chrome.runtime.id;
 const statusEl = document.getElementById('status');
 
-function setStatus(connected) {
-  statusEl.textContent = connected
-    ? 'sk-devtools | ● Connected'
-    : 'sk-devtools | ● Disconnected';
-  statusEl.className = connected ? 'connected' : 'disconnected';
+function setStatus(connected: boolean) {
+  if (statusEl) {
+    statusEl.textContent = connected
+      ? 'sk-devtools | ● Connected'
+      : 'sk-devtools | ● Disconnected';
+    statusEl.className = connected ? 'connected' : 'disconnected';
+  }
 }
 
 // ── BG eval via chrome.debugger ───────────────────────────────────────────────
 
-let attachedDebuggee = null; // { targetId }
+interface Debuggee {
+  targetId: string;
+}
+
+let attachedDebuggee: Debuggee | null = null; // { targetId }
 
 function findSWTarget() {
-  return new Promise((resolve, reject) => {
+  return new Promise<chrome.debugger.TargetInfo>((resolve, reject) => {
     chrome.debugger.getTargets((targets) => {
       const sw = targets.find(t =>
-        (t.type === 'service_worker' || t.type === 'worker') &&
+        (t.type === 'worker') &&
         t.url.startsWith(`chrome-extension://${EXTENSION_ID}/`)
       );
       if (sw) { resolve(sw); return; }
       const summary = targets
-        .filter(t => t.type === 'service_worker' || t.url.includes('chrome-extension'))
+        .filter(t => t.url.includes('chrome-extension'))
         .map(t => `${t.type}|${t.url}`)
         .join('; ');
       reject(new Error(`SW target not found. extensionId=${EXTENSION_ID} candidates=[${summary}]`));
@@ -40,7 +46,7 @@ function findSWTarget() {
 
 async function ensureAttached() {
   const target = await findSWTarget();
-  const debuggee = { targetId: target.id };
+  const debuggee: Debuggee = { targetId: target.id! };
 
   if (attachedDebuggee && attachedDebuggee.targetId === debuggee.targetId) {
     return debuggee; // already attached to this target
@@ -48,11 +54,11 @@ async function ensureAttached() {
 
   // Detach from stale target if needed
   if (attachedDebuggee) {
-    await new Promise(r => chrome.debugger.detach(attachedDebuggee, r));
+    await new Promise<void>(r => chrome.debugger.detach(attachedDebuggee!, () => r()));
     attachedDebuggee = null;
   }
 
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     chrome.debugger.attach(debuggee, '1.3', () => {
       if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
       else resolve();
@@ -68,7 +74,20 @@ chrome.debugger.onDetach.addListener((_source, reason) => {
   if (reason !== 'canceled_by_user') attachedDebuggee = null;
 });
 
-async function evalInBG(code) {
+interface EvalResult {
+  result?: unknown;
+  error?: string;
+}
+
+interface RuntimeEvalResult {
+  result?: { value?: unknown };
+  exceptionDetails?: {
+    exception?: { description?: string };
+    text?: string;
+  };
+}
+
+async function evalInBG(code: string): Promise<EvalResult> {
   const debuggee = await ensureAttached();
   return new Promise((resolve, reject) => {
     chrome.debugger.sendCommand(debuggee, 'Runtime.evaluate', {
@@ -77,13 +96,14 @@ async function evalInBG(code) {
       returnByValue: true,
     }, (res) => {
       if (chrome.runtime.lastError) { reject(new Error(chrome.runtime.lastError.message)); return; }
-      if (res.exceptionDetails) {
-        const msg = res.exceptionDetails.exception?.description
-          || res.exceptionDetails.text
+      const r = res as RuntimeEvalResult | undefined;
+      if (r?.exceptionDetails) {
+        const msg = r.exceptionDetails.exception?.description
+          || r.exceptionDetails.text
           || 'unknown exception';
         reject(new Error(msg));
       } else {
-        resolve({ result: res.result?.value });
+        resolve({ result: r?.result?.value });
       }
     });
   });
@@ -91,7 +111,7 @@ async function evalInBG(code) {
 
 // ── Page eval ────────────────────────────────────────────────────────────────
 
-function evalInPage(code) {
+function evalInPage(code: string): Promise<EvalResult> {
   return new Promise((resolve, reject) => {
     chrome.devtools.inspectedWindow.eval(code, (result, exceptionInfo) => {
       if (exceptionInfo && exceptionInfo.isException) {
@@ -105,7 +125,7 @@ function evalInPage(code) {
 
 // ── Result poster ─────────────────────────────────────────────────────────────
 
-function postResult(id, result, error) {
+function postResult(id: unknown, result: unknown, error: unknown) {
   return fetch(`${CONFIG_SERVER}/eval-result`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -126,16 +146,16 @@ function subscribeSSE() {
     try { msg = JSON.parse(event.data); } catch (_) { return; }
 
     const { id, target, code } = msg;
-    let result, error;
+    let result: unknown, error: unknown;
 
     try {
       const outcome = target === 'bg'
         ? await evalInBG(code)
         : await evalInPage(code);
-      result = outcome.result;
-      error = outcome.error;
+      result = (outcome as EvalResult).result;
+      error = (outcome as EvalResult).error;
     } catch (e) {
-      error = e.message;
+      error = (e as Error).message;
     }
 
     await postResult(id, result, error);

@@ -9,6 +9,8 @@
  * Logs: Written to /tmp/dbg-proxy.jsonl (JSONL format, one JSON object per line)
  */
 
+export {};
+
 const fs = require('fs');
 const path = require('path');
 const { createProxy } = require('../lib/proxy-core');
@@ -17,7 +19,7 @@ const { config, outputJSON, isProxyRunning } = require('./proxy-config');
 /**
  * Main action runner
  */
-async function run(args) {
+async function run(args: unknown[]) {
   // Check if already running
   const status = isProxyRunning();
   if (status.running) {
@@ -80,7 +82,7 @@ async function run(args) {
     // Keep process alive - server will handle connections
 
   } catch (error) {
-    if (error.code === 'EADDRINUSE') {
+    if ((error as NodeJS.ErrnoException).code === 'EADDRINUSE') {
       outputJSON({
         success: false,
         error: `Port ${config.PROXY_PORT} is already in use`,
@@ -91,7 +93,7 @@ async function run(args) {
     } else {
       outputJSON({
         success: false,
-        error: error.message,
+        error: (error as Error).message,
         docs: 'docs/cdp/proxy.md'
       }, 1);
     }

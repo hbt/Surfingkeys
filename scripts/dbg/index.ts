@@ -26,6 +26,8 @@
  *   bin/dbg errors-clear
  */
 
+export {};
+
 const fs = require('fs');
 const path = require('path');
 
@@ -98,7 +100,7 @@ async function main() {
     const action = args[0];
 
     // Validate action
-    if (!ACTIONS[action]) {
+    if (!(ACTIONS as Record<string, string>)[action]) {
         console.error(`${colors.red}Error: Unknown action "${action}"${colors.reset}\n`);
         console.log(`Available actions: ${Object.keys(ACTIONS).join(', ')}\n`);
         console.log(`Run ${colors.cyan}npm run dbg --help${colors.reset} for more information.\n`);
@@ -121,7 +123,7 @@ async function main() {
         // Actions output JSON on their own, so just exit with error code
         console.error(JSON.stringify({
             success: false,
-            error: `Failed to execute action: ${error.message}`
+            error: `Failed to execute action: ${(error as Error).message}`
         }));
         process.exit(1);
     }

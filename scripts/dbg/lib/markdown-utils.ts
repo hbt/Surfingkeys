@@ -358,7 +358,7 @@ const COMBINING_RANGES = [
 /**
  * Determine if code point is combining (zero-width)
  */
-function isCombining(codePoint) {
+function isCombining(codePoint: number) {
     for (const [start, end] of COMBINING_RANGES) {
         if (codePoint >= start && codePoint <= end) {
             return true;
@@ -371,7 +371,7 @@ function isCombining(codePoint) {
  * Determine if code point should be treated as full width.
  * Based on wcwidth implementation and unicode east asian width rules.
  */
-function isFullWidth(codePoint) {
+function isFullWidth(codePoint: number) {
     if (codePoint >= 0x1100 && (
         codePoint <= 0x115F ||
         codePoint === 0x2329 ||
@@ -402,7 +402,7 @@ function isFullWidth(codePoint) {
  * @param {string} str
  * @returns {number}
  */
-function getDisplayWidth(str) {
+function getDisplayWidth(str: string) {
     if (!str) return 0;
 
     let width = 0;
@@ -435,7 +435,7 @@ function getDisplayWidth(str) {
     return width;
 }
 
-function toLines(input) {
+function toLines(input: unknown) {
     if (!input) return [];
     if (typeof input === 'string') {
         return input.split(/\r?\n/);
@@ -449,7 +449,7 @@ function toLines(input) {
     return [];
 }
 
-function mergeWrappedRows(lines) {
+function mergeWrappedRows(lines: string[]) {
     const merged = [];
     let currentRow = '';
 
@@ -474,10 +474,10 @@ function mergeWrappedRows(lines) {
     return merged;
 }
 
-function splitRowIntoCells(line) {
+function splitRowIntoCells(line: string) {
     const protectedLine = line.replace(/\\\|/g, ESCAPED_PIPE_TOKEN);
     const matches = protectedLine.match(/[^|]+/g) || [];
-    const rawCells = matches.map(cell => cell.trim());
+    const rawCells = matches.map((cell: string) => cell.trim());
 
     if (rawCells.length && rawCells[0] === '') {
         rawCells.shift();
@@ -486,10 +486,10 @@ function splitRowIntoCells(line) {
         rawCells.pop();
     }
 
-    return rawCells.map(cell => cell.replace(new RegExp(ESCAPED_PIPE_TOKEN, 'g'), '\\|'));
+    return rawCells.map((cell: string) => cell.replace(new RegExp(ESCAPED_PIPE_TOKEN, 'g'), '\\|'));
 }
 
-function parseLinesToRows(lines) {
+function parseLinesToRows(lines: string[]) {
     const merged = mergeWrappedRows(lines);
     const rows = [];
 
@@ -503,7 +503,7 @@ function parseLinesToRows(lines) {
     return rows;
 }
 
-function normalizeRows(input) {
+function normalizeRows(input: unknown) {
     if (!input) return [];
 
     if (typeof input === 'string') {
@@ -512,18 +512,18 @@ function normalizeRows(input) {
 
     if (Array.isArray(input) && input.length > 0) {
         if (Array.isArray(input[0])) {
-            return input.map(row => row.map(cell => cell == null ? '' : String(cell)));
+            return (input as unknown[][]).map(row => row.map((cell: unknown) => cell == null ? '' : String(cell)));
         }
 
         if (typeof input[0] === 'string') {
-            return parseLinesToRows(input);
+            return parseLinesToRows(input as string[]);
         }
     }
 
     return [];
 }
 
-function isSeparatorRow(row) {
+function isSeparatorRow(row: string[]) {
     if (!row || row.length === 0) return false;
     return row.every(cell => {
         const value = cell || '';
@@ -531,7 +531,7 @@ function isSeparatorRow(row) {
     });
 }
 
-function detectEmojiColumns(rows, numCols) {
+function detectEmojiColumns(rows: string[][], numCols: number) {
     const hasEmoji = new Array(numCols).fill(false);
     rows.forEach(row => {
         if (!row) return;
@@ -549,10 +549,10 @@ function detectEmojiColumns(rows, numCols) {
 /**
  * Format rows into aligned Markdown table lines.
  */
-function formatRows(rows) {
+function formatRows(rows: string[][]) {
     if (rows.length === 0) return [];
 
-    const numCols = rows.reduce((max, row) => Math.max(max, row.length), 0);
+    const numCols = rows.reduce((max: number, row: string[]) => Math.max(max, row.length), 0);
     const colWidths = new Array(numCols).fill(0);
     const headerRowIndex = rows.length > 1 && isSeparatorRow(rows[1]) ? 0 : -1;
     const emojiColumns = headerRowIndex === -1 ? new Array(numCols).fill(false) : detectEmojiColumns(rows, numCols);
@@ -564,7 +564,7 @@ function formatRows(rows) {
         }
     }
 
-    return rows.map((row, rowIdx) => {
+    return rows.map((row: string[], rowIdx: number) => {
         const formattedCells = [];
         const separatorRow = isSeparatorRow(row);
 
@@ -598,7 +598,7 @@ function formatRows(rows) {
  * @param {string | string[] | string[][]} input
  * @returns {string}
  */
-function formatMarkdownTable(input) {
+function formatMarkdownTable(input: unknown) {
     const rows = normalizeRows(input);
     if (rows.length === 0) return '';
     return formatRows(rows).join('\n');

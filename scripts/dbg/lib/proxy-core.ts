@@ -18,6 +18,8 @@
  *   // result.shutdown - Function to gracefully shutdown
  */
 
+export {};
+
 const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
@@ -26,7 +28,14 @@ const fs = require('fs');
  * Create and start a proxy instance
  * Returns promise resolving to { server, port, logFile, shutdown }
  */
-async function createProxy(options = {}) {
+interface ProxyOptions {
+  port?: number;
+  logFile?: string;
+  cdpPort?: number;
+  cdpHost?: string;
+}
+
+async function createProxy(options: ProxyOptions = {}) {
   const {
     port = 9623,
     logFile = '/tmp/dbg-proxy.jsonl',
@@ -42,13 +51,13 @@ async function createProxy(options = {}) {
   const logStream = fs.createWriteStream(logFile, { flags: 'a' });
 
   const DISCOVERY_INTERVAL = 2000;
-  let discoveryLoopHandle = null;
+  let discoveryLoopHandle: ReturnType<typeof setInterval> | null = null;
   let serverShutdown = false;
 
   /**
    * Write a single-line JSON entry to the log file
    */
-  function logEntry(type, data) {
+  function logEntry(type: string, data: Record<string, unknown>) {
     const entry = {
       timestamp: new Date().toISOString(),
       type,
@@ -64,18 +73,18 @@ async function createProxy(options = {}) {
   /**
    * Handle CDP message from any target (client or passive)
    */
-  function handleCDPMessage(msg, targetId, targetUrl, isPassive = false) {
+  function handleCDPMessage(msg: Record<string, unknown>, targetId: string, targetUrl: string, isPassive = false) {
     try {
       if (msg.method === 'Runtime.consoleAPICalled') {
-        const params = msg.params || {};
-        const level = params.type || 'log';
-        const args = params.args || [];
+        const params = (msg.params || {}) as Record<string, unknown>;
+        const level = (params['type'] as string) || 'log';
+        const args = (params['args'] as Array<Record<string, unknown>>) || [];
         const message = args
-          .map(arg => {
-            if (arg.type === 'string') return arg.value;
-            if (arg.type === 'number') return String(arg.value);
-            if (arg.type === 'boolean') return String(arg.value);
-            if (arg.type === 'object' && arg.description) return arg.description;
+          .map((arg: Record<string, unknown>) => {
+            if (arg['type'] === 'string') return arg['value'];
+            if (arg['type'] === 'number') return String(arg['value']);
+            if (arg['type'] === 'boolean') return String(arg['value']);
+            if (arg['type'] === 'object' && arg['description']) return arg['description'];
             return String(arg);
           })
           .join(' ');
@@ -85,18 +94,18 @@ async function createProxy(options = {}) {
           targetUrl,
           isPassive,
           level: level.toUpperCase(),
-          message,
-          stackTrace: params.stackTrace || null,
-          args: params.args || []
+          message: String(message),
+          stackTrace: (params['stackTrace'] as unknown) || null,
+          args: (params['args'] as unknown) || []
         });
       } else if (msg.method === 'Runtime.exceptionThrown') {
-        const exception = (msg.params || {}).exceptionDetails || {};
+        const exception = ((msg.params || {}) as Record<string, unknown>)['exceptionDetails'] as Record<string, unknown> || {};
 
         logEntry('EXCEPTION', {
           targetId,
           targetUrl,
           isPassive,
-          message: exception.text || exception.description || 'Unknown exception',
+          message: (exception['text'] as string) || (exception['description'] as string) || 'Unknown exception',
           exceptionDetails: exception
         });
       } else if (msg.method) {
@@ -109,7 +118,7 @@ async function createProxy(options = {}) {
       }
     } catch (err) {
       logEntry('ERROR', {
-        message: `Failed to handle CDP message: ${err.message}`
+        message: `Failed to handle CDP message: ${(err as Error).message}`
       });
     }
   }
@@ -117,11 +126,11 @@ async function createProxy(options = {}) {
   /**
    * Ensure CDP connection exists and is open
    */
-  function ensureCDPConnection(targetId) {
+  function ensureCDPConnection(targetId: string) {
     return new Promise((resolve, reject) => {
       if (cdpConnections.has(targetId)) {
-        const conn = cdpConnections.get(targetId);
-        if (conn.ws.readyState === WebSocket.OPEN) {
+        const conn = cdpConnections.get(targetId) as { ws: { readyState: number }; pendingRequests: Map<number, unknown> } | undefined;
+        if (conn?.ws.readyState === WebSocket.OPEN) {
           resolve(conn);
           return;
         }
@@ -134,7 +143,8 @@ async function createProxy(options = {}) {
       });
 
       const ws = new WebSocket(wsUrl);
-      const connObj = { ws, pendingRequests: new Map() };
+      interface PendingRequest { resolve: (value: unknown) => void; timeout: ReturnType<typeof setTimeout> }
+      const connObj: { ws: unknown; pendingRequests: Map<number, PendingRequest>; targetUrl?: string } = { ws, pendingRequests: new Map() };
 
       ws.on('open', () => {
         logEntry('PROXY', {
@@ -153,12 +163,12 @@ async function createProxy(options = {}) {
         resolve(connObj);
       });
 
-      ws.on('message', (data) => {
+      ws.on('message', (data: unknown) => {
         try {
-          const msg = JSON.parse(data.toString());
+          const msg = JSON.parse((data as Buffer).toString());
 
           if (msg.id && connObj.pendingRequests.has(msg.id)) {
-            const pending = connObj.pendingRequests.get(msg.id);
+            const pending = connObj.pendingRequests.get(msg.id)!;
             logEntry('RESPONSE', {
               targetId,
               requestId: msg.id
@@ -168,17 +178,17 @@ async function createProxy(options = {}) {
             pending.resolve(msg);
             connObj.pendingRequests.delete(msg.id);
           } else {
-            handleCDPMessage(msg, targetId, connObj.targetUrl, false);
+            handleCDPMessage(msg, targetId, connObj.targetUrl || '', false);
           }
         } catch (err) {
           logEntry('ERROR', {
-            message: `Failed to parse CDP message: ${err.message}`,
+            message: `Failed to parse CDP message: ${(err as Error).message}`,
             targetId
           });
         }
       });
 
-      ws.on('error', (err) => {
+      ws.on('error', (err: Error) => {
         logEntry('ERROR', {
           message: `CDP connection error: ${err.message}`,
           targetId
@@ -205,10 +215,13 @@ async function createProxy(options = {}) {
   /**
    * Send CDP command via pooled connection
    */
-  function sendToCDP(targetId, method, params) {
+  function sendToCDP(targetId: string, method: string, params: unknown) {
     return new Promise((resolve, reject) => {
       ensureCDPConnection(targetId)
-        .then((connObj) => {
+        .then((connObjUnknown) => {
+          interface PendingReq { resolve: (value: unknown) => void; timeout: ReturnType<typeof setTimeout> }
+          interface ConnObj { ws: { send: (data: string, cb: (err?: Error) => void) => void; readyState: number }; pendingRequests: Map<number, PendingReq>; targetUrl?: string }
+          const connObj = connObjUnknown as ConnObj;
           const id = globalMessageId++;
           const timeout = setTimeout(() => {
             connObj.pendingRequests.delete(id);
@@ -217,14 +230,15 @@ async function createProxy(options = {}) {
 
           connObj.pendingRequests.set(id, { resolve, timeout });
 
-          const request = { id, method, ...(params && { params }) };
+          const request: Record<string, unknown> = { id, method };
+          if (params) request['params'] = params;
           logEntry('REQUEST', {
             targetId,
             requestId: id,
             cdpMethod: method
           });
 
-          connObj.ws.send(JSON.stringify(request), (err) => {
+          connObj.ws.send(JSON.stringify(request), (err?: Error) => {
             if (err) {
               clearTimeout(timeout);
               connObj.pendingRequests.delete(id);
@@ -246,29 +260,30 @@ async function createProxy(options = {}) {
    */
   function discoverTargets() {
     return new Promise((resolve) => {
-      http.get(`http://${cdpHost}:${cdpPort}/json`, (res) => {
+      http.get(`http://${cdpHost}:${cdpPort}/json`, (res: unknown) => {
+        const r = res as { on: (event: string, cb: (...args: unknown[]) => void) => void };
         let body = '';
-        res.on('data', chunk => (body += chunk));
-        res.on('end', () => {
+        r.on('data', (chunk: unknown) => (body += String(chunk)));
+        r.on('end', () => {
           try {
-            const targets = JSON.parse(body);
-            const currentIds = new Set();
+            const targets = JSON.parse(body) as Array<Record<string, unknown>>;
+            const currentIds = new Set<string>();
 
-            targets.forEach(target => {
+            targets.forEach((target: Record<string, unknown>) => {
               if (target.id) {
-                currentIds.add(target.id);
-                targetMap.set(target.id, {
-                  id: target.id,
-                  url: target.url,
-                  type: target.type,
-                  title: target.title,
+                currentIds.add(target['id'] as string);
+                targetMap.set(target['id'] as string, {
+                  id: target['id'],
+                  url: target['url'],
+                  type: target['type'],
+                  title: target['title'],
                   timestamp: Date.now()
                 });
               }
             });
 
             // Prune disappeared targets
-            const disappearedIds = [];
+            const disappearedIds: string[] = [];
             targetMap.forEach((_, id) => {
               if (!currentIds.has(id)) {
                 disappearedIds.push(id);
@@ -284,8 +299,8 @@ async function createProxy(options = {}) {
               targetMap.delete(id);
 
               if (passiveConnections.has(id)) {
-                const conn = passiveConnections.get(id);
-                if (conn.ws && conn.ws.readyState === WebSocket.OPEN) {
+                const conn = passiveConnections.get(id) as { ws?: { readyState: number; close: () => void } } | undefined;
+                if (conn?.ws && conn.ws.readyState === WebSocket.OPEN) {
                   conn.ws.close();
                 }
                 passiveConnections.delete(id);
@@ -295,12 +310,12 @@ async function createProxy(options = {}) {
             resolve(targets);
           } catch (err) {
             logEntry('ERROR', {
-              message: `Failed to parse targets JSON: ${err.message}`
+              message: `Failed to parse targets JSON: ${(err as Error).message}`
             });
             resolve([]);
           }
         });
-      }).on('error', (err) => {
+      }).on('error', (err: Error) => {
         logEntry('ERROR', {
           message: `Failed to discover targets: ${err.message}`
         });
@@ -312,11 +327,11 @@ async function createProxy(options = {}) {
   /**
    * Auto-attach to a target for passive event monitoring
    */
-  function autoAttachTarget(targetId, targetUrl) {
+  function autoAttachTarget(targetId: string, targetUrl: string) {
     return new Promise((resolve) => {
       if (passiveConnections.has(targetId)) {
-        const conn = passiveConnections.get(targetId);
-        if (conn.ws.readyState === WebSocket.OPEN) {
+        const conn = passiveConnections.get(targetId) as { ws: { readyState: number }; targetUrl: string; isPassive: boolean } | undefined;
+        if (conn?.ws.readyState === WebSocket.OPEN) {
           resolve(conn);
           return;
         }
@@ -344,20 +359,20 @@ async function createProxy(options = {}) {
         resolve(connObj);
       });
 
-      ws.on('message', (data) => {
+      ws.on('message', (data: unknown) => {
         try {
-          const msg = JSON.parse(data.toString());
+          const msg = JSON.parse((data as Buffer).toString());
           handleCDPMessage(msg, targetId, targetUrl, true);
         } catch (err) {
           logEntry('ERROR', {
-            message: `Failed to parse passive message: ${err.message}`,
+            message: `Failed to parse passive message: ${(err as Error).message}`,
             targetId,
             targetUrl
           });
         }
       });
 
-      ws.on('error', (err) => {
+      ws.on('error', (err: Error) => {
         logEntry('ERROR', {
           message: `Passive connection error: ${err.message}`,
           targetId,
@@ -389,11 +404,11 @@ async function createProxy(options = {}) {
    */
   function startDiscoveryLoop() {
     discoveryLoopHandle = setInterval(async () => {
-      const targets = await discoverTargets();
+      const targets = await discoverTargets() as Array<Record<string, unknown>>;
 
-      targets.forEach(target => {
-        if (target.id && !passiveConnections.has(target.id) && !cdpConnections.has(target.id)) {
-          autoAttachTarget(target.id, target.url);
+      targets.forEach((target: Record<string, unknown>) => {
+        if (target['id'] && !passiveConnections.has(target['id'] as string) && !cdpConnections.has(target['id'] as string)) {
+          autoAttachTarget(target['id'] as string, target['url'] as string);
         }
       });
     }, DISCOVERY_INTERVAL);
@@ -424,16 +439,17 @@ async function createProxy(options = {}) {
       const server = http.createServer();
       const wss = new WebSocket.Server({ server });
 
-      wss.on('connection', (clientWs) => {
+      wss.on('connection', (clientWs: unknown) => {
+        const cws = clientWs as { on: (event: string, cb: unknown) => void; send: (data: string) => void; readyState: number };
         logEntry('PROXY', {
           message: 'Client connected',
           status: 'connected'
         });
         let clientConnected = true;
 
-        clientWs.on('message', async (data) => {
+        cws.on('message', async (data: unknown) => {
           try {
-            const request = JSON.parse(data.toString());
+            const request = JSON.parse((data as Buffer).toString());
             const targetId = request.targetId;
 
             if (!targetId) {
@@ -446,30 +462,30 @@ async function createProxy(options = {}) {
               cdpMethod: request.method
             });
 
-            const response = await sendToCDP(targetId, request.method, request.params);
+            const response = await sendToCDP(targetId, request.method, request.params) as Record<string, unknown>;
 
-            const clientResponse = {
-              result: response.result,
-              ...(response.error && { error: response.error })
+            const clientResponse: Record<string, unknown> = {
+              result: response['result']
             };
+            if (response['error']) clientResponse['error'] = response['error'];
 
-            if (clientConnected && clientWs.readyState === WebSocket.OPEN) {
-              clientWs.send(JSON.stringify(clientResponse));
+            if (clientConnected && cws.readyState === WebSocket.OPEN) {
+              cws.send(JSON.stringify(clientResponse));
               logEntry('RESPONSE', {
                 message: 'Sent response to client'
               });
             }
           } catch (err) {
             logEntry('ERROR', {
-              message: `Request error: ${err.message}`
+              message: `Request error: ${(err as Error).message}`
             });
-            if (clientConnected && clientWs.readyState === WebSocket.OPEN) {
-              clientWs.send(JSON.stringify({ error: { message: err.message } }));
+            if (clientConnected && cws.readyState === WebSocket.OPEN) {
+              cws.send(JSON.stringify({ error: { message: (err as Error).message } }));
             }
           }
         });
 
-        clientWs.on('close', () => {
+        cws.on('close', () => {
           clientConnected = false;
           logEntry('PROXY', {
             message: 'Client disconnected',
@@ -477,7 +493,7 @@ async function createProxy(options = {}) {
           });
         });
 
-        clientWs.on('error', (err) => {
+        cws.on('error', (err: Error) => {
           logEntry('ERROR', {
             message: `Client error: ${err.message}`
           });
@@ -502,7 +518,7 @@ async function createProxy(options = {}) {
 
   // Start the proxy server
   try {
-    const server = await startProxyServer();
+    const server = await startProxyServer() as { close: () => void; listen: unknown };
 
     logEntry('PROXY', {
       message: 'CDP Proxy started',
@@ -527,17 +543,19 @@ async function createProxy(options = {}) {
       stopDiscoveryLoop();
 
       // Close all passive connections
-      passiveConnections.forEach((conn) => {
-        if (conn.ws && conn.ws.readyState === WebSocket.OPEN) {
-          conn.ws.close();
+      passiveConnections.forEach((conn: unknown) => {
+        const c = conn as { ws?: { readyState: number; close: () => void } };
+        if (c.ws && c.ws.readyState === WebSocket.OPEN) {
+          c.ws.close();
         }
       });
       passiveConnections.clear();
 
       // Close all CDP connections
-      cdpConnections.forEach((conn) => {
-        if (conn.ws && conn.ws.readyState === WebSocket.OPEN) {
-          conn.ws.close();
+      cdpConnections.forEach((conn: unknown) => {
+        const c = conn as { ws?: { readyState: number; close: () => void } };
+        if (c.ws && c.ws.readyState === WebSocket.OPEN) {
+          c.ws.close();
         }
       });
       cdpConnections.clear();

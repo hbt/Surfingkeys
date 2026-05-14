@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+export {};
+
 /**
  * Lints the Surfingkeys config file (.surfingkeysrc.js)
  * Runs: syntax check, ESLint, and format validation
@@ -47,7 +49,7 @@ const content = fs.readFileSync(configPath, 'utf8');
 const lines = content.split('\n');
 let formatErrors = false;
 
-lines.forEach((line, idx) => {
+lines.forEach((line: string, idx: number) => {
     const lineNum = idx + 1;
     // Check for tabs (should use spaces)
     if (line.includes('\t')) {

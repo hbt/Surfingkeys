@@ -5,17 +5,19 @@
  * Output: JSON only to stdout
  */
 
+export {};
+
 const fs = require('fs');
 
 const CONFIG_SERVER_PID_FILE = '/tmp/sk-config-server-9600.pid';
 const PORT = 9600;
 
-function outputJSON(data, exitCode = 0) {
+function outputJSON(data: unknown, exitCode = 0) {
   console.log(JSON.stringify(data, null, 2));
   process.exit(exitCode);
 }
 
-async function run(args) {
+async function run(args: unknown[]) {
   if (!fs.existsSync(CONFIG_SERVER_PID_FILE)) {
     outputJSON({
       success: false,
@@ -66,7 +68,7 @@ async function run(args) {
   } catch (error) {
     outputJSON({
       success: false,
-      error: error.message
+      error: (error as Error).message
     }, 1);
   }
 }

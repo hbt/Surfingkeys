@@ -3,13 +3,16 @@ import {
     setSanitizedContent,
 } from '../content_scripts/common/utils.js';
 document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
-    const { normal, api } = evt.detail;
+    const { normal, api } = (evt as CustomEvent).detail;
 
     const np  = new Promise((resolve, reject) => {
-        import(/* webpackIgnore: true */ './neovim_lib.js').then((nvimlib) => {
-            nvimlib.default().then(({nvim, destroy}) => {
-                function rpc(data) {
-                    const [ event, args ] = data;
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore: neovim_lib.js is a runtime-only module without type declarations
+        import(/* webpackIgnore: true */ './neovim_lib.js').then((nvimlib: { default: () => Promise<{ nvim: unknown; destroy: unknown }> }) => {
+            nvimlib.default().then(({nvim, destroy}: { nvim: unknown; destroy: unknown }) => {
+                void destroy;
+                function rpc(data: unknown) {
+                    const [ event, args ] = data as [string, string[]];
                     if (event === "Enter") {
                         if (args.length) {
                             normal.feedkeys(args[0]);
@@ -19,11 +22,12 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
                         }
                     }
                 }
-                nvim.on('nvim:open', () => {
-                    nvim.input('<Esc>');
-                    nvim.on('surfingkeys:rpc', rpc);
+                const n = nvim as { on: (event: string, handler: unknown) => void; input: (key: string) => void; connect: (url: string) => void };
+                n.on('nvim:open', () => {
+                    n.input('<Esc>');
+                    n.on('surfingkeys:rpc', rpc);
                 });
-                nvim.on('nvim:close', () => {
+                n.on('nvim:close', () => {
                     window.close();
                 });
                 resolve(nvim);
@@ -31,7 +35,7 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
         });
     });
     np.then((nvim) => {
-        RUNTIME('connectNative', {mode: "standalone"}, (resp) => {
+        RUNTIME('connectNative', {mode: "standalone"}, (resp: { error?: string; url?: string }) => {
             if (resp.error) {
                 setSanitizedContent(document.querySelector('#overlay'), resp.error);
                 document.body.classList.add("neovim-disabled");
@@ -48,7 +52,8 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
                     normal.exit();
                 });
                 api.map('i', '<Alt-i>');
-                nvim.connect(resp.url);
+                const n = nvim as { connect: (url: string) => void };
+                n.connect(resp.url!);
             }
         });
     });

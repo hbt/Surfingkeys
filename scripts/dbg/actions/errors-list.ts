@@ -8,6 +8,8 @@
  * Independent implementation - does not depend on debug/ directory
  */
 
+export {};
+
 const WebSocket = require('ws');
 const http = require('http');
 const { detectExtension, sendCommand, CDP_PORT } = require('../lib/extension-utils');
@@ -30,16 +32,17 @@ const CDP_ENDPOINT = `http://localhost:${CDP_PORT}`;
 /**
  * Fetch JSON from CDP endpoint
  */
-function fetchJson(path) {
+function fetchJson(path: string) {
     return new Promise((resolve, reject) => {
-        http.get(`${CDP_ENDPOINT}${path}`, (res) => {
+        http.get(`${CDP_ENDPOINT}${path}`, (res: unknown) => {
+            const r = res as { on: (event: string, cb: (...args: unknown[]) => void) => void };
             let body = '';
-            res.on('data', chunk => body += chunk);
-            res.on('end', () => {
+            r.on('data', (chunk: unknown) => body += String(chunk));
+            r.on('end', () => {
                 try {
                     resolve(JSON.parse(body));
                 } catch (error) {
-                    reject(new Error(`Failed to parse JSON: ${error.message}`));
+                    reject(new Error(`Failed to parse JSON: ${(error as Error).message}`));
                 }
             });
         }).on('error', reject);
@@ -49,9 +52,9 @@ function fetchJson(path) {
 /**
  * Find chrome://extensions/?errors=<id> tab
  */
-async function findExtensionsErrorTab(extensionId) {
-    const targets = await fetchJson('/json');
-    const tab = targets.find(t =>
+async function findExtensionsErrorTab(extensionId: string) {
+    const targets = await fetchJson('/json') as Array<{ type: string; url?: string; webSocketDebuggerUrl?: string }>;
+    const tab = targets.find((t: { type: string; url?: string }) =>
         t.type === 'page' && t.url && t.url.includes(`chrome://extensions/?errors=${extensionId}`)
     );
     return tab ? tab.webSocketDebuggerUrl : null;
@@ -60,7 +63,7 @@ async function findExtensionsErrorTab(extensionId) {
 /**
  * Evaluate code in a WebSocket context
  */
-async function evaluateCode(ws, expression) {
+async function evaluateCode(ws: unknown, expression: string) {
     const result = await sendCommand(ws, 'Runtime.evaluate', {
         expression,
         returnByValue: true,
@@ -77,7 +80,7 @@ async function evaluateCode(ws, expression) {
 /**
  * Format stored error for display
  */
-function formatStoredError(err, idx) {
+function formatStoredError(err: Record<string, unknown>, idx: number) {
     const lines = [];
     lines.push(`${colors.bright}[${idx + 1}]${colors.reset} ${colors.yellow}${err.type}${colors.reset}`);
     lines.push(`    ${colors.cyan}Message:${colors.reset} ${err.message}`);
@@ -89,9 +92,9 @@ function formatStoredError(err, idx) {
     }
 
     if (err.stack) {
-        const stackLines = err.stack.split('\n').slice(0, 3);
+        const stackLines = String(err.stack).split('\n').slice(0, 3);
         lines.push(`    ${colors.cyan}Stack:${colors.reset}`);
-        stackLines.forEach(line => {
+        stackLines.forEach((line: string) => {
             lines.push(`      ${colors.dim}${line.trim()}${colors.reset}`);
         });
     }
@@ -102,7 +105,7 @@ function formatStoredError(err, idx) {
 /**
  * Format Chrome native error for display
  */
-function formatChromeError(err, idx) {
+function formatChromeError(err: Record<string, unknown>, idx: number) {
     const lines = [];
     lines.push(`${colors.bright}[${idx + 1}]${colors.reset} ${colors.red}${err.severity || 'error'}${colors.reset}`);
     lines.push(`    ${colors.cyan}Message:${colors.reset} ${err.message}`);
@@ -112,9 +115,9 @@ function formatChromeError(err, idx) {
         lines.push(`    ${colors.cyan}Context URL:${colors.reset} ${err.contextUrl}`);
     }
 
-    if (err.stackTrace && err.stackTrace.length > 0) {
+    if (err.stackTrace && (err.stackTrace as unknown[]).length > 0) {
         lines.push(`    ${colors.cyan}Stack:${colors.reset}`);
-        err.stackTrace.slice(0, 5).forEach(frame => {
+        (err.stackTrace as Record<string, unknown>[]).slice(0, 5).forEach((frame: Record<string, unknown>) => {
             const fn = frame.functionName || '(anonymous)';
             lines.push(`      ${colors.dim}at ${fn} (${frame.url}:${frame.lineNumber}:${frame.columnNumber})${colors.reset}`);
         });
@@ -126,7 +129,7 @@ function formatChromeError(err, idx) {
 /**
  * Get Chrome native errors from chrome://extensions page
  */
-async function getChromeNativeErrors(extensionId) {
+async function getChromeNativeErrors(extensionId: string) {
     const tabWsUrl = await findExtensionsErrorTab(extensionId);
 
     if (!tabWsUrl) {
@@ -168,7 +171,7 @@ async function getChromeNativeErrors(extensionId) {
                             });
                         });
                     })()
-                `);
+                `) as Record<string, unknown>;
 
                 clearTimeout(timeout);
                 ws.close();
@@ -185,11 +188,11 @@ async function getChromeNativeErrors(extensionId) {
             } catch (error) {
                 clearTimeout(timeout);
                 ws.close();
-                resolve({ available: false, reason: error.message });
+                resolve({ available: false, reason: (error as Error).message });
             }
         });
 
-        ws.on('error', (error) => {
+        ws.on('error', (error: Error) => {
             clearTimeout(timeout);
             resolve({ available: false, reason: error.message });
         });
@@ -199,12 +202,12 @@ async function getChromeNativeErrors(extensionId) {
 /**
  * Main action runner
  */
-async function run(args) {
+async function run(args: unknown[]) {
     console.log(`${colors.bright}List Extension Errors${colors.reset}\n`);
 
     // Detect extension (with auto-wake if dormant)
     console.log(`${colors.cyan}Detecting extension...${colors.reset}`);
-    const logFn = (msg) => console.log(`  ${colors.dim}${msg}${colors.reset}`);
+    const logFn = (msg: string) => console.log(`  ${colors.dim}${msg}${colors.reset}`);
     const extInfo = await detectExtension(logFn);
 
     if (!extInfo) {
@@ -238,18 +241,18 @@ async function run(args) {
             console.log('='.repeat(70));
             console.log();
 
-            const chromeErrors = await getChromeNativeErrors(extensionId);
+            const chromeErrors = await getChromeNativeErrors(extensionId) as Record<string, unknown>;
 
             if (!chromeErrors.available) {
                 console.log(`  ${colors.yellow}⚠ ${chromeErrors.reason}${colors.reset}`);
                 console.log(`  ${colors.dim}Open: chrome://extensions/?errors=${extensionId}${colors.reset}\n`);
             } else {
-                const manifestErrors = chromeErrors.manifestErrors || [];
-                const runtimeErrors = chromeErrors.runtimeErrors || [];
+                const manifestErrors = (chromeErrors.manifestErrors as Record<string, unknown>[]) || [];
+                const runtimeErrors = (chromeErrors.runtimeErrors as Record<string, unknown>[]) || [];
 
                 if (manifestErrors.length > 0) {
                     console.log(`${colors.yellow}Manifest Errors: ${manifestErrors.length}${colors.reset}\n`);
-                    manifestErrors.forEach((err, idx) => {
+                    manifestErrors.forEach((err: Record<string, unknown>, idx: number) => {
                         console.log(formatChromeError(err, idx));
                         console.log();
                     });
@@ -258,7 +261,7 @@ async function run(args) {
 
                 if (runtimeErrors.length > 0) {
                     console.log(`${colors.yellow}Runtime Errors: ${runtimeErrors.length}${colors.reset}\n`);
-                    runtimeErrors.forEach((err, idx) => {
+                    runtimeErrors.forEach((err: Record<string, unknown>, idx: number) => {
                         console.log(formatChromeError(err, idx));
                         console.log();
                     });
@@ -278,7 +281,7 @@ async function run(args) {
             console.log('='.repeat(70));
             console.log();
 
-            const storedErrors = await evaluateCode(ws, `
+            const storedErrors = (await evaluateCode(ws, `
                 (function() {
                     return new Promise((resolve) => {
                         chrome.storage.local.get(['${STORAGE_KEY}'], (result) => {
@@ -286,11 +289,11 @@ async function run(args) {
                         });
                     });
                 })()
-            `);
+            `)) as Record<string, unknown>[];
 
             if (storedErrors.length > 0) {
                 console.log(`  Found ${colors.bright}${storedErrors.length}${colors.reset} stored error(s)\n`);
-                storedErrors.forEach((err, idx) => {
+                storedErrors.forEach((err: Record<string, unknown>, idx: number) => {
                     console.log(formatStoredError(err, idx));
                     console.log();
                 });
@@ -307,18 +310,18 @@ async function run(args) {
             console.log('='.repeat(70));
             console.log();
 
-            const memoryErrors = await evaluateCode(ws, `
+            const memoryErrors = (await evaluateCode(ws, `
                 (function() {
                     if (typeof globalThis !== 'undefined' && globalThis._surfingkeysErrors) {
                         return globalThis._surfingkeysErrors;
                     }
                     return null;
                 })()
-            `);
+            `)) as Record<string, unknown>[] | null;
 
             if (memoryErrors && memoryErrors.length > 0) {
                 console.log(`  Found ${colors.bright}${memoryErrors.length}${colors.reset} error(s) in memory\n`);
-                memoryErrors.forEach((err, idx) => {
+                memoryErrors.forEach((err: Record<string, unknown>, idx: number) => {
                     console.log(formatStoredError(err, idx));
                     console.log();
                 });
@@ -335,8 +338,8 @@ async function run(args) {
             console.log('='.repeat(70));
 
             if (chromeErrors.available) {
-                console.log(`  Chrome manifest errors: ${colors.bright}${chromeErrors.manifestErrors?.length || 0}${colors.reset}`);
-                console.log(`  Chrome runtime errors: ${colors.bright}${chromeErrors.runtimeErrors?.length || 0}${colors.reset}`);
+                console.log(`  Chrome manifest errors: ${colors.bright}${(chromeErrors.manifestErrors as unknown[] | undefined)?.length || 0}${colors.reset}`);
+                console.log(`  Chrome runtime errors: ${colors.bright}${(chromeErrors.runtimeErrors as unknown[] | undefined)?.length || 0}${colors.reset}`);
             }
             console.log(`  Stored errors: ${colors.bright}${storedErrors.length}${colors.reset}`);
             console.log(`  In-memory errors: ${colors.bright}${memoryErrors ? memoryErrors.length : 0}${colors.reset}`);
@@ -355,13 +358,13 @@ async function run(args) {
             process.exit(totalErrors > 0 ? 1 : 0);
 
         } catch (error) {
-            console.error(`${colors.red}Error: ${error.message}${colors.reset}\n`);
+            console.error(`${colors.red}Error: ${(error as Error).message}${colors.reset}\n`);
             ws.close();
             process.exit(1);
         }
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => {
         console.error(`${colors.red}WebSocket error: ${error.message}${colors.reset}\n`);
         process.exit(1);
     });

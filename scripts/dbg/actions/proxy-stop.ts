@@ -5,13 +5,15 @@
  * Output: JSON only to stdout
  */
 
+export {};
+
 const fs = require('fs');
 const { config, outputJSON } = require('./proxy-config');
 
 /**
  * Main action runner
  */
-async function run(args) {
+async function run(args: unknown[]) {
   if (!fs.existsSync(config.PID_FILE)) {
     outputJSON({
       success: false,
@@ -68,7 +70,7 @@ async function run(args) {
   } catch (error) {
     outputJSON({
       success: false,
-      error: error.message
+      error: (error as Error).message
     }, 1);
   }
 }

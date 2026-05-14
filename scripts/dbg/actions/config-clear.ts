@@ -9,6 +9,8 @@
  * Requires: gchrb-dev with CDP on port 9222
  */
 
+export {};
+
 const WebSocket = require('ws');
 const { detectExtension, sendCommand, CDP_PORT } = require('../lib/extension-utils');
 
@@ -24,7 +26,7 @@ const colors = {
 
 const CONFIG_KEYS = ['localPath', 'snippets', 'showAdvanced', 'savedAt'];
 
-async function evaluateCode(ws, expression) {
+async function evaluateCode(ws: unknown, expression: string) {
     const result = await sendCommand(ws, 'Runtime.evaluate', {
         expression,
         returnByValue: true,
@@ -38,11 +40,11 @@ async function evaluateCode(ws, expression) {
     return result.result?.value;
 }
 
-async function run(args) {
+async function run(args: unknown[]) {
     console.log(`${colors.bright}Clear Config Storage${colors.reset}\n`);
 
     console.log(`${colors.cyan}Detecting extension...${colors.reset}`);
-    const logFn = (msg) => console.log(`  ${colors.dim}${msg}${colors.reset}`);
+    const logFn = (msg: string) => console.log(`  ${colors.dim}${msg}${colors.reset}`);
     const extInfo = await detectExtension(logFn);
 
     if (!extInfo) {
@@ -115,13 +117,13 @@ async function run(args) {
             process.exit(0);
 
         } catch (error) {
-            console.error(`${colors.red}Error: ${error.message}${colors.reset}\n`);
+            console.error(`${colors.red}Error: ${(error as Error).message}${colors.reset}\n`);
             ws.close();
             process.exit(1);
         }
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => {
         console.error(`${colors.red}WebSocket error: ${error.message}${colors.reset}\n`);
         process.exit(1);
     });

@@ -5,6 +5,8 @@
  * Loads .env silently from project root.
  */
 
+export {};
+
 const fs = require('fs');
 const path = require('path');
 
@@ -17,8 +19,8 @@ if (fs.existsSync(envPath)) {
 // Exported configuration
 const config = {
   CDP_HOST: process.env.CDP_HOST || '127.0.0.1',
-  CDP_PORT: parseInt(process.env.CDP_PORT, 10) || 9222,
-  PROXY_PORT: parseInt(process.env.CDP_PROXY_PORT, 10) || 9623,
+  CDP_PORT: parseInt(process.env.CDP_PORT ?? '9222', 10) || 9222,
+  PROXY_PORT: parseInt(process.env.CDP_PROXY_PORT ?? '9623', 10) || 9623,
   PID_FILE: '/tmp/dbg-proxy.pid',
   LOG_FILE: '/tmp/dbg-proxy.jsonl'
 };
@@ -26,7 +28,7 @@ const config = {
 /**
  * Output JSON result and optionally exit
  */
-function outputJSON(data, exitCode = null) {
+function outputJSON(data: unknown, exitCode: number | null = null) {
   console.log(JSON.stringify(data, null, 2));
   if (exitCode !== null) {
     process.exit(exitCode);

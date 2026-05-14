@@ -5,6 +5,8 @@
  * Output: JSON only to stdout
  */
 
+export {};
+
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
@@ -33,17 +35,18 @@ function checkBuildPort() {
   };
 }
 
-function outputJSON(data, exitCode = 0) {
+function outputJSON(data: unknown, exitCode = 0) {
   console.log(JSON.stringify(data, null, 2));
   process.exit(exitCode);
 }
 
 function checkHealth() {
   return new Promise((resolve) => {
-    http.get(`http://localhost:${PORT}/health`, (res) => {
+    http.get(`http://localhost:${PORT}/health`, (res: unknown) => {
+      const r = res as { on: (event: string, cb: (...args: unknown[]) => void) => void };
       let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
+      r.on('data', (chunk: unknown) => body += String(chunk));
+      r.on('end', () => {
         try {
           resolve(JSON.parse(body));
         } catch (_) {
@@ -54,7 +57,7 @@ function checkHealth() {
   });
 }
 
-async function run(args) {
+async function run(args: unknown[]) {
   let pid = null;
   let pidAlive = false;
 
@@ -69,7 +72,7 @@ async function run(args) {
   }
 
   const health = await checkHealth();
-  const running = pidAlive && health && health.status === 'ok';
+  const running = pidAlive && health && (health as Record<string, unknown>)['status'] === 'ok';
   const buildCheck = checkBuildPort();
 
   const warnings = [];

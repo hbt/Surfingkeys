@@ -17,6 +17,8 @@
  * Logs: Written to /tmp/dbg-config-set-<timestamp>.log
  */
 
+export {};
+
 const WebSocket = require('ws');
 const http = require('http');
 const https = require('https');
@@ -40,23 +42,24 @@ const logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
 /**
  * Log to file only
  */
-function log(message) {
+function log(message: string) {
     logStream.write(`${new Date().toISOString()} ${message}\n`);
 }
 
 /**
  * Fetch JSON from CDP endpoint
  */
-async function fetchJson(path) {
+async function fetchJson(path: string) {
     return new Promise((resolve, reject) => {
-        http.get(`${CDP_ENDPOINT}${path}`, (res) => {
+        http.get(`${CDP_ENDPOINT}${path}`, (res: unknown) => {
+            const r = res as { on: (event: string, cb: (...args: unknown[]) => void) => void };
             let body = '';
-            res.on('data', chunk => body += chunk);
-            res.on('end', () => {
+            r.on('data', (chunk: unknown) => body += String(chunk));
+            r.on('end', () => {
                 try {
                     resolve(JSON.parse(body));
                 } catch (error) {
-                    reject(new Error(`Failed to parse JSON: ${error.message}`));
+                    reject(new Error(`Failed to parse JSON: ${(error as Error).message}`));
                 }
             });
         }).on('error', reject);
@@ -69,7 +72,7 @@ async function fetchJson(path) {
 async function findServiceWorker() {
     const targets = await fetchJson('/json');
 
-    const sw = targets.find(t =>
+    const sw = (targets as Array<{ type: string; url?: string; webSocketDebuggerUrl?: string }>).find((t: { type: string; url?: string }) =>
         t.type === 'service_worker' &&
         t.url?.includes('background.js')
     );
@@ -80,16 +83,18 @@ async function findServiceWorker() {
 /**
  * Send CDP command via WebSocket
  */
-function sendCommand(ws, method, params = {}) {
+function sendCommand(ws: unknown, method: string, params: unknown = {}) {
     return new Promise((resolve, reject) => {
         const id = messageId++;
         const timeout = setTimeout(() => reject(new Error('Timeout')), 10000);
 
-        const handler = (data) => {
-            const msg = JSON.parse(data.toString());
+        const wsTyped = ws as { on: (event: string, cb: unknown) => void; removeListener: (event: string, cb: unknown) => void; send: (data: string) => void };
+
+        const handler = (data: unknown) => {
+            const msg = JSON.parse((data as Buffer).toString());
             if (msg.id === id) {
                 clearTimeout(timeout);
-                ws.removeListener('message', handler);
+                wsTyped.removeListener('message', handler);
                 if (msg.error) {
                     reject(new Error(msg.error.message));
                 } else {
@@ -98,58 +103,58 @@ function sendCommand(ws, method, params = {}) {
             }
         };
 
-        ws.on('message', handler);
-        ws.send(JSON.stringify({ id, method, params }));
+        wsTyped.on('message', handler);
+        wsTyped.send(JSON.stringify({ id, method, params }));
     });
 }
 
 /**
  * Evaluate code in service worker context
  */
-async function evaluateCode(ws, expression) {
+async function evaluateCode(ws: unknown, expression: string) {
     const result = await sendCommand(ws, 'Runtime.evaluate', {
         expression,
         returnByValue: true,
         awaitPromise: true
-    });
+    }) as Record<string, unknown>;
 
     if (result.exceptionDetails) {
-        throw new Error(result.exceptionDetails.text || 'Evaluation failed');
+        throw new Error((result.exceptionDetails as Record<string, unknown>).text as string || 'Evaluation failed');
     }
 
-    return result.result?.value;
+    return (result.result as Record<string, unknown> | undefined)?.value;
 }
 
 /**
  * Validate JavaScript syntax using Node.js
  */
-function validateJavaScriptSyntax(code) {
+function validateJavaScriptSyntax(code: string) {
     try {
         new vm.Script(code);
         return { valid: true, error: null };
     } catch (err) {
-        return { valid: false, error: err.message };
+        return { valid: false, error: (err as Error).message };
     }
 }
 
 /**
  * Calculate SHA256 hash of file content (Node.js side)
  */
-function calculateFileHash(fileContent) {
+function calculateFileHash(fileContent: string) {
     try {
         const buffer = Buffer.from(fileContent, 'utf-8');
         const hashBuffer = crypto.createHash('sha256').update(buffer).digest();
         const hashHex = hashBuffer.toString('hex');
         return hashHex;
     } catch (err) {
-        throw new Error(`Failed to calculate hash: ${err.message}`);
+        throw new Error(`Failed to calculate hash: ${(err as Error).message}`);
     }
 }
 
 /**
  * STEP 2: Gather context from storage (runtime state, no failures here)
  */
-async function gatherContext(ws) {
+async function gatherContext(ws: unknown) {
     log(`=== STEP 2: CONTEXT - Gathering runtime state ===`);
 
     const code = `
@@ -193,7 +198,7 @@ async function gatherContext(ws) {
         })
     `;
 
-    const result = await evaluateCode(ws, code);
+    const result = await evaluateCode(ws, code) as Record<string, Record<string, unknown>>;
     log(`✓ Context gathered: advancedMode=${result.storage.advancedMode}, userScriptsAvailable=${result.api_available.userScriptsAvailable}`);
     return result;
 }
@@ -201,7 +206,7 @@ async function gatherContext(ws) {
 /**
  * STEP 3: Validate the determined filepath
  */
-async function performValidation(filepath) {
+async function performValidation(filepath: string) {
     log(`=== STEP 3: VALIDATE - Validating filepath ===`);
 
     const validation = {
@@ -209,19 +214,19 @@ async function performValidation(filepath) {
             required: true,
             passed: false,
             path: filepath,
-            error: null
+            error: null as string | null
         },
         symlink_points_to_valid_file: {
             required: true,
             passed: false,
-            real_path: null,
+            real_path: null as string | null,
             file_exists: false,
-            error: null
+            error: null as string | null
         },
         file_syntax_valid: {
             required: true,
             passed: false,
-            error: null
+            error: null as string | null
         },
         all_checks_passed: false
     };
@@ -257,8 +262,8 @@ async function performValidation(filepath) {
             validation.symlink_points_to_valid_file.file_exists = true;
             validation.symlink_points_to_valid_file.passed = true;
         } catch (err) {
-            validation.symlink_points_to_valid_file.error = err.message;
-            log(`✗ Failed to resolve file: ${err.message}`);
+            validation.symlink_points_to_valid_file.error = (err as Error).message;
+            log(`✗ Failed to resolve file: ${(err as Error).message}`);
             return validation;
         }
 
@@ -275,8 +280,8 @@ async function performValidation(filepath) {
             validation.file_syntax_valid.passed = true;
             log(`✓ JavaScript syntax is valid`);
         } catch (err) {
-            validation.file_syntax_valid.error = err.message;
-            log(`✗ Failed to validate syntax: ${err.message}`);
+            validation.file_syntax_valid.error = (err as Error).message;
+            log(`✗ Failed to validate syntax: ${(err as Error).message}`);
             return validation;
         }
 
@@ -286,7 +291,7 @@ async function performValidation(filepath) {
         return validation;
 
     } catch (err) {
-        log(`✗ Validation error: ${err.message}`);
+        log(`✗ Validation error: ${(err as Error).message}`);
         return validation;
     }
 }
@@ -294,7 +299,7 @@ async function performValidation(filepath) {
 /**
  * STEP 4: Set config in storage via CDP
  */
-async function setConfigInStorage(ws, snippetsContent, localPathUrl) {
+async function setConfigInStorage(ws: unknown, snippetsContent: string, localPathUrl: string) {
     log(`=== STEP 4: IMPLEMENTATION - Setting config in storage ===`);
 
     const code = `
@@ -320,14 +325,14 @@ async function setConfigInStorage(ws, snippetsContent, localPathUrl) {
         log(`✓ Config set in storage`);
         return result;
     } catch (err) {
-        throw new Error(`Failed to set config: ${err.message}`);
+        throw new Error(`Failed to set config: ${(err as Error).message}`);
     }
 }
 
 /**
  * STEP 5: Post-validation - verify implementation worked
  */
-async function performPostValidation(ws, expectedContent, expectedPath, fileHash) {
+async function performPostValidation(ws: unknown, expectedContent: string, expectedPath: string, fileHash: string) {
     log(`=== STEP 5: POST-VALIDATION - Verifying implementation ===`);
 
     const code = `
@@ -361,7 +366,7 @@ async function performPostValidation(ws, expectedContent, expectedPath, fileHash
     `;
 
     try {
-        const stored = await evaluateCode(ws, code);
+        const stored = await evaluateCode(ws, code) as Record<string, unknown>;
 
         const postValidation = {
             snippets_hash_matches_file: {
@@ -410,28 +415,27 @@ async function performPostValidation(ws, expectedContent, expectedPath, fileHash
         return postValidation;
 
     } catch (err) {
-        throw new Error(`Verification failed: ${err.message}`);
+        throw new Error(`Verification failed: ${(err as Error).message}`);
     }
 }
 
 /**
  * Main action - 5-step workflow
  */
-async function run(args) {
+async function run(args: unknown[]) {
     log(`\n=== Config Set Action Started ===`);
 
     try {
         // === STEP 1: DETERMINE ===
         log(`=== STEP 1: DETERMINE - Resolving config filepath ===`);
 
-        let filepath = args && args[0] ? args[0] : null;
+        let filepath: string = args && args[0] ? String(args[0]) : DEFAULT_CONFIG_SYMLINK;
         let source = 'default_symlink';
 
-        if (filepath) {
+        if (args && args[0]) {
             source = 'argument';
             log(`Using provided filepath: ${filepath}`);
         } else {
-            filepath = DEFAULT_CONFIG_SYMLINK;
             log(`Using default symlink: ${filepath}`);
         }
 
@@ -550,20 +554,20 @@ async function run(args) {
                     });
 
                 } catch (error) {
-                    log(`✗ Error during workflow: ${error.message}`);
-                    log(error.stack);
+                    log(`✗ Error during workflow: ${(error as Error).message}`);
+                    log((error as Error).stack ?? '');
                     ws.close();
                     logStream.end();
                     resolve({
                         success: false,
-                        error: error.message,
+                        error: (error as Error).message,
                         determine: determine,
                         log: LOG_FILE
                     });
                 }
             });
 
-            ws.on('error', (error) => {
+            ws.on('error', (error: Error) => {
                 log(`✗ WebSocket error: ${error.message}`);
                 logStream.end();
                 resolve({
@@ -576,16 +580,16 @@ async function run(args) {
         });
 
         console.log(JSON.stringify(response));
-        process.exit(response.success ? 0 : 1);
+        process.exit((response as Record<string, unknown>).success ? 0 : 1);
 
     } catch (error) {
-        log(`FATAL ERROR: ${error.message}`);
-        log(error.stack);
+        log(`FATAL ERROR: ${(error as Error).message}`);
+        log((error as Error).stack ?? '');
         logStream.end();
 
         console.log(JSON.stringify({
             success: false,
-            error: error.message,
+            error: (error as Error).message,
             log: LOG_FILE
         }));
         process.exit(1);

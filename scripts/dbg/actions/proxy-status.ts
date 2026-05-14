@@ -5,13 +5,15 @@
  * Output: JSON only to stdout
  */
 
+export {};
+
 const fs = require('fs');
 const { config, outputJSON, isProxyRunning } = require('./proxy-config');
 
 /**
  * Main action runner
  */
-async function run(args) {
+async function run(args: unknown[]) {
   const status = isProxyRunning();
 
   if (!status.running) {

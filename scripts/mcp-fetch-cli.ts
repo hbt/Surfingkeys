@@ -4,6 +4,8 @@
  * Uses the MCP server to fetch URLs as markdown without using Claude Code tokens
  */
 
+export {};
+
 import { spawn } from 'child_process';
 import { createInterface } from 'readline';
 
@@ -26,7 +28,7 @@ Options:
   process.exit(1);
 }
 
-async function fetchMarkdown(url) {
+async function fetchMarkdown(url: string) {
   return new Promise((resolve, reject) => {
     // Start the MCP server
     const mcp = spawn('node', [MCP_SERVER_PATH]);
@@ -69,7 +71,7 @@ async function fetchMarkdown(url) {
 
         // Handle fetch response
         if (msg.result && msg.result.content) {
-          const content = msg.result.content.find(c => c.type === 'text');
+          const content = msg.result.content.find((c: Record<string, unknown>) => c.type === 'text');
           if (content) {
             resolve(content.text);
             mcp.kill();
@@ -120,7 +122,7 @@ async function fetchMarkdown(url) {
   });
 }
 
-function cleanMarkdown(markdown) {
+function cleanMarkdown(markdown: string) {
   // For Chrome API docs, strip everything before the main content
   // The actual content starts with "chrome.xxx Stay organized..." pattern
   const lines = markdown.split('\n');
@@ -137,7 +139,7 @@ function cleanMarkdown(markdown) {
 
   // If found, add a proper markdown heading and return
   if (startIndex > 0) {
-    const apiName = lines[startIndex].match(/^(chrome\.\w+)/i)[1];
+    const apiName = (lines[startIndex].match(/^(chrome\.\w+)/i) || [])[1];
     const cleanedLines = [
       `# ${apiName}`,
       '',
@@ -162,7 +164,7 @@ async function main() {
 
   try {
     console.error(`Fetching: ${url}`);
-    let markdown = await fetchMarkdown(url);
+    let markdown = await fetchMarkdown(url) as string;
 
     // Clean up navigation unless --no-clean is specified
     if (!noClean) {
@@ -184,7 +186,7 @@ async function main() {
       console.log(markdown);
     }
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('Error:', (error as Error).message);
     process.exit(1);
   }
 }

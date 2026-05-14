@@ -1,13 +1,27 @@
 // Surfingkeys Error Viewer
 // Displays errors captured by errorCollector.js
+export {};
 
-let allErrors = [];
+interface ErrorRecord {
+  message: string;
+  stack?: string;
+  source?: string;
+  context: string;
+  type: string;
+  timestamp: string;
+  url?: string;
+  lineno?: number;
+  colno?: number;
+  userAgent?: string;
+}
+
+let allErrors: ErrorRecord[] = [];
 
 // Load errors from storage
-async function loadErrors() {
+async function loadErrors(): Promise<ErrorRecord[]> {
     return new Promise((resolve) => {
         chrome.storage.local.get(['surfingkeys_errors'], (result) => {
-            resolve(result.surfingkeys_errors || []);
+            resolve((result['surfingkeys_errors'] as ErrorRecord[]) || []);
         });
     });
 }
@@ -15,15 +29,20 @@ async function loadErrors() {
 // Update stats display
 function updateStats() {
     const stats = document.getElementById('error-viewer-stats');
-    stats.textContent = `${allErrors.length} ${allErrors.length === 1 ? 'error' : 'errors'} captured`;
+    if (stats) {
+        stats.textContent = `${allErrors.length} ${allErrors.length === 1 ? 'error' : 'errors'} captured`;
+    }
 }
 
 // Render error list
 function renderErrors() {
     const list = document.getElementById('error-list');
-    const search = document.getElementById('error-viewer-search').value.toLowerCase();
-    const contextFilter = document.getElementById('filter-context').value;
-    const typeFilter = document.getElementById('filter-type').value;
+    const searchEl = document.getElementById('error-viewer-search') as HTMLInputElement | null;
+    const contextFilterEl = document.getElementById('filter-context') as HTMLSelectElement | null;
+    const typeFilterEl = document.getElementById('filter-type') as HTMLSelectElement | null;
+    const search = searchEl ? searchEl.value.toLowerCase() : '';
+    const contextFilter = contextFilterEl ? contextFilterEl.value : '';
+    const typeFilter = typeFilterEl ? typeFilterEl.value : '';
 
     // Filter errors
     let filtered = allErrors.slice().reverse(); // Newest first
@@ -43,6 +62,8 @@ function renderErrors() {
     if (typeFilter) {
         filtered = filtered.filter(e => e.type === typeFilter);
     }
+
+    if (!list) return;
 
     // Render
     if (filtered.length === 0) {
@@ -64,10 +85,10 @@ function renderErrors() {
 }
 
 // Create error element
-function createErrorElement(error, idx) {
+function createErrorElement(error: ErrorRecord, idx: number) {
     const div = document.createElement('div');
     div.className = 'error-item';
-    div.dataset.errorId = idx;
+    div.dataset['errorId'] = String(idx);
 
     // Determine type class
     const typeClass = error.type === 'window.onerror' ? 'error-type-onerror' :
@@ -133,31 +154,34 @@ function createErrorElement(error, idx) {
     // Toggle expand on click
     div.addEventListener('click', (e) => {
         // Don't toggle if clicking copy button
-        if (e.target.classList.contains('error-copy-btn')) {
+        const target = e.target as HTMLElement | null;
+        if (target && target.classList.contains('error-copy-btn')) {
             return;
         }
         div.classList.toggle('expanded');
     });
 
     // Copy button handler
-    const copyBtn = div.querySelector('.error-copy-btn');
-    copyBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const errorJson = JSON.stringify(error, null, 2);
-        navigator.clipboard.writeText(errorJson).then(() => {
-            const originalText = copyBtn.textContent;
-            copyBtn.textContent = '✅ Copied!';
-            setTimeout(() => {
-                copyBtn.textContent = originalText;
-            }, 2000);
+    const copyBtn = div.querySelector('.error-copy-btn') as HTMLButtonElement | null;
+    if (copyBtn) {
+        copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const errorJson = JSON.stringify(error, null, 2);
+            navigator.clipboard.writeText(errorJson).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            });
         });
-    });
+    }
 
     return div;
 }
 
 // Escape HTML to prevent XSS
-function escapeHtml(text) {
+function escapeHtml(text: string) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -188,7 +212,7 @@ async function clearErrors() {
         return;
     }
 
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
         chrome.storage.local.set({ surfingkeys_errors: [] }, resolve);
     });
 
@@ -203,11 +227,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     await refresh();
 
     // Event listeners
-    document.getElementById('btn-refresh').addEventListener('click', refresh);
-    document.getElementById('btn-export').addEventListener('click', exportErrors);
-    document.getElementById('btn-clear').addEventListener('click', clearErrors);
+    document.getElementById('btn-refresh')?.addEventListener('click', refresh);
+    document.getElementById('btn-export')?.addEventListener('click', exportErrors);
+    document.getElementById('btn-clear')?.addEventListener('click', clearErrors);
 
-    document.getElementById('error-viewer-search').addEventListener('input', renderErrors);
-    document.getElementById('filter-context').addEventListener('change', renderErrors);
-    document.getElementById('filter-type').addEventListener('change', renderErrors);
+    document.getElementById('error-viewer-search')?.addEventListener('input', renderErrors);
+    document.getElementById('filter-context')?.addEventListener('change', renderErrors);
+    document.getElementById('filter-type')?.addEventListener('change', renderErrors);
 });

@@ -1,14 +1,47 @@
 // Surfingkeys Usage Statistics Viewer
 // Displays command usage statistics from usageTracker
+export {};
 
 const STORAGE_KEY = 'surfingkeys_usage';
-let usageData = null;
+
+interface CommandData {
+    count: number;
+    lastUsed?: string;
+    mode?: string;
+    command_id?: string;
+    display_name?: string;
+    annotation?: string;
+}
+
+interface RecentItem {
+    key: string;
+    timestamp: string;
+    url?: string;
+    command_id?: string;
+    display_name?: string;
+    annotation?: string;
+    mode?: string;
+}
+
+interface UsageStats {
+    totalInvocations: number;
+    firstTracked: string | null;
+    lastTracked: string | null;
+}
+
+interface UsageData {
+    commands: Record<string, CommandData>;
+    recentHistory: RecentItem[];
+    stats: UsageStats;
+}
+
+let usageData: UsageData | null = null;
 
 // Load usage data from storage
-async function loadUsageData() {
+async function loadUsageData(): Promise<UsageData> {
     return new Promise((resolve) => {
         chrome.storage.local.get([STORAGE_KEY], (result) => {
-            resolve(result[STORAGE_KEY] || {
+            resolve((result[STORAGE_KEY] as UsageData) || {
                 commands: {},
                 recentHistory: [],
                 stats: {
@@ -24,17 +57,21 @@ async function loadUsageData() {
 // Update summary display
 function updateSummary() {
     const summary = document.getElementById('stats-summary');
-    const uniqueCommands = Object.keys(usageData.commands).length;
-    const totalInvocations = usageData.stats.totalInvocations || 0;
-    summary.textContent = `${totalInvocations} invocations across ${uniqueCommands} unique commands`;
+    const uniqueCommands = Object.keys(usageData!.commands).length;
+    const totalInvocations = usageData!.stats.totalInvocations || 0;
+    if (summary) {
+        summary.textContent = `${totalInvocations} invocations across ${uniqueCommands} unique commands`;
+    }
 }
 
 // Render frequently used commands
 function renderFrequent() {
     const container = document.getElementById('frequent-list');
-    const commands = Object.entries(usageData.commands)
+    const commands = Object.entries(usageData!.commands)
         .map(([key, data]) => ({ key, ...data }))
         .sort((a, b) => b.count - a.count);
+
+    if (!container) return;
 
     if (commands.length === 0) {
         container.innerHTML = `
@@ -74,7 +111,9 @@ function renderFrequent() {
 // Render recently used commands
 function renderRecent() {
     const container = document.getElementById('recent-list');
-    const recent = usageData.recentHistory || [];
+    const recent = usageData!.recentHistory || [];
+
+    if (!container) return;
 
     if (recent.length === 0) {
         container.innerHTML = `
@@ -105,16 +144,16 @@ function renderRecent() {
 // Render overview statistics
 function renderOverview() {
     const container = document.getElementById('overview-content');
-    const commands = Object.entries(usageData.commands)
+    const commands = Object.entries(usageData!.commands)
         .map(([key, data]) => ({ key, ...data }));
 
-    const totalInvocations = usageData.stats.totalInvocations || 0;
+    const totalInvocations = usageData!.stats.totalInvocations || 0;
     const uniqueCommands = commands.length;
-    const firstTracked = usageData.stats.firstTracked;
-    const lastTracked = usageData.stats.lastTracked;
+    const firstTracked = usageData!.stats.firstTracked;
+    const lastTracked = usageData!.stats.lastTracked;
 
     // Calculate mode distribution
-    const modeDistribution = {};
+    const modeDistribution: Record<string, number> = {};
     commands.forEach(cmd => {
         const mode = cmd.mode || 'Normal';
         modeDistribution[mode] = (modeDistribution[mode] || 0) + cmd.count;
@@ -122,6 +161,8 @@ function renderOverview() {
 
     // Top 5 commands
     const top5 = commands.sort((a, b) => b.count - a.count).slice(0, 5);
+
+    if (!container) return;
 
     container.innerHTML = `
         <div class="overview-card">
@@ -173,18 +214,18 @@ function renderOverview() {
 }
 
 // Escape HTML to prevent XSS
-function escapeHtml(text) {
+function escapeHtml(text: string) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
 // Format date for display
-function formatDate(isoString) {
+function formatDate(isoString: string | undefined | null) {
     if (!isoString) return 'N/A';
     const date = new Date(isoString);
     const now = new Date();
-    const diff = now - date;
+    const diff = now.getTime() - date.getTime();
 
     // Less than 1 minute
     if (diff < 60000) return 'Just now';
@@ -199,7 +240,7 @@ function formatDate(isoString) {
 }
 
 // Truncate URL for display
-function truncateUrl(url) {
+function truncateUrl(url: string) {
     if (!url) return '';
     try {
         const parsed = new URL(url);
@@ -210,10 +251,11 @@ function truncateUrl(url) {
 }
 
 // Switch tabs
-function switchTab(tabName) {
+function switchTab(tabName: string) {
     // Update tab buttons
     document.querySelectorAll('.stats-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.tab === tabName);
+        const el = tab as HTMLElement;
+        tab.classList.toggle('active', el.dataset['tab'] === tabName);
     });
 
     // Update panels
@@ -241,9 +283,9 @@ async function refresh() {
     updateSummary();
 
     // Re-render current active tab
-    const activeTab = document.querySelector('.stats-tab.active');
+    const activeTab = document.querySelector('.stats-tab.active') as HTMLElement | null;
     if (activeTab) {
-        switchTab(activeTab.dataset.tab);
+        switchTab(activeTab.dataset['tab']!);
     }
 }
 
@@ -265,7 +307,7 @@ async function clearData() {
         return;
     }
 
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
         chrome.storage.local.set({
             [STORAGE_KEY]: {
                 commands: {},
@@ -288,11 +330,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Tab click handlers
     document.querySelectorAll('.stats-tab').forEach(tab => {
-        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+        const el = tab as HTMLElement;
+        tab.addEventListener('click', () => switchTab(el.dataset['tab']!));
     });
 
     // Button handlers
-    document.getElementById('btn-refresh').addEventListener('click', refresh);
-    document.getElementById('btn-export').addEventListener('click', exportData);
-    document.getElementById('btn-clear').addEventListener('click', clearData);
+    document.getElementById('btn-refresh')?.addEventListener('click', refresh);
+    document.getElementById('btn-export')?.addEventListener('click', exportData);
+    document.getElementById('btn-clear')?.addEventListener('click', clearData);
 });

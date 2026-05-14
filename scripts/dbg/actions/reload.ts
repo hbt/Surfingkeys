@@ -11,6 +11,8 @@
  * Independent implementation - does not depend on debug/ directory
  */
 
+export {};
+
 const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
@@ -35,7 +37,7 @@ const logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
 /**
  * Log to file only
  */
-function log(message) {
+function log(message: string) {
     logStream.write(`${new Date().toISOString()} ${message}\n`);
 }
 
@@ -48,13 +50,14 @@ const CONFIG_SERVER_URL = `http://localhost:${CONFIG_SERVER_PORT}`;
  */
 function checkConfigServer() {
     return new Promise((resolve) => {
-        const req = http.get(`${CONFIG_SERVER_URL}/health`, (res) => {
+        const req = http.get(`${CONFIG_SERVER_URL}/health`, (res: unknown) => {
+            const r = res as { statusCode: number; on: (event: string, cb: (...args: unknown[]) => void) => void };
             let body = '';
-            res.on('data', chunk => body += chunk);
-            res.on('end', () => {
+            r.on('data', (chunk: unknown) => body += String(chunk));
+            r.on('end', () => {
                 try {
                     const data = JSON.parse(body);
-                    resolve({ running: res.statusCode === 200 && data.status === 'ok', file: data.file || null });
+                    resolve({ running: r.statusCode === 200 && data.status === 'ok', file: data.file || null });
                 } catch (_) {
                     resolve({ running: false });
                 }
@@ -70,7 +73,7 @@ function checkConfigServer() {
  */
 function isFixturesServerRunning() {
     return new Promise((resolve) => {
-        const req = http.get(`http://localhost:${FIXTURES_PORT}/hackernews.html`, (res) => {
+        const req = http.get(`http://localhost:${FIXTURES_PORT}/hackernews.html`, (_res: unknown) => {
             req.abort();
             resolve(true);
         });
@@ -118,8 +121,8 @@ async function ensureFixturesServer() {
             }
         }, 3000);
 
-        fixturesServerProcess.stdout.on('data', (data) => {
-            const message = data.toString();
+        fixturesServerProcess.stdout.on('data', (data: unknown) => {
+            const message = String(data);
             log(`[Fixtures Server] ${message.trim()}`);
 
             if (message.includes('running at http://127.0.0.1:9873')) {
@@ -130,8 +133,8 @@ async function ensureFixturesServer() {
             }
         });
 
-        fixturesServerProcess.stderr.on('data', (data) => {
-            const message = data.toString();
+        fixturesServerProcess.stderr.on('data', (data: unknown) => {
+            const message = String(data);
             log(`[Fixtures Server Error] ${message.trim()}`);
 
             if (message.includes('EADDRINUSE')) {
@@ -142,7 +145,7 @@ async function ensureFixturesServer() {
             }
         });
 
-        fixturesServerProcess.on('error', (error) => {
+        fixturesServerProcess.on('error', (error: Error) => {
             clearTimeout(timeout);
             log(`✗ Failed to start fixtures server: ${error.message}`);
             resolve({ success: false, error: error.message });
@@ -168,15 +171,15 @@ function runBuild() {
         let stdout = '';
         let stderr = '';
 
-        proc.stdout.on('data', (data) => {
-            stdout += data.toString();
+        proc.stdout.on('data', (data: unknown) => {
+            stdout += String(data);
         });
 
-        proc.stderr.on('data', (data) => {
-            stderr += data.toString();
+        proc.stderr.on('data', (data: unknown) => {
+            stderr += String(data);
         });
 
-        proc.on('close', (code) => {
+        proc.on('close', (code: number | null) => {
             const duration = Date.now() - startTime;
             const output = stdout + stderr;
 
@@ -200,7 +203,7 @@ function runBuild() {
             }
         });
 
-        proc.on('error', (error) => {
+        proc.on('error', (error: Error) => {
             const duration = Date.now() - startTime;
             log(`✗ Build error: ${error.message}`);
             resolve({
@@ -235,7 +238,7 @@ function readBuildTimestamp() {
         log('Build timestamp not found in manifest description');
         return null;
     } catch (error) {
-        log(`Error reading manifest: ${error.message}`);
+        log(`Error reading manifest: ${(error as Error).message}`);
         return null;
     }
 }
@@ -243,16 +246,17 @@ function readBuildTimestamp() {
 /**
  * Fetch JSON from CDP endpoint
  */
-async function fetchJson(path) {
+async function fetchJson(path: string) {
     return new Promise((resolve, reject) => {
-        http.get(`${CDP_ENDPOINT}${path}`, (res) => {
+        http.get(`${CDP_ENDPOINT}${path}`, (res: unknown) => {
+            const r = res as { on: (event: string, cb: (...args: unknown[]) => void) => void };
             let body = '';
-            res.on('data', chunk => body += chunk);
-            res.on('end', () => {
+            r.on('data', (chunk: unknown) => body += String(chunk));
+            r.on('end', () => {
                 try {
                     resolve(JSON.parse(body));
                 } catch (error) {
-                    reject(new Error(`Failed to parse JSON: ${error.message}`));
+                    reject(new Error(`Failed to parse JSON: ${(error as Error).message}`));
                 }
             });
         }).on('error', reject);
@@ -263,10 +267,10 @@ async function fetchJson(path) {
  * Detect Surfingkeys extension ID from service worker
  */
 async function detectExtensionIdFromServiceWorker() {
-    const targets = await fetchJson('/json');
+    const targets = await fetchJson('/json') as Array<{ type: string; url?: string; webSocketDebuggerUrl?: string }>;
 
     // Look for Surfingkeys service worker (background.js)
-    const sw = targets.find(t =>
+    const sw = targets.find((t: { type: string; url?: string }) =>
         t.type === 'service_worker' &&
         t.url?.includes('background.js')
     );
@@ -285,10 +289,10 @@ async function detectExtensionIdFromServiceWorker() {
  * Detect Surfingkeys extension ID from iframe (works even when service worker is dormant)
  */
 async function detectExtensionIdFromIframe() {
-    const targets = await fetchJson('/json');
+    const targets = await fetchJson('/json') as Array<{ type: string; url?: string; webSocketDebuggerUrl?: string }>;
 
     // Look for Surfingkeys iframe (frontend.html)
-    const iframe = targets.find(t =>
+    const iframe = targets.find((t: { type: string; url?: string }) =>
         t.type === 'iframe' &&
         t.url?.includes('chrome-extension://') &&
         t.url?.includes('frontend.html')
@@ -308,12 +312,12 @@ async function detectExtensionIdFromIframe() {
  * Wake dormant service worker by opening extension page via browser CDP
  * Uses Target.createTarget to open extension page directly (bypasses stale iframe contexts)
  */
-async function wakeServiceWorker(iframeWsUrl, extensionId) {
+async function wakeServiceWorker(iframeWsUrl: string | undefined, extensionId: string) {
     log('Service worker is dormant - waking up via browser CDP...');
 
     // Get browser WebSocket URL
-    const versionInfo = await fetchJson('/json/version');
-    const browserWsUrl = versionInfo.webSocketDebuggerUrl;
+    const versionInfo = await fetchJson('/json/version') as Record<string, unknown>;
+    const browserWsUrl = versionInfo.webSocketDebuggerUrl as string | undefined;
 
     if (!browserWsUrl) {
         log('✗ Could not get browser WebSocket URL');
@@ -335,21 +339,22 @@ async function wakeServiceWorker(iframeWsUrl, extensionId) {
 
                 ws.close();
 
-                if (result.targetId) {
-                    log(`✓ Created target ${result.targetId} to wake service worker`);
-                    resolve({ success: true, targetId: result.targetId });
+                const res = result as Record<string, unknown>;
+                if (res.targetId) {
+                    log(`✓ Created target ${res.targetId} to wake service worker`);
+                    resolve({ success: true, targetId: res.targetId });
                 } else {
                     log('✗ Failed to create target');
                     resolve({ success: false });
                 }
             } catch (error) {
-                log(`✗ Error waking service worker: ${error.message}`);
+                log(`✗ Error waking service worker: ${(error as Error).message}`);
                 ws.close();
-                resolve({ success: false, error: error.message });
+                resolve({ success: false, error: (error as Error).message });
             }
         });
 
-        ws.on('error', (error) => {
+        ws.on('error', (error: Error) => {
             log(`✗ WebSocket error: ${error.message}`);
             resolve({ success: false, error: error.message });
         });
@@ -385,7 +390,7 @@ async function detectExtensionId() {
     log(`Extension detected from iframe: ${iframeInfo.id}`);
 
     // Wake the service worker
-    const wakeResult = await wakeServiceWorker(iframeInfo.wsUrl, iframeInfo.id);
+    const wakeResult = await wakeServiceWorker(iframeInfo.wsUrl, iframeInfo.id) as Record<string, unknown>;
 
     if (!wakeResult.success) {
         log('Failed to wake service worker, but proceeding with extension ID');
@@ -411,9 +416,9 @@ async function detectExtensionId() {
  * Find Surfingkeys service worker
  */
 async function findServiceWorker() {
-    const targets = await fetchJson('/json');
+    const targets = await fetchJson('/json') as Array<{ type: string; url?: string; webSocketDebuggerUrl?: string }>;
 
-    const sw = targets.find(t =>
+    const sw = targets.find((t: { type: string; url?: string }) =>
         t.type === 'service_worker' &&
         t.url?.includes('background.js')
     );
@@ -424,16 +429,17 @@ async function findServiceWorker() {
 /**
  * Send CDP command via WebSocket
  */
-function sendCommand(ws, method, params = {}) {
+function sendCommand(ws: unknown, method: string, params: unknown = {}) {
     return new Promise((resolve, reject) => {
         const id = messageId++;
         const timeout = setTimeout(() => reject(new Error('Timeout')), 10000);
+        const wsTyped = ws as { on: (event: string, cb: unknown) => void; removeListener: (event: string, cb: unknown) => void; send: (data: string) => void; close: () => void };
 
-        const handler = (data) => {
-            const msg = JSON.parse(data.toString());
+        const handler = (data: unknown) => {
+            const msg = JSON.parse((data as Buffer).toString());
             if (msg.id === id) {
                 clearTimeout(timeout);
-                ws.removeListener('message', handler);
+                wsTyped.removeListener('message', handler);
                 if (msg.error) {
                     reject(new Error(msg.error.message));
                 } else {
@@ -442,26 +448,26 @@ function sendCommand(ws, method, params = {}) {
             }
         };
 
-        ws.on('message', handler);
-        ws.send(JSON.stringify({ id, method, params }));
+        wsTyped.on('message', handler);
+        wsTyped.send(JSON.stringify({ id, method, params }));
     });
 }
 
 /**
  * Evaluate code in service worker context
  */
-async function evaluateCode(ws, expression) {
+async function evaluateCode(ws: unknown, expression: string) {
     const result = await sendCommand(ws, 'Runtime.evaluate', {
         expression,
         returnByValue: true,
         awaitPromise: true
-    });
+    }) as Record<string, unknown>;
 
     if (result.exceptionDetails) {
-        throw new Error(result.exceptionDetails.text || 'Evaluation failed');
+        throw new Error((result.exceptionDetails as Record<string, unknown>).text as string || 'Evaluation failed');
     }
 
-    return result.result?.value;
+    return (result.result as Record<string, unknown> | undefined)?.value;
 }
 
 /**
@@ -555,13 +561,13 @@ async function checkCDPBridgeConnectivity() {
                     resolve({ available: false, reason: 'bridge_not_initialized' });
                 }
             } catch (error) {
-                log(`✗ Error checking bridge: ${error.message}`);
+                log(`✗ Error checking bridge: ${(error as Error).message}`);
                 ws.close();
-                resolve({ available: false, reason: error.message });
+                resolve({ available: false, reason: (error as Error).message });
             }
         });
 
-        ws.on('error', (error) => {
+        ws.on('error', (error: Error) => {
             log(`✗ WebSocket error: ${error.message}`);
             resolve({ available: false, reason: error.message });
         });
@@ -571,7 +577,7 @@ async function checkCDPBridgeConnectivity() {
 /**
  * Get build timestamp from manifest (for verification)
  */
-async function getBuildTimestamp(extensionId) {
+async function getBuildTimestamp(extensionId: string) {
     const tabWsUrl = await findErrorsTab(extensionId);
 
     if (!tabWsUrl) {
@@ -607,7 +613,7 @@ async function getBuildTimestamp(extensionId) {
                             });
                         });
                     })()
-                `);
+                `) as Record<string, unknown>;
 
                 ws.close();
 
@@ -632,7 +638,7 @@ async function getBuildTimestamp(extensionId) {
  * PRIMARY METHOD: Reload via button click on chrome://extensions
  * Works even with broken extensions
  */
-async function reloadViaButton(extensionId) {
+async function reloadViaButton(extensionId: string) {
     log('PRIMARY METHOD: Click reload button on chrome://extensions');
 
     // Get timestamp BEFORE reload
@@ -702,23 +708,24 @@ async function reloadViaButton(extensionId) {
 
                 resolve(result);
             } catch (error) {
-                log(`✗ Error: ${error.message}`);
+                log(`✗ Error: ${(error as Error).message}`);
                 ws.close();
-                resolve({ clicked: false, error: error.message });
+                resolve({ clicked: false, error: (error as Error).message });
             }
         });
 
-        ws.on('error', (error) => {
+        ws.on('error', (error: Error) => {
             resolve({ clicked: false, error: error.message });
         });
     });
 
-    if (!clickResult.clicked) {
-        log(`✗ Failed to click reload button: ${clickResult.error}`);
-        return { success: false, error: clickResult.error };
+    const cr = clickResult as Record<string, unknown>;
+    if (!cr.clicked) {
+        log(`✗ Failed to click reload button: ${cr.error}`);
+        return { success: false, error: cr.error };
     }
 
-    log(`✓ Reload button clicked (${clickResult.buttonId})`);
+    log(`✓ Reload button clicked (${cr.buttonId})`);
 
     // Wait for reload to execute
     log('Waiting for extension to reload...');
@@ -775,7 +782,7 @@ async function reloadViaButton(extensionId) {
  * Since CDP can create chrome://extensions tabs without policy restrictions,
  * we simply ensure they exist rather than complex checking/self-healing
  */
-async function ensureRequiredTabs(extensionId) {
+async function ensureRequiredTabs(extensionId: string) {
     log('Ensuring required tabs exist...');
 
     const swWsUrl = await findServiceWorker();
@@ -844,21 +851,22 @@ async function ensureRequiredTabs(extensionId) {
 
                 ws.close();
 
-                if (result.created.length > 0) {
-                    log(`✓ Created missing tabs: ${result.created.join(', ')}`);
+                const res = result as Record<string, unknown>;
+                if ((res.created as unknown[]).length > 0) {
+                    log(`✓ Created missing tabs: ${(res.created as string[]).join(', ')}`);
                 } else {
                     log('✓ All required tabs already exist');
                 }
 
-                resolve({ success: true, created: result.created });
+                resolve({ success: true, created: res.created });
             } catch (error) {
-                log(`✗ Error ensuring tabs: ${error.message}`);
+                log(`✗ Error ensuring tabs: ${(error as Error).message}`);
                 ws.close();
-                resolve({ success: false, reason: error.message });
+                resolve({ success: false, reason: (error as Error).message });
             }
         });
 
-        ws.on('error', (error) => {
+        ws.on('error', (error: Error) => {
             log(`✗ WebSocket error: ${error.message}`);
             resolve({ success: false, reason: error.message });
         });
@@ -869,9 +877,9 @@ async function ensureRequiredTabs(extensionId) {
  * Find chrome://extensions tab (generic)
  */
 async function findExtensionsTab() {
-    const targets = await fetchJson('/json');
+    const targets = await fetchJson('/json') as Array<{ type: string; url?: string; webSocketDebuggerUrl?: string }>;
 
-    const tab = targets.find(t =>
+    const tab = targets.find((t: { type: string; url?: string }) =>
         t.type === 'page' && t.url?.startsWith('chrome://extensions')
     );
 
@@ -881,10 +889,10 @@ async function findExtensionsTab() {
 /**
  * Find chrome://extensions/?errors=<id> tab (specific)
  */
-async function findErrorsTab(extensionId) {
-    const targets = await fetchJson('/json');
+async function findErrorsTab(extensionId: string) {
+    const targets = await fetchJson('/json') as Array<{ type: string; url?: string; webSocketDebuggerUrl?: string }>;
 
-    const tab = targets.find(t =>
+    const tab = targets.find((t: { type: string; url?: string }) =>
         t.type === 'page' && t.url?.includes(`chrome://extensions/?errors=${extensionId}`)
     );
 
@@ -895,7 +903,7 @@ async function findErrorsTab(extensionId) {
  * Clear previous errors from chrome://extensions page
  * This ensures any errors we extract later are fresh from THIS reload
  */
-async function clearPreviousErrors(extensionId) {
+async function clearPreviousErrors(extensionId: string) {
     log('Clearing previous errors from chrome://extensions...');
 
     const tabWsUrl = await findErrorsTab(extensionId);
@@ -951,18 +959,19 @@ async function clearPreviousErrors(extensionId) {
 
                 ws.close();
 
-                if (clearResult.cleared) {
+                const cr2 = clearResult as Record<string, unknown>;
+                if (cr2.cleared) {
                     log('✓ Previous errors cleared');
                     resolve({ success: true });
                 } else {
                     log('Clear button not found - may be no errors to clear');
-                    resolve({ success: false, reason: clearResult.reason });
+                    resolve({ success: false, reason: cr2.reason });
                 }
 
             } catch (error) {
-                log(`Error during clear: ${error.message}`);
+                log(`Error during clear: ${(error as Error).message}`);
                 ws.close();
-                resolve({ success: false, reason: error.message });
+                resolve({ success: false, reason: (error as Error).message });
             }
         });
 
@@ -975,7 +984,7 @@ async function clearPreviousErrors(extensionId) {
 /**
  * Extract extension errors from chrome://extensions page
  */
-async function extractExtensionErrors(extensionId) {
+async function extractExtensionErrors(extensionId: string) {
     log('Extracting extension errors from chrome://extensions...');
 
     const tabWsUrl = await findErrorsTab(extensionId);
@@ -1023,14 +1032,15 @@ async function extractExtensionErrors(extensionId) {
 
                 ws.close();
 
-                if (extensionInfo.error) {
-                    log(`Error extracting extension info: ${extensionInfo.error}`);
+                const ei = extensionInfo as Record<string, unknown>;
+                if (ei.error) {
+                    log(`Error extracting extension info: ${ei.error}`);
                     resolve(null);
                     return;
                 }
 
-                const manifestErrors = extensionInfo.manifestErrors || [];
-                const runtimeErrors = extensionInfo.runtimeErrors || [];
+                const manifestErrors = (ei.manifestErrors as unknown[]) || [];
+                const runtimeErrors = (ei.runtimeErrors as unknown[]) || [];
 
                 log(`Extracted ${manifestErrors.length} manifest error(s), ${runtimeErrors.length} runtime error(s)`);
 
@@ -1041,7 +1051,7 @@ async function extractExtensionErrors(extensionId) {
                 });
 
             } catch (error) {
-                log(`Error during extraction: ${error.message}`);
+                log(`Error during extraction: ${(error as Error).message}`);
                 ws.close();
                 resolve(null);
             }
@@ -1056,14 +1066,14 @@ async function extractExtensionErrors(extensionId) {
 /**
  * Calculate SHA256 hash of file content (Node.js side)
  */
-function calculateFileHash(fileContent) {
+function calculateFileHash(fileContent: string) {
     try {
         const buffer = Buffer.from(fileContent, 'utf-8');
         const hashBuffer = crypto.createHash('sha256').update(buffer).digest();
         const hashHex = hashBuffer.toString('hex');
         return hashHex;
     } catch (err) {
-        throw new Error(`Failed to calculate hash: ${err.message}`);
+        throw new Error(`Failed to calculate hash: ${(err as Error).message}`);
     }
 }
 
@@ -1082,7 +1092,7 @@ async function checkExtensionHealth() {
     const ws = new WebSocket(swWsUrl);
 
     // Check config server before opening WebSocket
-    const configServer = await checkConfigServer();
+    const configServer = await checkConfigServer() as Record<string, unknown>;
     log(`Config server running: ${configServer.running}`);
 
     return new Promise((resolve) => {
@@ -1118,7 +1128,7 @@ async function checkExtensionHealth() {
                             });
                         });
                     })
-                `);
+                `) as Record<string, unknown>;
 
                 ws.close();
 
@@ -1134,23 +1144,24 @@ async function checkExtensionHealth() {
 
                     try {
                         const configContent = await new Promise((res, rej) => {
-                            const req = http.get(`${CONFIG_SERVER_URL}/config`, (r) => {
+                            const req = http.get(`${CONFIG_SERVER_URL}/config`, (r: unknown) => {
+                                const rr = r as { on: (event: string, cb: (...args: unknown[]) => void) => void };
                                 let body = '';
-                                r.on('data', c => body += c);
-                                r.on('end', () => res(body));
+                                rr.on('data', (c: unknown) => body += String(c));
+                                rr.on('end', () => res(body));
                             });
                             req.on('error', rej);
                             req.setTimeout(2000, () => { req.abort(); rej(new Error('timeout')); });
-                        });
+                        }) as string;
                         serverBytes = configContent.length;
 
-                        const diskContent = fs.readFileSync(configServer.file, 'utf-8');
+                        const diskContent = fs.readFileSync(configServer.file as string, 'utf-8');
                         diskBytes = diskContent.length;
                         sizeMatch = serverBytes === diskBytes;
 
                         log(`Config server bytes: ${serverBytes}, disk bytes: ${diskBytes}, match: ${sizeMatch}`);
                     } catch (err) {
-                        log(`✗ Error comparing server vs disk: ${err.message}`);
+                        log(`✗ Error comparing server vs disk: ${(err as Error).message}`);
                     }
 
                     configServerCheck = {
@@ -1171,16 +1182,17 @@ async function checkExtensionHealth() {
                     let hashMatch = false;
                     let fileSize = null;
 
-                    if (storageData.localPathValue) {
+                    const sd = storageData as Record<string, unknown>;
+                    if (sd.localPathValue) {
                         try {
-                            let filePath = storageData.localPathValue;
+                            let filePath = String(sd.localPathValue);
                             if (filePath.startsWith('file://')) {
                                 filePath = decodeURIComponent(new URL(filePath).pathname);
                             }
 
                             log(`Comparing file at: ${filePath}`);
-                            log(`Stored snippets hash: ${storageData.storedSnippetsHash}`);
-                            log(`Stored snippets size: ${storageData.snippetsLength} bytes`);
+                            log(`Stored snippets hash: ${sd.storedSnippetsHash}`);
+                            log(`Stored snippets size: ${sd.snippetsLength} bytes`);
 
                             if (fs.existsSync(filePath)) {
                                 fileExists = true;
@@ -1188,11 +1200,11 @@ async function checkExtensionHealth() {
                                     const fileContent = fs.readFileSync(filePath, 'utf-8');
                                     fileHash = calculateFileHash(fileContent);
                                     fileSize = fileContent.length;
-                                    hashMatch = fileHash === storageData.storedSnippetsHash;
+                                    hashMatch = fileHash === sd.storedSnippetsHash;
 
                                     log(`File hash:           ${fileHash}`);
                                     log(`File size:           ${fileSize} bytes`);
-                                    log(`Stored hash:         ${storageData.storedSnippetsHash}`);
+                                    log(`Stored hash:         ${sd.storedSnippetsHash}`);
                                     log(`Hash match:          ${hashMatch}`);
 
                                     if (!hashMatch) {
@@ -1200,16 +1212,16 @@ async function checkExtensionHealth() {
                                         log(`  First 100 chars of file: ${fileContent.substring(0, 100)}`);
                                     }
                                 } catch (err) {
-                                    log(`✗ Error reading/hashing file: ${err.message}`);
-                                    log(`Stack: ${err.stack}`);
+                                    log(`✗ Error reading/hashing file: ${(err as Error).message}`);
+                                    log(`Stack: ${(err as Error).stack ?? ''}`);
                                     fileHash = 'error';
                                 }
                             } else {
                                 log(`✗ Config file not found: ${filePath}`);
                             }
                         } catch (err) {
-                            log(`✗ Error during file comparison: ${err.message}`);
-                            log(`Stack: ${err.stack}`);
+                            log(`✗ Error during file comparison: ${(err as Error).message}`);
+                            log(`Stack: ${(err as Error).stack ?? ''}`);
                             fileHash = 'error';
                         }
                     } else {
@@ -1219,30 +1231,31 @@ async function checkExtensionHealth() {
                     fileHashCheck = {
                         file_exists: fileExists,
                         file_size: fileSize,
-                        stored_size: storageData.snippetsLength,
+                        stored_size: sd.snippetsLength,
                         file_hash: fileHash,
-                        stored_snippets_hash: storageData.storedSnippetsHash,
+                        stored_snippets_hash: sd.storedSnippetsHash,
                         match: hashMatch
                     };
                 }
 
+                const sd2 = storageData as Record<string, unknown>;
                 const source = configServer.running ? 'config_server'
-                    : storageData.localPathValue ? 'local_path'
+                    : sd2.localPathValue ? 'local_path'
                     : 'none';
 
                 const health = {
                     advanced_mode_enabled: {
-                        value: storageData.showAdvanced
+                        value: sd2.showAdvanced
                     },
                     config_server: configServerCheck,
                     snippets_present: {
-                        stored: storageData.snippetsLength > 0,
-                        length: storageData.snippetsLength,
-                        hash: storageData.storedSnippetsHash
+                        stored: (sd2.snippetsLength as number) > 0,
+                        length: sd2.snippetsLength,
+                        hash: sd2.storedSnippetsHash
                     },
                     localPath_present: {
-                        stored: !!storageData.localPathValue,
-                        value: storageData.localPathValue,
+                        stored: !!sd2.localPathValue,
+                        value: sd2.localPathValue,
                         source
                     },
                     file_hash_match: fileHashCheck
@@ -1251,13 +1264,13 @@ async function checkExtensionHealth() {
                 logStream.write(`${new Date().toISOString()} ✓ Extension health checked\n`);
                 resolve(health);
             } catch (error) {
-                log(`✗ Error checking health: ${error.message}`);
+                log(`✗ Error checking health: ${(error as Error).message}`);
                 ws.close();
                 resolve(null);
             }
         });
 
-        ws.on('error', (error) => {
+        ws.on('error', (error: Error) => {
             log(`✗ WebSocket error: ${error.message}`);
             resolve(null);
         });
@@ -1324,21 +1337,22 @@ async function reloadAllTabs() {
 
                 ws.close();
 
-                if (result.error) {
-                    log(`✗ Error reloading tabs: ${result.error}`);
-                    resolve({ success: false, error: result.error, count: 0 });
+                const r = result as Record<string, unknown>;
+                if (r.error) {
+                    log(`✗ Error reloading tabs: ${r.error}`);
+                    resolve({ success: false, error: r.error, count: 0 });
                 } else {
-                    log(`✓ Reloaded ${result.count} tabs (${result.total} total, skipped chrome:// pages)`);
-                    resolve({ success: true, count: result.count, total: result.total });
+                    log(`✓ Reloaded ${r.count} tabs (${r.total} total, skipped chrome:// pages)`);
+                    resolve({ success: true, count: r.count, total: r.total });
                 }
             } catch (error) {
-                log(`✗ Error: ${error.message}`);
+                log(`✗ Error: ${(error as Error).message}`);
                 ws.close();
-                resolve({ success: false, error: error.message, count: 0 });
+                resolve({ success: false, error: (error as Error).message, count: 0 });
             }
         });
 
-        ws.on('error', (error) => {
+        ws.on('error', (error: Error) => {
             log(`✗ WebSocket error: ${error.message}`);
             resolve({ success: false, error: error.message, count: 0 });
         });
@@ -1366,7 +1380,7 @@ async function reloadViaKeyboard() {
     return new Promise((resolve) => {
         const proc = spawn('xdotool', ['key', 'alt+shift+r']);
 
-        proc.on('close', (code) => {
+        proc.on('close', (code: number | null) => {
             if (code === 0) {
                 log('⚠ Keyboard shortcut triggered (but cannot verify if reload worked)');
                 resolve({
@@ -1386,7 +1400,7 @@ async function reloadViaKeyboard() {
             }
         });
 
-        proc.on('error', (error) => {
+        proc.on('error', (error: Error) => {
             log(`✗ xdotool not available: ${error.message}`);
             resolve({ success: false, error: 'xdotool not available' });
         });
@@ -1396,7 +1410,7 @@ async function reloadViaKeyboard() {
 /**
  * Main action runner - FINALIZED FLOW
  */
-async function run(args) {
+async function run(args: unknown[]) {
     log('=== Reload Extension Action (Finalized) ===');
     log(`CDP Port: ${CDP_PORT}`);
 
@@ -1407,7 +1421,7 @@ async function run(args) {
     try {
         // STEP 0: Ensure fixtures server is running
         log('STEP 0: Ensure fixtures server is running');
-        const fixturesResult = await ensureFixturesServer();
+        const fixturesResult = await ensureFixturesServer() as Record<string, unknown>;
 
         if (!fixturesResult.success) {
             log('⚠ Warning: Could not start fixtures server - continuing anyway');
@@ -1420,7 +1434,7 @@ async function run(args) {
 
         // STEP 1: Run build:dev
         log('STEP 1: Running build:dev');
-        const buildResult = await runBuild();
+        const buildResult = await runBuild() as Record<string, unknown>;
 
         if (!buildResult.success) {
             log('ERROR: Build failed');
@@ -1471,7 +1485,7 @@ async function run(args) {
 
         // STEP 2: Ensure required tabs exist
         log('STEP 2: Ensure required tabs exist');
-        const tabsResult = await ensureRequiredTabs(extensionId);
+        const tabsResult = await ensureRequiredTabs(extensionId as string) as Record<string, unknown>;
 
         if (!tabsResult.success) {
             log('ERROR: Failed to ensure required tabs');
@@ -1486,15 +1500,15 @@ async function run(args) {
             process.exit(1);
         }
 
-        if (tabsResult.created.length > 0) {
-            log(`✓ Created missing tabs: ${tabsResult.created.join(', ')}`);
+        if ((tabsResult.created as unknown[]).length > 0) {
+            log(`✓ Created missing tabs: ${(tabsResult.created as string[]).join(', ')}`);
         } else {
             log('✓ All required tabs already exist');
         }
 
         // STEP 3: Clear previous errors
         log('STEP 3: Clear previous errors');
-        const clearResult = await clearPreviousErrors(extensionId);
+        const clearResult = await clearPreviousErrors(extensionId as string) as Record<string, unknown>;
 
         if (clearResult.success) {
             log('✓ Previous errors cleared');
@@ -1512,7 +1526,7 @@ async function run(args) {
 
         // STEP 4: CDP Bridge connectivity check
         log('STEP 4: CDP Bridge connectivity check');
-        const bridgeCheck = await checkCDPBridgeConnectivity();
+        const bridgeCheck = await checkCDPBridgeConnectivity() as Record<string, unknown>;
         attempts.push({
             method: 'cdp_bridge_check',
             available: bridgeCheck.available,
@@ -1525,15 +1539,14 @@ async function run(args) {
 
         // STEP 5: Reload via button click (PRIMARY METHOD)
         log('STEP 5: Reload via button click (PRIMARY METHOD)');
-        const buttonResult = await reloadViaButton(extensionId);
+        const buttonResult = await reloadViaButton(extensionId as string) as Record<string, unknown>;
         attempts.push({
             method: 'reload_button',
-            success: buttonResult.success,
             ...buttonResult
         });
 
-        let finalResult = buttonResult;
-        let errors = null;
+        let finalResult: Record<string, unknown> = buttonResult;
+        let errors: Record<string, unknown> | null = null;
 
         // If button reload failed, extract errors and try keyboard as last resort
         if (!buttonResult.success) {
@@ -1545,24 +1558,23 @@ async function run(args) {
 
             // STEP 6: Extract fresh errors
             log('STEP 6: Extract fresh errors from chrome://extensions');
-            errors = await extractExtensionErrors(extensionId);
+            errors = await extractExtensionErrors(extensionId as string) as Record<string, unknown> | null;
 
             if (errors && errors.hasErrors) {
-                log(`Found ${errors.manifestErrors.length + errors.runtimeErrors.length} fresh error(s)`);
+                log(`Found ${(errors.manifestErrors as unknown[]).length + (errors.runtimeErrors as unknown[]).length} fresh error(s)`);
                 warnings.push('Extension has errors from THIS reload');
             }
 
             // STEP 7: Last resort - keyboard (UNRELIABLE)
             log('STEP 7: Last resort - keyboard shortcut (UNRELIABLE)');
-            const keyboardResult = await reloadViaKeyboard();
+            const keyboardResult = await reloadViaKeyboard() as Record<string, unknown>;
             attempts.push({
                 method: 'keyboard',
-                success: keyboardResult.success,
                 ...keyboardResult
             });
 
             if (keyboardResult.success && keyboardResult.warnings) {
-                warnings.push(...keyboardResult.warnings);
+                warnings.push(...(keyboardResult.warnings as string[]));
             }
 
             finalResult = keyboardResult;
@@ -1585,7 +1597,7 @@ async function run(args) {
         logStream.end();
 
         // Build comprehensive JSON response
-        const response = {
+        const response: Record<string, unknown> = {
             success: finalResult.success,
             method: finalResult.method,
             extensionId: extensionId,
@@ -1623,14 +1635,16 @@ async function run(args) {
 
         // Add tabs reload info
         if (tabsReloaded) {
-            response.tabsReloaded = {
-                success: tabsReloaded.success,
-                count: tabsReloaded.count,
-                total: tabsReloaded.total
+            const tr = tabsReloaded as Record<string, unknown>;
+            const trObj: Record<string, unknown> = {
+                success: tr.success,
+                count: tr.count,
+                total: tr.total
             };
-            if (tabsReloaded.error) {
-                response.tabsReloaded.error = tabsReloaded.error;
+            if (tr.error) {
+                trObj.error = tr.error;
             }
+            response.tabsReloaded = trObj;
         }
 
         // Add health check info (non-blocking, doesn't affect success)
@@ -1646,7 +1660,7 @@ async function run(args) {
         // Add warning field if present
         if (finalResult.warning) {
             if (!response.warnings) response.warnings = [];
-            response.warnings.push(finalResult.warning);
+            (response.warnings as unknown[]).push(finalResult.warning);
         }
 
         console.log(JSON.stringify(response));
@@ -1654,13 +1668,13 @@ async function run(args) {
         process.exit(finalResult.success ? 0 : 1);
 
     } catch (error) {
-        log(`FATAL ERROR: ${error.message}`);
-        log(error.stack);
+        log(`FATAL ERROR: ${(error as Error).message}`);
+        log((error as Error).stack ?? '');
         logStream.end();
 
         console.log(JSON.stringify({
             success: false,
-            error: error.message,
+            error: (error as Error).message,
             log: LOG_FILE
         }));
         process.exit(1);

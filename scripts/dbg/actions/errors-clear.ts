@@ -8,6 +8,8 @@
  * Independent implementation - does not depend on debug/ directory
  */
 
+export {};
+
 const WebSocket = require('ws');
 const http = require('http');
 const { detectExtension, sendCommand, CDP_PORT } = require('../lib/extension-utils');
@@ -29,16 +31,17 @@ const CDP_ENDPOINT = `http://localhost:${CDP_PORT}`;
 /**
  * Fetch JSON from CDP endpoint
  */
-function fetchJson(path) {
+function fetchJson(path: string) {
     return new Promise((resolve, reject) => {
-        http.get(`${CDP_ENDPOINT}${path}`, (res) => {
+        http.get(`${CDP_ENDPOINT}${path}`, (res: unknown) => {
+            const r = res as { on: (event: string, cb: (...args: unknown[]) => void) => void };
             let body = '';
-            res.on('data', chunk => body += chunk);
-            res.on('end', () => {
+            r.on('data', (chunk: unknown) => body += String(chunk));
+            r.on('end', () => {
                 try {
                     resolve(JSON.parse(body));
                 } catch (error) {
-                    reject(new Error(`Failed to parse JSON: ${error.message}`));
+                    reject(new Error(`Failed to parse JSON: ${(error as Error).message}`));
                 }
             });
         }).on('error', reject);
@@ -48,9 +51,9 @@ function fetchJson(path) {
 /**
  * Find chrome://extensions/?errors=<id> tab
  */
-async function findExtensionsErrorTab(extensionId) {
-    const targets = await fetchJson('/json');
-    const tab = targets.find(t =>
+async function findExtensionsErrorTab(extensionId: string) {
+    const targets = await fetchJson('/json') as Array<{ type: string; url?: string; webSocketDebuggerUrl?: string }>;
+    const tab = targets.find((t: { type: string; url?: string }) =>
         t.type === 'page' && t.url && t.url.includes(`chrome://extensions/?errors=${extensionId}`)
     );
     return tab ? tab.webSocketDebuggerUrl : null;
@@ -59,7 +62,7 @@ async function findExtensionsErrorTab(extensionId) {
 /**
  * Evaluate code in a WebSocket context
  */
-async function evaluateCode(ws, expression) {
+async function evaluateCode(ws: unknown, expression: string) {
     const result = await sendCommand(ws, 'Runtime.evaluate', {
         expression,
         returnByValue: true,
@@ -76,7 +79,7 @@ async function evaluateCode(ws, expression) {
 /**
  * Click "Clear all" button on chrome://extensions page (searches Shadow DOM)
  */
-async function clickClearAllButton(extensionId) {
+async function clickClearAllButton(extensionId: string) {
     const tabWsUrl = await findExtensionsErrorTab(extensionId);
 
     if (!tabWsUrl) {
@@ -150,11 +153,11 @@ async function clickClearAllButton(extensionId) {
             } catch (error) {
                 clearTimeout(timeout);
                 ws.close();
-                resolve({ success: false, reason: error.message });
+                resolve({ success: false, reason: (error as Error).message });
             }
         });
 
-        ws.on('error', (error) => {
+        ws.on('error', (error: Error) => {
             clearTimeout(timeout);
             resolve({ success: false, reason: error.message });
         });
@@ -164,12 +167,12 @@ async function clickClearAllButton(extensionId) {
 /**
  * Main action runner
  */
-async function run(args) {
+async function run(args: unknown[]) {
     console.log(`${colors.bright}Clear Extension Errors${colors.reset}\n`);
 
     // Detect extension (with auto-wake if dormant)
     console.log(`${colors.cyan}Detecting extension...${colors.reset}`);
-    const logFn = (msg) => console.log(`  ${colors.dim}${msg}${colors.reset}`);
+    const logFn = (msg: string) => console.log(`  ${colors.dim}${msg}${colors.reset}`);
     const extInfo = await detectExtension(logFn);
 
     if (!extInfo) {
@@ -200,13 +203,13 @@ async function run(args) {
             // ============================================================
             console.log(`${colors.cyan}Clearing Chrome native errors...${colors.reset}`);
 
-            const chromeResult = await clickClearAllButton(extensionId);
+            const chromeResult = await clickClearAllButton(extensionId) as Record<string, unknown>;
 
-            if (chromeResult.success) {
-                console.log(`  ${colors.green}✓ Clicked "${chromeResult.buttonText}" button${colors.reset}\n`);
+            if (chromeResult['success']) {
+                console.log(`  ${colors.green}✓ Clicked "${chromeResult['buttonText']}" button${colors.reset}\n`);
                 clearedSomething = true;
             } else {
-                console.log(`  ${colors.yellow}⚠ ${chromeResult.reason}${colors.reset}`);
+                console.log(`  ${colors.yellow}⚠ ${chromeResult['reason']}${colors.reset}`);
                 console.log(`  ${colors.dim}Open: chrome://extensions/?errors=${extensionId}${colors.reset}\n`);
             }
 
@@ -281,13 +284,13 @@ async function run(args) {
             process.exit(0);
 
         } catch (error) {
-            console.error(`${colors.red}Error: ${error.message}${colors.reset}\n`);
+            console.error(`${colors.red}Error: ${(error as Error).message}${colors.reset}\n`);
             ws.close();
             process.exit(1);
         }
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => {
         console.error(`${colors.red}WebSocket error: ${error.message}${colors.reset}\n`);
         process.exit(1);
     });

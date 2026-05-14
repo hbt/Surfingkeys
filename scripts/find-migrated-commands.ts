@@ -6,13 +6,15 @@
  * Usage: node scripts/find-migrated-commands.js
  */
 
+export {};
+
 const fs = require('fs');
 const path = require('path');
 
 function findAllCommands() {
     const srcDir = path.join(__dirname, '..', 'src');
-    const migrated = [];
-    const notMigrated = [];
+    const migrated: Record<string, unknown>[] = [];
+    const notMigrated: Record<string, unknown>[] = [];
 
     // Map mode names
     const modeMap = {
@@ -25,7 +27,7 @@ function findAllCommands() {
     };
 
     // Scan all JS and TS files
-    function scanDir(dir) {
+    function scanDir(dir: string) {
         const files = fs.readdirSync(dir);
         for (const file of files) {
             const filepath = path.join(dir, file);
@@ -52,7 +54,7 @@ function findAllCommands() {
         }
     }
 
-    function parseMapkeyPatterns(content, relPath, migrated, notMigrated, modeMap) {
+    function parseMapkeyPatterns(content: string, relPath: string, migrated: Record<string, unknown>[], notMigrated: Record<string, unknown>[], modeMap: Record<string, string>) {
         const patterns = ['mapkey', 'vmapkey', 'imapkey', 'cmapkey'];
 
         for (const pattern of patterns) {
@@ -121,7 +123,7 @@ function findAllCommands() {
         }
     }
 
-    function parseMappingsAddPatterns(content, relPath, migrated, notMigrated) {
+    function parseMappingsAddPatterns(content: string, relPath: string, migrated: Record<string, unknown>[], notMigrated: Record<string, unknown>[]) {
         // Match: self.mappings.add("key", {annotation: {...}, ...})
         // Captures full object including nested annotations
         const regex = /self\.mappings\.add\s*\(\s*["']([^"']+)["']\s*,\s*\{([\s\S]*?)\}\s*\)/g;
@@ -179,7 +181,7 @@ function findAllCommands() {
         }
     }
 
-    function parseCommandPatterns(content, relPath, migrated, notMigrated) {
+    function parseCommandPatterns(content: string, relPath: string, migrated: Record<string, unknown>[], notMigrated: Record<string, unknown>[]) {
         // Match: command('name', 'description', function...)
         const regex = /command\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*['"`]([^'"`]+)['"`]/g;
 
@@ -202,7 +204,7 @@ function findAllCommands() {
         }
     }
 
-    function parseOmnibarPatterns(content, relPath, migrated, notMigrated) {
+    function parseOmnibarPatterns(content: string, relPath: string, migrated: Record<string, unknown>[], notMigrated: Record<string, unknown>[]) {
         // Match: self.mappings.add(KeyboardUtils.encodeKeystroke('key'), { annotation: ..., ... })
         const regex = /self\.mappings\.add\s*\(\s*KeyboardUtils\.encodeKeystroke\s*\(\s*['"`]([^'"`]+)['"`]\s*\)\s*,\s*\{([^}]+)\}/gs;
 
@@ -265,23 +267,23 @@ console.log('║' + '='.repeat(78));
 
 // Sort by file then line number
 migrated.sort((a, b) => {
-    if (a.file !== b.file) return a.file.localeCompare(b.file);
-    return a.lineNum - b.lineNum;
+    if (a.file !== b.file) return String(a.file).localeCompare(String(b.file));
+    return (a.lineNum as number) - (b.lineNum as number);
 });
 
 // Group by file
-const migratedByFile = {};
+const migratedByFile: Record<string, Record<string, unknown>[]> = {};
 for (const cmd of migrated) {
-    if (!migratedByFile[cmd.file]) {
-        migratedByFile[cmd.file] = [];
+    if (!migratedByFile[cmd.file as string]) {
+        migratedByFile[cmd.file as string] = [];
     }
-    migratedByFile[cmd.file].push(cmd);
+    migratedByFile[cmd.file as string].push(cmd);
 }
 
 for (const [file, cmds] of Object.entries(migratedByFile)) {
     console.log(`║ 📄 ${file}`);
-    for (const cmd of cmds) {
-        console.log(`║   L${cmd.lineNum.toString().padStart(4)}: ${cmd.uniqueId.padEnd(30)} | Key: "${cmd.key}"`);
+    for (const cmd of cmds as Record<string, unknown>[]) {
+        console.log(`║   L${String(cmd.lineNum).padStart(4)}: ${String(cmd.uniqueId).padEnd(30)} | Key: "${cmd.key}"`);
     }
 }
 
@@ -293,17 +295,17 @@ console.log('║' + '='.repeat(78));
 
 // Sort by file then line number
 notMigrated.sort((a, b) => {
-    if (a.file !== b.file) return a.file.localeCompare(b.file);
-    return a.lineNum - b.lineNum;
+    if (a.file !== b.file) return String(a.file).localeCompare(String(b.file));
+    return (a.lineNum as number) - (b.lineNum as number);
 });
 
 // Group by file
-const notMigratedByFile = {};
+const notMigratedByFile: Record<string, Record<string, unknown>[]> = {};
 for (const cmd of notMigrated) {
-    if (!notMigratedByFile[cmd.file]) {
-        notMigratedByFile[cmd.file] = [];
+    if (!notMigratedByFile[cmd.file as string]) {
+        notMigratedByFile[cmd.file as string] = [];
     }
-    notMigratedByFile[cmd.file].push(cmd);
+    notMigratedByFile[cmd.file as string].push(cmd);
 }
 
 if (notMigrated.length === 0) {
@@ -312,8 +314,8 @@ if (notMigrated.length === 0) {
     for (const [file, cmds] of Object.entries(notMigratedByFile)) {
         console.log(`║ 📄 ${file}`);
         console.log(`║   (${cmds.length} commands to migrate):`);
-        for (const cmd of cmds) {
-            console.log(`║   L${cmd.lineNum.toString().padStart(4)}: Key: "${cmd.key.padEnd(8)}" | ${cmd.shortName}`);
+        for (const cmd of cmds as Record<string, unknown>[]) {
+            console.log(`║   L${String(cmd.lineNum).padStart(4)}: Key: "${String(cmd.key).padEnd(8)}" | ${cmd.shortName}`);
         }
     }
 }
@@ -341,14 +343,14 @@ console.log('─'.repeat(80));
 console.log('Mode'.padEnd(20) + 'Migrated'.padEnd(12) + 'Pending'.padEnd(12) + 'Total');
 console.log('─'.repeat(80));
 
-const modeBreakdown = {};
+const modeBreakdown: Record<string, { m: number; n: number }> = {};
 for (const cmd of migrated) {
-    if (!modeBreakdown[cmd.mode]) modeBreakdown[cmd.mode] = { m: 0, n: 0 };
-    modeBreakdown[cmd.mode].m++;
+    if (!modeBreakdown[cmd.mode as string]) modeBreakdown[cmd.mode as string] = { m: 0, n: 0 };
+    modeBreakdown[cmd.mode as string].m++;
 }
 for (const cmd of notMigrated) {
-    if (!modeBreakdown[cmd.mode]) modeBreakdown[cmd.mode] = { m: 0, n: 0 };
-    modeBreakdown[cmd.mode].n++;
+    if (!modeBreakdown[cmd.mode as string]) modeBreakdown[cmd.mode as string] = { m: 0, n: 0 };
+    modeBreakdown[cmd.mode as string].n++;
 }
 
 for (const [mode, counts] of Object.entries(modeBreakdown).sort()) {

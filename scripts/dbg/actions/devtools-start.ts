@@ -14,6 +14,8 @@
  * Output: JSON to stdout
  */
 
+export {};
+
 const { spawnSync, execSync } = require('child_process');
 const fs = require('fs');
 const http = require('http');
@@ -24,13 +26,13 @@ const TARGET_WORKSPACE = 5;
 
 // ── Logging ───────────────────────────────────────────────────────────────────
 
-let logFd;
+let logFd: number | undefined;
 
 function openLog() {
   logFd = fs.openSync(LOG_FILE, 'w');
 }
 
-function writeLog(obj) {
+function writeLog(obj: Record<string, unknown>) {
   const line = JSON.stringify({ ts: Math.floor(Date.now() / 1000), ...obj });
   fs.writeSync(logFd, line + '\n');
 }
@@ -41,11 +43,11 @@ function closeLog() {
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
-function sleep(ms) {
+function sleep(ms: number) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-function cmd(command) {
+function cmd(command: string) {
   try {
     return execSync(command, { encoding: 'utf8' }).trim();
   } catch (_) {
@@ -63,7 +65,7 @@ function getWindowSet() {
   return ids;
 }
 
-function getWindowDesktop(winId) {
+function getWindowDesktop(winId: string) {
   const out = cmd('wmctrl -l');
   for (const line of out.split('\n')) {
     const m = line.match(/^(0x[0-9a-f]+)\s+(\d+)/i);
@@ -78,14 +80,14 @@ function getActiveWindow() {
   return cmd('xdotool getactivewindow').trim();
 }
 
-function winIdToInt(id) {
+function winIdToInt(id: unknown) {
   // xdotool returns decimal; wmctrl returns 0x hex — normalize both to integer
   const s = String(id).trim();
   if (s.startsWith('0x') || s.startsWith('0X')) return parseInt(s, 16);
   return parseInt(s, 10);
 }
 
-function winIdsMatch(a, b) {
+function winIdsMatch(a: unknown, b: unknown) {
   return winIdToInt(a) === winIdToInt(b);
 }
 
@@ -96,29 +98,30 @@ function getScreenDimensions() {
   return null;
 }
 
-function getWindowGeometry(winId) {
+function getWindowGeometry(winId: string) {
   const out = cmd(`xdotool getwindowgeometry ${winId}`);
   const wm = out.match(/Geometry:\s+(\d+)x(\d+)/);
   if (wm) return { w: parseInt(wm[1], 10), h: parseInt(wm[2], 10) };
   return null;
 }
 
-function httpGet(url) {
+function httpGet(url: string) {
   return new Promise((resolve) => {
-    http.get(url, (res) => {
+    http.get(url, (res: unknown) => {
+      const r = res as { statusCode: number; on: (event: string, cb: (...args: unknown[]) => void) => void };
       let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        try { resolve({ ok: res.statusCode === 200, body: JSON.parse(body) }); }
-        catch (_) { resolve({ ok: res.statusCode === 200, body }); }
+      r.on('data', (chunk: unknown) => body += String(chunk));
+      r.on('end', () => {
+        try { resolve({ ok: r.statusCode === 200, body: JSON.parse(body) }); }
+        catch (_) { resolve({ ok: r.statusCode === 200, body }); }
       });
-    }).on('error', (err) => resolve({ ok: false, error: err.message }));
+    }).on('error', (err: Error) => resolve({ ok: false, error: err.message }));
   });
 }
 
 // ── Bail helper ───────────────────────────────────────────────────────────────
 
-function bail(step, detail, hint) {
+function bail(step: string, detail: string, hint?: string) {
   const obj = { ok: false, error: step, detail, log: LOG_FILE, ...(hint ? { hint } : {}) };
   writeLog({ step, error: true, detail });
   closeLog();
@@ -161,52 +164,53 @@ async function run() {
   }
   const findElapsed = Date.now() - findStart;
   if (!newWin) bail('find_window', 'new window never appeared within 8s', 'gchrb may have failed to start');
-  writeLog({ step: 'find_window', windowId: newWin, elapsedMs: findElapsed });
+  const newWinId = newWin as string;
+  writeLog({ step: 'find_window', windowId: newWinId, elapsedMs: findElapsed });
 
   // STEP 4: move to workspace
-  cmd(`wmctrl -i -r ${newWin} -t ${TARGET_WORKSPACE}`);
+  cmd(`wmctrl -i -r ${newWinId} -t ${TARGET_WORKSPACE}`);
   await sleep(300);
-  const actualDesktop = getWindowDesktop(newWin);
-  writeLog({ step: 'move_workspace', windowId: newWin, target: TARGET_WORKSPACE, actual: actualDesktop });
+  const actualDesktop = getWindowDesktop(newWinId);
+  writeLog({ step: 'move_workspace', windowId: newWinId, target: TARGET_WORKSPACE, actual: actualDesktop });
   if (actualDesktop !== TARGET_WORKSPACE) {
     bail('move_workspace', `expected desktop ${TARGET_WORKSPACE}, got ${actualDesktop}`);
   }
 
   // STEP 5: maximize
-  cmd(`wmctrl -i -r ${newWin} -b add,maximized_vert,maximized_horz`);
+  cmd(`wmctrl -i -r ${newWinId} -b add,maximized_vert,maximized_horz`);
   await sleep(400);
   const screen = getScreenDimensions();
-  const geom = getWindowGeometry(newWin);
+  const geom = getWindowGeometry(newWinId);
   writeLog({ step: 'maximize', ...(geom || {}), ...(screen ? { screenW: screen.w, screenH: screen.h } : {}) });
 
   // STEP 6: switch to target workspace, then activate window
   cmd(`wmctrl -s ${TARGET_WORKSPACE}`);
   await sleep(400);
-  cmd(`wmctrl -i -a ${newWin}`);
+  cmd(`wmctrl -i -a ${newWinId}`);
   let activateOk = false;
   for (let i = 0; i < 3; i++) {
     await sleep(300);
     const active = getActiveWindow();
-    if (winIdsMatch(active, newWin)) { activateOk = true; break; }
+    if (winIdsMatch(active, newWinId)) { activateOk = true; break; }
   }
   const activeAfter = getActiveWindow();
-  writeLog({ step: 'activate', expected: newWin, actual: activeAfter, ok: activateOk });
-  if (!activateOk) bail('activate', `window ${newWin} did not become active (got ${activeAfter})`);
+  writeLog({ step: 'activate', expected: newWinId, actual: activeAfter, ok: activateOk });
+  if (!activateOk) bail('activate', `window ${newWinId} did not become active (got ${activeAfter})`);
 
   // STEP 7: xdotool windowfocus
-  cmd(`xdotool windowfocus --sync ${newWin}`);
+  cmd(`xdotool windowfocus --sync ${newWinId}`);
   await sleep(200);
   const focusedActive = getActiveWindow();
-  const focusOk = winIdsMatch(focusedActive, newWin);
-  writeLog({ step: 'windowfocus', ok: focusOk, actual: focusedActive, expected: newWin });
-  if (!focusOk) bail('windowfocus', `window focus mismatch: got ${focusedActive}, expected ${newWin}`);
+  const focusOk = winIdsMatch(focusedActive, newWinId);
+  writeLog({ step: 'windowfocus', ok: focusOk, actual: focusedActive, expected: newWinId });
+  if (!focusOk) bail('windowfocus', `window focus mismatch: got ${focusedActive}, expected ${newWinId}`);
 
   // STEP 8: settle
   await sleep(500);
   writeLog({ step: 'settle', ms: 500 });
 
   // STEP 9: press F12
-  cmd(`xdotool key --window ${newWin} F12`);
+  cmd(`xdotool key --window ${newWinId} F12`);
   await sleep(1500);
   writeLog({ step: 'key_F12', sent: true });
 
@@ -223,8 +227,9 @@ async function run() {
   while (Date.now() - pollStart < 10000) {
     await sleep(500);
     pollAttempts++;
-    const res = await httpGet(`http://localhost:${SERVER_PORT}/eval-status`);
-    if (res.ok && res.body && res.body.panelConnected === true) {
+    const res = await httpGet(`http://localhost:${SERVER_PORT}/eval-status`) as Record<string, unknown>;
+    const resBody = res.body as Record<string, unknown> | undefined;
+    if (res.ok && resBody && resBody.panelConnected === true) {
       panelConnected = true;
       break;
     }
@@ -241,7 +246,7 @@ async function run() {
   closeLog();
   console.log(JSON.stringify({
     ok: true,
-    windowId: newWin,
+    windowId: newWinId,
     workspace: TARGET_WORKSPACE,
     panelConnected: true,
     elapsedMs,
