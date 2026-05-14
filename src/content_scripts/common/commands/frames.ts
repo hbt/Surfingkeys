@@ -1,5 +1,5 @@
 import { dispatchSKEvent } from '../runtime.js';
-import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { CommandAPI, NormalModule, HintsModule } from '../../../../@types/surfingkeys';
 
 export default function registerFrames(
     api: CommandAPI,
@@ -11,6 +11,8 @@ export default function registerFrames(
     _front: unknown,
     _browser: unknown
 ): void {
+    const nm = normal as NormalModule;
+    const hn = hints as HintsModule;
     const { mapkey } = api;
 
     mapkey('w', {
@@ -24,21 +26,22 @@ export default function registerFrames(
         // ensure frontend ready so that ui related actions can be available in iframes.
         dispatchSKEvent('ensureFrontEnd');
         if (window === top) {
-            (hints as any).create("iframe", function(element: any) {
-                element.scrollIntoView({
+            hn.create("iframe", function(element) {
+                const iframe = element as HTMLIFrameElement;
+                iframe.scrollIntoView({
                     behavior: 'auto',
                     block: 'center',
                     inline: 'center'
                 });
-                (normal as any).highlightElement(element);
-                element.contentWindow.focus();
+                nm.highlightElement(iframe);
+                iframe.contentWindow!.focus();
             }).then((hintsTotal: number) => {
                 if (hintsTotal === 0) {
-                    (normal as any).rotateFrame();
+                    nm.rotateFrame();
                 }
             });
         } else {
-            (normal as any).rotateFrame();
+            nm.rotateFrame();
         }
     });
 

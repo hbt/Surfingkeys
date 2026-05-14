@@ -1,5 +1,5 @@
 import { getBrowserName, getRealEdit, toggleQuote } from '../utils.js';
-import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { CommandAPI, InsertModule, FrontendAPI } from '../../../../@types/surfingkeys';
 
 export default function registerInsert(
     api: CommandAPI,
@@ -11,13 +11,15 @@ export default function registerInsert(
     front: unknown,
     _browser: unknown
 ): void {
+    const ins = insert as InsertModule;
+    const fr = front as FrontendAPI;
     const { imapkey } = api;
 
     function openVim(useNeovim: boolean): void {
         var element = getRealEdit();
         element.blur();
-        (insert as any).exit();
-        (front as any).showEditor(element, null, null, useNeovim);
+        ins.exit();
+        fr.showEditor(element, null, null, useNeovim);
     }
 
     imapkey("<Ctrl-'>", {

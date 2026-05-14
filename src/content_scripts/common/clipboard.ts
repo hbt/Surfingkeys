@@ -5,17 +5,18 @@ import {
     setSanitizedContent,
     showBanner,
 } from './utils.js';
+import type { ClipboardManager, ClipboardResponse } from '../../../@types/surfingkeys';
 
-function createClipboard() {
-    var self: any = {};
+function createClipboard(): ClipboardManager {
+    const self = {} as ClipboardManager;
 
     var holder = document.createElement('textarea');
     holder.contentEditable = "true";
-    (holder as any).enableAutoFocus = true;
+    (holder as unknown as { enableAutoFocus: boolean }).enableAutoFocus = true;
     holder.id = 'sk_clipboard';
 
-    function clipboardActionWithSelectionPreserved(cb: any) {
-        actionWithSelectionPreserved(function(selection: any) {
+    function clipboardActionWithSelectionPreserved(cb: (selection: Selection | null) => void) {
+        actionWithSelectionPreserved(function(selection: Selection | null) {
             // avoid editable body
             document.documentElement.appendChild(holder);
 
@@ -36,10 +37,10 @@ function createClipboard() {
      *   console.log(response.data);
      * });
      */
-    self.read = function(onReady: any) {
+    self.read = function(onReady: (response: ClipboardResponse) => void) {
         if (getBrowserName().startsWith("Safari")) {
             RUNTIME('readClipboard', null, function(response) {
-                onReady(response);
+                onReady(response as unknown as ClipboardResponse);
             });
             return;
         }
@@ -77,7 +78,7 @@ function createClipboard() {
      * @example
      * Clipboard.write(window.location.href);
      */
-    self.write = function(text: any) {
+    self.write = function(text: string) {
         const cb = () => {
             showBanner("Copied: " + text);
         };

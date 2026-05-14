@@ -10,13 +10,67 @@ import {
     isInUIFrame,
     mapInMode,
     scrollIntoViewIfNeeded,
-    setSanitizedContent,
     showBanner,
     showPopup,
 } from './utils.js';
+import type { ModeConstructor, ModeInstance, SKKeyboardEvent, TrieConstructor } from '../../../@types/surfingkeys';
 
-function createDisabled(normal: any) {
-    const self = new (Mode as any)("Disabled");
+// Scroll node: Element augmented with sk scroll helpers
+interface SKScrollNode extends Element {
+    skScrollBy?(x: number, y: number): void;
+    smoothScrollBy?(x: number, y: number, d: number): void;
+    safeScroll_?(prop: string, value: number, increasing: boolean): boolean;
+    lastScrollTop?: number;
+    lastScrollLeft?: number;
+    dataset: DOMStringMap;
+    style: CSSStyleDeclaration;
+}
+
+interface DisabledModeInstance extends ModeInstance {
+    activatedOnElement: boolean;
+}
+
+interface LurkModeInstance extends ModeInstance {
+    enter(priority?: number, reentrant?: boolean): number;
+}
+
+interface PassThroughModeInstance extends ModeInstance {
+    setTimeout(timeout: number): void;
+    statusLine: string;
+}
+
+interface NormalModeInstance extends ModeInstance {
+    passFocus(pf: boolean): void;
+    startLurk(): string;
+    revertToLurk(): void;
+    getLurkMode(): LurkModeInstance | undefined;
+    addLurkMap(new_keystroke: string, old_keystroke: string): void;
+    toggleBlocklist(): void;
+    passThrough(timeout?: number): PassThroughModeInstance;
+    once(): void;
+    scroll(type: string): void;
+    refreshScrollableElements(): SKScrollNode[] | null;
+    addScrollableElement(elm: SKScrollNode): void;
+    rotateFrame(): void;
+    feedkeys(keys: string): void;
+    setLastKeys(key: string): void;
+    appendKeysForRepeat(mode: string, keys: string): void;
+    addVIMark(mark: string, url?: string): void;
+    jumpVIMark(mark: string): void;
+    moveTab(pos: number): void;
+    captureElement(elm: Element | null): void;
+    highlightElement(elm: SKScrollNode): void;
+    disable(onElement: boolean): void;
+    enable(): void;
+    isScrollKeyInHints(key: string): boolean;
+    repeats: string;
+    statusLine: string;
+}
+
+type HandleMapKeyFn = (this: unknown, event: SKKeyboardEvent, onNoMatched?: () => void) => boolean;
+
+function createDisabled(normal: NormalModeInstance) {
+    const self = new (Mode as unknown as ModeConstructor)("Disabled") as DisabledModeInstance;
 
     // hide status line for Disabled mode
     self.statusLine = "";
@@ -25,10 +79,10 @@ function createDisabled(normal: any) {
     self.priority = 99;
 
     self.activatedOnElement = false;
-    self.addEventListener('keydown', function(event: any) {
+    self.addEventListener('keydown', function(event: SKKeyboardEvent) {
         // prevent this event to be handled by Surfingkeys' other listeners
         event.sk_suppressed = true;
-        if (self.activatedOnElement && !document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
+        if (self.activatedOnElement && !document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as unknown as string)) {
             normal.enable();
             self.activatedOnElement = false;
         } else if (Mode.isSpecialKeyOf("<Alt-s>", event.sk_keyName)) {
@@ -41,8 +95,8 @@ function createDisabled(normal: any) {
     return self;
 }
 
-function createLurk(normal: any) {
-    const self = new (Mode as any)("Lurk");
+function createLurk(normal: NormalModeInstance) {
+    const self = new (Mode as unknown as ModeConstructor)("Lurk") as LurkModeInstance;
 
     function enterNormal() {
         normal.enter();
@@ -53,7 +107,7 @@ function createLurk(normal: any) {
         }
     }
 
-    self.mappings = new (Trie as any)();
+    self.mappings = new (Trie as unknown as TrieConstructor)();
     self.map_node = self.mappings;
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
         annotation: {
@@ -84,10 +138,10 @@ function createLurk(normal: any) {
     });
 
     // Lurk and Disabled should be mutually exclusive.
-    self.addEventListener('keydown', function(event: any) {
+    self.addEventListener('keydown', function(event: SKKeyboardEvent) {
         var realTarget = getRealEdit(event);
         if (!isEditable(realTarget) && event.sk_keyName.length) {
-            Mode.handleMapKey.call(self, event);
+            (Mode.handleMapKey as unknown as HandleMapKeyFn).call(self, event);
             if (event.sk_stopPropagation) {
                 // keyup event also needs to be suppressed for the key whose keydown has been suppressed.
                 Mode.suppressKeyUp(event.keyCode);
@@ -98,10 +152,10 @@ function createLurk(normal: any) {
 }
 
 function createPassThrough() {
-    var self = new (Mode as any)("PassThrough");
-    var _autoExit: any, _timeout: any;
+    var self = new (Mode as unknown as ModeConstructor)("PassThrough") as PassThroughModeInstance;
+    var _autoExit: ReturnType<typeof setTimeout> | undefined, _timeout: number = 0;
 
-    self.addEventListener('keydown', function(event: any) {
+    self.addEventListener('keydown', function(event: SKKeyboardEvent) {
         // prevent this event to be handled by Surfingkeys' other listeners
         event.sk_suppressed = true;
         if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
@@ -116,10 +170,10 @@ function createPassThrough() {
                 self.exit();
             }, _timeout);
         }
-    }).addEventListener('mousedown', function(event: any) {
+    }).addEventListener('mousedown', function(event: SKKeyboardEvent) {
         event.sk_suppressed = true;
     });
-    self.addEventListener('focus', function(event: any) {
+    self.addEventListener('focus', function(event: SKKeyboardEvent) {
         event.sk_suppressed = true;
     });
 
@@ -134,34 +188,34 @@ function createPassThrough() {
         }
     };
 
-    self.setTimeout = function(timeout: any) {
+    self.setTimeout = function(timeout: number) {
         _timeout = timeout;
     };
 
     return self;
 }
 
-function createNormal(insert: any) {
-    var self = new (Mode as any)("Normal");
+function createNormal(insert: ModeInstance) {
+    var self = new (Mode as unknown as ModeConstructor)("Normal") as NormalModeInstance;
 
-    self.mappings = new (Trie as any)();
+    self.mappings = new (Trie as unknown as TrieConstructor)();
     self.map_node = self.mappings;
 
     // let next focus event pass
     var _passFocus = false;
-    self.passFocus = function(pf: any) {
+    self.passFocus = function(pf: boolean) {
         _passFocus = pf;
     };
 
-    let _lurk: any = undefined;
+    let _lurk: LurkModeInstance | undefined = undefined;
     self.startLurk = () => {
         let state = "lurking";
         if (!_lurk) {
             self.exit();
             _lurk = createLurk(self);
             _lurkMaps!.forEach((keymap) => {
-                mapInMode(_lurk, keymap[0], keymap[1]);
-                _lurk.mappings.remove(KeyboardUtils.encodeKeystroke(keymap[1]));
+                mapInMode(_lurk! as unknown as Parameters<typeof mapInMode>[0], keymap[0], keymap[1]);
+                _lurk!.mappings.remove(KeyboardUtils.encodeKeystroke(keymap[1]));
             });
             _lurkMaps = undefined;
             _lurk.enter(0, true);
@@ -182,13 +236,13 @@ function createNormal(insert: any) {
     self.getLurkMode = () => {
         return _lurk;
     };
-    let _lurkMaps: any[] | undefined = [];
-    self.addLurkMap = (new_keystroke: any, old_keystroke: any) => {
+    let _lurkMaps: [string, string][] | undefined = [];
+    self.addLurkMap = (new_keystroke: string, old_keystroke: string) => {
         _lurkMaps!.push([new_keystroke, old_keystroke]);
     };
 
     var _once = false;
-    self.addEventListener('keydown', function(event: any) {
+    self.addEventListener('keydown', function(event: SKKeyboardEvent) {
         var realTarget = getRealEdit(event);
         if (isEditable(realTarget) && event.isTrusted) {
             if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
@@ -199,7 +253,7 @@ function createNormal(insert: any) {
                     self.statusLine = "Press i to enter Insert mode";
                     runtime.conf.showModeStatus = true;
                     if (event.sk_keyName.length) {
-                        Mode.handleMapKey.call(self, event);
+                        (Mode.handleMapKey as unknown as HandleMapKeyFn).call(self, event);
                     }
                 } else {
                     event.sk_stopPropagation = (runtime.conf.editableBodyCare
@@ -210,31 +264,31 @@ function createNormal(insert: any) {
                     }
 
                     var stealFocus = false;
+                    var n: Element = realTarget;
                     if (!isElementPartiallyInViewport(realTarget)) {
-                        var n = realTarget;
                         while (n !== document.documentElement && !n.newlyCreated) {
-                            n = n.parentElement;
+                            n = n.parentElement ?? n;
                         }
-                        stealFocus = n !== document.documentElement && n.newlyCreated;
+                        stealFocus = n !== document.documentElement && !!n.newlyCreated;
                     }
                     if (stealFocus) {
                         // steal focus from dynamically created input widget
                         realTarget.blur();
                         delete n.newlyCreated;
-                        Mode.handleMapKey.call(self, event);
+                        (Mode.handleMapKey as unknown as HandleMapKeyFn).call(self, event);
                     } else {
                         // keep cursor where it is
-                        insert.enter(realTarget, true);
+                        (insert as unknown as { enter: (elm: Element, keepCursor: boolean) => void }).enter(realTarget, true);
                     }
 
                 }
             }
         } else if (Mode.isSpecialKeyOf("<Alt-s>", event.sk_keyName)) {
             self.toggleBlocklist();
-            Mode.finish(self);
+            Mode.finish(self as unknown as Parameters<typeof Mode.finish>[0]);
             event.sk_stopPropagation = true;
         } else if (event.sk_keyName.length) {
-            var done = Mode.handleMapKey.call(self, event, () => {
+            var done = (Mode.handleMapKey as unknown as HandleMapKeyFn).call(self, event, () => {
                 // revert to lurk only when Esc is not handled and lurk mode available.
                 if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName) && _lurk) {
                     self.revertToLurk();
@@ -250,10 +304,10 @@ function createNormal(insert: any) {
             Mode.suppressKeyUp(event.keyCode);
         }
     });
-    self.addEventListener('blur', function(_event: any) {
+    self.addEventListener('blur', function(_event: SKKeyboardEvent) {
         keyHeld = 0;
     });
-    self.addEventListener('focus', function(event: any) {
+    self.addEventListener('focus', function(event: SKKeyboardEvent) {
         Mode.showStatus();
         if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
             var elm = getRealEdit(event);
@@ -270,12 +324,12 @@ function createNormal(insert: any) {
             }
         }
     });
-    self.addEventListener('keyup', function(_event: any) {
+    self.addEventListener('keyup', function(_event: SKKeyboardEvent) {
         setTimeout(function() {
             keyHeld = 0;
         }, 0);
     });
-    self.addEventListener('mousedown', function(event: any) {
+    self.addEventListener('mousedown', function(event: SKKeyboardEvent) {
         // The isTrusted read-only property of the Event interface is a boolean
         // that is true when the event was generated by a user action, and false
         // when the event was created or modified by a script or dispatched via dispatchEvent.
@@ -290,12 +344,12 @@ function createNormal(insert: any) {
         var realTarget = getRealEdit(event);
         if (isEditable(realTarget)) {
             // keep cursor where it is
-            insert.enter(realTarget, true);
+            (insert as unknown as { enter: (elm: Element, keepCursor: boolean) => void }).enter(realTarget, true);
         } else {
             insert.exit();
         }
 
-        if (document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as any)) {
+        if (document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as unknown as string)) {
             setTimeout(() => {
                 self.disable(true);
             }, 100);
@@ -307,14 +361,15 @@ function createNormal(insert: any) {
             RUNTIME('toggleBlocklist', {
                 blocklistPattern: (runtime.conf.blocklistPattern ? runtime.conf.blocklistPattern : "")
             }, function(resp) {
-                if (resp.state === "disabled") {
-                    if (resp.blocklist.hasOwnProperty(".*")) {
+                const r = resp as { state: string; url: string; blocklist: Record<string, unknown> };
+                if (r.state === "disabled") {
+                    if (r.blocklist.hasOwnProperty(".*")) {
                         showBanner('Surfingkeys is globally disabled, please enable it globally from popup menu.', 3000);
                     } else {
-                        showBanner('Surfingkeys turned OFF for ' + resp.url, 3000);
+                        showBanner('Surfingkeys turned OFF for ' + r.url, 3000);
                     }
                 } else {
-                    showBanner('Surfingkeys turned ON for ' + resp.url, 3000);
+                    showBanner('Surfingkeys turned ON for ' + r.url, 3000);
                 }
             });
         } else {
@@ -330,8 +385,8 @@ function createNormal(insert: any) {
      * @name Normal.passThrough
      *
      */
-    self.passThrough = function(timeout: any) {
-        _passThrough.setTimeout(timeout);
+    self.passThrough = function(timeout?: number) {
+        _passThrough.setTimeout(timeout ?? 0);
         _passThrough.enter();
         return _passThrough;
     };
@@ -369,19 +424,19 @@ function createNormal(insert: any) {
     self.repeats = "";
     var keyHeld = 0;
 
-    var scrollNodes: any, scrollIndex = 0,
-        lastKeys: any;
+    var scrollNodes: SKScrollNode[] | null, scrollIndex = 0,
+        lastKeys: string[];
 
-    function _easeFn(t: any, b: any, c: any, d: any) {
+    function _easeFn(t: number, b: number, c: number, d: number) {
         // t: current time, b: begInnIng value, c: change In value, d: duration
         return (t === d) ? b + c : c * (-Math.pow(2, -10 * t / d) + 1) + b;
     }
 
-    var _nodesHasSKScroll: any[] = [];
-    function initScroll(elm: any) {
-        elm.skScrollBy = function(x: any, y: any) {
+    var _nodesHasSKScroll: SKScrollNode[] = [];
+    function initScroll(elm: SKScrollNode) {
+        elm.skScrollBy = function(x: number, y: number) {
             if (runtime.conf.smartPageBoundary && ((this === document.scrollingElement)
-                || scrollNodes.length === 1 && this === scrollNodes[0])) {
+                || scrollNodes!.length === 1 && this === scrollNodes![0])) {
                 if (this.scrollTop === 0 && y < 0) {
                     return dispatchSKEvent("hints", ['topBoundaryHit']);
                 }
@@ -389,14 +444,14 @@ function createNormal(insert: any) {
                     return dispatchSKEvent("hints", ['bottomBoundaryHit']);
                 }
             }
-            if ((RUNTIME as any).repeats > 1) {
-                x = (RUNTIME as any).repeats * x;
-                y = (RUNTIME as any).repeats * y;
-                (RUNTIME as any).repeats = 0;
+            if ((RUNTIME as unknown as { repeats: number }).repeats > 1) {
+                x = (RUNTIME as unknown as { repeats: number }).repeats * x;
+                y = (RUNTIME as unknown as { repeats: number }).repeats * y;
+                (RUNTIME as unknown as { repeats: number }).repeats = 0;
             }
             if (runtime.conf.smoothScroll) {
                 var d = Math.max(100, 20 * Math.log(Math.abs( x || y)));
-                elm.smoothScrollBy(x, y, d);
+                elm.smoothScrollBy!(x, y, d);
             } else {
                 dispatchSKEvent("hints", ['scrollStarted']);
                 elm.scrollBy({
@@ -407,48 +462,50 @@ function createNormal(insert: any) {
                 dispatchSKEvent("hints", ['scrollDone']);
             }
         };
-        elm.safeScroll_ = (prop: any, value: any, increasing: any) => {
+        elm.safeScroll_ = (prop: string, value: number, increasing: boolean) => {
             const clientHeight = elm === document.scrollingElement ? window.innerHeight : elm.clientHeight;
             const clientWidth = elm === document.scrollingElement ? window.innerWidth : elm.clientWidth;
             const range = prop === "scrollTop" ? [0, elm.scrollHeight - clientHeight] : [0, elm.scrollWidth - clientWidth];
             const boundary = increasing ? range[1] : range[0];
+            const elmAsRecord = elm as unknown as Record<string, number>;
             if (value >= range[0] && value <= range[1]) {
-                elm[prop] = value;
+                elmAsRecord[prop] = value;
                 return false;
             } else {
-                elm[prop] = boundary;
+                elmAsRecord[prop] = boundary;
                 return true;
             }
         };
-        elm.smoothScrollBy = function(x: any, y: any, d: any) {
+        elm.smoothScrollBy = function(x: number, y: number, d: number) {
             if (!keyHeld) {
                 var [prop, distance] = y ? ['scrollTop', y] : ['scrollLeft', x],
                     duration = d,
                     previousTimestamp = 0,
-                    originValue = elm[prop],
+                    originValue = (elm as unknown as Record<string, number>)[prop],
                     stepCompleted = false;
                 keyHeld = 1;
-                function step(t: any) {
+                function step(t: number) {
                     if (previousTimestamp === 0) {
                         // init previousTimestamp in first step
                         previousTimestamp = t;
                         dispatchSKEvent("hints", ['scrollStarted']);
                         return window.requestAnimationFrame(step);
                     }
-                    var old = elm[prop], delta = (t - previousTimestamp) * distance / duration;
+                    const elmRec = elm as unknown as Record<string, number>;
+                    var old = elmRec[prop], delta = (t - previousTimestamp) * distance / duration;
                     let boundaryHit = false;
                     if (Math.abs(old + delta - originValue) >= Math.abs(distance)) {
                         stepCompleted = true;
                         if (keyHeld > runtime.conf.scrollFriction) {
-                            boundaryHit = elm.safeScroll_(prop, old + delta, distance > 0);
-                            originValue = elm[prop];
+                            boundaryHit = elm.safeScroll_!(prop, old + delta, distance > 0);
+                            originValue = elmRec[prop];
                         } else if (keyHeld > 0) {
                             keyHeld ++;
                         } else {
-                            boundaryHit = elm.safeScroll_(prop, originValue + distance, distance > 0);
+                            boundaryHit = elm.safeScroll_!(prop, originValue + distance, distance > 0);
                         }
                     } else {
-                        boundaryHit = elm.safeScroll_(prop, old + delta, distance > 0);
+                        boundaryHit = elm.safeScroll_!(prop, old + delta, distance > 0);
                     }
                     previousTimestamp = t;
 
@@ -471,22 +528,22 @@ function createNormal(insert: any) {
     // set scrollIndex to the highest node
     function initScrollIndex() {
         if (!scrollNodes || scrollNodes.length === 0) {
-            scrollNodes = Mode.getScrollableElements();
-            scrollNodes.forEach(function (n: any) {
-                n.removeEventListener('mousedown', scrollableMousedownHandler);
-                n.addEventListener('mousedown', scrollableMousedownHandler);
-                n.dataset.hint_scrollable = true;
+            scrollNodes = Mode.getScrollableElements() as SKScrollNode[];
+            scrollNodes.forEach(function (n: SKScrollNode) {
+                n.removeEventListener('mousedown', scrollableMousedownHandler as EventListener);
+                n.addEventListener('mousedown', scrollableMousedownHandler as EventListener);
+                n.dataset.hint_scrollable = "true";
             });
             scrollIndex = 0;
         }
     }
 
-    function scrollableMousedownHandler(e: any) {
-        var n = e.currentTarget;
-        if (!n.contains(e.target)) return;
-        var index = scrollNodes.lastIndexOf(e.target);
-        for (var i = scrollNodes.length - 1; i >= 0 && index === -1; i--) {
-            if (scrollNodes[i] !== document.body && scrollNodes[i].contains(e.target)) {
+    function scrollableMousedownHandler(e: MouseEvent) {
+        const n = e.currentTarget as Node | null;
+        if (!n || !n.contains(e.target as Node)) return;
+        var index = scrollNodes!.lastIndexOf(e.target as SKScrollNode);
+        for (var i = scrollNodes!.length - 1; i >= 0 && index === -1; i--) {
+            if (scrollNodes![i] !== document.body && scrollNodes![i].contains(e.target as Node)) {
                 index = i;
             }
         }
@@ -495,7 +552,7 @@ function createNormal(insert: any) {
         }
     }
 
-    self.highlightElement = function(elm: any) {
+    self.highlightElement = function(elm: SKScrollNode) {
         var rc;
         if (document.scrollingElement === elm) {
             rc = {
@@ -517,11 +574,11 @@ function createNormal(insert: any) {
             }
         }]);
     };
-    function changeScrollTarget(silent?: any) {
-        scrollNodes = Mode.getScrollableElements();
-        if (scrollNodes.length > 0) {
-            scrollIndex = (scrollIndex + 1) % scrollNodes.length;
-            var sn = scrollNodes[scrollIndex];
+    function changeScrollTarget(silent?: boolean) {
+        scrollNodes = Mode.getScrollableElements() as SKScrollNode[];
+        if (scrollNodes!.length > 0) {
+            scrollIndex = (scrollIndex + 1) % scrollNodes!.length;
+            var sn = scrollNodes![scrollIndex];
             scrollIntoViewIfNeeded(sn);
             if (!silent) {
                 self.highlightElement(sn);
@@ -545,7 +602,7 @@ function createNormal(insert: any) {
         ['rightmost', 'horizontal']
     ]);
 
-    function canScrollInDirection(elm: any, direction: any) {
+    function canScrollInDirection(elm: SKScrollNode, direction: string) {
         const isMainPage = elm === document.scrollingElement || elm === document.body;
         const clientHeight = isMainPage ? window.innerHeight : elm.clientHeight;
         const clientWidth = isMainPage ? window.innerWidth : elm.clientWidth;
@@ -567,10 +624,10 @@ function createNormal(insert: any) {
      * @name Normal.scroll
      *
      */
-    self.scroll = function(type: any) {
+    self.scroll = function(type: string) {
         initScrollIndex();
-        var scrollNode: any = document.scrollingElement;
-        if (scrollNodes.length > 0) {
+        var scrollNode: SKScrollNode | null = document.scrollingElement as SKScrollNode | null;
+        if (scrollNodes && scrollNodes.length > 0) {
             scrollNode = scrollNodes[scrollIndex];
             if (scrollNode !== document.scrollingElement && scrollNode !== document.body) {
                 var br = scrollNode.getBoundingClientRect();
@@ -578,7 +635,7 @@ function createNormal(insert: any) {
                     || !Mode.hasScroll(scrollNode, 'x', 16) && !Mode.hasScroll(scrollNode, 'y', 16)) {
                     // Recompute scrollable elements, the webpage has changed.
                     self.refreshScrollableElements();
-                    scrollNode = scrollNodes[scrollIndex];
+                    scrollNode = scrollNodes ? scrollNodes[scrollIndex] : null;
                 }
             }
         }
@@ -586,7 +643,7 @@ function createNormal(insert: any) {
             // to set document.body.style.overflow auto will make document.scrollingElement null
             // set visible to bring it back.
             document.body.style.overflow = 'visible';
-            scrollNode = document.scrollingElement;
+            scrollNode = document.scrollingElement as SKScrollNode | null;
         }
         if (!scrollNode) {
             // scrollNode could be null on a page with frameset as its body.
@@ -600,14 +657,15 @@ function createNormal(insert: any) {
             const direction = scrollTypeDirections.get(type);
 
             if (direction && !canScrollInDirection(scrollNode, direction)) {
-                scrollNode = document.scrollingElement;
+                scrollNode = document.scrollingElement as SKScrollNode | null;
                 if (!scrollNode && document.body) {
                     document.body.style.overflow = 'visible';
-                    scrollNode = document.scrollingElement;
+                    scrollNode = document.scrollingElement as SKScrollNode | null;
                 }
             }
         }
 
+        if (!scrollNode) return;
         if (!scrollNode.skScrollBy) {
             initScroll(scrollNode);
         }
@@ -616,45 +674,45 @@ function createNormal(insert: any) {
         scrollNode.lastScrollLeft = scrollNode.scrollLeft;
         switch (type) {
             case 'down':
-                scrollNode.skScrollBy(0, runtime.conf.scrollStepSize);
+                scrollNode.skScrollBy!(0, runtime.conf.scrollStepSize);
                 break;
             case 'up':
-                scrollNode.skScrollBy(0, -runtime.conf.scrollStepSize);
+                scrollNode.skScrollBy!(0, -runtime.conf.scrollStepSize);
                 break;
             case 'pageDown':
-                scrollNode.skScrollBy(0, Math.round(size[1] / 2));
+                scrollNode.skScrollBy!(0, Math.round(size[1] / 2));
                 break;
             case 'fullPageDown':
-                scrollNode.skScrollBy(0, size[1]);
+                scrollNode.skScrollBy!(0, size[1]);
                 break;
             case 'pageUp':
-                scrollNode.skScrollBy(0, -Math.round(size[1] / 2));
+                scrollNode.skScrollBy!(0, -Math.round(size[1] / 2));
                 break;
             case 'fullPageUp':
-                scrollNode.skScrollBy(0, -size[1]);
+                scrollNode.skScrollBy!(0, -size[1]);
                 break;
             case 'top':
-                scrollNode.skScrollBy(0, -scrollNode.scrollTop);
+                scrollNode.skScrollBy!(0, -scrollNode.scrollTop);
                 break;
             case 'bottom':
-                scrollNode.skScrollBy(scrollNode.scrollLeft, scrollNode.scrollHeight - scrollNode.scrollTop);
+                scrollNode.skScrollBy!(scrollNode.scrollLeft, scrollNode.scrollHeight - scrollNode.scrollTop);
                 break;
             case 'left':
-                scrollNode.skScrollBy(-Math.round(runtime.conf.scrollStepSize / 2), 0);
+                scrollNode.skScrollBy!(-Math.round(runtime.conf.scrollStepSize / 2), 0);
                 break;
             case 'right':
-                scrollNode.skScrollBy(Math.round(runtime.conf.scrollStepSize / 2), 0);
+                scrollNode.skScrollBy!(Math.round(runtime.conf.scrollStepSize / 2), 0);
                 break;
             case 'leftmost':
-                scrollNode.skScrollBy(-scrollNode.scrollLeft - 10, 0);
+                scrollNode.skScrollBy!(-scrollNode.scrollLeft - 10, 0);
                 break;
             case 'rightmost':
-                scrollNode.skScrollBy(scrollNode.scrollWidth - scrollNode.scrollLeft - size[0] + 20, 0);
+                scrollNode.skScrollBy!(scrollNode.scrollWidth - scrollNode.scrollLeft - size[0] + 20, 0);
                 break;
             case 'byRatio':
-                var y = Math.floor((RUNTIME as any).repeats * scrollNode.scrollHeight / 100) - size[1] / 2 - scrollNode.scrollTop;
-                (RUNTIME as any).repeats = 0;
-                scrollNode.skScrollBy(0, y);
+                var y = Math.floor((RUNTIME as unknown as { repeats: number }).repeats * scrollNode.scrollHeight / 100) - size[1] / 2 - scrollNode.scrollTop;
+                (RUNTIME as unknown as { repeats: number }).repeats = 0;
+                scrollNode.skScrollBy!(0, y);
                 break;
             default:
                 break;
@@ -668,17 +726,17 @@ function createNormal(insert: any) {
         return scrollNodes;
     };
 
-    self.addScrollableElement = function(elm: any) {
+    self.addScrollableElement = function(elm: SKScrollNode) {
         if (!scrollNodes || !elm.contains(scrollNodes[scrollIndex]) && scrollNodes.indexOf(elm) === -1) {
             initScrollIndex();
-            scrollNodes.push(elm);
-            scrollIndex = scrollNodes.length - 1;
+            scrollNodes!.push(elm);
+            scrollIndex = scrollNodes!.length - 1;
         }
     };
 
     self.rotateFrame = function() {
         RUNTIME('nextFrame', {
-            frameId: (window as any).frameId
+            frameId: (window as unknown as { frameId: number }).frameId
         });
     };
 
@@ -689,18 +747,18 @@ function createNormal(insert: any) {
      * @name Normal.feedkeys
      *
      */
-    self.feedkeys = function(keys: any) {
+    self.feedkeys = function(keys: string) {
         setTimeout(function() {
             var evt = new Event("keydown");
             for (var i = 0; i < keys.length; i ++) {
-                (evt as any).sk_keyName = keys[i];
-                Mode.handleMapKey.call(self, evt);
+                (evt as unknown as SKKeyboardEvent).sk_keyName = keys[i];
+                (Mode.handleMapKey as unknown as HandleMapKeyFn).call(self, evt as unknown as SKKeyboardEvent);
             }
         }, 1);
     };
 
-    self.setLastKeys = function(key: any) {
-        if (!this.map_node.meta.repeatIgnore && key.length > 1) {
+    self.setLastKeys = function(key: string) {
+        if (!this.map_node.meta?.repeatIgnore && key.length > 1) {
             lastKeys = [key];
             saveLastKeys();
         }
@@ -714,7 +772,7 @@ function createNormal(insert: any) {
         });
     }
 
-    self.appendKeysForRepeat = function(mode: any, keys: any) {
+    self.appendKeysForRepeat = function(mode: string, keys: string) {
         if (lastKeys && lastKeys.length > 0) {
             // keys for normal mode must be pushed.
             lastKeys.push('{0}\t{1}'.format(mode, keys));
@@ -722,9 +780,9 @@ function createNormal(insert: any) {
         }
     };
 
-    self.addVIMark = function(mark: any, url: any) {
+    self.addVIMark = function(mark: string, url?: string) {
         url = url || window.location.href;
-        var mo: Record<string, any> = {};
+        var mo: Record<string, { url: string; scrollLeft: number; scrollTop: number }> = {};
         mo[mark] = {
             url: url,
             scrollLeft: document.scrollingElement!.scrollLeft,
@@ -741,12 +799,12 @@ function createNormal(insert: any) {
      * @name Normal.jumpVIMark
      *
      */
-    self.jumpVIMark = function(mark: any) {
+    self.jumpVIMark = function(mark: string) {
         if (mark === "'") {
-            let scrollNode: any = document.scrollingElement;
+            let scrollNode: SKScrollNode | null = document.scrollingElement as SKScrollNode | null;
             initScrollIndex();
-            if (scrollNodes.length > 0) {
-                scrollNode = scrollNodes[scrollIndex];
+            if (scrollNodes && scrollNodes.length > 0) {
+                scrollNode = scrollNodes![scrollIndex];
                 if (scrollNode.lastScrollTop !== undefined && scrollNode.lastScrollLeft !== undefined) {
                     const lt = scrollNode.scrollTop;
                     const ll = scrollNode.scrollLeft;
@@ -763,37 +821,40 @@ function createNormal(insert: any) {
         }
     };
 
-    self.moveTab = function(pos: any) {
+    self.moveTab = function(pos: number) {
         RUNTIME('moveTab', {
             position: pos
         });
     };
 
-    self.captureElement = function(elm: any) {
+    self.captureElement = function(elm: Element | null) {
+        if (!elm) return;
+        const elmS = elm as HTMLElement;
         RUNTIME('getCaptureSize', null, function(response) {
-            var scale = response.width / window.innerWidth;
+            const capSize = response as { width: number };
+            var scale = capSize.width / window.innerWidth;
 
-            elm.scrollTop = 0;
-            elm.scrollLeft = 0;
+            elmS.scrollTop = 0;
+            elmS.scrollLeft = 0;
             var lastScrollTop = -1, lastScrollLeft = -1;
             // hide scrollbars
-            var overflowY = elm.style.overflowY;
-            elm.style.overflowY = "hidden";
-            var overflowX = elm.style.overflowX;
-            elm.style.overflowX = "hidden";
+            var overflowY = elmS.style.overflowY;
+            elmS.style.overflowY = "hidden";
+            var overflowX = elmS.style.overflowX;
+            elmS.style.overflowX = "hidden";
             // hide borders
-            var borderStyle = elm.style.borderStyle;
-            elm.style.borderStyle = "none";
+            var borderStyle = elmS.style.borderStyle;
+            elmS.style.borderStyle = "none";
             dispatchSKEvent("front", ['toggleStatus', false]);
 
-            var dx = 0, dy = 0, sx: any, sy: any, sw: any, sh: any, ww: any, wh: any, dh = elm.scrollHeight, dw = elm.scrollWidth;
-            if (elm === document.scrollingElement) {
+            var dx = 0, dy = 0, sx: number, sy: number, sw: number, sh: number, ww: number, wh: number, dh = elmS.scrollHeight, dw = elmS.scrollWidth;
+            if (elmS === document.scrollingElement) {
                 ww = window.innerWidth;
                 wh = window.innerHeight;
                 sx = 0;
                 sy = 0;
             } else {
-                var br = elm.getBoundingClientRect();
+                var br = elmS.getBoundingClientRect();
                 // visible rectangle
                 var rc = [
                     Math.max(br.left, 0),
@@ -814,51 +875,51 @@ function createNormal(insert: any) {
             canvas.height = dh * scale;
             var ctx = canvas.getContext( "2d" );
 
-            var br = elm.getBoundingClientRect();
+            var br = elmS.getBoundingClientRect();
             var img = document.createElement( "img" );
 
             img.onload = function() {
                 ctx!.drawImage(img, sx, sy, sw, sh, dx, dy, sw, sh);
-                if (lastScrollTop === elm.scrollTop) {
-                    if (lastScrollLeft === elm.scrollLeft) {
+                if (lastScrollTop === elmS.scrollTop) {
+                    if (lastScrollLeft === elmS.scrollLeft) {
                         // done
                         dispatchSKEvent("front", ['toggleStatus', true]);
                         showPopup("<img src='{0}' />".format(canvas.toDataURL( "image/png" )));
                         // restore overflow
-                        elm.style.overflowY = overflowY;
-                        elm.style.overflowX = overflowX;
+                        elmS.style.overflowY = overflowY;
+                        elmS.style.overflowX = overflowX;
                         // restore borders
-                        elm.style.borderStyle = borderStyle;
+                        elmS.style.borderStyle = borderStyle;
                     } else {
                         lastScrollTop = -1;
-                        elm.scrollTop = 0;
+                        elmS.scrollTop = 0;
                         dy = 0;
-                        lastScrollLeft = elm.scrollLeft;
-                        if (elm.scrollLeft + 2 * ww < dw) {
-                            elm.scrollLeft += ww;
+                        lastScrollLeft = elmS.scrollLeft;
+                        if (elmS.scrollLeft + 2 * ww < dw) {
+                            elmS.scrollLeft += ww;
                             dx += ww * scale;
                         } else {
-                            elm.scrollLeft += dw % ww;
-                            dx = elm.scrollLeft * scale;
+                            elmS.scrollLeft += dw % ww;
+                            dx = elmS.scrollLeft * scale;
                         }
                         setTimeout(function() {
                             RUNTIME('captureVisibleTab', null, function(response) {
-                                img.src = response.dataUrl;
+                                img.src = (response as { dataUrl: string }).dataUrl;
                             });
                         }, 1000);
                     }
                 } else {
-                    lastScrollTop = elm.scrollTop;
-                    if (elm.scrollTop + 2 * wh < dh) {
-                        elm.scrollTop += wh;
+                    lastScrollTop = elmS.scrollTop;
+                    if (elmS.scrollTop + 2 * wh < dh) {
+                        elmS.scrollTop += wh;
                         dy += wh * scale;
                     } else {
-                        elm.scrollTop += dh % wh;
-                        dy = elm.scrollTop * scale;
+                        elmS.scrollTop += dh % wh;
+                        dy = elmS.scrollTop * scale;
                     }
                     setTimeout(function() {
                         RUNTIME('captureVisibleTab', null, function(response) {
-                            img.src = response.dataUrl;
+                            img.src = (response as { dataUrl: string }).dataUrl;
                         });
                     }, 1000);
                 }
@@ -867,7 +928,7 @@ function createNormal(insert: any) {
             // wait 500 millisecond for keystrokes of Surfingkeys to hide
             setTimeout(function() {
                 RUNTIME('captureVisibleTab', null, function(response) {
-                    img.src = response.dataUrl;
+                    img.src = (response as { dataUrl: string }).dataUrl;
                 });
             }, 500);
 
@@ -899,8 +960,8 @@ function createNormal(insert: any) {
         code: function() {
             var scrollNode = document.scrollingElement;
             initScrollIndex();
-            if (scrollNodes.length > 0) {
-                scrollNode = scrollNodes[scrollIndex];
+            if (scrollNodes && scrollNodes.length > 0) {
+                scrollNode = scrollNodes![scrollIndex];
             }
             self.captureElement(scrollNode);
         }
@@ -918,22 +979,23 @@ function createNormal(insert: any) {
         code: function() {
             scrollNodes = null;
             initScrollIndex();
-            if (scrollNodes.length > 0) {
-                var scrollNode = scrollNodes[scrollIndex];
+            if (scrollNodes != null && (scrollNodes as SKScrollNode[]).length > 0) {
+                var scrollNode = (scrollNodes as SKScrollNode[])[scrollIndex];
                 self.highlightElement(scrollNode);
             }
         }
     });
 
-    const bindScrollForHints = (action: any) => {
-        const f = self.scroll.bind(self, action);
+    type ScrollFn = ((this: NormalModeInstance, type: string) => void) & { isSKScrollInHints?: boolean };
+    const bindScrollForHints = (action: string): ScrollFn => {
+        const f: ScrollFn = self.scroll.bind(self, action) as ScrollFn;
         // indicate that the key bound with this function is a key to scroll page and can be used to scroll in Hints mode.
         f.isSKScrollInHints = true;
         return f;
     };
-    self.isScrollKeyInHints = (key: any) => {
-        const bound = self.mappings[key];
-        return bound && bound.meta && bound.meta.code && bound.meta.code.isSKScrollInHints;
+    self.isScrollKeyInHints = (key: string) => {
+        const bound = self.mappings[key] as { meta?: { code?: { isSKScrollInHints?: boolean } } } | undefined;
+        return !!(bound && bound.meta && bound.meta.code && bound.meta.code.isSKScrollInHints);
     };
 
     self.mappings.add("e", {
@@ -1164,10 +1226,11 @@ function createNormal(insert: any) {
         }
     });
 
-    function _onMouseUp(event: any) {
+    function _onMouseUp(event: MouseEvent) {
+        const target = event.target as Element | null;
         if (runtime.conf.mouseSelectToQuery.indexOf(window.origin) !== -1
-            && !isElementClickable(event.target)
-            && !event.target.matches(".cm-matchhighlight")) {
+            && !isElementClickable(target as Element)
+            && !target?.matches(".cm-matchhighlight")) {
             // perform inline query after 1 ms
             // to avoid calling on selection collapse
             setTimeout(() => {
@@ -1176,8 +1239,8 @@ function createNormal(insert: any) {
         }
     }
 
-    var _disabled: any = null;
-    self.disable = function(onElement: any) {
+    var _disabled: DisabledModeInstance | null = null;
+    self.disable = function(onElement: boolean) {
         if (!_disabled) {
             _disabled = createDisabled(self);
             _disabled.enter(0, true);

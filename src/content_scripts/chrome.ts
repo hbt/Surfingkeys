@@ -12,7 +12,14 @@ function usePdfViewer() {
     window.location.replace(chrome.runtime.getURL("/pages/pdf_viewer.html") + "?file=" + encodeURIComponent(document.URL));
 }
 
-function readText(text: any, options: any) {
+interface ReadTextOptions {
+    enqueue?: boolean;
+    voiceName?: string;
+    verbose?: boolean;
+    onEnd?: () => void;
+}
+
+function readText(text: string, options: ReadTextOptions) {
     options = options || {
         enqueue: true,
         voiceName: runtime.conf.defaultVoice
@@ -27,33 +34,34 @@ function readText(text: any, options: any) {
         content: text,
         options: options
     }, function(res) {
+        const r = res as { ttsEvent: { type: string; charIndex: number } };
         if (verbose) {
-            if (res.ttsEvent.type === "start") {
+            if (r.ttsEvent.type === "start") {
                 showPopup(text);
-            } else if (res.ttsEvent.type === "word") {
-                stopPattern.lastIndex = res.ttsEvent.charIndex;
+            } else if (r.ttsEvent.type === "word") {
+                stopPattern.lastIndex = r.ttsEvent.charIndex;
                 var updated, end = stopPattern.exec(text);
                 if (end) {
-                    updated = text.substr(0, res.ttsEvent.charIndex)
+                    updated = text.substr(0, r.ttsEvent.charIndex)
                         + "<font style='font-weight: bold; text-decoration: underline'>"
-                        + text.substr(res.ttsEvent.charIndex, end.index - res.ttsEvent.charIndex + 1)
+                        + text.substr(r.ttsEvent.charIndex, end.index - r.ttsEvent.charIndex + 1)
                         + "</font>"
                         + text.substr(end.index);
                 } else {
-                    updated = text.substr(0, res.ttsEvent.charIndex)
+                    updated = text.substr(0, r.ttsEvent.charIndex)
                         + "<font style='font-weight: bold; text-decoration: underline'>"
-                        + text.substr(res.ttsEvent.charIndex)
+                        + text.substr(r.ttsEvent.charIndex)
                         + "</font>";
                 }
                 showPopup(updated);
-            } else if (res.ttsEvent.type === "end") {
+            } else if (r.ttsEvent.type === "end") {
                 dispatchSKEvent("front", ['hidePopup']);
             }
         }
-        if (onEnd && (res.ttsEvent.type === "end" || res.ttsEvent.type === "interrupted")) {
+        if (onEnd && (r.ttsEvent.type === "end" || r.ttsEvent.type === "interrupted")) {
             onEnd();
         }
-        return res.ttsEvent.type !== "end";
+        return r.ttsEvent.type !== "end";
     });
 }
 

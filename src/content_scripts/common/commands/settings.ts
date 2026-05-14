@@ -1,7 +1,7 @@
 import { RUNTIME, runtime } from '../runtime.js';
 import KeyboardUtils from '../keyboardUtils.js';
 import { getBrowserName, htmlEncode, showPopup, tabOpenLink } from '../utils.js';
-import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { CommandAPI, ClipboardManager, NormalModule, HintsModule, FrontendAPI } from '../../../../@types/surfingkeys';
 
 export default function registerSettings(
     api: CommandAPI,
@@ -13,6 +13,10 @@ export default function registerSettings(
     front: unknown,
     _browser: unknown
 ): void {
+    const cb = clipboard as ClipboardManager;
+    const nm = normal as NormalModule;
+    const hn = hints as HintsModule;
+    const fr = front as FrontendAPI;
     const { mapkey, readText } = api;
 
     mapkey(";ql", {
@@ -40,7 +44,7 @@ export default function registerSettings(
         // ['se']
         // ['f', 'Hints\tBA']
         const lastKeys = runtime.conf.lastKeys;
-        (normal as any).feedkeys(lastKeys[0]);
+        nm.feedkeys(lastKeys[0]);
         var modeKeys = lastKeys.slice(1);
         for (var i = 0; i < modeKeys.length; i++) {
             var modeKey = modeKeys[i].split('\t');
@@ -48,7 +52,7 @@ export default function registerSettings(
                 function closureWrapper() {
                     var hintKeys = modeKey[1];
                     return function() {
-                        (hints as any).feedkeys(hintKeys);
+                        (hn as HintsModule & { feedkeys(keys: string): void }).feedkeys(hintKeys);
                     };
                 }
                 setTimeout(closureWrapper(), 120 + i*100);
@@ -74,7 +78,7 @@ export default function registerSettings(
         description: "Edit current URL in vim editor and open result in new tab",
         tags: ["settings", "vim", "url"]
     }, function() {
-        (front as any).showEditor(window.location.href, function(data: string) {
+        fr.showEditor(window.location.href, function(data: string) {
             tabOpenLink(data);
         }, 'url');
     });
@@ -86,7 +90,7 @@ export default function registerSettings(
         description: "Edit current URL in vim editor and reload to result",
         tags: ["settings", "vim", "url"]
     }, function() {
-        (front as any).showEditor(window.location.href, function(data: string) {
+        fr.showEditor(window.location.href, function(data: string) {
             window.location.href = data;
         }, 'url');
     });
@@ -100,7 +104,7 @@ export default function registerSettings(
             description: "Edit current URL in neovim and open result in new tab",
             tags: ["settings", "neovim", "url"]
         }, function() {
-            (front as any).showEditor(window.location.href, function(data: string) {
+            fr.showEditor(window.location.href, function(data: string) {
                 tabOpenLink(data);
             }, 'url', true);
         });
@@ -113,7 +117,7 @@ export default function registerSettings(
             tags: ["settings", "neovim", "source", "html"]
         }, function() {
             const source = document.documentElement.outerHTML;
-            (front as any).showEditor(source, null, 'html', true);
+            fr.showEditor(source, null, 'html', true);
         });
 
         mapkey('gr', {
@@ -124,8 +128,8 @@ export default function registerSettings(
             description: "Read selected text or clipboard content aloud using TTS",
             tags: ["settings", "tts", "accessibility"]
         }, function() {
-            (clipboard as any).read(function(response: any) {
-                readText(window.getSelection()?.toString() || response.data, {verbose: true} as any);
+            cb.read(function(response) {
+                readText(window.getSelection()?.toString() || response.data);
             });
         });
 
@@ -184,8 +188,9 @@ export default function registerSettings(
         description: "Copy all browser history URLs to clipboard",
         tags: ["settings", "history", "yank"]
     }, function() {
-        RUNTIME('getHistory', {}, function(response: any) {
-            (clipboard as any).write(response.history.map((h: any) => h.url).join("\n"));
+        RUNTIME('getHistory', {}, function(response) {
+            const history = (response as { history: { url: string }[] }).history;
+            cb.write(history.map((h) => h.url).join("\n"));
         });
     });
 
@@ -201,4 +206,3 @@ export default function registerSettings(
     });
     } // end !Safari guard
 }
-

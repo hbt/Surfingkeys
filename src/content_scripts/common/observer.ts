@@ -5,23 +5,27 @@ import {
 
 import Mode from './mode';
 
-function isElementPositionRelative(elm: any) {
+function isElementPositionRelative(elm: Element) {
     while (elm !== document.body) {
         if (getComputedStyle(elm).position === "relative") {
             return true;
         }
-        elm = elm.parentElement;
+        elm = elm.parentElement!;
     }
     return false;
 }
 
-function startScrollNodeObserver(normal: any) {
+interface NormalModeObserver {
+    addScrollableElement(el: Element): void;
+}
+
+function startScrollNodeObserver(normal: NormalModeObserver) {
     var pendingUpdater: ReturnType<typeof setTimeout> | undefined = undefined, DOMObserver = new MutationObserver(function (mutations) {
         var addedNodes: Node[] = [];
         for (var m of mutations) {
             for (var n of m.addedNodes) {
-                if (n.nodeType === Node.ELEMENT_NODE && !(n as any).fromSurfingKeys) {
-                    (n as any).newlyCreated = true;
+                if (n.nodeType === Node.ELEMENT_NODE && !(n as unknown as { fromSurfingKeys?: boolean }).fromSurfingKeys) {
+                    (n as unknown as { newlyCreated: boolean }).newlyCreated = true;
                     addedNodes.push(n);
                 }
             }
@@ -33,7 +37,7 @@ function startScrollNodeObserver(normal: any) {
                 pendingUpdater = undefined;
             }
             pendingUpdater = setTimeout(function() {
-                var possibleModalElements = getVisibleElements(function(e: any, v: any) {
+                var possibleModalElements = getVisibleElements(function(e: Element, v: Element[]) {
                     var br = e.getBoundingClientRect();
                     if (br.width > 300 && br.height > 300
                         && br.width <= window.innerWidth && br.height <= window.innerHeight
@@ -51,19 +55,20 @@ function startScrollNodeObserver(normal: any) {
             }, 200);
         }
     });
-    (DOMObserver as any).isConnected = false;
+    const DOMObserverExt = DOMObserver as MutationObserver & { isConnected: boolean };
+    DOMObserverExt.isConnected = false;
 
     initSKFunctionListener("observer", {
         turnOn: () => {
-            if (!(DOMObserver as any).isConnected) {
+            if (!DOMObserverExt.isConnected) {
                 DOMObserver.observe(document, { childList: true, subtree:true });
-                (DOMObserver as any).isConnected = true;
+                DOMObserverExt.isConnected = true;
             }
         },
         turnOff: () => {
-            if ((DOMObserver as any).isConnected) {
+            if (DOMObserverExt.isConnected) {
                 DOMObserver.disconnect();
-                (DOMObserver as any).isConnected = false;
+                DOMObserverExt.isConnected = false;
             }
         },
     });

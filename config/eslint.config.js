@@ -3,7 +3,7 @@ const typescriptEslintParser = require('@typescript-eslint/parser');
 
 module.exports = [
     {
-        ignores: ['src/nvim/**', 'node_modules/**', 'dist/**']
+        ignores: ['src/nvim/**', 'node_modules/**', 'dist/**', 'tests/nvim/**']
     },
     {
         files: ['src/**/*.js', 'tests/**/*.js', 'debug/**/*.js', 'scripts/**/*.js'],

@@ -3,16 +3,13 @@ import { runtime } from './runtime.js';
 import Mode from './mode';
 import KeyboardUtils from './keyboardUtils';
 import {
-    createElementWithContent,
     getRealEdit,
     isEditable,
-    locateFocusNode,
-    scrollIntoViewIfNeeded,
-    setSanitizedContent,
 } from './utils.js';
+import type { ModeConstructor, SKKeyboardEvent, TrieConstructor } from '../../../@types/surfingkeys';
 
 function createInsert() {
-    var self = new (Mode as any)("Insert");
+    var self = new (Mode as unknown as ModeConstructor)("Insert");
 
     function moveCursorEOL() {
         var element = getRealEdit();
@@ -31,11 +28,11 @@ function createInsert() {
             if (element.childNodes.length > 0) {
                 var node = element.childNodes[element.childNodes.length -1];
                 if (node.nodeType === Node.TEXT_NODE) {
-                    document.getSelection()!.setPosition(node, (node as any).data.length);
+                    document.getSelection()!.setPosition(node, (node as Text).data.length);
                 } else {
-                    let codeMirrorNode = node.querySelector(".CodeMirror-line");
+                    let codeMirrorNode = (node as Element).querySelector(".CodeMirror-line");
                     if (codeMirrorNode) {
-                        setEndOfContenteditable(element);
+                        setEndOfContenteditable(element as HTMLElement);
                     } else {
                         document.getSelection()!.setPosition(node, node.childNodes.length);
                     }
@@ -45,7 +42,7 @@ function createInsert() {
     }
 
     // From https://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity/69727327#69727327
-    function setEndOfContenteditable(contentEditableElement: any) {
+    function setEndOfContenteditable(contentEditableElement: HTMLElement) {
         let range = document.createRange();//Create a range (a range is a like the selection but invisible)
         range.selectNodeContents(contentEditableElement);//Select the entire contents of the element with the range
         range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
@@ -54,7 +51,7 @@ function createInsert() {
         selection.addRange(range);//make the range you have just created the visible selection
     }
 
-    self.mappings = new (Trie as any)();
+    self.mappings = new (Trie as unknown as TrieConstructor)();
     self.map_node = self.mappings;
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-e>"), {
         annotation: {
@@ -94,12 +91,12 @@ function createInsert() {
         code: function() {
             var element = getRealEdit();
             if (element.setSelectionRange !== undefined) {
-                element.value = element.value.substr(element.selectionStart);
+                element.value = element.value.substr(element.selectionStart ?? 0);
                 element.setSelectionRange(0, 0);
             } else {
                 // for contenteditable div
                 var selection = document.getSelection()!;
-                (selection.focusNode as any).data = (selection.focusNode as any).data.substr(selection.focusOffset);
+                (selection.focusNode as unknown as { data: string }).data = (selection.focusNode as unknown as { data: string }).data.substr(selection.focusOffset);
             }
         }
     });
@@ -163,8 +160,8 @@ function createInsert() {
                 var selection = document.getSelection()!;
                 var p0 = selection.focusOffset;
                 document.getSelection()!.modify("move", "backward", "word");
-                var v = (selection.focusNode as any).data, p1 = selection.focusOffset;
-                (selection.focusNode as any).data = v.substr(0, p1) + v.substr(p0);
+                var v = (selection.focusNode as unknown as { data: string }).data, p1 = selection.focusOffset;
+                (selection.focusNode as unknown as { data: string }).data = v.substr(0, p1) + v.substr(p0);
                 selection.setPosition(selection.focusNode, p1);
             }
         }
@@ -189,8 +186,8 @@ function createInsert() {
                 var selection = document.getSelection()!;
                 var p0 = selection.focusOffset;
                 document.getSelection()!.modify("move", "forward", "word");
-                var v = (selection.focusNode as any).data, p1 = selection.focusOffset;
-                (selection.focusNode as any).data = v.substr(0, p0) + v.substr(p1);
+                var v = (selection.focusNode as unknown as { data: string }).data, p1 = selection.focusOffset;
+                (selection.focusNode as unknown as { data: string }).data = v.substr(0, p0) + v.substr(p1);
                 selection.setPosition(selection.focusNode, p0);
             }
         }
@@ -204,7 +201,7 @@ function createInsert() {
             tags: ["insert", "vim", "mode"]
         },
         feature_group: 15,
-        stopPropagation: function(key: any) {
+        stopPropagation: function(key: string) {
             // return true only if bind key is not an ASCII key
             // so that imap(',,', "<Esc>") won't leave a comma in input
             return key.charCodeAt(0) < 256;
@@ -216,7 +213,7 @@ function createInsert() {
     });
 
 
-    self.addEventListener('keydown', function(event: any) {
+    self.addEventListener('keydown', function(event: SKKeyboardEvent) {
         if (event.key && event.key.charCodeAt(0) > 127) {
             // IME is opened.
             event.sk_suppressed = true;
@@ -227,34 +224,36 @@ function createInsert() {
         if (!isEditable(realTarget)) {
             self.exit();
         } else if (event.sk_keyName.length) {
-            Mode.handleMapKey.call(self, event, function(last: any) {
+            (Mode.handleMapKey as unknown as (this: unknown, event: SKKeyboardEvent, onNoMatched?: (last: { getPrefixWord(): string }) => void) => boolean).call(self, event, function(last: { getPrefixWord(): string }) {
                 // for insert mode to insert unmapped chars with preceding chars same as some mapkeys
                 // such as, to insert `,m` in case of mapkey `,,` defined.
                 var pw = last.getPrefixWord();
                 if (pw) {
                     var elm = getRealEdit(), str = elm.value, pos = elm.selectionStart;
-                    if (str !== undefined && pos !== undefined) {
-                        elm.value = str.substr(0, elm.selectionStart) + pw + str.substr(elm.selectionEnd);
+                    if (str !== undefined && pos !== null && pos !== undefined) {
+                        elm.value = str.substr(0, elm.selectionStart ?? 0) + pw + str.substr(elm.selectionEnd ?? 0);
                         pos += pw.length;
                         elm.setSelectionRange(pos, pos);
                     } else {
-                        elm = document.getSelection();
-                        var range = elm.getRangeAt(0);
-                        var n = document.createTextNode(pw);
-                        if (elm.type === "Caret") {
-                            str = (elm.focusNode as any).data;
-                            if (str === undefined) {
-                                range.insertNode(n);
-                                elm.setPosition(n, n.length);
+                        const sel = document.getSelection();
+                        if (sel) {
+                            var range = sel.getRangeAt(0);
+                            var n = document.createTextNode(pw);
+                            if ((sel as unknown as { type: string }).type === "Caret") {
+                                const nodeData = (sel.focusNode as unknown as { data: string | undefined }).data;
+                                if (nodeData === undefined) {
+                                    range.insertNode(n);
+                                    sel.setPosition(n, n.length);
+                                } else {
+                                    const fpos = sel.focusOffset;
+                                    (sel.focusNode as unknown as { data: string }).data = nodeData.substr(0, fpos) + pw + nodeData.substr(fpos);
+                                    sel.setPosition(sel.focusNode, fpos + pw.length);
+                                }
                             } else {
-                                pos = elm.focusOffset;
-                                (elm.focusNode as any).data = str.substr(0, pos) + pw + str.substr(pos);
-                                elm.setPosition(elm.focusNode, pos + pw.length);
+                                range.deleteContents();
+                                range.insertNode(n);
+                                sel.setPosition(n, n.length);
                             }
-                        } else {
-                            range.deleteContents();
-                            range.insertNode(n);
-                            elm.setPosition(n, n.length);
                         }
                     }
                 }
@@ -262,7 +261,7 @@ function createInsert() {
         }
         event.sk_suppressed = true;
     });
-    self.addEventListener('focus', function(event: any) {
+    self.addEventListener('focus', function(event: SKKeyboardEvent) {
         var realTarget = getRealEdit(event);
         // We get a focus event with target = window when the browser window looses focus.
         // Ignore this event.
@@ -273,41 +272,42 @@ function createInsert() {
         }
     });
 
-    function nextNonWord(str: any, dir: any, cur: any) {
+    function nextNonWord(str: string, dir: number, cur: number | null) {
         var nonWord = /\W/;
-        cur = cur + dir;
+        var pos = (cur ?? 0) + dir;
         for ( ; ; ) {
-            if (cur < 0) {
-                cur = 0;
+            if (pos < 0) {
+                pos = 0;
                 break;
-            } else if (cur >= str.length) {
-                cur = str.length;
+            } else if (pos >= str.length) {
+                pos = str.length;
                 break;
-            } else if (nonWord.test(str[cur])) {
+            } else if (nonWord.test(str[pos])) {
                 break;
             } else {
-                cur = cur + dir;
+                pos = pos + dir;
             }
         }
-        return cur;
+        return pos;
     }
 
-    function deleteNextWord(str: any, dir: any, cur: any) {
+    function deleteNextWord(str: string, dir: number, cur: number | null) {
         var pos = nextNonWord(str, dir, cur);
+        var curPos = cur ?? 0;
         var s = str;
-        if (pos > cur) {
-            s = str.substr(0, cur) + str.substr(pos);
-        } else if (pos < cur) {
-            s = str.substr(0, pos) + str.substr(cur);
+        if (pos > curPos) {
+            s = str.substr(0, curPos) + str.substr(pos);
+        } else if (pos < curPos) {
+            s = str.substr(0, pos) + str.substr(curPos);
         } else {
             s = str.substr(0, pos) + str.substr(pos + 1);
         }
-        return [s, dir > 0 ? cur: pos];
+        return [s, dir > 0 ? curPos: pos] as [string, number];
     }
 
-    var _element: any;
-    var _enter = self.enter;
-    self.enter = function(elm: any, keepCursor: any) {
+    var _element: Element | null = null;
+    var _enter = self.enter.bind(self);
+    (self as unknown as { enter: (elm: Element, keepCursor?: boolean) => void }).enter = function(elm: Element, keepCursor?: boolean) {
         if (elm === document.body) {
             runtime.conf.showModeStatus = false;
         }

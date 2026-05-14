@@ -12,10 +12,43 @@
  * - Call getUsageStats() to retrieve statistics
  */
 
-import { getAnnotationString, getAnnotationMetadata, getCommandId } from './commandMetadata.js';
+import { getAnnotationString, getAnnotationMetadata, getCommandId, type Annotation } from './commandMetadata.js';
 
 const STORAGE_KEY = 'surfingkeys_usage';
 const MAX_RECENT_HISTORY = 100;
+
+type AnnotationArg = Annotation | unknown;
+
+interface CommandRecord {
+    key: string;
+    display_name: string;
+    command_id: string;
+    category: string | null;
+    mode: string;
+    count: number;
+    firstUsed: string;
+    lastUsed: string;
+}
+
+interface RecentEntry {
+    key: string;
+    command_id: string;
+    display_name: string;
+    category: string | null;
+    mode: string;
+    timestamp: string;
+    url: string;
+}
+
+interface UsageData {
+    commands: Record<string, CommandRecord>;
+    recentHistory: RecentEntry[];
+    stats: {
+        totalInvocations: number;
+        firstTracked: string | null;
+        lastTracked: string | null;
+    };
+}
 
 /**
  * Track a command execution
@@ -23,7 +56,7 @@ const MAX_RECENT_HISTORY = 100;
  * @param {string|object} annotation - Command description (string or metadata object)
  * @param {string} mode - Mode name (e.g., "Normal", "Visual")
  */
-function trackCommandUsage(key: any, annotation: any, mode = 'Normal') {
+function trackCommandUsage(key: string, annotation: AnnotationArg, mode = 'Normal') {
     const timestamp = new Date().toISOString();
     const url = typeof window !== 'undefined' ? window.location.href : 'unknown';
 
@@ -33,7 +66,7 @@ function trackCommandUsage(key: any, annotation: any, mode = 'Normal') {
     const commandId = getCommandId(annotation, key);  // Unique ID that persists across remaps
 
     chrome.storage.local.get([STORAGE_KEY], (result) => {
-        const usage: any = (result[STORAGE_KEY] as any) || {
+        const usage: UsageData = (result[STORAGE_KEY] as UsageData) || {
             commands: {},
             recentHistory: [],
             stats: {
@@ -49,7 +82,7 @@ function trackCommandUsage(key: any, annotation: any, mode = 'Normal') {
                 key: key,  // Current key mapping
                 display_name: displayString,
                 command_id: commandId,
-                category: metadata.category,
+                category: metadata.category ?? null,
                 mode: mode,
                 count: 0,
                 firstUsed: timestamp,
@@ -70,7 +103,7 @@ function trackCommandUsage(key: any, annotation: any, mode = 'Normal') {
             key: key,
             command_id: commandId,
             display_name: displayString,
-            category: metadata.category,
+            category: metadata.category ?? null,
             mode: mode,
             timestamp: timestamp,
             url: url
@@ -97,10 +130,10 @@ function trackCommandUsage(key: any, annotation: any, mode = 'Normal') {
  * Get all usage statistics
  * @returns {Promise<object>} Usage statistics
  */
-function getUsageStats(): Promise<any> {
+function getUsageStats(): Promise<UsageData> {
     return new Promise((resolve) => {
         chrome.storage.local.get([STORAGE_KEY], (result) => {
-            resolve(result[STORAGE_KEY] || {
+            resolve((result[STORAGE_KEY] as UsageData) || {
                 commands: {},
                 recentHistory: [],
                 stats: {
@@ -121,7 +154,7 @@ function getUsageStats(): Promise<any> {
 async function getFrequentCommands(limit = 20) {
     const usage = await getUsageStats();
     return Object.entries(usage.commands)
-        .map(([key, data]) => ({ key, ...(data as any) }))
+        .map(([_entryKey, data]) => ({ ...data }))
         .sort((a, b) => b.count - a.count)
         .slice(0, limit);
 }

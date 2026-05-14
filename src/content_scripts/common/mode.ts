@@ -1,4 +1,4 @@
-import type { ModeInstance } from '../../../@types/surfingkeys';
+import type { ModeInstance, SKKeyboardEvent } from '../../../@types/surfingkeys';
 import {
     listElements,
     isInUIFrame,
@@ -9,26 +9,27 @@ import KeyboardUtils from './keyboardUtils';
 import { trackCommandUsage } from '../../common/usageTracker.js';
 import { getAnnotationString } from '../../common/commandMetadata.js';
 
-var mode_stack: any[] = [];
+var mode_stack: ModeInstance[] = [];
 
-const Mode = function(this: any, name: string, statusLine?: string) {
+const Mode = function(this: ModeInstance, name: string, statusLine?: string) {
     this.name = name;
-    this.statusLine = statusLine;
-    this.eventListeners = {};
-    this.addEventListener = function(evtName: any, handler: any) {
-        this.eventListeners[evtName] = handler;
+    this.statusLine = statusLine ?? "";
+    (this as ModeInstance & { eventListeners: Record<string, (event: SKKeyboardEvent) => void> }).eventListeners = {};
+    this.addEventListener = function(evtName: string, handler: (event: SKKeyboardEvent) => void): ModeInstance {
+        const self = this as ModeInstance & { eventListeners: Record<string, (event: SKKeyboardEvent) => void> };
+        self.eventListeners[evtName] = handler;
 
         if (!_listenedEvents.hasOwnProperty(evtName)) {
-            (_listenedEvents as any)[evtName] = function(event: any) {
-                handleStack(evtName, event);
+            (_listenedEvents as Record<string, (event: Event) => void>)[evtName] = function(event: Event) {
+                handleStack(evtName, event as SKKeyboardEvent);
             };
-            window.addEventListener(evtName, (_listenedEvents as any)[evtName], true);
+            window.addEventListener(evtName, (_listenedEvents as Record<string, EventListenerOrEventListenerObject>)[evtName], true);
         }
 
         return this;
     };
 
-    this.enter = function(priority: any, reentrant: any) {
+    this.enter = function(priority?: number, reentrant?: boolean): number {
         var pos = mode_stack.indexOf(this);
         if (!this.priority) {
             this.priority = priority || mode_stack.length;
@@ -64,7 +65,7 @@ const Mode = function(this: any, name: string, statusLine?: string) {
         return pos;
     };
 
-    this.exit = function(peek: any) {
+    this.exit = function(peek?: boolean): void {
         var pos = mode_stack.indexOf(this);
         if (pos !== -1) {
             this.priority = 0;
@@ -111,25 +112,26 @@ Mode.isSpecialKeyOf = function(specialKey: string, keyToCheck: string): boolean 
 // This setting now is only turned on for Normal.
 // For Hints, we could not turn on it, as keyup should be propagated to Normal
 // to stop scrolling when holding a key.
-var keysNeedKeyupSuppressed: any[] = [];
-Mode.suppressKeyUp = function(keyCode: any) {
+var keysNeedKeyupSuppressed: number[] = [];
+Mode.suppressKeyUp = function(keyCode: number) {
     if (keysNeedKeyupSuppressed.indexOf(keyCode) === -1) {
         keysNeedKeyupSuppressed.push(keyCode);
     }
 };
 
-function onAfterHandler(mode: any, event: any) {
+function onAfterHandler(mode: ModeInstance, event: SKKeyboardEvent) {
     if (event.sk_stopPropagation) {
         event.stopImmediatePropagation();
         event.preventDefault();
     }
 }
 
-function handleStack(eventName: any, event: any, cb?: any) {
+function handleStack(eventName: string, event: SKKeyboardEvent, cb?: (m: ModeInstance) => void) {
     for (var i = 0; i < mode_stack.length && !event.sk_stopPropagation; i++) {
         var m = mode_stack[i];
-        if (!event.sk_suppressed && m.eventListeners.hasOwnProperty(eventName)) {
-            var handler = m.eventListeners[eventName];
+        const mWithListeners = m as ModeInstance & { eventListeners: Record<string, (event: SKKeyboardEvent) => void> };
+        if (!event.sk_suppressed && mWithListeners.eventListeners.hasOwnProperty(eventName)) {
+            var handler = mWithListeners.eventListeners[eventName];
             handler(event);
             onAfterHandler(m, event);
         }
@@ -143,34 +145,37 @@ function handleStack(eventName: any, event: any, cb?: any) {
 }
 
 let eventListenerBeats = 0;
-var suppressScrollEvent = 0, _listenedEvents = {
-    "sentinel": (_event: any) => {
+var suppressScrollEvent = 0, _listenedEvents: Record<string, EventListenerOrEventListenerObject> = {
+    "sentinel": (_event: Event) => {
         eventListenerBeats ++;
     },
-    "keydown": function (event: any) {
-        event.sk_keyName = KeyboardUtils.getKeyChar(event);
+    "keydown": function (event: Event) {
+        const keyEvent = event as SKKeyboardEvent;
+        keyEvent.sk_keyName = KeyboardUtils.getKeyChar(keyEvent);
         if (mode_stack.length === 0 && window !== top) {
             // automatically boots iframe on demand
             dispatchSKEvent('iframeBoot');
             document.addEventListener("surfingkeys:userSettingsLoaded", () => {
                 // proceed to handle the key event after userSettingsLoaded.
-                handleStack("keydown", event);
+                handleStack("keydown", keyEvent);
             }, {once: true});
             return;
         }
-        handleStack("keydown", event);
+        handleStack("keydown", keyEvent);
     },
-    "keyup": function (event: any) {
-        handleStack("keyup", event, function (_m: any) {
-            var i = keysNeedKeyupSuppressed.indexOf(event.keyCode);
+    "keyup": function (event: Event) {
+        const keyEvent = event as SKKeyboardEvent;
+        handleStack("keyup", keyEvent, function (_m: ModeInstance) {
+            var i = keysNeedKeyupSuppressed.indexOf(keyEvent.keyCode);
             if (i !== -1) {
-                event.stopImmediatePropagation();
+                keyEvent.stopImmediatePropagation();
                 keysNeedKeyupSuppressed.splice(i, 1);
             }
         });
     },
-    "scroll": function (event: any) {
-        handleStack("scroll", event);
+    "scroll": function (event: Event) {
+        const scrollEvent = event as SKKeyboardEvent;
+        handleStack("scroll", scrollEvent);
         if (suppressScrollEvent > 0) {
             event.stopImmediatePropagation();
             event.preventDefault();
@@ -179,37 +184,38 @@ var suppressScrollEvent = 0, _listenedEvents = {
     }
 };
 
-function init(cb?: any) {
+function init(cb?: () => void) {
     mode_stack = [];
     for (var evtName in _listenedEvents) {
-        window.addEventListener(evtName, (_listenedEvents as any)[evtName], true);
+        window.addEventListener(evtName, _listenedEvents[evtName], true);
     }
     if (cb) {
         cb();
     }
 }
 
-Mode.hasScroll = function (el: any, direction: any, barSize: any) {
+Mode.hasScroll = function (el: Element, direction: string, barSize: number) {
     var offset = (direction === 'y') ? ['scrollTop', 'height'] : ['scrollLeft', 'width'];
-    var result = el[offset[0]];
+    const elAny = el as unknown as Record<string, number>;
+    var result = elAny[offset[0]];
 
     if (result < barSize) {
         // set scroll offset to barSize, and verify if we can get scroll offset as barSize
-        var originOffset = el[offset[0]];
-        el[offset[0]] = el.getBoundingClientRect()[offset[1]];
-        result = el[offset[0]];
+        var originOffset = elAny[offset[0]];
+        elAny[offset[0]] = (el.getBoundingClientRect() as unknown as Record<string, number>)[offset[1]];
+        result = elAny[offset[0]];
         if (result !== originOffset) {
             // this is valid for some site such as http://mail.live.com/
             suppressScrollEvent++;
         }
-        el[offset[0]] = originOffset;
+        elAny[offset[0]] = originOffset;
     }
     return result >= barSize;
 };
 
 Mode.getScrollableElements = function () {
-    var nodes = listElements(document.body, NodeFilter.SHOW_ELEMENT, function(n: any) {
-        return (Mode.hasScroll(n, 'y', 16) && n.scrollHeight > 200 ) || (Mode.hasScroll(n, 'x', 16) && n.scrollWidth > 200);
+    var nodes = listElements(document.body, NodeFilter.SHOW_ELEMENT, function(n: Node) {
+        return (Mode.hasScroll(n as Element, 'y', 16) && (n as Element).scrollHeight > 200 ) || (Mode.hasScroll(n as Element, 'x', 16) && (n as Element).scrollWidth > 200);
     });
     nodes.sort(function(a, b) {
         if (b.contains(a)) return 1;
@@ -224,7 +230,7 @@ Mode.getScrollableElements = function () {
     return nodes;
 };
 
-Mode.init = (cb?: any)=> {
+Mode.init = (cb?: () => void)=> {
     // For blank page in frames, we defer init to page loaded
     // as document.write will clear added eventListeners.
     if (window.location.href === "about:blank" && window.frameElement &&
@@ -256,7 +262,28 @@ Mode.showStatus = function() {
     }
 };
 
-Mode.finish = function (mode: any) {
+// Internal type for mode with map/key state (not extending ModeInstance to avoid property conflicts)
+interface ModeWithMapState {
+    name: string;
+    map_node: { meta: MapMeta; find(key: string): ModeWithMapState['map_node'] | null; getWords(): string[]; } | null;
+    mappings: ModeWithMapState['map_node'];
+    pendingMap: ((key: string) => void) | null;
+    repeats: string;
+    isTrustedEvent: boolean;
+    __trust_all_events__: boolean;
+    setLastKeys?: (keys: string) => void;
+}
+
+interface MapMeta {
+    word: string;
+    annotation: unknown;
+    code: Array<() => void>;
+    stopPropagation?: (key: string) => boolean;
+    feature_group?: number;
+    repeatIgnore?: boolean;
+}
+
+Mode.finish = function (mode: ModeWithMapState) {
     var ret = false;
     if (mode.map_node !== mode.mappings || mode.pendingMap != null || mode.repeats) {
         mode.map_node = mode.mappings;
@@ -272,7 +299,7 @@ Mode.finish = function (mode: any) {
     return ret;
 };
 
-Mode.handleMapKey = function(this: any, event: any, onNoMatched?: any) {
+Mode.handleMapKey = function(this: ModeWithMapState, event: SKKeyboardEvent, onNoMatched?: (last: ModeWithMapState['map_node']) => void) {
     var key = event.sk_keyName;
     this.isTrustedEvent = this.__trust_all_events__ || event.isTrusted;
 
@@ -288,24 +315,24 @@ Mode.handleMapKey = function(this: any, event: any, onNoMatched?: any) {
         actionDone = true;
     } else if (this.pendingMap) {
         if (this.setLastKeys) {
-            this.setLastKeys(this.map_node.meta.word + key);
+            this.setLastKeys(this.map_node!.meta.word + key);
         }
         // Track command usage for statistics (pendingMap commands)
         trackCommandUsage(
-            this.map_node.meta.word + key,
-            this.map_node.meta.annotation,
+            this.map_node!.meta.word + key,
+            this.map_node!.meta.annotation,
             this.name
         );
         var pf = this.pendingMap.bind(this);
-        event.sk_stopPropagation = (!this.map_node.meta.stopPropagation
-            || this.map_node.meta.stopPropagation(key));
+        event.sk_stopPropagation = (!this.map_node!.meta.stopPropagation
+            || this.map_node!.meta.stopPropagation(key));
         pf(key);
         actionDone = Mode.finish(this);
     } else if (this.repeats !== undefined &&
         this.map_node === this.mappings &&
         runtime.conf.digitForRepeat &&
         (key >= "1" || (this.repeats !== "" && key >= "0")) && key <= "9" &&
-        this.map_node.getWords().length > 0
+        this.map_node!.getWords().length > 0
     ) {
         // reset only after target action executed or cancelled
         this.repeats += key;
@@ -315,7 +342,7 @@ Mode.handleMapKey = function(this: any, event: any, onNoMatched?: any) {
         event.sk_stopPropagation = true;
     } else {
         var last = this.map_node;
-        this.map_node = this.map_node.find(key);
+        this.map_node = this.map_node!.find(key);
         if (!this.map_node) {
             if (onNoMatched) {
                 onNoMatched(last);
@@ -327,7 +354,7 @@ Mode.handleMapKey = function(this: any, event: any, onNoMatched?: any) {
                 var code = this.map_node.meta.code;
                 if (code.length) {
                     // bound function needs arguments
-                    this.pendingMap = code;
+                    this.pendingMap = code as unknown as (key: string) => void;
                     if (this.isTrustedEvent) {
                         dispatchSKEvent("front", ['showKeystroke', key, this]);
                     }
@@ -342,21 +369,21 @@ Mode.handleMapKey = function(this: any, event: any, onNoMatched?: any) {
                         this.map_node.meta.annotation,
                         this.name
                     );
-                    (RUNTIME as any).repeats = parseInt(this.repeats) || 1;
+                    (RUNTIME as unknown as { repeats: number }).repeats = parseInt(this.repeats) || 1;
                     event.sk_stopPropagation = (!this.map_node.meta.stopPropagation
                         || this.map_node.meta.stopPropagation(key));
-                    if ((RUNTIME as any).repeats > runtime.conf.repeatThreshold) {
+                    if ((RUNTIME as unknown as { repeats: number }).repeats > runtime.conf.repeatThreshold) {
                         const annotationStr = getAnnotationString(this.map_node.meta.annotation);
-                        dispatchSKEvent("front", ['showDialog', `Do you really want to repeat this action (${annotationStr}) ${(RUNTIME as any).repeats} times?`, () => {
-                            while((RUNTIME as any).repeats > 0) {
-                                code();
-                                (RUNTIME as any).repeats--;
+                        dispatchSKEvent("front", ['showDialog', `Do you really want to repeat this action (${annotationStr}) ${(RUNTIME as unknown as { repeats: number }).repeats} times?`, () => {
+                            while((RUNTIME as unknown as { repeats: number }).repeats > 0) {
+                                code[0]();
+                                (RUNTIME as unknown as { repeats: number }).repeats--;
                             }
                         }]);
                     } else {
-                        while((RUNTIME as any).repeats > 0) {
-                            code();
-                            (RUNTIME as any).repeats--;
+                        while((RUNTIME as unknown as { repeats: number }).repeats > 0) {
+                            code[0]();
+                            (RUNTIME as unknown as { repeats: number }).repeats--;
                         }
                     }
                     actionDone = Mode.finish(this);
@@ -372,7 +399,7 @@ Mode.handleMapKey = function(this: any, event: any, onNoMatched?: any) {
     return actionDone;
 };
 
-Mode.checkEventListener = (onMissing: any) => {
+Mode.checkEventListener = (onMissing: () => void) => {
     const previousState = eventListenerBeats;
     window.dispatchEvent(new CustomEvent("sentinel"));
     if (previousState === eventListenerBeats) {

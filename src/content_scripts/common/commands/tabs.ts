@@ -1,11 +1,12 @@
 import { RUNTIME } from '../runtime.js';
 import { tabOpenLink, getBrowserName } from '../utils.js';
-import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { CommandAPI, ClipboardManager, FrontendAPI } from '../../../../@types/surfingkeys';
 
-function copyTabUrlsMagic(magic: string, clipboard: unknown): void {
-    RUNTIME("copyTabUrlsMagic", {magic: magic}, function(response: any) {
-        if (response && response.urls && response.urls.length) {
-            (clipboard as any).write(response.urls.join('\n'));
+function copyTabUrlsMagic(magic: string, clipboard: ClipboardManager): void {
+    RUNTIME("copyTabUrlsMagic", {magic: magic}, function(response) {
+        const res = response as { urls?: string[] };
+        if (res && res.urls && res.urls.length) {
+            clipboard.write(res.urls.join('\n'));
         }
     });
 }
@@ -20,6 +21,8 @@ export default function registerTabs(
     front: unknown,
     _browser: unknown
 ): void {
+    const cb = clipboard as ClipboardManager;
+    const fr = front as FrontendAPI;
     const { mapkey, map } = api;
 
     mapkey('T', {
@@ -30,7 +33,7 @@ export default function registerTabs(
         description: "Choose and switch to a tab from a list",
         tags: ["tabs", "navigation", "switch"]
     }, function() {
-        (front as any).chooseTab();
+        fr.chooseTab();
     });
     mapkey(';G', {
         short: "Group this tab",
@@ -40,10 +43,10 @@ export default function registerTabs(
         description: "Group current tab into a tab group",
         tags: ["tabs", "organization", "group"]
     }, function() {
-        (front as any).groupTab();
+        fr.groupTab();
     });
 
-    map('g0', ':feedkeys 99E', null as any, {
+    map('g0', ':feedkeys 99E', null as unknown as RegExp, {
         short: "Go to first tab",
         unique_id: "cmd_tab_first",
         feature_group: 3,
@@ -51,7 +54,7 @@ export default function registerTabs(
         description: "Go to the first tab in the tab bar",
         tags: ["tabs", "navigation", "jump"]
     });
-    map('g$', ':feedkeys 99R', null as any, {
+    map('g$', ':feedkeys 99R', null as unknown as RegExp, {
         short: "Go to last tab",
         unique_id: "cmd_tab_last",
         feature_group: 3,
@@ -146,9 +149,10 @@ export default function registerTabs(
         description: "Switch to the tab that is currently playing audio",
         tags: ["tabs", "audio", "navigation"]
     }, function() {
-        RUNTIME('getTabs', { queryInfo: {audible: true}}, (response: any) => {
-            if (response.tabs?.at(0)) {
-                const tab = response.tabs[0];
+        RUNTIME('getTabs', { queryInfo: {audible: true}}, (response) => {
+            const res = response as { tabs?: { windowId: number; id: number }[] };
+            if (res.tabs?.at(0)) {
+                const tab = res.tabs[0];
                 RUNTIME('focusTab', {
                     windowId: tab.windowId,
                     tabId: tab.id
@@ -471,7 +475,7 @@ export default function registerTabs(
         description: "Copy URLs of 1 tab to the right of current tab to clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('DirectionRight', clipboard);
+        copyTabUrlsMagic('DirectionRight', cb);
     });
     mapkey('gycc', {
         short: "Copy URLs of all tabs except active",
@@ -481,7 +485,7 @@ export default function registerTabs(
         description: "Copy URLs of all tabs in current window except the active tab to clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('AllExceptActive', clipboard);
+        copyTabUrlsMagic('AllExceptActive', cb);
     });
     mapkey('gyck', {
         short: "Copy URLs of children tabs",
@@ -491,7 +495,7 @@ export default function registerTabs(
         description: "Copy URLs of tabs opened directly from the current tab to clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('ChildrenTabs', clipboard);
+        copyTabUrlsMagic('ChildrenTabs', cb);
     });
     mapkey('g-013', {
         short: "Copy current tab URL",
@@ -501,7 +505,7 @@ export default function registerTabs(
         description: "Copy the current tab URL to the clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('CurrentTab', clipboard);
+        copyTabUrlsMagic('CurrentTab', cb);
     });
     mapkey('g-014', {
         short: "Copy URLs of all tabs in current window",
@@ -511,7 +515,7 @@ export default function registerTabs(
         description: "Copy URLs of all tabs in the current window to the clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('AllInWindow', clipboard);
+        copyTabUrlsMagic('AllInWindow', cb);
     });
     mapkey('g-015', {
         short: "Copy URLs of all tabs except current across all windows",
@@ -521,7 +525,7 @@ export default function registerTabs(
         description: "Copy URLs of all tabs in all windows except the active tab to the clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('AllExceptActiveAllWindows', clipboard);
+        copyTabUrlsMagic('AllExceptActiveAllWindows', cb);
     });
     mapkey('g-016', {
         short: "Copy URLs of tabs to the left",
@@ -531,7 +535,7 @@ export default function registerTabs(
         description: "Copy URLs of tabs to the left of the current tab to the clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('DirectionLeft', clipboard);
+        copyTabUrlsMagic('DirectionLeft', cb);
     });
     mapkey('g-017', {
         short: "Copy URLs of current tab and tabs to the left",
@@ -541,7 +545,7 @@ export default function registerTabs(
         description: "Copy URLs of the current tab and tabs to the left to the clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('DirectionLeftInclusive', clipboard);
+        copyTabUrlsMagic('DirectionLeftInclusive', cb);
     });
     mapkey('g-018', {
         short: "Copy URLs of current tab and tabs to the right",
@@ -551,7 +555,7 @@ export default function registerTabs(
         description: "Copy URLs of the current tab and tabs to the right to the clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('DirectionRightInclusive', clipboard);
+        copyTabUrlsMagic('DirectionRightInclusive', cb);
     });
     mapkey('g-019', {
         short: "Copy URLs of descendant tabs recursively",
@@ -561,7 +565,7 @@ export default function registerTabs(
         description: "Copy URLs of all descendant tabs opened from the current tab to the clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('ChildrenTabsRecursively', clipboard);
+        copyTabUrlsMagic('ChildrenTabsRecursively', cb);
     });
     mapkey('g-020', {
         short: "Copy URLs of all tabs in other windows",
@@ -571,7 +575,7 @@ export default function registerTabs(
         description: "Copy URLs of all tabs in windows other than the current window to the clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('AllOtherWindowsTabs', clipboard);
+        copyTabUrlsMagic('AllOtherWindowsTabs', cb);
     });
     mapkey('g-021', {
         short: "Copy URLs from other windows without pinned tabs",
@@ -581,7 +585,7 @@ export default function registerTabs(
         description: "Copy URLs of tabs in other windows that contain no pinned tabs to the clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('OtherWindowsNoPinned', clipboard);
+        copyTabUrlsMagic('OtherWindowsNoPinned', cb);
     });
     mapkey('g-022', {
         short: "Copy URLs of all incognito tabs",
@@ -591,7 +595,7 @@ export default function registerTabs(
         description: "Copy URLs of all incognito tabs across all windows to the clipboard",
         tags: ["tabs", "copy", "magic"]
     }, function() {
-        copyTabUrlsMagic('AllIncognitoTabs', clipboard);
+        copyTabUrlsMagic('AllIncognitoTabs', cb);
     });
 
     // Group G — Reload Magic
@@ -736,7 +740,7 @@ export default function registerTabs(
         description: "Move current tab to a different browser window",
         tags: ["tabs", "move", "window"]
     }, function() {
-        (front as any).openOmnibar(({type: "Windows"}));
+        fr.openOmnibar({type: "Windows"});
     });
     mapkey(';gt', {
         short: "Gather filtered tabs",
@@ -746,7 +750,7 @@ export default function registerTabs(
         description: "Gather selected tabs from other windows into current window",
         tags: ["tabs", "gather", "window"]
     }, function() {
-        (front as any).openOmnibar({type: "Tabs", extra: {
+        fr.openOmnibar({type: "Tabs", extra: {
             action: "gather"
         }});
     });

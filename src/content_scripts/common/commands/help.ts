@@ -1,4 +1,4 @@
-import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { CommandAPI, FrontendAPI } from '../../../../@types/surfingkeys';
 
 export default function registerHelp(
     api: CommandAPI,
@@ -10,6 +10,7 @@ export default function registerHelp(
     front: unknown,
     _browser: unknown
 ): void {
+    const fr = front as FrontendAPI;
     const { mapkey } = api;
 
     mapkey('?', {
@@ -20,6 +21,6 @@ export default function registerHelp(
         description: "Display help showing all available keyboard shortcuts",
         tags: ["help", "usage", "keyboard"]
     }, function() {
-        (front as any).showUsage();
+        fr.showUsage();
     });
 }

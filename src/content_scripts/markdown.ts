@@ -5,19 +5,27 @@ import {
     htmlEncode,
     httpRequest,
     setSanitizedContent,
-    showBanner,
 } from './common/utils.js';
 import { marked } from 'marked';
+import type { ClipboardResponse } from '../../@types/surfingkeys';
+
+interface HttpResponse {
+    text: string;
+}
 
 document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
-    const { normal, api } = (evt as any).detail;
+    const { normal, api } = (evt as CustomEvent).detail;
     const {
         mapkey,
         Clipboard,
         Front,
-    } = api;
+    } = api as {
+        mapkey: (key: string, annotation: Record<string, unknown>, fn: () => void) => void;
+        Clipboard: { read: (cb: (r: ClipboardResponse) => void) => void; write: (t: string) => void };
+        Front: { showEditor: (src: string, cb: (s: string) => void, mode: string) => void };
+    };
 
-    var desc: any, content: any;
+    var desc: Element | null, content: Element | null;
 
     mapkey(';h', {
         short: 'Toggle section',
@@ -27,28 +35,29 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
         tags: ['markdown'],
         feature_group: 99,
     }, function() {
-        if (desc.style.display !== "none") {
-            content.style.height = "100vh";
-            desc.style.display = "none";
+        if (!desc || !content) return;
+        if ((desc as HTMLElement).style.display !== "none") {
+            (content as HTMLElement).style.height = "100vh";
+            (desc as HTMLElement).style.display = "none";
         } else {
-            desc.style.display = "";
-            content.style.height = (window.innerHeight - desc.offsetHeight) + "px";
+            (desc as HTMLElement).style.display = "";
+            (content as HTMLElement).style.height = (window.innerHeight - (desc as HTMLElement).offsetHeight) + "px";
         }
     });
 
     function renderHeaderDescription() {
-        var words = normal.mappings.getWords().map(function(w: any) {
-            var meta = normal.mappings.find(w).meta;
+        var words = (normal.mappings.getWords() as string[]).map(function(w: string) {
+            var meta = normal.mappings.find(w).meta as Record<string, unknown>;
             w = KeyboardUtils.decodeKeystroke(w);
             if (meta.feature_group === 99) {
                 var annotText = typeof meta.annotation === 'object' && meta.annotation !== null
-                    ? meta.annotation.short
-                    : (Array.isArray(meta.annotation) ? meta.annotation[0] : meta.annotation);
+                    ? (meta.annotation as Record<string, unknown>).short
+                    : (Array.isArray(meta.annotation) ? (meta.annotation as string[])[0] : meta.annotation);
                 if (!annotText) return null;
                 return `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotText}</span></div>`;
             }
             return null;
-        }).filter(function(w: any) {
+        }).filter(function(w: string | null) {
             return w !== null;
         });
 
@@ -59,12 +68,12 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
         content = document.querySelector('div.content');
         desc = createElementWithContent('div', words.join(""), {class: "description"});
         document.body.insertBefore(desc, content);
-        content.style.height = (window.innerHeight - desc.offsetHeight) + "px";
+        (content as HTMLElement).style.height = (window.innerHeight - (desc as HTMLElement).offsetHeight) + "px";
     }
 
-    var markdownBody = document.querySelector(".markdown-body"), _source: any;
+    var markdownBody = document.querySelector(".markdown-body"), _source: string;
 
-    function previewMarkdown(mk: any) {
+    function previewMarkdown(mk: string) {
         _source = mk;
         if (runtime.conf.useLocalMarkdownAPI) {
             setSanitizedContent(markdownBody, marked.parse(mk));
@@ -73,8 +82,8 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
             httpRequest({
                 url: "https://api.github.com/markdown/raw",
                 data: mk
-            }, function(res: any) {
-                setSanitizedContent(markdownBody, res.text);
+            }, function(res: Record<string, unknown>) {
+                setSanitizedContent(markdownBody, (res as unknown as HttpResponse).text);
             });
         }
     }
@@ -118,27 +127,32 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
     if (mdUrl !== "") {
         httpRequest({
             url: mdUrl
-        }, function(res: any) {
-            previewMarkdown(res.text);
+        }, function(res: Record<string, unknown>) {
+            previewMarkdown((res as unknown as HttpResponse).text);
         });
     } else {
-        Clipboard.read(function(response: any) {
+        Clipboard.read(function(response: ClipboardResponse) {
             previewMarkdown(response.data);
         });
     }
 
-    var reader = new FileReader(), inputFile: any;
+    var reader = new FileReader(), inputFile: File;
     reader.onload = function(){
-        previewMarkdown(reader.result);
+        previewMarkdown(reader.result as string);
     };
     function previewMarkdownFile() {
         reader.readAsText(inputFile);
     }
-    var inputFileDiv: any = document.querySelector("input[type=file]");
-    inputFileDiv.onchange = function(evt: any) {
-        inputFile = evt.target.files[0];
-        previewMarkdownFile();
-    };
+    var inputFileDiv = document.querySelector("input[type=file]") as HTMLInputElement | null;
+    if (inputFileDiv) {
+        inputFileDiv.onchange = function(evt: Event) {
+            const target = evt.target as HTMLInputElement;
+            if (target.files && target.files[0]) {
+                inputFile = target.files[0];
+                previewMarkdownFile();
+            }
+        };
+    }
 
     mapkey('of', {
         short: 'Open local file',
@@ -148,7 +162,7 @@ document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
         tags: ['markdown', 'file'],
         feature_group: 99,
     }, function() {
-        inputFileDiv.click();
+        inputFileDiv?.click();
     });
 
     renderHeaderDescription();

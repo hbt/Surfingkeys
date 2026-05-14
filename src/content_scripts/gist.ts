@@ -1,3 +1,5 @@
+import type { GistObject, GistComment } from '../../@types/surfingkeys';
+
 declare function httpRequest(opts: { url: string; headers?: Record<string, string>; data?: string }, callback: (res: { text: string }) => void): void;
 
 var Gist = (function() {
@@ -7,16 +9,16 @@ var Gist = (function() {
         readComment?: (nr: number) => void;
     } = {};
 
-    function _initGist(token: any, magic_word: any, onGistReady: any) {
+    function _initGist(token: string, magic_word: string, onGistReady: (gistId: string) => void) {
         httpRequest({
             url: "https://api.github.com/gists",
             headers: {
                 'Authorization': 'token ' + token
             }
         }, function(res) {
-            var gists = JSON.parse(res.text);
+            var gists = JSON.parse(res.text) as GistObject[];
             var gist = "";
-            gists.forEach(function(g: any) {
+            gists.forEach(function(g: GistObject) {
                 if (g.hasOwnProperty('description') && g['description'] === magic_word && g.files.hasOwnProperty(magic_word)) {
                     gist = g.id;
                 }
@@ -29,7 +31,7 @@ var Gist = (function() {
                     },
                     data: '{ "description": "Surfingkeys", "public": false, "files": { "Surfingkeys": { "content": "Surfingkeys" } } }'
                 }, function(res) {
-                    var ng = JSON.parse(res.text);
+                    var ng = JSON.parse(res.text) as GistObject;
                     onGistReady(ng.id);
                 });
             } else {
@@ -38,10 +40,10 @@ var Gist = (function() {
         });
     }
 
-    var _token: any, _gist = "", _comments: any[] = [];
+    var _token: string, _gist = "", _comments: number[] = [];
     self.initGist = function(token, onGistReady) {
         _token = token;
-        _initGist(_token, "Surfingkeys", function(gist: any) {
+        _initGist(_token, "Surfingkeys", function(gist: string) {
             _gist = gist;
             if (onGistReady) {
                 onGistReady(gist);
@@ -61,14 +63,14 @@ var Gist = (function() {
         });
     };
 
-    function _readComment(cid: any) {
+    function _readComment(cid: number) {
         httpRequest({
-            url: "https://api.github.com/gists/{0}/comments/{1}".format(_gist, cid),
+            url: "https://api.github.com/gists/{0}/comments/{1}".format(_gist, String(cid)),
             headers: {
                 'Authorization': 'token ' + _token
             }
         }, function(res) {
-            var comment = JSON.parse(res.text);
+            var comment = JSON.parse(res.text) as GistComment;
             console.log(decodeURIComponent(comment.body));
         });
     }
@@ -80,7 +82,7 @@ var Gist = (function() {
                     'Authorization': 'token ' + _token
                 }
             }, function(res) {
-                _comments = JSON.parse(res.text).map(function(c: any) {
+                _comments = (JSON.parse(res.text) as GistComment[]).map(function(c: GistComment) {
                     return c.id;
                 });
                 if (nr < _comments.length) {

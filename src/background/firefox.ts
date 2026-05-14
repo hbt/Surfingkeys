@@ -4,9 +4,13 @@ import {
     start
 } from './start.js';
 
-declare const browser: any;
+declare const browser: {
+    contextualIdentities: {
+        get(cookieStoreId: string): Promise<{ name: string }>;
+    };
+};
 
-function loadRawSettings(keys: any, cb: any, defaultSet: any) {
+function loadRawSettings(keys: string | string[] | null, cb: (data: Record<string, unknown>) => void, defaultSet: Record<string, unknown>) {
     var rawSet = defaultSet || {};
     chrome.storage.local.get(null, function(localSet) {
         var _localSavedAt = localSet.savedAt || 0;
@@ -19,28 +23,30 @@ function loadRawSettings(keys: any, cb: any, defaultSet: any) {
     });
 }
 
-function _applyProxySettings(_proxyConf: any) {
+function _applyProxySettings(_proxyConf: unknown) {
 }
 
 function _setNewTabUrl(){
     return "about:newtab";
 }
 
-function _getContainerName(self: any, _response: any) {
-    return function (message: any, sender: any, sendResponse: any){
-        var cookieStoreId = sender.tab.cookieStoreId;
-        browser.contextualIdentities.get(cookieStoreId).then(function(container: any){
+type ResponseFn = (message: unknown, sendResponse: (response: unknown) => void, extra: { name: string | null }) => void;
+
+function _getContainerName(self: unknown, _response: ResponseFn) {
+    return function (message: unknown, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void){
+        const cookieStoreId = (sender.tab as unknown as { cookieStoreId?: string } | undefined)?.cookieStoreId ?? '';
+        browser.contextualIdentities.get(cookieStoreId).then(function(container: { name: string }){
             _response(message, sendResponse, {
                 name : container.name
             });
-        }, function(_err: any){
+        }, function(_err: unknown){
             _response(message, sendResponse, {
                 name : null
             });});
     };
 }
 
-function getLatestHistoryItem(text: any, maxResults: any, cb: any) {
+function getLatestHistoryItem(text: string, maxResults: number, cb: (items: chrome.history.HistoryItem[]) => void) {
     chrome.history.search({
         startTime: 0,
         text,

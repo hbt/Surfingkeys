@@ -1,8 +1,9 @@
 import {
     filterByTitleOrUrl,
+    type TitleUrlItem,
 } from '../common/utils.js';
 import llmClientsRaw from './llm.js';
-import type { RuntimeAction, LLMClientsMap, ScrollPositionData, TabURLMap, TabMessageMap, BookmarkFolder } from '../../@types/surfingkeys';
+import type { RuntimeAction, LLMClientsMap, TabURLMap, TabMessageMap, BookmarkFolder } from '../../@types/surfingkeys';
 // Convenience type for message handlers that access arbitrary message properties
 type Msg = RuntimeAction & { [key: string]: unknown };
 type MessageHandler = (
@@ -10,7 +11,7 @@ type MessageHandler = (
     sender: chrome.runtime.MessageSender,
     sendResponse: (response: unknown) => void
 ) => unknown;
-const llmClients: LLMClientsMap = llmClientsRaw as LLMClientsMap;
+const llmClients: LLMClientsMap = llmClientsRaw as unknown as LLMClientsMap;
 
 // TEMPORARY ERROR FOR TESTING RELOAD EDGE CASE
 // throw new Error('TEST ERROR: Simulating background script failure');
@@ -149,7 +150,7 @@ var Gist = (function() {
     };
 
     function _newComment(text: string, cb: ((arg?: unknown) => void) | null) {
-        request(`https://api.github.com/gists/${_gist}/comments`, function(res: string) {
+        request(`https://api.github.com/gists/${_gist}/comments`, function(_res: string) {
             if (cb) {
                 cb();
             }
@@ -1102,7 +1103,7 @@ function start(browser: Record<string, unknown>) {
         tabs = tabs.filter(function(b) {
             return b.url;
         });
-        return filterByTitleOrUrl(tabs as chrome.tabs.Tab[], query, false);
+        return filterByTitleOrUrl(tabs as TitleUrlItem[], query, false) as unknown as chrome.tabs.Tab[];
     }
     self.getRecentlyClosed = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
         chrome.sessions.getRecentlyClosed({}, function(sessions) {
@@ -2007,7 +2008,7 @@ function start(browser: Record<string, unknown>) {
             },
             func: () => {
                 // getFrameId is injected by content scripts into the page context
-                // @ts-ignore
+                // @ts-expect-error -- getFrameId is injected at runtime
                 return typeof(getFrameId) === 'function' ? getFrameId() : 0;
             },
         }, function(framesInTabRaw) {

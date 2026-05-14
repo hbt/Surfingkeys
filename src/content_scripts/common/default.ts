@@ -13,21 +13,23 @@ import registerSettings from './commands/settings.js';
 import registerChrome from './commands/chrome.js';
 import registerProxy from './commands/proxy.js';
 import registerMisc from './commands/misc.js';
+import type { CommandAPI } from '../../../@types/surfingkeys';
 
 export default function(api: unknown, clipboard: unknown, insert: unknown, normal: unknown, hints: unknown, visual: unknown, front: unknown, browser?: unknown): void {
-    registerHelp(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerNavigation(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerHints(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerClipboard(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerVisual(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerOmnibar(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerMarks(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerInsert(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerSession(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerFrames(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerTabs(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerSettings(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerChrome(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerProxy(api as any, clipboard, insert, normal, hints, visual, front, browser);
-    registerMisc(api as any, clipboard, insert, normal, hints, visual, front, browser);
+    const _api = api as CommandAPI;
+    registerHelp(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerNavigation(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerHints(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerClipboard(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerVisual(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerOmnibar(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerMarks(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerInsert(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerSession(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerFrames(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerTabs(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerSettings(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerChrome(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerProxy(_api, clipboard, insert, normal, hints, visual, front, browser);
+    registerMisc(_api, clipboard, insert, normal, hints, visual, front, browser);
 }

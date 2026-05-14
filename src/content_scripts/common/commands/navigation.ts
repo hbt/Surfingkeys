@@ -1,6 +1,8 @@
 import { RUNTIME, runtime } from '../runtime.js';
 import { tabOpenLink } from '../utils.js';
-import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { CommandAPI, ClipboardManager, HintsModule } from '../../../../@types/surfingkeys';
+
+type RTWithRepeats = typeof RUNTIME & { repeats: number };
 
 export default function registerNavigation(
     api: CommandAPI,
@@ -12,6 +14,8 @@ export default function registerNavigation(
     _front: unknown,
     _browser: unknown
 ): void {
+    const cb = clipboard as ClipboardManager;
+    const hn = hints as HintsModule;
     const { mapkey } = api;
 
     mapkey('[[', {
@@ -21,7 +25,7 @@ export default function registerNavigation(
         category: "navigation",
         description: "Click on the previous page link on current page",
         tags: ["navigation", "links", "previous"]
-    }, (hints as any).previousPage);
+    }, (hn as HintsModule & { previousPage(): void }).previousPage);
     mapkey(']]', {
         short: "Click next link",
         unique_id: "cmd_nav_next_link",
@@ -29,7 +33,7 @@ export default function registerNavigation(
         category: "navigation",
         description: "Click on the next page link on current page",
         tags: ["navigation", "links", "next"]
-    }, (hints as any).nextPage);
+    }, (hn as HintsModule & { nextPage(): void }).nextPage);
 
     mapkey('gu', {
         short: "Go up one path",
@@ -42,8 +46,8 @@ export default function registerNavigation(
         var pathname = location.pathname;
         if (pathname.length > 1) {
             pathname = pathname.endsWith('/') ? pathname.substr(0, pathname.length - 1) : pathname;
-            var last = pathname.lastIndexOf('/'), repeats = (RUNTIME as any).repeats;
-            (RUNTIME as any).repeats = 1;
+            var last = pathname.lastIndexOf('/'), repeats = (RUNTIME as RTWithRepeats).repeats;
+            (RUNTIME as RTWithRepeats).repeats = 1;
             while (repeats-- > 1) {
                 var p = pathname.lastIndexOf('/', last - 1);
                 if (p === -1) {
@@ -151,7 +155,7 @@ export default function registerNavigation(
         if (window.getSelection()?.toString()) {
             tabOpenLink(window.getSelection()!.toString());
         } else {
-            (clipboard as any).read(function(response: any) {
+            cb.read(function(response) {
                 tabOpenLink(response.data);
             });
         }
@@ -185,8 +189,8 @@ export default function registerNavigation(
         description: "Navigate to root of current URL hierarchy, supports count prefix",
         tags: ["navigation", "url", "root"]
     }, function() {
-        window.location.href = window.location.href.replace(new RegExp('(://([^/]+/){'+(RUNTIME as any).repeats+'}).*'), '$1');
-        (RUNTIME as any).repeats = 1;
+        window.location.href = window.location.href.replace(new RegExp('(://([^/]+/){' + (RUNTIME as RTWithRepeats).repeats + '}).*'), '$1');
+        (RUNTIME as RTWithRepeats).repeats = 1;
     });
 
     mapkey('O', {
@@ -197,8 +201,8 @@ export default function registerNavigation(
         description: "Open URLs detected in text content",
         tags: ["navigation", "links", "detection"]
     }, function() {
-        (hints as any).create(runtime.conf.clickablePat, function(element: any) {
-            window.location.assign(element[2]);
+        hn.create(runtime.conf.clickablePat, function(element) {
+            window.location.assign((element as [Node, number, string])[2]);
         }, {statusLine: "Open detected links from text"});
     });
 }

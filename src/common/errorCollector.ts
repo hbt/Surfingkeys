@@ -11,14 +11,37 @@
  * - In content.js: import and call installErrorHandlers('content_script')
  */
 
+interface ErrorRecord {
+    context: string;
+    type: string;
+    message: string;
+    source?: string;
+    stack?: string;
+    timestamp: string;
+    url?: string;
+    userAgent?: string;
+    lineno?: number;
+    colno?: number;
+    reason?: string;
+    details?: unknown;
+}
+
+type SurfingKeysGlobalScope = typeof globalThis & {
+    _surfingkeysErrorHandlersInstalled?: boolean;
+    _surfingkeysErrors?: ErrorRecord[];
+    onerror?: ((...args: unknown[]) => boolean | undefined) | null;
+    onunhandledrejection?: ((event: PromiseRejectionEvent) => void) | null;
+    location?: Location;
+};
+
 /**
  * Install global error handlers
  * @param {string} context - 'background' or 'content_script' or 'page'
  */
-function installErrorHandlers(context: any) {
+function installErrorHandlers(context: string) {
     // Use globalThis for compatibility with both window and service worker contexts
     // Service workers don't have 'window', they have 'self'
-    const globalScope: any = globalThis;
+    const globalScope = globalThis as SurfingKeysGlobalScope;
 
     // Don't install if already installed
     if (globalScope._surfingkeysErrorHandlersInstalled) {
@@ -36,9 +59,9 @@ function installErrorHandlers(context: any) {
      * Save error to chrome.storage.local
      * @param {object} errorData - Error data to save
      */
-    function saveError(errorData: any) {
+    function saveError(errorData: ErrorRecord) {
         chrome.storage.local.get([STORAGE_KEY], (result) => {
-            const errors: any[] = (result[STORAGE_KEY] as any[]) || [];
+            const errors: ErrorRecord[] = (result[STORAGE_KEY] as ErrorRecord[]) || [];
             errors.push(errorData);
 
             // Keep last MAX_ERRORS errors
@@ -56,11 +79,11 @@ function installErrorHandlers(context: any) {
         });
 
         // Also keep in memory for immediate access
-        globalScope._surfingkeysErrors.push(errorData);
+        globalScope._surfingkeysErrors!.push(errorData);
 
         // Limit in-memory errors too
-        if (globalScope._surfingkeysErrors.length > MAX_ERRORS) {
-            globalScope._surfingkeysErrors.shift();
+        if (globalScope._surfingkeysErrors!.length > MAX_ERRORS) {
+            globalScope._surfingkeysErrors!.shift();
         }
     }
 
@@ -79,15 +102,15 @@ function installErrorHandlers(context: any) {
 
     // 1. onerror - catches unhandled JS errors
     const originalOnError = globalScope.onerror;
-    globalScope.onerror = function(message: any, source: any, lineno: any, colno: any, error: any) {
-        const errorData = {
+    globalScope.onerror = function(message: unknown, source: unknown, lineno: unknown, colno: unknown, error: unknown) {
+        const errorData: ErrorRecord = {
             ...getContext(),
             type: 'onerror',
-            message: message || 'Unknown error',
-            source: source || 'unknown',
-            lineno: lineno || 0,
-            colno: colno || 0,
-            stack: error && error.stack ? error.stack : 'No stack trace'
+            message: (message as string) || 'Unknown error',
+            source: (source as string) || 'unknown',
+            lineno: (lineno as number) || 0,
+            colno: (colno as number) || 0,
+            stack: error && (error as Error).stack ? (error as Error).stack : 'No stack trace'
         };
 
         console.error('[ERROR HANDLER] onerror caught:', errorData.message);
@@ -98,7 +121,7 @@ function installErrorHandlers(context: any) {
 
         // Call original handler if it exists
         if (originalOnError) {
-            return originalOnError.apply(this, arguments);
+            return originalOnError.apply(this, arguments as unknown as unknown[]);
         }
 
         return false; // Don't prevent default error handling
@@ -106,14 +129,14 @@ function installErrorHandlers(context: any) {
 
     // 2. onunhandledrejection - catches unhandled promise rejections
     const originalOnRejection = globalScope.onunhandledrejection;
-    globalScope.onunhandledrejection = function(event: any) {
-        const reason = event.reason;
-        const errorData = {
+    globalScope.onunhandledrejection = function(event: PromiseRejectionEvent) {
+        const reason: unknown = event.reason;
+        const errorData: ErrorRecord = {
             ...getContext(),
             type: 'unhandledrejection',
-            message: reason ? reason.toString() : 'Unknown rejection',
+            message: reason ? String(reason) : 'Unknown rejection',
             reason: reason && typeof reason === 'object' ? JSON.stringify(reason, null, 2) : String(reason),
-            stack: reason && reason.stack ? reason.stack : 'No stack trace'
+            stack: reason && (reason as Error).stack ? (reason as Error).stack : 'No stack trace'
         };
 
         console.error('[ERROR HANDLER] unhandledrejection caught:', errorData.message);
@@ -124,7 +147,7 @@ function installErrorHandlers(context: any) {
 
         // Call original handler if it exists
         if (originalOnRejection) {
-            return originalOnRejection.apply(this, arguments);
+            return originalOnRejection.apply(this, [event]);
         }
     };
 }
@@ -133,10 +156,10 @@ function installErrorHandlers(context: any) {
  * Get all stored errors
  * @returns {Promise<Array>} Array of error objects
  */
-function getStoredErrors() {
+function getStoredErrors(): Promise<ErrorRecord[]> {
     return new Promise((resolve) => {
         chrome.storage.local.get(['surfingkeys_errors'], (result) => {
-            resolve(result.surfingkeys_errors || []);
+            resolve((result.surfingkeys_errors as ErrorRecord[]) || []);
         });
     });
 }
@@ -146,7 +169,7 @@ function getStoredErrors() {
  * @returns {Promise<void>}
  */
 function clearStoredErrors() {
-    const globalScope: any = globalThis;
+    const globalScope = globalThis as SurfingKeysGlobalScope;
 
     return new Promise((resolve) => {
         chrome.storage.local.set({ surfingkeys_errors: [] }, () => {
@@ -163,8 +186,8 @@ function clearStoredErrors() {
  * Get errors from memory (current session only)
  * @returns {Array} Array of error objects
  */
-function getMemoryErrors() {
-    const globalScope: any = globalThis;
+function getMemoryErrors(): ErrorRecord[] {
+    const globalScope = globalThis as SurfingKeysGlobalScope;
 
     return globalScope._surfingkeysErrors || [];
 }
@@ -175,10 +198,10 @@ function getMemoryErrors() {
  * @param {string} message - Error message
  * @param {object} details - Additional details
  */
-function reportError(type: any, message: any, details = {}) {
-    const globalScope: any = globalThis;
+function reportError(type: string, message: string, details: unknown = {}) {
+    const globalScope = globalThis as SurfingKeysGlobalScope;
 
-    const errorData = {
+    const errorData: ErrorRecord = {
         context: 'manual',
         type: type,
         message: message,
@@ -191,7 +214,7 @@ function reportError(type: any, message: any, details = {}) {
     console.error('[ERROR COLLECTOR] Manual error report:', errorData.message);
 
     chrome.storage.local.get(['surfingkeys_errors'], (result) => {
-        const errors: any[] = (result.surfingkeys_errors as any[]) || [];
+        const errors: ErrorRecord[] = (result.surfingkeys_errors as ErrorRecord[]) || [];
         errors.push(errorData);
 
         // Keep last 100 errors

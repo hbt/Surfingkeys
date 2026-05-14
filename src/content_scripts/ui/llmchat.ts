@@ -7,15 +7,65 @@ import {
     setSanitizedContent,
     rotateInput,
 } from '../common/utils.js';
+import { LLMMessage } from '../../../@types/surfingkeys';
 
-export default function (omnibar: any, front: any) {
-    const self: any = {
+interface LLMChatSelf {
+    prompt: string;
+    omnibarPosition: string;
+    onOpen(opts: Record<string, unknown>): void;
+    onInput(): void;
+    rotateInput(backward: boolean): void;
+    onClose(): void;
+    onTabKey(): void;
+    onEnter(): boolean;
+    resultsDiv?: Element;
+    input?: HTMLInputElement;
+    addDestroyListener?: (fn: () => void) => void;
+}
+
+interface OmnibarRef {
+    resultsDiv: Element & { className: string; lastElementChild: Element | null };
+    input: HTMLInputElement;
+}
+
+interface FrontRef {
+    addDestroyListener(fn: () => void): void;
+}
+
+type LLMToolResult = LLMMessage | { content: unknown; role: string; tool_use_id?: string; is_error?: boolean; type?: string };
+
+interface OllamaResponse {
+    message: {
+        tool_calls?: Array<{ function: { name: string; arguments: unknown } }>;
+        content?: string | unknown[];
+        [key: string]: unknown;
+    };
+    done?: boolean;
+    chunk?: string;
+}
+
+interface BedrockContentItem {
+    type: string;
+    name?: string;
+    input?: unknown;
+    id?: string;
+    text?: string;
+}
+
+export default function (omnibar: OmnibarRef, front: FrontRef) {
+    const self: LLMChatSelf = {
         prompt: '🐝',
         omnibarPosition: "bottom",
+        onOpen: function() {},
+        onInput: function() {},
+        rotateInput: function() {},
+        onClose: function() {},
+        onTabKey: function() {},
+        onEnter: function() { return false; },
     };
 
     const RESERVED_MESSAGE_COUNT = 1;
-    let messages: any[] = [
+    let messages: LLMMessage[] = [
         {
             "content": "",
             "role": "system"
@@ -23,14 +73,14 @@ export default function (omnibar: any, front: any) {
     ];
     let response = "";
     let provider = "";
-    let providers: any[] = [];
+    let providers: string[] = [];
 
     const dots = [ "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" ];
     let spinnerIndex = 0;
-    let spinnerInterval: any = 0;
+    let spinnerInterval: ReturnType<typeof setInterval> | 0 = 0;
 
     let userInput = "";
-    let inputs: any[] = [];
+    let inputs: string[] = [];
     let curInputIdx = 0;
 
     const _tools = [
@@ -51,50 +101,52 @@ export default function (omnibar: any, front: any) {
             "description": "extract/find links on the page"
         }
     ];
-    const toolImplementations = {
-        extract_links: (_params: any) => {
+    const toolImplementations: Record<string, (_params: unknown) => string> = {
+        extract_links: (_params: unknown) => {
             return 'https://github.com/brookhong/Surfingkeys, https://brookhong.github.io/';
         }
     };
 
-    const providerClients = {
-        "ollama": (resp: any) => {
-            const toolResults: any[] = [];
+    const providerClients: Record<string, (resp: OllamaResponse) => boolean> = {
+        "ollama": (resp: OllamaResponse) => {
+            const toolResults: LLMToolResult[] = [];
             if (!resp.message.tool_calls) {
                 return false;
             }
             for (const c of resp.message.tool_calls) {
-                const toolResult = (toolImplementations as any)[c.function.name] ? (toolImplementations as any)[c.function.name](c.function.arguments) : `${c.function.name} not implemented.`;
+                const toolResult = toolImplementations[c.function.name] ? toolImplementations[c.function.name](c.function.arguments) : `${c.function.name} not implemented.`;
                 toolResults.push({
                     "content": toolResult,
                     "role": "tool"
                 });
             }
             if (toolResults.length > 0) {
-                messages.push(...toolResults);
+                messages.push(...(toolResults as LLMMessage[]));
                 return true;
             }
             return false;
         },
-        "bedrock": (resp: any) => {
-            const toolResults: any[] = [];
+        "bedrock": (resp: OllamaResponse) => {
+            const toolResults: LLMToolResult[] = [];
             if (!resp.message.content) {
                 return false;
             }
-            for (const c of resp.message.content) {
+            const contentItems = resp.message.content as BedrockContentItem[];
+            for (const c of contentItems) {
                 if (c.type === "tool_use") {
-                    const toolResult = (toolImplementations as any)[c.name] ? (toolImplementations as any)[c.name](c.input) : "not implemented.";
+                    const toolResult = (c.name && toolImplementations[c.name]) ? toolImplementations[c.name](c.input) : "not implemented.";
                     toolResults.push({
-                        "tool_use_id": c.id,
+                        "tool_use_id": c.id ?? "",
                         "is_error": false,
                         "content": toolResult,
-                        "type": "tool_result"
+                        "type": "tool_result",
+                        "role": "tool"
                     });
                 }
             }
             if (toolResults.length > 0) {
                 messages.push({
-                    "content": toolResults,
+                    "content": toolResults as unknown as string,
                     "role": "user"
                 });
                 return true;
@@ -102,41 +154,41 @@ export default function (omnibar: any, front: any) {
             return false;
         },
     };
-    function llmRequest(req: any, onChunk: any) {
+    function llmRequest(req: Record<string, unknown>, onChunk: (chunk: string) => void) {
         // req.tools = tools;
-        if ((runtime as any).bookMessage('llmResponse', (resp: any) => {
+        if ((runtime as unknown as { bookMessage(evt: string, cb: (resp: OllamaResponse) => void): boolean }).bookMessage('llmResponse', (resp: OllamaResponse) => {
             if (resp.chunk) {
                 onChunk(resp.chunk);
             } else if (resp.done) {
                 let toolUsed = false;
                 if (Object.keys(resp.message).length > 0) {
-                    messages.push(resp.message);
-                    if (providerClients.hasOwnProperty(provider)) {
-                        toolUsed = (providerClients as any)[provider](resp);
+                    messages.push(resp.message as unknown as LLMMessage);
+                    if (Object.prototype.hasOwnProperty.call(providerClients, provider)) {
+                        toolUsed = providerClients[provider](resp);
                     }
                 }
                 if (toolUsed) {
                     req.messages = messages;
                     RUNTIME("llmRequest", req);
                 } else {
-                    runtime.releaseMessage('llmResponse');
+                    (runtime as unknown as { releaseMessage(evt: string): void }).releaseMessage('llmResponse');
                 }
             }
-        }) as any) {
+        })) {
             RUNTIME("llmRequest", req);
             return true;
         }
         return false;
     }
 
-    function showSystemMessage(msg: any, duration: any) {
+    function showSystemMessage(msg: string, duration: number) {
         const li = createElementWithContent('li', msg, { "class": "role-surfingkeys" });
         omnibar.resultsDiv.querySelector('ul')?.append(li);
 
         // Add fadeout animation after 3 seconds
         setTimeout(() => {
-            li.style.transition = "opacity 1s";
-            li.style.opacity = "0";
+            (li as HTMLElement).style.transition = "opacity 1s";
+            (li as HTMLElement).style.opacity = "0";
             li.addEventListener('transitionend', () => {
                 li.remove();
             });
@@ -151,15 +203,16 @@ export default function (omnibar: any, front: any) {
         omnibar.resultsDiv.querySelector('ul')?.remove();
         renderMessages();
     };
-    const commands = {
-        "system": (pmpt: any) => {
-            messages[0].content = pmpt;
+    const commands: Record<string, (arg?: string) => void> = {
+        "system": (pmpt?: string) => {
+            messages[0].content = pmpt ?? "";
         },
-        "provider": (p: any) => {
-            if (providers.indexOf(p) !== -1) {
+        "provider": (p?: string) => {
+            if (p && providers.indexOf(p) !== -1) {
                 clear();
                 provider = p;
-                omnibar.resultsDiv.querySelector('h4').textContent = p;
+                const h4 = omnibar.resultsDiv.querySelector('h4');
+                if (h4) h4.textContent = p;
             } else {
                 const msg = `Please specify a provider, which can be [ ${providers.join(", ")} ].`;
                 showSystemMessage(msg, 8000);
@@ -173,28 +226,28 @@ export default function (omnibar: any, front: any) {
         "clear": clear,
     };
     const commandsPatten = new RegExp(`^/(${Object.keys(commands).join("|")})(?:\\s+(.+)|\\s*)?$`, "");
-    const commandsPrompt = new CursorPrompt((c: any) => {
-        return "<div>{0}</div>".format(c);
-    }, (elm: any) => {
-        return elm.innerText;
+    const commandsPrompt = new CursorPrompt((c: unknown) => {
+        return "<div>{0}</div>".format(c as string);
+    }, (elm: Element) => {
+        return (elm as HTMLElement).innerText;
     });
 
     function renderMessages() {
-        function getReadableContent(content: any) {
+        function getReadableContent(content: unknown): string {
             if (typeof(content) === "string") {
                 return content;
             } else {
                 let readable = "";
-                for (const c of content) {
+                for (const c of (content as Array<{ type: string; text?: string }>)) {
                     if (c.type === "text") {
-                        readable += c.text;
+                        readable += c.text ?? "";
                     }
                 }
                 return readable;
             }
         }
 
-        const readables: any[] = [];
+        const readables: Array<{ role: string; content: string }> = [];
         let currentRole = "";
         for (const m of messages.slice(RESERVED_MESSAGE_COUNT)) {
             const content = getReadableContent(m.content);
@@ -228,19 +281,19 @@ export default function (omnibar: any, front: any) {
         }
     }
 
-    let currentUrl: any;
-    self.onOpen = function(opts: any) {
-        currentUrl = opts.url;
+    let currentUrl: string;
+    self.onOpen = function(opts: Record<string, unknown>) {
+        currentUrl = opts.url as string;
         hashString(currentUrl).then(hash => {
             let last = localStorage.getItem(hash);
             if (last) {
-                messages = JSON.parse(last);
+                messages = JSON.parse(last) as LLMMessage[];
             }
 
-            messages[0].content = opts && opts.system || "";
+            messages[0].content = (opts && opts.system as string) || "";
             omnibar.resultsDiv.className = "llmChat";
             if (!provider) {
-                provider = opts && opts.provider || runtime.conf.defaultLLMProvider;
+                provider = (opts && opts.provider as string) || runtime.conf.defaultLLMProvider;
             }
             omnibar.resultsDiv.append(createElementWithContent('h4', provider));
             renderMessages();
@@ -249,11 +302,11 @@ export default function (omnibar: any, front: any) {
             RUNTIME('getSettings', {
                 key: 'llmChatHistory'
             }, function(resp) {
-                inputs = resp.settings.llmChatHistory;
+                inputs = (resp.settings as { llmChatHistory: string[] }).llmChatHistory;
                 curInputIdx = inputs.length;
             });
             RUNTIME('getAllLlmProviders', { }, function(resp) {
-                providers = resp.providers;
+                providers = resp.providers as string[];
             });
         });
     };
@@ -269,7 +322,7 @@ export default function (omnibar: any, front: any) {
             commandsPrompt.activate(omnibar.input, providers);
         }
     };
-    self.rotateInput = function(backward: any) {
+    self.rotateInput = function(backward: boolean) {
         if (inputs.length > 0) {
             [omnibar.input.value, curInputIdx] = rotateInput(inputs, backward, curInputIdx, userInput);
         }
@@ -280,12 +333,12 @@ export default function (omnibar: any, front: any) {
     };
     self.onTabKey = function() {
         const fi = omnibar.resultsDiv.querySelector('li.focused');
-        if (fi.classList.contains("role-user")) {
-            omnibar.input.value = fi.innerText;
+        if (fi && fi.classList.contains("role-user")) {
+            omnibar.input.value = (fi as HTMLElement).innerText;
         }
     };
 
-    let lastResponseItem: any = null;
+    let lastResponseItem: Element | null = null;
     self.onEnter = function() {
         const prompt = omnibar.input.value;
         if (!prompt) {
@@ -293,12 +346,12 @@ export default function (omnibar: any, front: any) {
         }
 
         RUNTIME('updateInputHistory', { llmChat: prompt }, (resp) => {
-            inputs = resp.history;
+            inputs = resp.history as string[];
             curInputIdx = inputs.length;
         });
         const match = prompt.match(commandsPatten);
         if (match) {
-            (commands as any)[match[1]](match[2]);
+            commands[match[1]](match[2]);
             userInput = "";
             omnibar.input.value = "";
             return false;
@@ -311,30 +364,36 @@ export default function (omnibar: any, front: any) {
             userInput = "";
             omnibar.input.value = "";
             response = "";
-            omnibar.resultsDiv.lastElementChild.append(createElementWithContent('li', prompt, { "class": "role-user" }));
+            omnibar.resultsDiv.lastElementChild?.append(createElementWithContent('li', prompt, { "class": "role-user" }));
             lastResponseItem = createElementWithContent('li', "<div></div>", { "class": "role-assistant" });
-            omnibar.resultsDiv.lastElementChild.append(lastResponseItem);
+            omnibar.resultsDiv.lastElementChild?.append(lastResponseItem);
             spinnerIndex = 0;
-            lastResponseItem.firstElementChild.innerText = dots[spinnerIndex];
+            if (lastResponseItem?.firstElementChild) {
+                (lastResponseItem.firstElementChild as HTMLElement).innerText = dots[spinnerIndex];
+            }
             spinnerInterval = setInterval(() => {
                 spinnerIndex = (spinnerIndex + 1) % dots.length;
-                lastResponseItem.firstElementChild.innerText = dots[spinnerIndex];
+                if (lastResponseItem?.firstElementChild) {
+                    (lastResponseItem.firstElementChild as HTMLElement).innerText = dots[spinnerIndex];
+                }
             }, 100);
         } else {
             const rejectedMsg = messages.pop();
-            showSystemMessage(`Working on, be patient, rejecting: ${rejectedMsg.content}`, 2000);
+            showSystemMessage(`Working on, be patient, rejecting: ${rejectedMsg?.content}`, 2000);
         }
         return false;
     };
 
-    function onChunk(chunk: any) {
+    function onChunk(chunk: string) {
         if (spinnerInterval) {
             clearInterval(spinnerInterval);
             spinnerInterval = 0;
         }
         response = response + chunk;
-        setSanitizedContent(lastResponseItem.firstElementChild, marked.parse(response));
-        lastResponseItem.firstElementChild.scrollIntoView({ behavior: 'instant', block: 'end', });
+        if (lastResponseItem?.firstElementChild) {
+            setSanitizedContent(lastResponseItem.firstElementChild, marked.parse(response));
+            lastResponseItem.firstElementChild.scrollIntoView({ behavior: 'instant', block: 'end', });
+        }
     }
 
     front.addDestroyListener(() => {

@@ -1,6 +1,8 @@
 import { RUNTIME, runtime, dispatchSKEvent } from '../runtime.js';
 import { getBrowserName, getCssSelectorsOfEditable, getLargeElements, getTextNodePos } from '../utils.js';
-import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { CommandAPI, HintsModule, NormalModule, FrontendAPI, ChromeSurfingkeysAPI } from '../../../../@types/surfingkeys';
+
+type ChromeWithSK = typeof chrome & { surfingkeys?: ChromeSurfingkeysAPI };
 
 export default function registerHints(
     api: CommandAPI,
@@ -12,6 +14,9 @@ export default function registerHints(
     front: unknown,
     _browser: unknown
 ): void {
+    const hn = hints as HintsModule;
+    const nm = normal as NormalModule;
+    const fr = front as FrontendAPI;
     const { mapkey } = api;
 
     mapkey('gi', {
@@ -22,7 +27,7 @@ export default function registerHints(
         description: "Focus the first input field on the page",
         tags: ["hints", "input", "focus"]
     }, function() {
-        (hints as any).createInputLayer();
+        hn.createInputLayer();
     });
     mapkey('i', {
         short: "Go to edit box",
@@ -32,7 +37,7 @@ export default function registerHints(
         description: "Show hints to select and focus an input field",
         tags: ["hints", "input", "selection"]
     }, function() {
-        (hints as any).create(getCssSelectorsOfEditable(), (hints as any).dispatchMouseClick);
+        hn.create(getCssSelectorsOfEditable(), hn.dispatchMouseClick);
     });
     mapkey('I', {
         short: "Go to edit box with vim",
@@ -42,8 +47,8 @@ export default function registerHints(
         description: "Show hints to select an input and open it in vim editor",
         tags: ["hints", "input", "vim"]
     }, function() {
-        (hints as any).create(getCssSelectorsOfEditable(), function(element: any) {
-            (front as any).showEditor(element);
+        hn.create(getCssSelectorsOfEditable(), function(element) {
+            fr.showEditor(element as Element);
         });
     });
     mapkey('L', {
@@ -54,7 +59,7 @@ export default function registerHints(
         description: "Enter hints mode for large page regions",
         tags: ["hints", "regional", "navigation"]
     }, function() {
-        (hints as any).create(getLargeElements(), (_e: any) => { }, { regionalHints: true });
+        hn.create(getLargeElements(), (_e) => { }, { regionalHints: true });
     });
 
     mapkey(';m', {
@@ -65,7 +70,7 @@ export default function registerHints(
         description: "Trigger mouseout event on the last hinted element",
         tags: ["hints", "mouse", "event"]
     }, function() {
-        (hints as any).mouseoutLastElement();
+        (hn as HintsModule & { mouseoutLastElement(): void }).mouseoutLastElement();
     });
 
     mapkey(';fs', {
@@ -76,7 +81,7 @@ export default function registerHints(
         description: "Show hints to focus elements with scrollable content",
         tags: ["hints", "scroll", "focus"]
     }, function() {
-        (hints as any).create((normal as any).refreshScrollableElements(), (hints as any).dispatchMouseClick);
+        hn.create(nm.refreshScrollableElements(), hn.dispatchMouseClick);
     });
 
     mapkey("f", {
@@ -87,7 +92,7 @@ export default function registerHints(
         description: "Show hints to click on links and interactive elements",
         tags: ["hints", "link", "click"]
     }, function() {
-        (hints as any).create("", (hints as any).dispatchMouseClick);
+        hn.create("", hn.dispatchMouseClick);
     }, {repeatIgnore: true});
 
     mapkey('af', {
@@ -98,7 +103,7 @@ export default function registerHints(
         description: "Show hints to open link in a new active tab",
         tags: ["hints", "link", "tab"]
     }, function() {
-        (hints as any).create("", (hints as any).dispatchMouseClick, {tabbed: true, active: true});
+        hn.create("", hn.dispatchMouseClick, {tabbed: true, active: true});
     });
     mapkey('gf', {
         short: "Open link in background tab",
@@ -108,7 +113,7 @@ export default function registerHints(
         description: "Show hints to open link in a new background tab",
         tags: ["hints", "link", "background"]
     }, function() {
-        (hints as any).create("", (hints as any).dispatchMouseClick, {tabbed: true, active: false});
+        hn.create("", hn.dispatchMouseClick, {tabbed: true, active: false});
     });
     mapkey('cf', {
         short: "Open multiple links",
@@ -118,7 +123,7 @@ export default function registerHints(
         description: "Show hints to open multiple links in new tabs",
         tags: ["hints", "link", "multiple"]
     }, function() {
-        (hints as any).create("", (hints as any).dispatchMouseClick, {multipleHits: true});
+        hn.create("", hn.dispatchMouseClick, {multipleHits: true});
     });
 
     mapkey('<Ctrl-h>', {
@@ -129,12 +134,13 @@ export default function registerHints(
         description: "Show hints to trigger mouseover event on elements",
         tags: ["hints", "mouse", "event"]
     }, function() {
-        (hints as any).create("", (element: any, event: any) => {
-            if ((chrome as any).surfingkeys) {
-                const r = element.getClientRects()[0];
-                (chrome as any).surfingkeys.sendMouseEvent(2, Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2), 0);
+        hn.create("", (element, shiftKey) => {
+            const skChrome = chrome as ChromeWithSK;
+            if (skChrome.surfingkeys) {
+                const r = (element as Element).getClientRects()[0];
+                skChrome.surfingkeys.sendMouseEvent(2, Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2), 0);
             } else {
-                (hints as any).dispatchMouseClick(element, event);
+                hn.dispatchMouseClick(element as Element, shiftKey);
             }
         }, {mouseEvents: ["mouseover"]});
     });
@@ -146,7 +152,7 @@ export default function registerHints(
         description: "Show hints to trigger mouseout event on elements",
         tags: ["hints", "mouse", "event"]
     }, function() {
-        (hints as any).create("", (hints as any).dispatchMouseClick, {mouseEvents: ["mouseout"]});
+        hn.create("", hn.dispatchMouseClick, {mouseEvents: ["mouseout"]});
     });
 
     mapkey('q', {
@@ -157,7 +163,7 @@ export default function registerHints(
         description: "Show hints to click on images or buttons",
         tags: ["hints", "image", "button"]
     }, function() {
-        (hints as any).create("img, button", (hints as any).dispatchMouseClick);
+        hn.create("img, button", hn.dispatchMouseClick);
     });
 
     mapkey("cq", {
@@ -168,15 +174,16 @@ export default function registerHints(
         description: "Show hints to select and query a word for translation",
         tags: ["hints", "query", "translation"]
     }, function() {
-        (hints as any).create(runtime.conf.textAnchorPat, function (element: any) {
-            var word = element[2].trim().replace(/[^A-z].*$/, "");
-            var b = getTextNodePos(element[0], element[1], element[2].length);
-            (front as any).performInlineQuery(word, {
+        hn.create(runtime.conf.textAnchorPat, function (element) {
+            const el = element as [Node, number, string];
+            var word = el[2].trim().replace(/[^A-z].*$/, "");
+            var b = getTextNodePos(el[0], el[1], el[2].length);
+            fr.performInlineQuery(word, {
                 top: b.top,
                 left: b.left,
-                height: b.height,
-                width: b.width
-            }, function (pos: any, queryResult: any) {
+                height: b.height ?? 0,
+                width: b.width ?? 0
+            }, function (pos, queryResult) {
                 dispatchSKEvent("front", ['showBubble', pos, queryResult, false]);
             });
         });
@@ -191,9 +198,9 @@ export default function registerHints(
             description: "Show hints to select and download an image",
             tags: ["hints", "download", "image"]
         }, function() {
-            (hints as any).create('img', function(element: any) {
+            hn.create('img', function(element) {
                 RUNTIME('download', {
-                    url: element.src
+                    url: (element as HTMLImageElement).src
                 });
             });
         });

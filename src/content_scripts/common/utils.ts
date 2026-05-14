@@ -104,7 +104,7 @@ const colors = [
     '#708090', // Slate Gray
     '#6B8E23'  // Olive Drab
 ];
-function getColor(i: any) {
+function getColor(i: number) {
     return colors[i];
 }
 
@@ -117,7 +117,7 @@ function getColor(i: any) {
  *
  * @example aceVimMap('J', ':bn', 'normal');
  */
-function aceVimMap(lhs: any, rhs: any, ctx: any) {
+function aceVimMap(lhs: string, rhs: string, ctx: string) {
     dispatchSKEvent("front", ['addVimMap', lhs, rhs, ctx]);
 }
 
@@ -152,14 +152,14 @@ function addVimMapKey() {
     dispatchSKEvent("front", ['addVimKeyMap', Array.from(arguments)]);
 }
 
-function isEmptyObject(obj: any) {
+function isEmptyObject(obj: object) {
     for (var name in obj) {
         return false;
     }
     return true;
 }
 
-function applyUserSettings(delta: any) {
+function applyUserSettings(delta: { error: string; settings: object }) {
     if (delta.error !== "") {
         console.error("[SurfingKeys] Error found in settings: " + delta.error);
         if (window === top) {
@@ -195,7 +195,7 @@ function isInUIFrame() {
     return window !== top && document.location.href.indexOf(chrome.runtime.getURL("/")) === 0;
 }
 
-function timeStampString(t: any) {
+function timeStampString(t: number) {
     var dt = new Date();
     dt.setTime(t);
     return dt.toLocaleString();
@@ -217,7 +217,7 @@ function generateQuickGuid() {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-function listElements(root: any, whatToShow: any, filter: any) {
+function listElements(root: Node, whatToShow: number, filter: (n: Node) => boolean) {
     const elms: Node[] = [];
     let currentNode;
     const nodeIterator = document.createNodeIterator(
@@ -231,19 +231,19 @@ function listElements(root: any, whatToShow: any, filter: any) {
             elms.push(currentNode);
         }
 
-        if ((currentNode as any).shadowRoot) {
-            elms.push(...listElements((currentNode as any).shadowRoot, whatToShow, filter));
+        if ((currentNode as Element).shadowRoot) {
+            elms.push(...listElements((currentNode as Element).shadowRoot!, whatToShow, filter));
         }
     }
 
     return elms;
 }
 
-function _isElementVisible(elm: any) {
+function _isElementVisible(elm: HTMLElement) {
     return elm.offsetHeight > 0 && elm.offsetWidth > 0;
 }
 
-function isElementClickable(e: any) {
+function isElementClickable(e: Element) {
     var cssSelector = "a, button, select, input, textarea, summary, *[onclick], *[contenteditable=true], *.jfk-button, *.goog-flat-menu-button, *[role=button], *[role=link], *[role=menuitem], *[role=option], *[role=switch], *[role=tab], *[role=checkbox], *[role=combobox], *[role=menuitemcheckbox], *[role=menuitemradio]";
     if (runtime.conf.clickableSelector.length) {
         cssSelector += ", " + runtime.conf.clickableSelector;
@@ -265,7 +265,7 @@ function isElementClickable(e: any) {
  * @example
  * Front.showBanner(window.location.href);
  */
-function showBanner(msg: any, timeout?: any) {
+function showBanner(msg: string, timeout?: number) {
     dispatchSKEvent("front", ['showBanner', msg, timeout]);
 }
 
@@ -278,47 +278,47 @@ function showBanner(msg: any, timeout?: any) {
  * @example
  * Front.showPopup(window.location.href);
  */
-function showPopup(msg: any) {
+function showPopup(msg: string) {
     dispatchSKEvent("front", ['showPopup', msg]);
 }
 
-function showImagePopup(dataUrl: any) {
+function showImagePopup(dataUrl: string) {
     dispatchSKEvent("front", ['showImagePopup', dataUrl]);
 }
 
-function openOmnibar(args: any) {
+function openOmnibar(args: Record<string, unknown>) {
     dispatchSKEvent("front", ['openOmnibar', args]);
 }
 
-function initSKFunctionListener(name: any, interfaces: any, capture?: any) {
-    const callbacks: Record<string, any> = {};
+function initSKFunctionListener(name: string, interfaces: Record<string, (...args: never[]) => unknown>, capture?: boolean) {
+    const callbacks: Record<string, (...args: never[]) => unknown> = {};
 
     const opts = capture ? {capture: true} : {};
     document.addEventListener(`surfingkeys:${name}`, function(evt) {
-        let args = (evt as any).detail;
+        let args = (evt as CustomEvent<unknown[]>).detail;
         const fk = args.shift();
         if (capture) {
-            if (args.length > 0 && args[0].constructor.name === "Array" && args[0][0] === "__EVENT_TARGET__") {
+            if (args.length > 0 && (args[0] as string[]).constructor.name === "Array" && (args[0] as string[])[0] === "__EVENT_TARGET__") {
                 // restore args from evt.target, see src/content_scripts/common/hints.js:442
-                args[0][0] = evt.target;
+                (args[0] as unknown[])[0] = evt.target;
             } else {
                 args.push(evt.target);
             }
         }
 
-        if (callbacks.hasOwnProperty(fk)) {
-            callbacks[fk](...args);
-            delete callbacks[fk];
-        } if (interfaces.hasOwnProperty(fk)) {
-            interfaces[fk](...args);
+        if (callbacks.hasOwnProperty(fk as string)) {
+            callbacks[fk as string](...(args as never[]));
+            delete callbacks[fk as string];
+        } if (interfaces.hasOwnProperty(fk as string)) {
+            interfaces[fk as string](...(args as never[]));
         }
     }, opts);
 
     return callbacks;
 }
 
-function dispatchMouseEvent(element: any, events: any, modifiers: any) {
-    events.forEach(function(eventName: any) {
+function dispatchMouseEvent(element: Element, events: string[], modifiers: { ctrlKey?: boolean; altKey?: boolean; shiftKey?: boolean; metaKey?: boolean }) {
+    events.forEach(function(eventName) {
         const event = new MouseEvent(eventName, {
             bubbles: true,
             cancelable: true,
@@ -333,27 +333,28 @@ function dispatchMouseEvent(element: any, events: any, modifiers: any) {
     });
 }
 
-function getRealEdit(event?: any) {
-    var rt = event ? event.target : document.activeElement;
+function getRealEdit(event?: Event): Element {
+    var rt: Element | null = event ? (event.target as Element) : document.activeElement;
     // on some pages like chrome://history/, input is in shadowRoot of several other recursive shadowRoots.
-    while (rt && rt.shadowRoot) {
-        if (rt.shadowRoot.activeElement) {
-            rt = rt.shadowRoot.activeElement;
-        } else if (rt.shadowRoot.querySelector('input, textarea, select')) {
-            rt = rt.shadowRoot.querySelector('input, textarea, select');
+    while (rt && (rt as unknown as { shadowRoot: ShadowRoot | null }).shadowRoot) {
+        const shadowRoot = (rt as unknown as { shadowRoot: ShadowRoot }).shadowRoot;
+        if (shadowRoot.activeElement) {
+            rt = shadowRoot.activeElement;
+        } else if (shadowRoot.querySelector('input, textarea, select')) {
+            rt = shadowRoot.querySelector('input, textarea, select');
             break;
         } else {
             break;
         }
     }
-    if (rt === window) {
+    if ((rt as unknown) === window || rt === null) {
         rt = document.body;
     }
     return rt;
 }
 
 function toggleQuote() {
-    var elm = getRealEdit(), val = elm.value;
+    var elm = getRealEdit() as HTMLInputElement, val = elm.value;
     if (val.match(/^"|"$/)) {
         elm.value = val.replace(/^"?(.*?)"?$/, '$1');
     } else {
@@ -361,30 +362,30 @@ function toggleQuote() {
     }
 }
 
-function isEditable(element: any) {
+function isEditable(element: Element | null) {
     return element
-        && !element.disabled && (element.localName === 'textarea'
+        && !(element as HTMLInputElement).disabled && (element.localName === 'textarea'
         || element.localName === 'select'
-        || element.isContentEditable
+        || (element as HTMLElement).isContentEditable
         || (element.matches && element.matches(runtime.conf.editableSelector))
-        || (element.localName === 'input' && /^(?!button|checkbox|file|hidden|image|radio|reset|submit)/i.test(element.type)));
+        || (element.localName === 'input' && /^(?!button|checkbox|file|hidden|image|radio|reset|submit)/i.test((element as HTMLInputElement).type)));
 }
 
-function _parseQueryString(query: any) {
-    var params: Record<string, any> = {};
+function _parseQueryString(query: string) {
+    var params: Record<string, string | null> = {};
     if (query.length) {
         var parts = query.split('&');
         for (var i = 0, ii = parts.length; i < ii; ++i) {
             var param = parts[i].split('=');
             var key = param[0].toLowerCase();
             var value = param.length > 1 ? param[1] : null;
-            params[decodeURIComponent(key)] = decodeURIComponent(value);
+            params[decodeURIComponent(key)] = value ? decodeURIComponent(value) : null;
         }
     }
     return params;
 }
 
-function reportIssue(title: any, description: any) {
+function reportIssue(title: string, description: string) {
     title = encodeURIComponent(title);
     description = "%23%23+Error+details%0A%0A{0}%0A%0ASurfingKeys%3A+{1}%0A%0AChrome%3A+{2}%0A%0AURL%3A+{3}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A".format(encodeURIComponent(description), chrome.runtime.getManifest().version, encodeURIComponent(navigator.userAgent), encodeURIComponent(window.location.href));
     var error = '<h2>Uh-oh! The SurfingKeys extension encountered a bug.</h2> <p>Please click <a href="https://github.com/brookhong/Surfingkeys/issues/new?title={0}&body={1}" target=_blank>here</a> to start filing a new issue, append a description of how you were using SurfingKeys before this message appeared, then submit it.  Thanks for your help!</p>'.format(title, description);
@@ -392,18 +393,18 @@ function reportIssue(title: any, description: any) {
     showPopup(error);
 }
 
-function scrollIntoViewIfNeeded(elm: any, ignoreSize?: any) {
-    if (elm.scrollIntoViewIfNeeded) {
-        elm.scrollIntoViewIfNeeded();
+function scrollIntoViewIfNeeded(elm: Element, ignoreSize?: boolean) {
+    if ((elm as unknown as { scrollIntoViewIfNeeded?: () => void }).scrollIntoViewIfNeeded) {
+        (elm as unknown as { scrollIntoViewIfNeeded: () => void }).scrollIntoViewIfNeeded();
     } else if (!isElementPartiallyInViewport(elm, ignoreSize)) {
         elm.scrollIntoView();
     }
 }
 
-function isElementDrawn(e: any, rect?: any) {
+function isElementDrawn(e: Element, rect?: DOMRect) {
     var min = isEditable(e) ? 1 : 4;
     rect = rect || e.getBoundingClientRect();
-    return rect.width > min && rect.height > min && (parseFloat(getComputedStyle(e).opacity) > 0.1 || e.tagName == "INPUT" && e.type != "text");
+    return rect.width > min && rect.height > min && (parseFloat(getComputedStyle(e).opacity) > 0.1 || e.tagName == "INPUT" && (e as HTMLInputElement).type != "text");
 }
 
 /**
@@ -414,7 +415,7 @@ function isElementDrawn(e: any, rect?: any) {
  * @returns {boolean}
  *
  */
-function isElementPartiallyInViewport(el: any, ignoreSize?: any) {
+function isElementPartiallyInViewport(el: Element, ignoreSize?: boolean) {
     var rect = el.getBoundingClientRect();
     var windowHeight = (window.innerHeight || document.documentElement.clientHeight);
     var windowWidth = (window.innerWidth || document.documentElement.clientWidth);
@@ -424,7 +425,7 @@ function isElementPartiallyInViewport(el: any, ignoreSize?: any) {
         && (rect.left < windowWidth) && (rect.right > 0);
 }
 
-function getVisibleElements(filter: any) {
+function getVisibleElements(filter: (el: Element, acc: Element[]) => void) {
     var all = Array.from(document.documentElement.getElementsByTagName("*"));
     var visibleElements: Element[] = [];
     for (var i = 0; i < all.length; i++) {
@@ -470,7 +471,7 @@ function getLargeElements(minWidth = 0.3, minHeight = 0.3) {
     const minHeightPx = viewportHeight * minHeight;
 
     let lastRect = new DOMRect(0, 0, 0, 0);
-    let elements = getVisibleElements((element: any, visibleElements: any) => {
+    let elements = getVisibleElements((element: Element, visibleElements: Element[]) => {
         if (element === document.body) return;
         const rect = element.getBoundingClientRect();
         const tolerance = 16;
@@ -495,13 +496,13 @@ function getLargeElements(minWidth = 0.3, minHeight = 0.3) {
     return elements;
 }
 
-function actionWithSelectionPreserved(cb: any) {
+function actionWithSelectionPreserved(cb: (sel: Selection) => void) {
     var selection = document.getSelection();
     var pos = [selection!.type, selection!.anchorNode, selection!.anchorOffset, selection!.focusNode, selection!.focusOffset];
 
     var dt = (document.scrollingElement as Element).scrollTop;
 
-    cb(selection);
+    cb(selection!);
 
     (document.scrollingElement as Element).scrollTop = dt;
 
@@ -515,24 +516,24 @@ function actionWithSelectionPreserved(cb: any) {
     }
 }
 
-function filterAncestors(elements: any) {
+function filterAncestors(elements: Element[]) {
     if (elements.length === 0) {
         return elements;
     }
 
     // filter out element which has its children covered
-    var result: any[] = [];
-    elements.forEach(function(e: any, _i: any) {
+    var result: Element[] = [];
+    elements.forEach(function(e: Element) {
         if (isExplicitlyRequested(e)) {
             result.push(e);
         } else {
             for (var j = 0; j < result.length; j++) {
                 if (result[j].contains(e)) {
-                    if (result[j].tagName !== 'A' || !result[j].href) {
+                    if (result[j].tagName !== 'A' || !(result[j] as HTMLAnchorElement).href) {
                         result[j] = e;
                     }
                     return;
-                } else if (result[j].shadowRoot && result[j].shadowRoot.contains(e)) {
+                } else if (result[j].shadowRoot && result[j].shadowRoot!.contains(e)) {
                     // skip child from shadowRoot of a selected element.
                     return;
                 } else if (e.contains(result[j])) {
@@ -547,20 +548,20 @@ function filterAncestors(elements: any) {
     return result;
 }
 
-function getRealRect(elm: any) {
+function getRealRect(elm: Element): DOMRect {
     if (elm.childElementCount === 0) {
-        var r = elm.getClientRects();
-        if (r.length === 3) {
+        const rects = elm.getClientRects();
+        if (rects.length === 3) {
             // for a clipped A tag
-            return r[1];
-        } else if (r.length === 2) {
+            return rects[1];
+        } else if (rects.length === 2) {
             // for a wrapped A tag
-            return r[0];
+            return rects[0];
         } else {
             return elm.getBoundingClientRect();
         }
-    } else if (elm.childElementCount === 1 && elm.firstElementChild.textContent) {
-        var r = elm.firstElementChild.getBoundingClientRect();
+    } else if (elm.childElementCount === 1 && elm.firstElementChild!.textContent) {
+        let r = elm.firstElementChild!.getBoundingClientRect();
         if (r.width < 4 || r.height < 4) {
             r = elm.getBoundingClientRect();
         }
@@ -570,23 +571,24 @@ function getRealRect(elm: any) {
     }
 }
 
-function isExplicitlyRequested(element: any) {
+function isExplicitlyRequested(element: Element) {
     return runtime.conf.clickableSelector &&
         element.matches(runtime.conf.clickableSelector);
 }
 
-function filterOverlapElements(elements: any) {
+function filterOverlapElements(elements: Element[]) {
     // filter out tiny elements
-    elements = elements.filter(function(e: any) {
+    elements = elements.filter(function(e: Element) {
         var be = getRealRect(e);
-        if (e.disabled || e.readOnly || !isElementDrawn(e, be)) {
+        if ((e as HTMLInputElement).disabled || (e as HTMLInputElement).readOnly || !isElementDrawn(e, be)) {
             return false;
         } else if (e.matches("input, textarea, select, form")
-            || e.contentEditable === "true" || isExplicitlyRequested(e)) {
+            || (e as HTMLElement).contentEditable === "true" || isExplicitlyRequested(e)) {
             return true;
         } else {
-            var el = e.getRootNode().elementFromPoint(be.left + be.width/2, be.top + be.height/2);
-            return !el || el.shadowRoot && (el.childElementCount === 0 || el.shadowRoot.contains(e)) || el.contains(e) || e.contains(el);
+            const rootNode = e.getRootNode() as Document | ShadowRoot;
+            var el = rootNode.elementFromPoint ? rootNode.elementFromPoint(be.left + be.width/2, be.top + be.height/2) : null;
+            return !el || (el as unknown as { shadowRoot: ShadowRoot | null }).shadowRoot && (el.childElementCount === 0 || el.shadowRoot!.contains(e)) || el.contains(e) || e.contains(el);
         }
     });
 
@@ -603,31 +605,36 @@ function filterOverlapElements(elements: any) {
  * @example
  * var elms = getClickableElements("[rel=link]", /click this/);
  */
-function getClickableElements(selectorString: any, pattern?: any) {
-    var nodes = listElements(document.body, NodeFilter.SHOW_ELEMENT, function(n: any) {
-        return n.offsetHeight && n.offsetWidth
-            && getComputedStyle(n).cursor === "pointer"
-            && (n.matches(selectorString)
+function getClickableElements(selectorString: string, pattern?: RegExp) {
+    var nodes = listElements(document.body, NodeFilter.SHOW_ELEMENT, function(n: Node) {
+        const el = n as HTMLElement;
+        return !!(el.offsetHeight && el.offsetWidth
+            && getComputedStyle(el).cursor === "pointer"
+            && (el.matches(selectorString)
                 || pattern && (
-                    pattern.test(n.textContent)
-                    || pattern.test(n.getAttribute('aria-label')))
-            );
+                    pattern.test(el.textContent ?? '')
+                    || pattern.test(el.getAttribute('aria-label') ?? ''))
+            ));
     });
-    return filterOverlapElements(nodes);
+    return filterOverlapElements(nodes as Element[]);
 }
 
-function getTextNodes(root: any, pattern: any, flag?: any): any {
+function getTextNodes(root: Node, pattern: RegExp, flag: 0): TreeWalker;
+function getTextNodes(root: Node, pattern: RegExp, flag?: 1 | -1 | 2 | undefined): Node[];
+function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[] | TreeWalker {
     var skip_tags = ['script', 'style', 'noscript', 'surfingkeys_mark'];
     var treeWalker = document.createTreeWalker(
         root,
         NodeFilter.SHOW_TEXT, {
-            acceptNode: function(node: any) {
-                if (!node.data.trim() || !node.parentNode.offsetParent || skip_tags.indexOf(node.parentNode.localName.toLowerCase()) !== -1 || !pattern.test(node.data)) {
+            acceptNode: function(node: Node) {
+                const textNode = node as Text;
+                const parentEl = textNode.parentNode as HTMLElement;
+                if (!textNode.data.trim() || !parentEl.offsetParent || skip_tags.indexOf(parentEl.localName.toLowerCase()) !== -1 || !pattern.test(textNode.data)) {
                     // node changed, reset pattern.lastIndex
                     pattern.lastIndex = 0;
                     return NodeFilter.FILTER_REJECT;
                 }
-                var br = node.parentNode.getBoundingClientRect();
+                var br = parentEl.getBoundingClientRect();
                 if (br.width < 4 || br.height < 4) {
                     return NodeFilter.FILTER_REJECT;
                 }
@@ -647,14 +654,14 @@ function getTextNodes(root: any, pattern: any, flag?: any): any {
     } else {
         while (treeWalker.nextNode()) nodes.push(treeWalker.currentNode);
     }
-    return nodes;
+    return nodes as Node[];
 }
 
-function getTextNodePos(node: any, offset: any, length?: any) {
+function getTextNodePos(node: Node, offset: number, length?: number) {
     var selection = document.getSelection();
-    selection!.setBaseAndExtent(node, offset, node, length ? (offset + length) : (node as any).data.length);
+    selection!.setBaseAndExtent(node, offset, node, length ? (offset + length) : (node as Text).data.length);
     var br = selection!.rangeCount > 0 ? selection!.getRangeAt(0).getClientRects()[0] : null;
-    var pos: any = {
+    var pos: { left: number; top: number; width?: number; height?: number } = {
         left: -1,
         top: -1
     };
@@ -668,18 +675,18 @@ function getTextNodePos(node: any, offset: any, length?: any) {
 }
 
 var _focusedRange = document.createRange();
-function getTextRect(...args: any[]) {
-    let rects: any = [];
+function getTextRect(...args: unknown[]) {
+    let rects: DOMRectList | DOMRect[] = [];
     try {
-        let start = args[1];
+        let start = args[1] as number;
         while (rects.length === 0 && start >= 0) {
-            _focusedRange.setStart(args[0], start);
+            _focusedRange.setStart(args[0] as Node, start);
             if (args.length > 3) {
-                _focusedRange.setEnd(args[2], args[3]);
+                _focusedRange.setEnd(args[2] as Node, args[3] as number);
             } else if (args.length > 2) {
-                _focusedRange.setEnd(args[0], args[2]);
+                _focusedRange.setEnd(args[0] as Node, args[2] as number);
             } else {
-                _focusedRange.setEnd(args[0], args[1]);
+                _focusedRange.setEnd(args[0] as Node, args[1] as number);
             }
             rects = _focusedRange.getClientRects();
             start --;
@@ -687,15 +694,15 @@ function getTextRect(...args: any[]) {
     } catch (_e) {
         return [];
     }
-    return rects;
+    return Array.from(rects);
 }
 
-function locateFocusNode(selection: any) {
-    let se = selection.focusNode.parentElement;
-    scrollIntoViewIfNeeded(se, true);
-    var r = getTextRect(selection.focusNode, selection.focusOffset)[0];
+function locateFocusNode(selection: Selection) {
+    let se = (selection.focusNode as Node).parentElement;
+    scrollIntoViewIfNeeded(se!, true);
+    var r = getTextRect(selection.focusNode as Node, selection.focusOffset)[0];
     if (!r) {
-        r = selection.focusNode.getBoundingClientRect();
+        r = (selection.focusNode as Element).getBoundingClientRect();
     }
     if (r) {
         r = {
@@ -703,21 +710,21 @@ function locateFocusNode(selection: any) {
             top: r.top,
             width: r.width,
             height: r.height
-        };
+        } as DOMRect;
         if (r.left < 0 || r.left >= window.innerWidth) {
-            se.scrollLeft += r.left - window.innerWidth / 2;
-            r.left = window.innerWidth / 2;
+            (se as HTMLElement).scrollLeft += r.left - window.innerWidth / 2;
+            (r as unknown as { left: number }).left = window.innerWidth / 2;
         }
         if (r.top < 0 || r.top >= window.innerHeight) {
-            se.scrollTop += r.top - window.innerHeight / 2;
-            r.top = window.innerHeight / 2;
+            (se as HTMLElement).scrollTop += r.top - window.innerHeight / 2;
+            (r as unknown as { top: number }).top = window.innerHeight / 2;
         }
         return r;
     }
     return null;
 }
 
-function getNearestWord(text: any, offset: any) {
+function getNearestWord(text: string, offset: number) {
     var ret = [0, text.length];
     var nonWord = /\W/;
     if (offset < 0) {
@@ -753,14 +760,14 @@ var _clickPos: number[] | null = null;
 document.addEventListener('mousedown', event => {
     _clickPos = [event.clientX, event.clientY];
 });
-function getWordUnderCursor(mouseCursor?: any) {
+function getWordUnderCursor(mouseCursor?: boolean) {
     var selection = document.getSelection();
     if (selection!.focusNode && selection!.focusNode.textContent) {
         var range = getNearestWord(selection!.focusNode.textContent, selection!.focusOffset);
         var selRect = getTextRect(selection!.focusNode, range[0], range[0] + range[1])[0];
         var word = selection!.focusNode.textContent.substr(range[0], range[1]);
         if (selRect && word) {
-            if (!mouseCursor || _clickPos && selRect.has(_clickPos[0], _clickPos[1], 0, 0)) {
+            if (!mouseCursor || _clickPos && (selRect as unknown as { has: (x: number, y: number, ex: number, ey: number) => boolean }).has(_clickPos[0], _clickPos[1], 0, 0)) {
                 return word.trim();
             }
         }
@@ -768,29 +775,29 @@ function getWordUnderCursor(mouseCursor?: any) {
     return null;
 }
 
-(DOMRect.prototype as any).has = function (x: any, y: any, ex: any, ey: any) {
+(DOMRect.prototype as unknown as { has: (x: number, y: number, ex: number, ey: number) => boolean }).has = function (this: DOMRect, x: number, y: number, ex: number, ey: number) {
     // allow some errors of x and y as ex and ey respectively.
     return (y > this.top - ey && y < this.bottom + ey
         && x > this.left - ex && x < this.right + ex);
 };
 
-function initL10n(cb: any) {
+function initL10n(cb: (translate: (str: string) => string) => void) {
     const lang = runtime.conf.language || window.navigator.language;
     if (lang === "en-US") {
-        cb(function(str: any) {
+        cb(function(str: string) {
             return str;
         });
     } else {
         fetch(chrome.runtime.getURL("pages/l10n.json")).then(function(res) {
             return res.json();
-        }).then(function(l10n) {
+        }).then(function(l10n: Record<string, Record<string, string>>) {
             if (typeof(l10n[lang]) === "object") {
-                l10n = l10n[lang];
-                cb(function(str: any) {
-                    return l10n[str] ? l10n[str] : str;
+                const langMap = l10n[lang];
+                cb(function(str: string) {
+                    return langMap[str] ? langMap[str] : str;
                 });
             } else {
-                cb(function(str: any) {
+                cb(function(str: string) {
                     return str;
                 });
             }
@@ -799,7 +806,7 @@ function initL10n(cb: any) {
 }
 
 String.prototype.format = function(this: string, ...args: unknown[]) {
-    var result: string = this;
+    var result: string = String(this);
     for (var i = 0; i < args.length; i++) {
         var regexp = new RegExp('\\{' + i + '\\}', 'gi');
         result = result.replace(regexp, String(args[i]));
@@ -807,11 +814,11 @@ String.prototype.format = function(this: string, ...args: unknown[]) {
     return result;
 };
 
-(String.prototype as any).reverse = function() {
+(String.prototype as unknown as { reverse: () => string }).reverse = function(this: string) {
     return this.split("").reverse().join("");
 };
 
-(RegExp.prototype as any).toJSON = function() {
+(RegExp.prototype as unknown as { toJSON: () => object }).toJSON = function(this: RegExp) {
     return {source: this.source, flags: this.flags};
 };
 
@@ -821,34 +828,34 @@ if (!Array.prototype.flatMap) {
     };
 }
 
-function parseAnnotation(ag: any) {
+function parseAnnotation(ag: { annotation: unknown; feature_group?: number; repeatIgnore?: boolean }) {
     let an = ag.annotation;
 
     // Preserve object annotations with unique_id (for command registry)
-    if (typeof an === 'object' && an !== null && !Array.isArray(an) && an.unique_id) {
+    if (typeof an === 'object' && an !== null && !Array.isArray(an) && (an as Record<string, unknown>).unique_id) {
         // Extract feature_group from object if present, otherwise keep existing
-        if (an.feature_group !== undefined) {
-            ag.feature_group = an.feature_group;
+        if ((an as Record<string, unknown>).feature_group !== undefined) {
+            ag.feature_group = (an as Record<string, number>).feature_group;
         }
         return ag;  // Return unchanged, preserving object structure
     }
 
     // Legacy string annotation parsing
-    if (an.constructor.name === "String") {
+    if ((an as { constructor: { name: string } }).constructor.name === "String") {
         // for parameterized annotations such as ["#6Search selected with {0}", "Google"]
         an = [an];
     }
-    const annotations = an[0].match(/^#(\d+)(.*)/);
+    const annotations = (an as string[])[0].match(/^#(\d+)(.*)/);
     if (annotations !== null) {
         ag.feature_group = parseInt(annotations[1]);
-        an[0] = annotations[2];
+        (an as string[])[0] = annotations[2];
     }
     // first element must not be ""
-    ag.annotation = an[0].length === 0 ? "" : an;
+    ag.annotation = (an as string[])[0].length === 0 ? "" : an;
     return ag;
 }
 
-function mapInMode(mode: any, nks: any, oks: any, new_annotation?: any) {
+function mapInMode(mode: { name: string; mappings: { find: (k: string) => { meta?: Record<string, unknown> } | null; remove: (k: string) => void; add: (k: string, meta: Record<string, unknown>) => void } }, nks: string, oks: string, new_annotation?: unknown) {
     oks = KeyboardUtils.encodeKeystroke(oks);
     var old_map = mode.mappings.find(oks);
     if (old_map) {
@@ -875,20 +882,21 @@ function mapInMode(mode: any, nks: any, oks: any, new_annotation?: any) {
     return old_map;
 }
 
-function getAnnotations(mappings: any) {
-    return mappings.getWords().map(function(w: any) {
-        var meta = mappings.find(w).meta;
+function getAnnotations(mappings: { getWords: () => string[]; find: (w: string) => { meta?: Record<string, unknown> } | null }) {
+    return mappings.getWords().map(function(w: string) {
+        const node = mappings.find(w);
+        var meta = node?.meta;
         return {
             word: w,
-            feature_group: meta.feature_group,
-            annotation: meta.annotation
+            feature_group: (meta?.feature_group ?? 0) as number,
+            annotation: meta?.annotation
         };
-    }).filter(function(m: any) {
-        return m.annotation && m.annotation.length > 0;
+    }).filter(function(m: { annotation: unknown }) {
+        return m.annotation && (m.annotation as string | unknown[]).length > 0;
     });
 }
 
-function constructSearchURL(se: any, word: any) {
+function constructSearchURL(se: string, word: string) {
     if (se.indexOf("{0}") > 0) {
         return se.format(word);
     } else if (se.indexOf("%s") > 0) {
@@ -906,30 +914,30 @@ function constructSearchURL(se: any, word: any) {
  *
  * @example tabOpenLink('https://github.com/brookhong/Surfingkeys')
  */
-function tabOpenLink(str: any, simultaneousness?: any) {
+function tabOpenLink(str: string | string[] | NodeList, simultaneousness?: number) {
     simultaneousness = simultaneousness || 5;
 
-    var urls: any;
-    if (str.constructor.name === "Array") {
-        urls = str;
+    var urls: string[];
+    if ((str as { constructor: { name: string } }).constructor.name === "Array") {
+        urls = str as string[];
     } else if (str instanceof NodeList) {
-        urls = Array.from(str).map(function(n: any) {
-            return n.href;
+        urls = Array.from(str).map(function(n: Node) {
+            return (n as HTMLAnchorElement).href;
         });
     } else {
-        urls = str.trim().split('\n');
+        urls = (str as string).trim().split('\n');
     }
 
-    urls = urls.map(function(u: any) {
+    urls = urls.map(function(u: string) {
         return u.trim();
-    }).filter(function(u: any) {
+    }).filter(function(u: string) {
         return u.length > 0;
     });
 
     if (urls.length > simultaneousness) {
         dispatchSKEvent("front", ['showDialog', `Do you really want to open all these ${urls.length} links?`, () => {
             // open the first batch links immediately
-            urls.slice(0, simultaneousness).forEach(function(url: any) {
+            urls.slice(0, simultaneousness!).forEach(function(url: string) {
                 RUNTIME("openLink", {
                     tab: {
                         tabbed: true
@@ -943,7 +951,7 @@ function tabOpenLink(str: any, simultaneousness?: any) {
             });
         }]);
     } else {
-        urls.forEach(function(url: any) {
+        urls.forEach(function(url: string) {
             RUNTIME("openLink", {
                 tab: {
                     tabbed: true
@@ -955,26 +963,27 @@ function tabOpenLink(str: any, simultaneousness?: any) {
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-function getElements(selectorString: any) {
-    return listElements(document.body, NodeFilter.SHOW_ELEMENT, function(n: any) {
-        return n.offsetHeight && n.offsetWidth && n.matches(selectorString);
+function getElements(selectorString: string) {
+    return listElements(document.body, NodeFilter.SHOW_ELEMENT, function(n: Node) {
+        const el = n as HTMLElement;
+        return !!(el.offsetHeight && el.offsetWidth && el.matches(selectorString));
     });
 }
 
-function filterInvisibleElements(nodes: any) {
-    return nodes.filter(function(n: any) {
-        return n.offsetHeight && n.offsetWidth
+function filterInvisibleElements(nodes: Element[]) {
+    return nodes.filter(function(n: Element) {
+        return (n as HTMLElement).offsetHeight && (n as HTMLElement).offsetWidth
             && !n.getAttribute('disabled') && isElementPartiallyInViewport(n)
             && getComputedStyle(n).visibility !== 'hidden';
     });
 }
 
-function setSanitizedContent(elm: any, str: any) {
-    elm.innerHTML = DOMPurify.sanitize(str);
+function setSanitizedContent(elm: Element | null, str: string) {
+    if (elm) elm.innerHTML = DOMPurify.sanitize(str);
 }
 
-function createElementWithContent(tag: any, content?: any, attributes?: any): any {
-    var elm: any = document.createElement(tag);
+function createElementWithContent(tag: string, content?: string, attributes?: Record<string, string>): HTMLElement {
+    var elm: HTMLElement = document.createElement(tag);
     if (content) {
         setSanitizedContent(elm, content);
     }
@@ -989,74 +998,73 @@ function createElementWithContent(tag: any, content?: any, attributes?: any): an
 }
 
 var _divForHtmlEncoder = document.createElement("div");
-function htmlEncode(str: any) {
+function htmlEncode(str: string) {
     _divForHtmlEncoder.innerText = str;
     return _divForHtmlEncoder.innerHTML;
 }
 
-(HTMLElement.prototype as any).one = function (this: HTMLElement, evt: any, handler: any) {
-    const self = this;
-    function _onceHandler() {
-        handler.call(self);
-        self.removeEventListener(evt, _onceHandler);
-    }
+(HTMLElement.prototype as unknown as { one: (evt: string, handler: () => void) => void }).one = function (this: HTMLElement, evt: string, handler: () => void) {
+    const _onceHandler = () => {
+        handler.call(this);
+        this.removeEventListener(evt, _onceHandler);
+    };
     this.addEventListener(evt, _onceHandler);
 };
 
-(HTMLElement.prototype as any).show = function () {
+(HTMLElement.prototype as unknown as { show: () => void }).show = function (this: HTMLElement) {
     this.style.display = "";
 };
 
-(HTMLElement.prototype as any).hide = function () {
+(HTMLElement.prototype as unknown as { hide: () => void }).hide = function (this: HTMLElement) {
     this.style.display = "none";
 };
 
-(HTMLElement.prototype as any).removeAttributes = function () {
+(HTMLElement.prototype as unknown as { removeAttributes: () => void }).removeAttributes = function (this: HTMLElement) {
     while (this.attributes.length > 0) {
         this.removeAttribute(this.attributes[0].name);
     }
 };
-(HTMLElement.prototype as any).containsWithShadow = function (e: any) {
-    const roots = [this];
+(HTMLElement.prototype as unknown as { containsWithShadow: (e: Node) => boolean }).containsWithShadow = function (this: HTMLElement, e: Node) {
+    const roots: Element[] = [this];
     while (roots.length) {
-        const root = roots.shift();
+        const root = roots.shift()!;
         if (root.contains(e)) {
             return true;
         }
-        roots.push(...root.children);
+        roots.push(...Array.from(root.children));
         if (root.shadowRoot) {
             if (root.shadowRoot.contains(e)) {
                 return true;
             }
-            roots.push(...root.shadowRoot.children);
+            roots.push(...Array.from(root.shadowRoot.children));
         }
     }
     return false;
 };
 
-(NodeList.prototype as any).remove = function() {
-    this.forEach(function(node: any) {
-        node.remove();
+(NodeList.prototype as unknown as { remove: () => void }).remove = function(this: NodeList) {
+    this.forEach(function(node: Node) {
+        (node as Element).remove();
     });
 };
-(NodeList.prototype as any).show = function() {
-    this.forEach(function(node: any) {
-        node.show();
+(NodeList.prototype as unknown as { show: () => void }).show = function(this: NodeList) {
+    this.forEach(function(node: Node) {
+        (node as HTMLElement).style.display = "";
     });
 };
-(NodeList.prototype as any).hide = function() {
-    this.forEach(function(node: any) {
-        node.hide();
+(NodeList.prototype as unknown as { hide: () => void }).hide = function(this: NodeList) {
+    this.forEach(function(node: Node) {
+        (node as HTMLElement).style.display = "none";
     });
 };
 
-function httpRequest(args: any, onSuccess: any) {
+function httpRequest(args: Record<string, unknown>, onSuccess: (response: Record<string, unknown>) => void) {
     args.method = "get";
     RUNTIME("request", args, onSuccess);
 }
 
 const flashElem = createElementWithContent('div', '', {style: "position: fixed; box-shadow: 0px 0px 4px 2px #63b2ff; background: transparent; z-index: 2140000000"});
-function flashPressedLink(link: any, cb: any) {
+function flashPressedLink(link: Element, cb: () => void) {
     var rect = getRealRect(link);
     flashElem.style.left = rect.left + 'px';
     flashElem.style.top = rect.top + 'px';
@@ -1070,7 +1078,7 @@ function flashPressedLink(link: any, cb: any) {
     }, 100);
 }
 
-function safeDecodeURI(url: any) {
+function safeDecodeURI(url: string) {
     try {
         return decodeURI(url);
     } catch (_e) {
@@ -1078,7 +1086,7 @@ function safeDecodeURI(url: any) {
     }
 }
 
-function safeDecodeURIComponent(url: any) {
+function safeDecodeURIComponent(url: string) {
     try {
         return decodeURIComponent(url);
     } catch (_e) {
@@ -1090,29 +1098,31 @@ function getCssSelectorsOfEditable() {
     return "input:not([type=submit]), textarea, *[contenteditable=true], *[role=textbox], select, div.ace_cursor";
 }
 
-function refreshHints(hints: any, pressedKeys: any) {
-    const result: any = {candidates: 0};
+function refreshHints(hints: Element[], pressedKeys: string) {
+    const result: { candidates: number; matched?: Element } = {candidates: 0};
     if (pressedKeys.length > 0) {
         for (const hint of hints) {
-            const label = hint.label;
+            const hintEl = hint as Element & { label: string; link: Element; style: CSSStyleDeclaration };
+            const label = hintEl.label;
             if (pressedKeys === label) {
-                result.matched = hint.link;
+                result.matched = hintEl.link;
                 break;
             } else if (label.indexOf(pressedKeys) === 0) {
-                hint.style.opacity = 1;
+                hintEl.style.opacity = "1";
                 setSanitizedContent(hint, `<span style="opacity: 0.2;">${pressedKeys}</span>` + label.substr(pressedKeys.length));
                 result.candidates ++;
             } else {
-                hint.style.opacity = 0;
+                hintEl.style.opacity = "0";
             }
         }
     } else {
         if (hints.length === 1) {
-            result.matched = hints[0].link;
+            result.matched = (hints[0] as Element & { link: Element }).link;
         } else {
             for (const hint of hints) {
-                hint.style.opacity = 1;
-                setSanitizedContent(hint, hint.label);
+                const hintEl = hint as Element & { label: string; style: CSSStyleDeclaration };
+                hintEl.style.opacity = "1";
+                setSanitizedContent(hint, hintEl.label);
             }
             result.candidates = hints.length;
         }
@@ -1120,10 +1130,10 @@ function refreshHints(hints: any, pressedKeys: any) {
     return result;
 }
 
-function rotateInput(inputs: any, backward: any, curr: any, str: any) {
+function rotateInput(inputs: string[], backward: boolean, curr: number, str: string) {
     let list = inputs;
     if (str) {
-        list = inputs.filter((l: any) => l.indexOf(str) === 0 && l !== str);
+        list = inputs.filter((l: string) => l.indexOf(str) === 0 && l !== str);
         if (curr > list.length) {
             curr = list.length;
         }
@@ -1131,10 +1141,10 @@ function rotateInput(inputs: any, backward: any, curr: any, str: any) {
     const delta = backward ? -1 : 1;
     const length = list.length + 1; // +1 for empty input
     curr = (curr + length + delta) % length;
-    return [curr < list.length ? list[curr] : str, curr];
+    return [curr < list.length ? list[curr] : str, curr] as [string, number];
 }
 
-function attachFaviconToImgSrc(tab: any, imgEl: any) {
+function attachFaviconToImgSrc(tab: { url: string; favIconUrl: string }, imgEl: HTMLImageElement) {
     const browserName = getBrowserName();
     if (browserName === "Chrome") {
         imgEl.src = chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(tab.url)}`);
@@ -1145,7 +1155,7 @@ function attachFaviconToImgSrc(tab: any, imgEl: any) {
     }
 }
 
-async function hashString(str: any, algorithm = 'SHA-256') {
+async function hashString(str: string, algorithm = 'SHA-256') {
     const encoder = new TextEncoder();
     const data = encoder.encode(str);
     const hashBuffer = await crypto.subtle.digest(algorithm, data);
