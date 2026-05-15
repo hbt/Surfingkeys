@@ -33,7 +33,7 @@ function offsetToLineCol(offset: number, lineOffsets: number[]): { line: number;
  * or null if source maps are unavailable / the position cannot be resolved.
  * Paths are normalised to `src/...` relative form.
  */
-function buildSourceResolver(
+export function buildSourceResolver(
     bundlePath: string,
     mapPath: string,
 ): ((offset: number) => string | null) | null {

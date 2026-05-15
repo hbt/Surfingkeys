@@ -57,6 +57,7 @@ export interface MappingEntry {
             background?: TargetStats;
         };
     };
+    relevant_coverage?: RelevantCoverage;
 }
 
 export interface Summary {
@@ -225,4 +226,26 @@ export interface TargetStats {
     coveredFunctions: number;
     pct: string;
     bySourceFile?: Record<string, { total: number; covered: number; pct: string }>;
+}
+
+export interface RelevantFunction {
+    functionName: string;
+    sourceFile: string | null;   // resolved via source map, e.g. "src/content_scripts/common/scroll.ts"
+    deltaCount: number;          // count in command coverage minus baseline count (or full count if not in baseline)
+}
+
+export interface RelevantCoverageTarget {
+    totalFunctions: number;      // functions after baseline subtraction
+    bySourceFile: Record<string, {
+        functions: RelevantFunction[];
+        count: number;
+    }>;
+}
+
+export interface RelevantCoverage {
+    commandId: string;
+    hasBaseline: boolean;        // whether a baseline was available for diffing
+    baselineSource: 'probe' | 'derived' | 'none';  // how the baseline was obtained
+    content: RelevantCoverageTarget | null;
+    background: RelevantCoverageTarget | null;
 }

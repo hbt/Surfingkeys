@@ -184,6 +184,10 @@ export const REPORT_JSON_SCHEMA = {
                             }
                         }
                     }
+                },
+                "relevant_coverage": {
+                    "$ref": "#/$defs/RelevantCoverage",
+                    "description": "Baseline-diffed coverage showing which functions are uniquely exercised by this command; present only when code coverage data exists"
                 }
             }
         },
@@ -370,6 +374,70 @@ export const REPORT_JSON_SCHEMA = {
                 "totalFunctions": { "type": "integer", "description": "Total functions instrumented in this target" },
                 "coveredFunctions": { "type": "integer", "description": "Functions with at least one execution (count > 0)" },
                 "pct": { "type": "string", "description": "Coverage percentage string, e.g. \"88.2%\"" }
+            }
+        },
+        "RelevantFunction": {
+            "type": "object",
+            "description": "A single function that fired uniquely during this command's execution (after baseline subtraction)",
+            "required": ["functionName", "sourceFile", "deltaCount"],
+            "properties": {
+                "functionName": { "type": "string", "description": "V8 function name as reported in coverage data" },
+                "sourceFile": { "type": ["string", "null"], "description": "Original source file resolved via source map (e.g. src/content_scripts/common/scroll.ts), or null if unresolvable" },
+                "deltaCount": { "type": "integer", "description": "Execution count minus baseline count; always >= 1 for included functions" }
+            }
+        },
+        "RelevantCoverageSourceFileEntry": {
+            "type": "object",
+            "description": "Functions grouped under a single source file in relevant coverage",
+            "required": ["functions", "count"],
+            "properties": {
+                "functions": {
+                    "type": "array",
+                    "description": "Functions from this source file that are relevant to this command",
+                    "items": { "$ref": "#/$defs/RelevantFunction" }
+                },
+                "count": { "type": "integer", "description": "Number of relevant functions in this source file" }
+            }
+        },
+        "RelevantCoverageTarget": {
+            "type": "object",
+            "description": "Baseline-diffed coverage for one target (content or background), grouped by source file",
+            "required": ["totalFunctions", "bySourceFile"],
+            "properties": {
+                "totalFunctions": { "type": "integer", "description": "Total relevant functions after baseline subtraction" },
+                "bySourceFile": {
+                    "type": "object",
+                    "description": "Functions grouped by original source file path; key is the src/-relative path or __unresolved__ for unmapped functions",
+                    "additionalProperties": { "$ref": "#/$defs/RelevantCoverageSourceFileEntry" }
+                }
+            }
+        },
+        "RelevantCoverage": {
+            "type": "object",
+            "description": "Baseline-diffed relevant coverage for a single command, showing which functions are uniquely exercised beyond the idle baseline",
+            "required": ["commandId", "hasBaseline", "baselineSource", "content", "background"],
+            "properties": {
+                "commandId": { "type": "string", "description": "The unique_id of the command, e.g. cmd_scroll_down" },
+                "hasBaseline": { "type": "boolean", "description": "Whether any baseline was available for diffing" },
+                "baselineSource": {
+                    "type": "string",
+                    "description": "How the baseline was obtained: probe (from probe/background/ files), derived (computed from cross-command content coverage), or none (no baseline available)",
+                    "enum": ["probe", "derived", "none"]
+                },
+                "content": {
+                    "description": "Relevant coverage for the content script target; null if no content coverage data exists",
+                    "oneOf": [
+                        { "$ref": "#/$defs/RelevantCoverageTarget" },
+                        { "type": "null" }
+                    ]
+                },
+                "background": {
+                    "description": "Relevant coverage for the service worker target after baseline subtraction; null if no background coverage data exists",
+                    "oneOf": [
+                        { "$ref": "#/$defs/RelevantCoverageTarget" },
+                        { "type": "null" }
+                    ]
+                }
             }
         },
         "CategoryStats": {
