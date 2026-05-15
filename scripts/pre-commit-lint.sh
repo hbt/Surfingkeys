@@ -3,6 +3,14 @@
 # Blocks commits on any failure — fix regressions before committing.
 # To bypass (not recommended): git commit --no-verify
 
-# verify.ts disabled — CI handles test runs via post-commit hook on ctms-ops
-# bun scripts/verify.ts && bun scripts/verify.ts --only tests
-exit 0
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+bun "$REPO_ROOT/scripts/verify.ts"
+
+if [ $? -eq 0 ]; then
+    echo "✅ All checks passed"
+else
+    echo "❌ Checks failed — fix before committing"
+    echo "   To bypass: git commit --no-verify"
+    exit 1
+fi
