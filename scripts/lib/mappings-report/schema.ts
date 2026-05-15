@@ -455,7 +455,7 @@ export const REPORT_JSON_SCHEMA = {
         "Issues": {
             "type": "object",
             "description": "Actionable problem lists — items that need attention, surfaced from all checks. Design principle: list=full data, summary=aggregate counts, issues=actionable problem lists",
-            "required": ["annotations", "tests", "custom_mappings", "code_coverage", "source_validation", "config_validation"],
+            "required": ["annotations", "tests", "custom_mappings", "code_coverage", "source_validation", "config_validation", "relevant_coverage"],
             "properties": {
                 "annotations": {
                     "type": "object",
@@ -608,6 +608,31 @@ export const REPORT_JSON_SCHEMA = {
                                 "properties": {
                                     "key": { "type": "string", "description": "Key sequence used in the mapcmdkey call" },
                                     "unique_id": { "type": "string", "description": "The unrecognised unique_id that was referenced" }
+                                }
+                            }
+                        }
+                    }
+                },
+                "relevant_coverage": {
+                    "type": "object",
+                    "description": "Commands with tests whose relevant V8 coverage suggests the test is not meaningfully exercising the command",
+                    "required": ["dead_tests", "thin_coverage"],
+                    "properties": {
+                        "dead_tests": {
+                            "type": "array",
+                            "description": "unique_ids with a test but zero relevant functions captured on both content and background targets — the test passes but exercises nothing",
+                            "items": { "type": "string" }
+                        },
+                        "thin_coverage": {
+                            "type": "array",
+                            "description": "unique_ids with a test but fewer than 5 total relevant functions across both targets — the test runs but barely exercises the command code paths",
+                            "items": {
+                                "type": "object",
+                                "required": ["id", "content_fns", "bg_fns"],
+                                "properties": {
+                                    "id": { "type": "string", "description": "Command unique_id" },
+                                    "content_fns": { "type": "integer", "description": "Relevant content script functions captured" },
+                                    "bg_fns": { "type": "integer", "description": "Relevant background script functions captured" }
                                 }
                             }
                         }

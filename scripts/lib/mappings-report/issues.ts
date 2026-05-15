@@ -16,6 +16,8 @@ export function generateIssues(
     const testsMissing: string[] = [];
     const customMappingsUnmapped: string[] = [];
     const codeCoverageMissing: string[] = [];
+    const relevantCoverageDeadTests: string[] = [];
+    const relevantCoverageThin: Array<{ id: string; content_fns: number; bg_fns: number }> = [];
 
     type CatAccum = { total: number; has_test: number; missing_ids: string[] };
     const testsCat = new Map<string, CatAccum>();
@@ -83,6 +85,17 @@ export function generateIssues(
                 if (mapping.code_coverage.hasData) { s.has_test++; }
                 else { s.missing_ids.push(uid); codeCoverageMissing.push(uid); }
             }
+
+            if (mapping.test_coverage?.hasTest && mapping.relevant_coverage) {
+                const contentFns = mapping.relevant_coverage.content?.totalFunctions ?? 0;
+                const bgFns = mapping.relevant_coverage.background?.totalFunctions ?? 0;
+                const total = contentFns + bgFns;
+                if (total === 0) {
+                    relevantCoverageDeadTests.push(uid);
+                } else if (total < 5) {
+                    relevantCoverageThin.push({ id: uid, content_fns: contentFns, bg_fns: bgFns });
+                }
+            }
         }
     }
 
@@ -113,5 +126,9 @@ export function generateIssues(
         },
         source_validation: generateSourceValidation(mappings),
         config_validation: generateConfigValidation(customConfig, validIds),
+        relevant_coverage: {
+            dead_tests: relevantCoverageDeadTests.sort(),
+            thin_coverage: relevantCoverageThin.sort((a, b) => (a.content_fns + a.bg_fns) - (b.content_fns + b.bg_fns)),
+        },
     };
 }

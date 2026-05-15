@@ -152,6 +152,14 @@ export interface Issues {
             entries: Array<{ unique_id?: string; type: string; line?: number }>;
         }>;
     };
+    relevant_coverage: {
+        /** Commands with a test but zero relevant functions captured on both targets.
+         *  The test passes but exercises nothing — likely a timing or fixture issue. */
+        dead_tests: string[];
+        /** Commands with a test but fewer than 5 total relevant functions across both targets.
+         *  The test runs but barely exercises the command's actual code paths. */
+        thin_coverage: Array<{ id: string; content_fns: number; bg_fns: number }>;
+    };
 }
 
 export interface SettingUsage {
