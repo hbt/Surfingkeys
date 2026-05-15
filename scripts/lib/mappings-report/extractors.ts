@@ -300,24 +300,36 @@ export function parseSearchAliasPatternsAST(
             }
 
             const lineNum = path.node.loc?.start.line || 0;
-            const annotation = `Search ${prompt}`;
+            const engineId = prompt.toLowerCase().replace(/[\s\-]+/g, '_');
 
             // Generate individual mappings created by addSearchAlias
-            // 1. <searchLeaderKey><alias> - Search selected text
+            // 1. <searchLeaderKey><alias> - Search selected text (Visual mode)
             mappings.push({
                 key: `${searchLeaderKey}${alias}`,
                 mode: 'Visual',
-                annotation: `${annotation} (selected text)`,
+                annotation: {
+                    short: `Search selected with ${prompt}`,
+                    unique_id: `sa_${engineId}_visual`,
+                    category: 'search',
+                    description: `Search selected text using ${prompt}`,
+                    tags: ['search', engineId, 'visual', 'selected'],
+                } as AnnotationObject,
                 source: { file: relPath, line: lineNum },
                 mappingType: 'search_alias',
                 handler_type: 'synthetic'
             });
 
-            // 2. o<alias> - Open omnibar for search
+            // 2. o<alias> - Open omnibar for search (Normal mode)
             mappings.push({
                 key: `o${alias}`,
                 mode: 'Normal',
-                annotation: `${annotation} (omnibar)`,
+                annotation: {
+                    short: `Search ${prompt}`,
+                    unique_id: `sa_${engineId}_omnibar`,
+                    category: 'search',
+                    description: `Open ${prompt} search in omnibar`,
+                    tags: ['search', engineId, 'omnibar'],
+                } as AnnotationObject,
                 source: { file: relPath, line: lineNum },
                 mappingType: 'search_alias',
                 handler_type: 'synthetic'
@@ -328,19 +340,25 @@ export function parseSearchAliasPatternsAST(
                 mappings.push({
                     key: `${searchLeaderKey}o${alias}`,
                     mode: 'Normal',
-                    annotation: `${annotation} (this site only)`,
+                    annotation: `Search ${prompt} (this site only)`,
                     source: { file: relPath, line: lineNum },
                     mappingType: 'search_alias',
                     handler_type: 'synthetic'
                 });
             }
 
-            // 4. Uppercase variant if different from lowercase
+            // 4. Uppercase variant - open in new tab (Visual mode)
             if (alias !== alias.toUpperCase()) {
                 mappings.push({
                     key: `${searchLeaderKey}${alias.toUpperCase()}`,
                     mode: 'Visual',
-                    annotation: `${annotation} (selected, uppercase variant)`,
+                    annotation: {
+                        short: `Search selected with ${prompt} (new tab)`,
+                        unique_id: `sa_${engineId}_visual_tab`,
+                        category: 'search',
+                        description: `Search selected text using ${prompt} and open in a new tab`,
+                        tags: ['search', engineId, 'visual', 'tab'],
+                    } as AnnotationObject,
                     source: { file: relPath, line: lineNum },
                     mappingType: 'search_alias',
                     handler_type: 'synthetic'
