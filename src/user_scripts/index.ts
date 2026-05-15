@@ -263,6 +263,9 @@ const api = {
         jumpVIMark: (mark: any) => {
             dispatchSKEvent('api', ['normal:jumpVIMark', mark]);
         },
+        passFocus: (pf: any) => {
+            dispatchSKEvent('api', ['normal:passFocus', pf]);
+        },
         passThrough: (timeout: any) => {
             dispatchSKEvent('api', ['normal:passThrough', timeout]);
         },

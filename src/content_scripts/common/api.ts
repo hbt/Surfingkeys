@@ -516,6 +516,7 @@ function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual:
         "front:showUsage": front.showUsage,
         "normal:feedkeys": normal.feedkeys,
         "normal:jumpVIMark": normal.jumpVIMark,
+        "normal:passFocus": normal.passFocus,
         "normal:passThrough": normal.passThrough,
         "normal:scroll": normal.scroll,
         "visual:style": visual.style,
