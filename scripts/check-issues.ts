@@ -136,6 +136,16 @@ const optionalChecks: IssueCheck[] = [
         items: issues.config_validation.duplicate_keys,
         note: 'same key bound to multiple commands in personal config',
     },
+    {
+        label: 'relevant_coverage.dead_tests',
+        items: issues.relevant_coverage.dead_tests,
+        note: 'test passes but zero relevant functions captured — likely coverage timing or fixture issue',
+    },
+    {
+        label: 'relevant_coverage.thin_coverage',
+        items: issues.relevant_coverage.thin_coverage,
+        note: 'fewer than 5 relevant functions captured — test may not exercise the command',
+    },
 ];
 
 const failed = requiredChecks.filter(c => c.items.length > 0);
