@@ -13,8 +13,8 @@ const STOP_CONTAINER_CMD =
 
 const CLEAR_QUEUE_CMD =
   'cd /home/ctmsadmin/ci-queue && ' +
-  'COUNT=$(ls | grep -vE "^(worker\\.lock|last-docker-built-sha)$" | wc -l | tr -d " "); ' +
-  'ls | grep -vE "^(worker\\.lock|last-docker-built-sha)$" | xargs -r rm --; ' +
+  'COUNT=$(ls | grep -vE "^worker\\.lock$" | wc -l | tr -d " "); ' +
+  'ls | grep -vE "^worker\\.lock$" | xargs -r rm --; ' +
   'echo "cleared:$COUNT"';
 
 const PULL_CMD =

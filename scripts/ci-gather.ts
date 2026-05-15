@@ -53,7 +53,7 @@ function sshLines(cmd: string): string[] {
 }
 
 function fetchQueue(): string[] {
-  return sshLines(`ls ${QUEUE_DIR} 2>/dev/null`).filter(f => f !== "worker.lock").sort();
+  return sshLines(`ls ${QUEUE_DIR} 2>/dev/null`).filter(f => f !== "worker.lock" && f !== "last-docker-built-sha").sort();
 }
 
 function fetchContainer(): string | null {

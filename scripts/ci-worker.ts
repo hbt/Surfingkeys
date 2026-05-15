@@ -2,25 +2,21 @@
 // CI queue worker — run as a systemd service on ctms-ops.
 // Processes one commit at a time, flock'd to prevent concurrent workers.
 
-import { existsSync, readdirSync, rmSync, mkdirSync, writeFileSync, readFileSync } from "fs";
-import { execSync, spawnSync } from "child_process";
+import { readdirSync, rmSync, mkdirSync, writeFileSync } from "fs";
+import { spawnSync } from "child_process";
 import * as os from "os";
 
 const QUEUE_DIR        = "/home/ctmsadmin/ci-queue";
 const RESULTS_DIR      = "/home/ctmsadmin/ci-results";
 const WORK_DIR         = "/home/ctmsadmin/projects/surfingkeys";
 const LOCK_FILE        = `${QUEUE_DIR}/worker.lock`;
-const LAST_BUILT_FILE  = `${QUEUE_DIR}/last-docker-built-sha`;
-
-// Files whose changes require a Docker image rebuild
-const DOCKER_TRIGGER_FILES = ["Dockerfile", "bun.lock", "package.json", "docker-compose.yml"];
 
 mkdirSync(QUEUE_DIR, { recursive: true });
 mkdirSync(RESULTS_DIR, { recursive: true });
 
 function nextEntry(): { path: string; sha: string; quick: boolean } | null {
   const files = readdirSync(QUEUE_DIR)
-    .filter(f => f !== "worker.lock" && f !== "last-docker-built-sha")
+    .filter(f => f !== "worker.lock")
     .sort();  // lexicographic = chronological (ISO ts prefix)
   if (!files.length) return null;
   const file = files[0];
@@ -34,32 +30,10 @@ function nextEntry(): { path: string; sha: string; quick: boolean } | null {
   return { path: filePath, sha, quick };
 }
 
-function needsDockerRebuild(sha: string): boolean {
-  let lastBuilt: string | null = null;
-  try { lastBuilt = readFileSync(LAST_BUILT_FILE, "utf8").trim(); } catch {}
-  if (!lastBuilt) {
-    console.log("[ci-worker] no previous docker build record — rebuilding");
-    return true;
-  }
-  const diff = spawnSync(
-    "git", ["-C", WORK_DIR, "diff", "--name-only", lastBuilt, sha, "--", ...DOCKER_TRIGGER_FILES],
-    { encoding: "utf8" }
-  );
-  const changed = diff.stdout.trim();
-  if (changed) {
-    console.log(`[ci-worker] docker trigger files changed since ${lastBuilt}:\n  ${changed.split("\n").join("\n  ")}`);
-    return true;
-  }
-  return false;
-}
-
-function rebuildDocker(sha: string) {
+function rebuildDocker() {
   console.log(`[ci-worker] rebuilding Docker image...`);
   const result = spawnSync("docker-compose", ["build"], { cwd: WORK_DIR, stdio: "inherit" });
-  if (result.status === 0) {
-    writeFileSync(LAST_BUILT_FILE, sha);
-    console.log(`[ci-worker] Docker image rebuilt, recorded sha ${sha}`);
-  } else {
+  if (result.status !== 0) {
     console.error(`[ci-worker] docker-compose build failed (exit ${result.status}) — aborting run`);
     process.exit(1);
   }
@@ -82,7 +56,7 @@ function run(sha: string, quick: boolean) {
 
   spawnSync("git", ["-C", WORK_DIR, "checkout", "--detach", sha], { stdio: "inherit" });
 
-  if (needsDockerRebuild(sha)) rebuildDocker(sha);
+  rebuildDocker();
 
   const extraArgs = quick
     ? ["npm", "run", "test:playwright:parallel", "--", "tests/playwright/commands/cmd-scroll-down.spec.ts"]
