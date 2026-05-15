@@ -8,6 +8,7 @@ import { parseCustomConfigAST, generateCustomMappingStats } from './custom-confi
 import { generateCoverageStats } from './code-coverage';
 import { generateIssues } from './issues';
 import { REPORT_JSON_SCHEMA } from './schema';
+import { EXCLUDED_MAPPING_KEY_PATTERNS } from './constants';
 import Ajv from 'ajv/dist/2020';
 
 // ============================================================================
@@ -25,6 +26,12 @@ export function buildReport(): Report {
 
     // Scan all source files
     scanDirectory(srcDir, srcDir, mappings);
+
+    // Remove AST placeholder entries that the scanner could not statically resolve
+    const excludedCount = mappings.length;
+    mappings.splice(0, mappings.length, ...mappings.filter(m =>
+        !EXCLUDED_MAPPING_KEY_PATTERNS.some(({ pattern }) => pattern.test(m.key))
+    ));
 
     // Scan for settings usage
     const settingsUsages: any[] = [];

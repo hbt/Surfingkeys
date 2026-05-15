@@ -57,6 +57,22 @@ export const EXCLUDED_SETTINGS: ExcludedSetting[] = [
 ];
 
 // ============================================================================
+// EXCLUDED MAPPING KEY PATTERNS
+// ============================================================================
+
+/**
+ * Mapping entries whose key matches these patterns are AST scanner artifacts —
+ * the static analyser could not resolve the key or annotation to a concrete value.
+ * They are not real user-facing commands and should be dropped from the report.
+ */
+export const EXCLUDED_MAPPING_KEY_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
+    {
+        pattern: /^<Identifier:/,
+        reason: 'AST placeholder — key is a runtime variable that the static scanner cannot resolve (e.g. mapkey(keys, annotation, ...) inside api.ts helper functions)'
+    }
+];
+
+// ============================================================================
 // MODE MAPPINGS
 // ============================================================================
 
