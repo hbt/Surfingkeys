@@ -364,6 +364,33 @@ function createNormal(insert: any) {
             self.passThrough(1000);
         }
     });
+    self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-Shift-p>"), {
+        annotation: {
+            short: 'Pass single key',
+            unique_id: 'cmd_passthrough_single_key',
+            category: 'modes',
+            description: 'Pass exactly one keystroke to the page then return to Normal mode',
+            tags: ['modes', 'passthrough', 'single'],
+        },
+        feature_group: 0,
+        code: function() {
+            const pt = self.passThrough();
+            const _onKeydown = pt.eventListeners['keydown'];
+            pt.addEventListener('keydown', function(event: any) {
+                if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
+                    // Escape: suppress and exit without passing key
+                    event.sk_suppressed = true;
+                    event.sk_stopPropagation = true;
+                    pt.addEventListener('keydown', _onKeydown);
+                    pt.exit();
+                } else {
+                    // Pass the key to the page (do not set sk_suppressed), then exit
+                    pt.addEventListener('keydown', _onKeydown);
+                    pt.exit();
+                }
+            });
+        }
+    });
 
     self.repeats = "";
     var keyHeld = 0;
