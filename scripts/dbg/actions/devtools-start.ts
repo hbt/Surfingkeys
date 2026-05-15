@@ -117,6 +117,45 @@ function httpGet(url: string) {
   });
 }
 
+function httpPost(url: string, payload: unknown) {
+  return new Promise((resolve) => {
+    const data = JSON.stringify(payload);
+    const opts = { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } };
+    const req = http.request(url, opts, (res: unknown) => {
+      const r = res as { statusCode: number; on: (event: string, cb: (...args: unknown[]) => void) => void };
+      let body = '';
+      r.on('data', (chunk: unknown) => body += String(chunk));
+      r.on('end', () => {
+        try { resolve({ ok: r.statusCode === 200, body: JSON.parse(body) }); }
+        catch (_) { resolve({ ok: false, body }); }
+      });
+    });
+    req.on('error', (err: Error) => resolve({ ok: false, error: err.message }));
+    const timer = setTimeout(() => { req.destroy(); resolve({ ok: false, error: 'timeout' }); }, 4000);
+    req.on('close', () => clearTimeout(timer));
+    req.write(data);
+    req.end();
+  });
+}
+
+async function isAlreadyStarted(): Promise<boolean> {
+  try {
+    const evalStatus = await httpGet(`http://localhost:${SERVER_PORT}/eval-status`) as Record<string, unknown>;
+    const evalBody = evalStatus.body as Record<string, unknown> | undefined;
+    if (!(evalStatus.ok && evalBody?.panelConnected === true)) return false;
+
+    const swEval = await httpPost(`http://localhost:${SERVER_PORT}/eval`, { target: 'bg', code: 'chrome.runtime.id' }) as Record<string, unknown>;
+    const swBody = swEval.body as Record<string, unknown> | undefined;
+    if (!(swEval.ok && swBody?.result && !swBody?.error)) return false;
+
+    const pageEval = await httpPost(`http://localhost:${SERVER_PORT}/eval`, { target: 'page', code: 'document.title' }) as Record<string, unknown>;
+    const pageBody = pageEval.body as Record<string, unknown> | undefined;
+    return !!(pageEval.ok && pageBody && !pageBody.error);
+  } catch (_) {
+    return false;
+  }
+}
+
 // ── Bail helper ───────────────────────────────────────────────────────────────
 
 function bail(step: string, detail: string, hint?: string) {
@@ -130,6 +169,11 @@ function bail(step: string, detail: string, hint?: string) {
 // ── Steps ─────────────────────────────────────────────────────────────────────
 
 async function run() {
+  if (await isAlreadyStarted()) {
+    console.log(JSON.stringify({ ok: true, alreadyStarted: true, detail: 'devtools already connected — skipping' }, null, 2));
+    process.exit(0);
+  }
+
   openLog();
   const startMs = Date.now();
 
