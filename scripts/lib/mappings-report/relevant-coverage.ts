@@ -150,6 +150,7 @@ function buildRelevantTarget(
         }
 
         const sourceFile = resolver ? resolver(startOffset) : null;
+        if (sourceFile !== null && sourceFile.includes('node_modules')) continue;
         relevant.push({ functionName: name, sourceFile, deltaCount });
     }
 
