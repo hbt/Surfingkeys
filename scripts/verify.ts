@@ -94,6 +94,12 @@ const CHECKS: Check[] = [
         cmd: ['bun', 'scripts/lint-config.ts'],
         group: 'personal',
     },
+    {
+        id: 'issues-detail',
+        label: 'Mappings issues (optional)',
+        cmd: ['bun', 'scripts/check-issues.ts'],
+        group: 'personal',
+    },
 ];
 
 function printHelp() {
