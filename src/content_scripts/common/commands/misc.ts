@@ -1,4 +1,4 @@
-import { RUNTIME, runtime } from '../runtime.js';
+import { RUNTIME } from '../runtime.js';
 import { getBrowserName, showBanner } from '../utils.js';
 import type { CommandAPI } from '../../../../@types/surfingkeys';
 

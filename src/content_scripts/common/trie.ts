@@ -32,7 +32,7 @@ Trie.prototype = {
         for (var i = 0; i < len; i++) {
             var c = word[i];
             if (!node.hasOwnProperty(c)) {
-                // @ts-ignore
+                // @ts-expect-error: Trie constructor called with char arg not reflected in types
                 var t = new Trie(c);
                 node[c] = t;
                 node = t;

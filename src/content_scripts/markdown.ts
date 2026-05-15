@@ -5,7 +5,6 @@ import {
     htmlEncode,
     httpRequest,
     setSanitizedContent,
-    showBanner,
 } from './common/utils.js';
 import { marked } from 'marked';
 

@@ -588,7 +588,7 @@ const Front = (function() {
     function renderAceEditor(message: any) {
         if (!_aceEditor) {
             _aceEditor = new Promise((resolve, _reject) => {
-                // @ts-ignore
+                // @ts-expect-error: dynamic import of runtime-only module, no type declarations
                 import(/* webpackIgnore: true */ './ace.js').then(() => {
                     resolve(createAceEditor(normal, self));
                 });
@@ -602,7 +602,7 @@ const Front = (function() {
     function renderNvim(message: any) {
         if (!_neovim) {
             _neovim  = new Promise((resolve, _reject) => {
-                // @ts-ignore
+                // @ts-expect-error: dynamic import of runtime-only module, no type declarations
                 import(/* webpackIgnore: true */ './neovim_lib.js').then((nvimlib) => {
                     nvimlib.default(_nvim).then(({nvim, destroy}: any) => {
                         function quitNvim() {

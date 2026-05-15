@@ -1,4 +1,3 @@
-import { RUNTIME } from '../runtime.js';
 import { getWordUnderCursor, getBrowserName } from '../utils.js';
 import type { CommandAPI } from '../../../../@types/surfingkeys';
 

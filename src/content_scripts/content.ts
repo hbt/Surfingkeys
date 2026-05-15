@@ -324,7 +324,7 @@ function start(browser?: any) {
     if (window === top) {
         new Promise<any>((r, _j) => {
             if (window.location.href === chrome.runtime.getURL("/pages/options.html")) {
-                // @ts-ignore — dynamic import of generated file, no type declarations
+                // @ts-expect-error — dynamic import of generated file, no type declarations
                 import(/* webpackIgnore: true */ './pages/options.js').then((optionsLib) => {
                     optionsLib.default(
                         RUNTIME,

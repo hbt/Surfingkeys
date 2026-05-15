@@ -10,7 +10,6 @@ import {
     isInUIFrame,
     mapInMode,
     scrollIntoViewIfNeeded,
-    setSanitizedContent,
     showBanner,
     showPopup,
 } from './utils.js';

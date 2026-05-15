@@ -1,7 +1,6 @@
 import { LOG } from '../common/utils.js';
 import { runtime } from './common/runtime.js';
 import {
-    getBrowserName,
     getDocumentOrigin
 } from './common/utils.js';
 

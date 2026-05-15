@@ -7,7 +7,6 @@ import {
     getBrowserName,
     getDocumentOrigin,
     getElements,
-    httpRequest,
     initSKFunctionListener,
     isEditable,
     isInUIFrame,

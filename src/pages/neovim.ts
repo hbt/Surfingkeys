@@ -5,8 +5,8 @@ import {
 document.addEventListener("surfingkeys:defaultSettingsLoaded", function(evt) {
     const { normal, api } = (evt as CustomEvent).detail;
 
-    const np  = new Promise((resolve, reject) => {
-        // @ts-ignore: neovim_lib.js is a runtime-only module without type declarations
+    const np  = new Promise((resolve, _reject) => {
+        // @ts-expect-error: neovim_lib.js is a runtime-only module without type declarations
         import(/* webpackIgnore: true */ './neovim_lib.js').then((nvimlib: { default: () => Promise<{ nvim: unknown; destroy: unknown }> }) => {
             nvimlib.default().then(({nvim, destroy}: { nvim: unknown; destroy: unknown }) => {
                 void destroy;

@@ -117,11 +117,16 @@ module.exports = [
             ...typescriptEslintPlugin.configs.recommended.rules,
             'semi': ['error', 'always'],
             'no-tabs': 2,
-            // Disabled: high-volume rules not yet worth fixing
+            // Disabled: too many violations to fix now
             '@typescript-eslint/no-explicit-any': 'off',
-            '@typescript-eslint/ban-ts-comment': 'off',
-            '@typescript-eslint/no-unused-vars': 'off',
-            '@typescript-eslint/no-this-alias': 'off',
+            // Restored with _ prefix ignore pattern
+            '@typescript-eslint/no-unused-vars': ['error', {
+                vars: 'all',
+                args: 'after-used',
+                argsIgnorePattern: '^_',
+                varsIgnorePattern: '^_',
+                caughtErrorsIgnorePattern: '^_'
+            }],
         }
     },
     {

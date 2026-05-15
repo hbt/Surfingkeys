@@ -7,8 +7,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const logFile = path.join(os.tmpdir(), 'lint-output.log');
-const timestamp = new Date().toISOString();
+const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+const logFile = path.join(os.tmpdir(), `lint-${timestamp}.log`);
 
 try {
   // Run linters with --fix to auto-correct fixable issues
@@ -20,7 +20,7 @@ try {
   const output = jsOutput + cssOutput;
 
   // Write full output to log file
-  fs.appendFileSync(logFile, `\n=== Lint run ${timestamp} ===\n${output}\n`);
+  fs.writeFileSync(logFile, output);
 
   console.log('✅ Lint passed');
   process.exit(0);
@@ -29,7 +29,7 @@ try {
   const output = e.stdout || e.stderr || e.message || '';
 
   // Write full output to log file
-  fs.appendFileSync(logFile, `\n=== Lint run ${timestamp} (FAILED) ===\n${output}\n`);
+  fs.writeFileSync(logFile, output);
 
   console.error('❌ Lint failed:');
   console.error(output);

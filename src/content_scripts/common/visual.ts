@@ -14,9 +14,7 @@ import {
     getVisibleElements,
     getWordUnderCursor,
     locateFocusNode,
-    scrollIntoViewIfNeeded,
     setSanitizedContent,
-    tabOpenLink,
 } from './utils.js';
 
 function createVisual(clipboard: any, hints: any) {

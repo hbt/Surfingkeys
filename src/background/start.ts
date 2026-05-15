@@ -2,7 +2,7 @@ import {
     filterByTitleOrUrl,
 } from '../common/utils.js';
 import llmClientsRaw from './llm.js';
-import type { RuntimeAction, LLMClientsMap, ScrollPositionData, TabURLMap, TabMessageMap, BookmarkFolder } from '../../@types/surfingkeys';
+import type { RuntimeAction, LLMClientsMap, TabURLMap, TabMessageMap, BookmarkFolder } from '../../@types/surfingkeys';
 // Convenience type for message handlers that access arbitrary message properties
 type Msg = RuntimeAction & { [key: string]: unknown };
 type MessageHandler = (
@@ -149,7 +149,7 @@ var Gist = (function() {
     };
 
     function _newComment(text: string, cb: ((arg?: unknown) => void) | null) {
-        request(`https://api.github.com/gists/${_gist}/comments`, function(res: string) {
+        request(`https://api.github.com/gists/${_gist}/comments`, function(_res: string) {
             if (cb) {
                 cb();
             }
@@ -2007,7 +2007,7 @@ function start(browser: Record<string, unknown>) {
             },
             func: () => {
                 // getFrameId is injected by content scripts into the page context
-                // @ts-ignore
+                // @ts-expect-error: getFrameId injected at runtime, no type declaration
                 return typeof(getFrameId) === 'function' ? getFrameId() : 0;
             },
         }, function(framesInTabRaw) {

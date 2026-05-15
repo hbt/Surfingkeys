@@ -799,6 +799,7 @@ function initL10n(cb: any) {
 }
 
 String.prototype.format = function(this: string, ...args: unknown[]) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     var result: string = this;
     for (var i = 0; i < args.length; i++) {
         var regexp = new RegExp('\\{' + i + '\\}', 'gi');
@@ -995,6 +996,7 @@ function htmlEncode(str: any) {
 }
 
 (HTMLElement.prototype as any).one = function (this: HTMLElement, evt: any, handler: any) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     function _onceHandler() {
         handler.call(self);
