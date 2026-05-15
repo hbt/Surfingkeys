@@ -928,6 +928,16 @@ function start(browser: Record<string, unknown>) {
         }
         return "enabled";
     }
+    self.mainWorldEval = function(message: any, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        if (sender.tab?.id) {
+            chrome.scripting.executeScript({
+                target: { tabId: sender.tab.id },
+                world: 'MAIN',
+                func: (code: string) => { (0, eval)(code); },
+                args: [message.code]
+            }).catch((e) => console.error('[mainWorldEval]', e));
+        }
+    };
     self.toggleBlocklist = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
         loadSettings('blocklist', function(data: Record<string, unknown>) {
             var origin = ".*";
