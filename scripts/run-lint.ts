@@ -12,8 +12,8 @@ const timestamp = new Date().toISOString();
 
 try {
   // Run linters with --fix to auto-correct fixable issues
-  const eslintCmd = './node_modules/.bin/eslint --config config/eslint.config.js src tests scripts --ext .js,.ts --fix 2>&1';
-  const stylelintCmd = './node_modules/.bin/stylelint --config config/stylelint.config.js \'src/**/*.css\' --fix 2>&1';
+  const eslintCmd = './node_modules/.bin/eslint --config config/eslint.config.js src tests scripts 2>&1';
+  const stylelintCmd = './node_modules/.bin/stylelint --config config/stylelint.config.js \'src/**/*.css\' 2>&1';
 
   const jsOutput = execSync(eslintCmd, { encoding: 'utf8', stdio: 'pipe' });
   const cssOutput = execSync(stylelintCmd, { encoding: 'utf8', stdio: 'pipe' });
@@ -31,17 +31,8 @@ try {
   // Write full output to log file
   fs.appendFileSync(logFile, `\n=== Lint run ${timestamp} (FAILED) ===\n${output}\n`);
 
-  // Only show errors to console
-  const lines = output.split('\n');
-  const errors = lines.filter((line: string) => line.includes('✖') || line.includes('error'));
-
-  if (errors.length > 0) {
-    console.error('❌ Lint failed. Errors:');
-    errors.forEach((err: string) => console.error(err));
-  } else {
-    console.error('❌ Lint failed. See full output in: ' + logFile);
-  }
-
-  console.error(`\nFull lint output logged to: ${logFile}`);
+  console.error('❌ Lint failed:');
+  console.error(output);
+  console.error(`Full lint output also logged to: ${logFile}`);
   process.exit(1);
 }
