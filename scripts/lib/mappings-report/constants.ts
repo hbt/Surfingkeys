@@ -73,6 +73,58 @@ export const EXCLUDED_MAPPING_KEY_PATTERNS: Array<{ pattern: RegExp; reason: str
 ];
 
 // ============================================================================
+// EXCLUDED COMMANDS (testing)
+// ============================================================================
+
+/**
+ * Commands excluded from test coverage requirements.
+ * These will not appear as "missing tests" in reports or issues.
+ */
+export const EXCLUDED_COMMANDS: Array<{ unique_id: string; reason: string }> = [
+    // chrome:// navigation — Playwright cannot access chrome:// pages
+    { unique_id: 'cmd_chrome_about',              reason: 'chrome:// page — not accessible in Playwright' },
+    { unique_id: 'cmd_chrome_bookmarks',          reason: 'chrome:// page — not accessible in Playwright' },
+    { unique_id: 'cmd_chrome_cache',              reason: 'chrome:// page — not accessible in Playwright' },
+    { unique_id: 'cmd_chrome_downloads',          reason: 'chrome:// page — not accessible in Playwright' },
+    { unique_id: 'cmd_chrome_extensions',         reason: 'chrome:// page — not accessible in Playwright' },
+    { unique_id: 'cmd_chrome_history',            reason: 'chrome:// page — not accessible in Playwright' },
+    { unique_id: 'cmd_chrome_cookies',            reason: 'chrome:// page — not accessible in Playwright' },
+    { unique_id: 'cmd_chrome_net_internals',      reason: 'chrome:// page — not accessible in Playwright' },
+    { unique_id: 'cmd_chrome_view_source',        reason: 'chrome:// page — not accessible in Playwright' },
+    { unique_id: 'cmd_chrome_inspect',            reason: 'Opens Chrome DevTools — requires CDP, not testable in Playwright' },
+    { unique_id: 'cmd_chrome_close_downloads_shelf', reason: 'Chrome UI shelf element — not accessible in Playwright' },
+    // Browser lifecycle
+    { unique_id: 'cmd_quit_chrome',               reason: 'Terminates the browser process — cannot be tested in Playwright' },
+    // TTS — non-deterministic, system audio dependency
+    { unique_id: 'cmd_list_voices',               reason: 'TTS — voice availability is system-dependent and non-deterministic' },
+    { unique_id: 'cmd_stop_reading',              reason: 'TTS — requires active audio playback, not testable in headless Playwright' },
+    { unique_id: 'cmd_test_voices',               reason: 'TTS — requires audio output, non-deterministic across environments' },
+    // Proxy — system-level network changes, no observable page state
+    { unique_id: 'cmd_set_proxy',                 reason: 'System-level proxy change — no observable page state to assert' },
+    { unique_id: 'cmd_set_proxy_mode',            reason: 'System-level proxy change — no observable page state to assert' },
+    { unique_id: 'cmd_proxy_toggle_site',         reason: 'Proxy state mutation — requires network proxy infrastructure' },
+    { unique_id: 'cmd_paste_proxy',               reason: 'Clipboard → proxy — depends on clipboard and proxy infrastructure' },
+    { unique_id: 'cmd_proxy_copy_info',           reason: 'Proxy state read — requires active proxy configuration' },
+    // Markdown — complex fixture not yet established
+    { unique_id: 'cmd_markdown_toggle_section',   reason: 'Markdown feature — fixture and page state not yet set up' },
+    { unique_id: 'cmd_markdown_switch_parser',    reason: 'Markdown feature — fixture and page state not yet set up' },
+    { unique_id: 'cmd_markdown_copy_html',        reason: 'Markdown feature — fixture and page state not yet set up' },
+    { unique_id: 'cmd_markdown_open_file',        reason: 'Markdown feature — requires file system access, not testable in Playwright' },
+    { unique_id: 'cmd_markdown_edit_source',      reason: 'Markdown feature — fixture and page state not yet set up' },
+    // Lurk mode — requires lurkingPattern config not yet wired in test harness
+    { unique_id: 'cmd_lurk_enter_normal',         reason: 'Lurk mode — requires lurkingPattern config and mode-switch fixture not yet established' },
+    { unique_id: 'cmd_lurk_ephemeral_normal',     reason: 'Lurk mode — requires lurkingPattern config and mode-switch fixture not yet established' },
+    // Neovim integration — requires external process
+    { unique_id: 'cmd_neovim_enable_input',       reason: 'Neovim integration — requires external Neovim process, not testable in CI' },
+    // Deferred — not prioritized for current cycle
+    { unique_id: 'cmd_nav_incognito',             reason: 'Deferred — incognito window lifecycle in Playwright needs investigation' },
+    { unique_id: 'cmd_omnibar_llm_chat',          reason: 'Deferred — LLM chat integration not yet stable for testing' },
+    { unique_id: 'cmd_session_save_quit',         reason: 'Deferred — session save/quit browser lifecycle not yet set up' },
+    { unique_id: 'cmd_tools_read_text',           reason: 'Deferred — TTS read-text dispatch chain not yet isolated for testing' },
+    { unique_id: 'cmd_visual_llm_chat',           reason: 'Deferred — LLM chat visual integration not yet stable for testing' },
+];
+
+// ============================================================================
 // MODE MAPPINGS
 // ============================================================================
 

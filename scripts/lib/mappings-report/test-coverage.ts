@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { MappingEntry, SettingUsage } from './types';
+import { EXCLUDED_COMMANDS } from './constants';
 
 // ============================================================================
 // TEST COVERAGE TRACKING
@@ -43,6 +44,7 @@ export function scanTestFiles(projectRoot: string): Map<string, string> {
 export function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map<string, string>, settingsUsages: SettingUsage[]): {
     total_with_tests: number;
     total_without_tests: number;
+    total_excluded: number;
     invalid_test_names: string[];
 } {
     const mappingsByUniqueId = new Map<string, MappingEntry>();
@@ -101,6 +103,11 @@ export function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map
         }
     }
 
+    // Build excluded commands lookup
+    const excludedMap = new Map<string, string>(
+        EXCLUDED_COMMANDS.map(e => [e.unique_id, e.reason])
+    );
+
     // Add test_coverage field to each mapping
     for (const mapping of mappings) {
         if (typeof mapping.annotation === 'object' && mapping.annotation.unique_id) {
@@ -113,22 +120,26 @@ export function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map
                     testFiles: testFiles.sort()
                 };
             } else {
+                const excludeReason = excludedMap.get(uid);
                 mapping.test_coverage = {
-                    hasTest: false
+                    hasTest: false,
+                    ...(excludeReason && { excluded: true, excludeReason })
                 };
             }
         }
         // No test_coverage field for non-migrated or invalid mappings
     }
 
-    // Count mappings with and without tests
+    // Count mappings with and without tests (excluded commands don't count as missing)
     const totalMigratedWithValidIds = mappingsByUniqueId.size;
     const totalWithTests = uniqueIdToTests.size;
-    const totalWithoutTests = totalMigratedWithValidIds - totalWithTests;
+    const totalExcluded = [...mappingsByUniqueId.keys()].filter(uid => excludedMap.has(uid)).length;
+    const totalWithoutTests = totalMigratedWithValidIds - totalWithTests - totalExcluded;
 
     return {
         total_with_tests: totalWithTests,
         total_without_tests: totalWithoutTests,
+        total_excluded: totalExcluded,
         invalid_test_names: invalidTestNames.sort()
     };
 }

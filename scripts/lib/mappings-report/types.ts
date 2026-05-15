@@ -44,6 +44,8 @@ export interface MappingEntry {
     test_coverage?: {
         hasTest: boolean;
         testFiles?: string[];
+        excluded?: boolean;
+        excludeReason?: string;
     };
     custom_mapping?: {
         hasMapping: boolean;
@@ -83,6 +85,7 @@ export interface Summary {
     tests?: {
         total_with_tests: number;
         total_without_tests: number;
+        total_excluded: number;
         invalid_test_names: string[];
     };
     // Custom mapping coverage

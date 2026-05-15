@@ -72,7 +72,7 @@ export function generateIssues(
                 const s = ensureCat(testsCat, cat);
                 s.total++;
                 if (mapping.test_coverage.hasTest) { s.has_test++; }
-                else { s.missing_ids.push(uid); testsMissing.push(uid); }
+                else if (!mapping.test_coverage.excluded) { s.missing_ids.push(uid); testsMissing.push(uid); }
             }
             if (mapping.custom_mapping && !mapping.custom_mapping.hasMapping) {
                 customMappingsUnmapped.push(uid);
