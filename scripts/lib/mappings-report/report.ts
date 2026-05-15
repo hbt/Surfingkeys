@@ -6,6 +6,7 @@ import { scanTestFiles } from './test-coverage';
 import { generateSummary } from './summary';
 import { parseCustomConfigAST, generateCustomMappingStats } from './custom-config';
 import { generateCoverageStats } from './code-coverage';
+import { computeRelevantCoverage, computeDerivedContentBaseline } from './relevant-coverage';
 import { generateIssues } from './issues';
 import { REPORT_JSON_SCHEMA } from './schema';
 import { EXCLUDED_MAPPING_KEY_PATTERNS } from './constants';
@@ -62,6 +63,18 @@ export function buildReport(): Report {
     const coverageRawDir = path.join(projectRoot, 'test-artifacts/coverage-raw');
     const coverageSummary = generateCoverageStats(mappings, coverageRawDir);
     summary.code_coverage = coverageSummary;
+
+    // Compute derived content baseline once (scans all cmd_* dirs) for reuse
+    const derivedContentBaseline = computeDerivedContentBaseline(coverageRawDir);
+
+    // Add relevant_coverage field to each mapping that has code coverage data
+    for (const mapping of mappings) {
+        const uniqueId = (mapping.annotation as any)?.unique_id;
+        if (!uniqueId) continue;
+        if (!mapping.code_coverage?.hasData) continue;
+        const rc = computeRelevantCoverage(uniqueId, coverageRawDir, projectRoot, derivedContentBaseline);
+        if (rc) mapping.relevant_coverage = rc;
+    }
 
     // Generate actionable issues (must run after all per-mapping fields are populated)
     const issues = generateIssues(mappings, customConfig, summary.tests?.invalid_test_names);
