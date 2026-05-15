@@ -1,1 +1,1 @@
-/home/hassen/.surfingkeysrc.js
+/home/hassen/.surfingkeysrc
