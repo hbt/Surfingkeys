@@ -16,10 +16,14 @@ interface V8Function {
 
 /** A single script entry from a V8 coverage file. */
 interface V8Script {
+    url?: string;
     functions?: V8Function[];
 }
 
-/** Parse a .v8.json file and return all (functionName, startOffset, count) tuples. */
+/** Parse a .v8.json file and return all (functionName, startOffset, count) tuples.
+ *  Only includes scripts from chrome-extension:// URLs — filters out Playwright
+ *  injected scripts (selector engines, utility scripts, CDP bridge, etc.).
+ */
 function parseFunctions(filePath: string): Array<{ name: string; startOffset: number; count: number }> {
     try {
         const raw = fs.readFileSync(filePath, 'utf-8');
@@ -27,6 +31,7 @@ function parseFunctions(filePath: string): Array<{ name: string; startOffset: nu
         const scripts: V8Script[] = Array.isArray(data) ? (data as V8Script[]) : ((data as { result?: V8Script[] }).result ?? []);
         const result: Array<{ name: string; startOffset: number; count: number }> = [];
         for (const script of scripts) {
+            if (!script.url?.startsWith('chrome-extension://')) continue;
             const functions = script.functions ?? [];
             for (const fn of functions) {
                 const count = fn.ranges.length > 0 ? fn.ranges[0].count : 0;
