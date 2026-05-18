@@ -6,7 +6,7 @@ const { copy } = require('esbuild-plugin-copy');
 
 // TODO(hbt) NEXT [config] get rid of bundling for development, keep transpiling, fix the manifest json, reduce sourcemap compute, code coverage tools. do this after tests
 
-function modifyManifest(browser, mode, manifestPath, outputPath) {
+function modifyManifest(browser, mode, manifestPath, outputPath, buildSuffix) {
     const content = fs.readFileSync(manifestPath, 'utf8');
     let manifest = JSON.parse(content);
 
@@ -46,7 +46,9 @@ function modifyManifest(browser, mode, manifestPath, outputPath) {
         manifest.permissions.push("favicon");
         manifest.permissions.push("userScripts");
         manifest.permissions.push("tabGroups");
-        manifest.incognito = "split";
+        // Use "spanning" for the test build so the extension SW can query incognito
+        // windows created in the same Playwright context (avoids split-context isolation).
+        manifest.incognito = (buildSuffix === '-test') ? "spanning" : "split";
         manifest.options_page = "pages/options.html";
         manifest.background = {
             "service_worker": "background.js"
@@ -185,7 +187,8 @@ async function build() {
         browser,
         mode,
         './src/manifest.json',
-        path.join(buildPath, 'manifest.json')
+        path.join(buildPath, 'manifest.json'),
+        buildSuffix
     );
 
     const startTime = Date.now();

@@ -82,6 +82,9 @@ export async function launchExtensionContext(opts?: { headless?: boolean; enable
             '--disable-sync',
             '--no-pings',
             '--metrics-recording-only',
+            '--password-store=basic',
+            '--no-first-run',
+            '--no-default-browser-check',
             ...(enableCoverage ? [`--remote-debugging-port=${cdpPort}`] : []),
         ],
     });
