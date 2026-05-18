@@ -58,6 +58,7 @@ export interface MappingEntry {
             content?: TargetStats;
             background?: TargetStats;
         };
+        note?: string;  // set for commands where low coverage is expected by design
     };
     relevant_coverage?: RelevantCoverage;
 }

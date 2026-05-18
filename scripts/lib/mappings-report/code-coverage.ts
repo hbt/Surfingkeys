@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { SourceMapConsumer } from 'source-map-js';
 import type { MappingEntry, TargetStats } from './types';
+import { KNOWN_LOW_COVERAGE_COMMANDS } from './constants';
 
 // ============================================================================
 // SOURCE MAP RESOLUTION
@@ -264,6 +265,10 @@ export function generateCoverageStats(mappings: MappingEntry[], coverageRawDir: 
     let background_only = 0;
     let both = 0;
 
+    const knownLowCoverageMap = new Map<string, string>(
+        KNOWN_LOW_COVERAGE_COMMANDS.map(e => [e.unique_id, e.reason])
+    );
+
     for (const mapping of mappings) {
         const uniqueId = (mapping.annotation as any)?.unique_id;
         if (!uniqueId) continue;
@@ -274,6 +279,9 @@ export function generateCoverageStats(mappings: MappingEntry[], coverageRawDir: 
             testCaseCount: stats.testCaseCount,
             targets: stats.targets,
         };
+
+        const coverageNote = knownLowCoverageMap.get(uniqueId);
+        if (coverageNote) mapping.code_coverage.note = coverageNote;
 
         if (!stats.hasData) {
             without_data++;

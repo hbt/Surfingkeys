@@ -125,6 +125,25 @@ export const EXCLUDED_COMMANDS: Array<{ unique_id: string; reason: string }> = [
 ];
 
 // ============================================================================
+// KNOWN LOW COVERAGE COMMANDS
+// ============================================================================
+
+/**
+ * Commands where low code coverage is expected by design.
+ * These are annotated in the report with a `note` field on `code_coverage`
+ * to distinguish intentional limitations from gaps that need fixing.
+ */
+export const KNOWN_LOW_COVERAGE_COMMANDS: Array<{ unique_id: string; reason: string }> = [
+    // Incognito commands — Chrome split incognito mode prevents the regular SW from querying
+    // incognito tabs (chrome.tabs.query returns only regular tabs). AllIncognitoTabs always
+    // resolves to [] in Playwright, so only the no-op early-return path executes.
+    { unique_id: 'cmd_tab_detach_magic_incognito',    reason: 'incognito — only no-op path testable in Playwright (Chrome split incognito isolates SW from incognito tabs)' },
+    { unique_id: 'cmd_tab_close_magic_incognito',     reason: 'incognito — only no-op path testable in Playwright (Chrome split incognito isolates SW from incognito tabs)' },
+    { unique_id: 'cmd_tab_reload_magic_incognito',    reason: 'incognito — only no-op path testable in Playwright (Chrome split incognito isolates SW from incognito tabs)' },
+    { unique_id: 'cmd_tab_copy_urls_magic_incognito', reason: 'incognito — only no-op path testable in Playwright (Chrome split incognito isolates SW from incognito tabs)' },
+];
+
+// ============================================================================
 // MODE MAPPINGS
 // ============================================================================
 
