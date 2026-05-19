@@ -1481,6 +1481,11 @@ function start(browser: Record<string, unknown>) {
         }
     }
 
+    // NOTE: incognito windows/tabs are NOT visible to this handler in MV3 spanning mode.
+    // chrome.tabs.query({}) and chrome.windows.getAll() both silently omit incognito
+    // contexts; chrome.windows.onCreated does not fire for incognito windows either.
+    // Fixing AllExceptActiveAllWindows (tcg) and AllIncognitoTabs (tco) for incognito
+    // requires switching to "split" incognito mode + cross-SW messaging. See todo #61.
     self.closeTabMagic = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         chrome.tabs.query({}, function(allTabs) {
             var windowTabs = allTabs.filter(function(t) { return t.windowId === sender.tab?.windowId; });

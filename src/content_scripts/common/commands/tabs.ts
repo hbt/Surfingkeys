@@ -246,6 +246,13 @@ export default function registerTabs(
         category: "tabs",
         description: "Close all tabs in all windows except the active tab",
         tags: ["tabs", "close", "magic"]
+        // NOTE: incognito windows are NOT closed by this command.
+        // Chrome MV3 service workers in "spanning" mode (the default) cannot query or
+        // remove incognito windows/tabs — chrome.windows.getAll and chrome.tabs.query
+        // both silently omit incognito contexts, and chrome.windows.onCreated does not
+        // fire for incognito windows. Fixing this requires switching to "split" incognito
+        // mode so a separate SW instance runs inside the incognito context and can act on
+        // it via cross-SW messaging. See todo #61.
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'AllExceptActiveAllWindows'});
     });
