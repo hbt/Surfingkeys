@@ -1,6 +1,7 @@
 import { test } from '@playwright/test';
 import { launchWithCoverage } from '../utils/pw-helpers';
 
+// eslint-disable-next-line playwright/expect-expect
 test('is chrome.userScripts available in SW?', async () => {
     const { context, cov } = await launchWithCoverage();
     await new Promise(r => setTimeout(r, 2000));

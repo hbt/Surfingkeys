@@ -1,5 +1,6 @@
 const typescriptEslintPlugin = require('@typescript-eslint/eslint-plugin');
 const typescriptEslintParser = require('@typescript-eslint/parser');
+const playwrightPlugin = require('eslint-plugin-playwright');
 
 module.exports = [
     {
@@ -141,6 +142,15 @@ module.exports = [
             '@typescript-eslint/no-explicit-any': 'off',
             '@typescript-eslint/no-unused-vars': 'off',
             '@typescript-eslint/no-require-imports': 'off'
+        }
+    },
+    {
+        files: ['tests/playwright/**/*.ts'],
+        plugins: { playwright: playwrightPlugin },
+        rules: {
+            'playwright/expect-expect': ['error', { assertFunctionNames: ['withPersistedDualCoverage', 'expectClipboardForCommand', 'assertBasicCoverage'] }],
+            'playwright/no-standalone-expect': 'error',
+            'playwright/valid-expect': 'error',
         }
     }
 ];

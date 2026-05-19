@@ -97,7 +97,9 @@ test('fixture config applied — user script ran on page', async () => {
         );
     }
 
+    const isLoaded = await page.evaluate(() => document.documentElement.dataset['skConfigServerLoaded'] === 'true');
+    expect(isLoaded, 'config server data marker should be set on page').toBe(true);
+
     await cov?.close();
     await context.close();
-    // waitForFunction throws on timeout — reaching here = pass
 });
