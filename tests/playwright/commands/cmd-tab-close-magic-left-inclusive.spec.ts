@@ -36,6 +36,15 @@ function assertBasicCoverage(
     }
 }
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 async function waitForHttpPageCount(ctx: BrowserContext, expected: number) {
     for (let i = 0; i < 50; i++) {
         const httpCount = ctx.pages().filter(p => p.url().startsWith('http')).length;
@@ -93,6 +102,8 @@ test.describe('cmd_tab_close_magic_left_inclusive (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
+        await callSKApi(r1, 'unmapAllExcept', []);
+        await callSKApi(r1, 'mapcmdkey', 'gxQ', 'cmd_tab_close_magic_left_inclusive');
         // r1 (rightmost) + 2 to the left = 3 tabs closed (r1 itself is closed)
         // Fire content flush immediately — the r1 target disappears on invocation.
         const contentFlushPromise = covContent?.flush(`${SUITE_LABEL}/${coverageSlug(test.info().title)}/content`).catch(() => null) ?? Promise.resolve(null);

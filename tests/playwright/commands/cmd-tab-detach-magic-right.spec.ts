@@ -3,6 +3,15 @@ import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { coverageSlug, readCoverageStats, withPersistedDualCoverage } from '../utils/coverage-utils';
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const DEBUG = !!process.env.DEBUG;
 
 const SUITE_LABEL = 'cmd_tab_detach_magic_right';
@@ -97,6 +106,8 @@ test.describe('cmd_tab_detach_magic_right (Playwright)', () => {
 
                 await anchor.bringToFront();
                 await anchor.waitForTimeout(300);
+                await callSKApi(anchor, 'unmapAllExcept', []);
+                await callSKApi(anchor, 'mapcmdkey', 'g-002', 'cmd_tab_detach_magic_right');
                 const covContent = await initContentCoverageForUrl?.(anchorUrl);
 
                 const beforeWindows = await getAllWindowsViaSW(context);

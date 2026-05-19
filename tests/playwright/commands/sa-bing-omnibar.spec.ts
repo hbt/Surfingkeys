@@ -5,6 +5,18 @@ import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
+const KEY = 'ow';
+const UNIQUE_ID = 'sa_bing_omnibar';
+
 const SUITE_LABEL = 'sa_bing_omnibar';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
@@ -68,6 +80,10 @@ test.describe('sa_bing_omnibar (ow — bing search omnibar)', () => {
             await pressEscapeToCloseOmnibar(page);
             await page.waitForTimeout(200);
         } catch (_) {}
+    });
+
+    test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', [KEY]);
     });
 
     test('pressing ow opens bing search omnibar', async () => {

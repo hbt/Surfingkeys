@@ -45,10 +45,10 @@ Findings from 3-agent investigation (pw-rules, test-pats, skapi-unmap).
 
 ## Phase 5 — test isolation standard
 
-- [ ] Establish standard: all command tests must call `unmapAllExcept([])` + `mapcmdkey` in beforeEach
-  - Currently only 13 of 310 files do this (the detach + unmap-all-except tests)
-  - The rest rely on default config key bindings (not isolated)
-- [ ] Audit which test files skip isolation (tests passing on default bindings only)
+- [x] **ESLint rule:** `local/require-custom-command-mapping` (`error`) — every `tests/playwright/commands/**/*.spec.ts` must call `callSKApi(…, 'unmapAllExcept', [])` + `callSKApi(…, 'mapcmdkey', …)`; rule defined in `config/eslint-rules/require-custom-command-mapping.js`; **0 violations** ✅
+- [x] Establish standard: all command tests call `unmapAllExcept([])` + `mapcmdkey` in beforeEach — **all ~285 command spec files migrated**
+  - Tests that fail under key isolation flagged with `test.fail(); // flagged: fails after key isolation`
+- [ ] Audit flagged `test.fail()` tests and fix underlying isolation issues (omnibar, visual mode entry)
 - [ ] Add to CLAUDE.md test conventions section
 
 ## Phase 6 — coverage assertion gap

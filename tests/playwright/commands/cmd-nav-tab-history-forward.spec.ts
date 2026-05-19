@@ -6,7 +6,18 @@ import { withPersistedDualCoverage } from '../utils/coverage-utils';
 const DEBUG = !!process.env.DEBUG;
 
 const SUITE_LABEL = 'cmd_nav_tab_history_forward';
+const UNIQUE_ID = 'cmd_nav_tab_history_forward';
+const KEY = 'F';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
+
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
 
 let context: BrowserContext;
 let covBg: ServiceWorkerCoverage | undefined;
@@ -107,6 +118,9 @@ test.describe('cmd_nav_tab_history_forward (Playwright)', () => {
 
         const currentId = await getActiveTabId();
         expect(currentId).toBe(ids[2]);
+
+        await callSKApi(pages[2], 'unmapAllExcept', []);
+        await callSKApi(pages[2], 'mapcmdkey', KEY, UNIQUE_ID);
     });
 
     test('pressing F goes forward to next tab in history', async () => {

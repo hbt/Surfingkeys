@@ -13,6 +13,17 @@ let page: Page;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a],
+            bubbles: true,
+            composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 async function waitForPopupWithImg(p: Page, timeoutMs = 25000): Promise<boolean> {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
@@ -48,6 +59,11 @@ test.describe('cmd_capture_scrolling_element (Playwright)', () => {
     test.afterAll(async () => {
         await covBg?.close();
         await context?.close();
+    });
+
+    test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', 'yS', 'cmd_capture_scrolling_element');
     });
 
     test('cmd_capture_scrolling_element is invocable and initiates element capture', async () => {

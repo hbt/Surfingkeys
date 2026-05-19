@@ -231,8 +231,8 @@ function _initModules() {
                 cmd.code();
                 document.documentElement.dataset.skInvokeResult = 'true';
 
-                if (mode && previousMapNode) {
-                    mode.map_node = previousMapNode;
+                if (mode) {
+                    mode.map_node = previousMapNode ?? null;
                 }
             } catch (_) {
                 document.documentElement.dataset.skInvokeResult = 'false';

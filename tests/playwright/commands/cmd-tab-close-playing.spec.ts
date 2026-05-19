@@ -46,6 +46,15 @@ function assertBasicCoverage(
     }
 }
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 async function getActiveTabViaSW(ctx: BrowserContext): Promise<any> {
     const sw = ctx.serviceWorkers()[0];
     if (!sw) throw new Error('No service worker found');
@@ -105,6 +114,8 @@ test.describe('cmd_tab_close_playing (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', 'gxp', 'cmd_tab_close_playing');
         await page.keyboard.press('g');
         await page.waitForTimeout(50);
         await page.keyboard.press('x');

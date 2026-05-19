@@ -18,6 +18,17 @@ import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a],
+            bubbles: true,
+            composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const SUITE_LABEL = 'cmd_hints_exit_regional';
 const FIXTURE_URL = `${FIXTURE_BASE}/regional-hints-test.html`;
 
@@ -81,6 +92,13 @@ test.describe('cmd_hints_exit_regional (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(600);
+    });
+
+    test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', '<Esc>', 'cmd_hints_exit_regional');
+        await callSKApi(page, 'mapcmdkey', 'L', 'cmd_hints_regional');
+        await callSKApi(page, 'mapcmdkey', 'j', 'cmd_scroll_down');
     });
 
     test.afterEach(async () => {

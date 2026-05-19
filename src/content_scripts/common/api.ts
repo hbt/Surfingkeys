@@ -172,22 +172,13 @@ function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual:
             repeatIgnore: command.repeatIgnore
         });
 
-        // Extract annotation string - handle both object and string annotations
-        let annotationStr;
-        if (typeof command.annotation === 'object' && command.annotation !== null && !Array.isArray(command.annotation)) {
-            // Structured annotation object - use the short description
-            annotationStr = command.annotation.short || unique_id;
-        } else {
-            // Legacy string or array annotation
-            annotationStr = command.annotation;
-        }
-
+        // Pass the full annotation object so structured fields (e.g. selectionModify) are preserved
         if (command.mode === 'Insert') {
-            imapkey(keys, annotationStr, command.code, mappingOptions);
+            imapkey(keys, command.annotation, command.code, mappingOptions);
         } else if (command.mode === 'Visual') {
-            vmapkey(keys, annotationStr, command.code, mappingOptions);
+            vmapkey(keys, command.annotation, command.code, mappingOptions);
         } else {
-            mapkey(keys, annotationStr, command.code, mappingOptions);
+            mapkey(keys, command.annotation, command.code, mappingOptions);
         }
     }
 

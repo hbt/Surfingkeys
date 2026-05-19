@@ -38,6 +38,18 @@ async function waitForOmnibar(p: Page, open: boolean, timeoutMs = 5000) {
     throw new Error(`Omnibar did not ${open ? 'open' : 'close'} within ${timeoutMs}ms`);
 }
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
+const UNIQUE_ID = 'cmd_omnibar_edit_url';
+const KEY = '<Ctrl-i>';
+
 test.describe('cmd_omnibar_edit_url (Playwright)', () => {
     test.setTimeout(20_000);
 
@@ -69,6 +81,8 @@ test.describe('cmd_omnibar_edit_url (Playwright)', () => {
             await page.keyboard.press('o');
             await waitForOmnibar(page, true);
 
+            await callSKApi(page, 'unmapAllExcept', []);
+            await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
             const ok = await invokeCommand(page, 'cmd_omnibar_edit_url');
             if (DEBUG) console.log(`invokeCommand result: ${ok}`);
             // Command may return false if omnibar state doesn't support it — just verify no throw

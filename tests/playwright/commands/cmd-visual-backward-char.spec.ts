@@ -3,10 +3,21 @@ import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand, waitForInvokeReady
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const DEBUG = !!process.env.DEBUG;
 
 const SUITE_LABEL = 'cmd_visual_backward_char';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-lines-test.html`;
+const KEY = 'h';
+const UNIQUE_ID = 'cmd_visual_backward_char';
 const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
@@ -56,6 +67,11 @@ test.describe('cmd_visual_backward_char (Playwright)', () => {
     });
 
     test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'mapcmdkey', 'v', 'cmd_visual_toggle');
+        await callSKApi(page, 'mapcmdkey', 'l', 'cmd_visual_forward_char');
+        await callSKApi(page, 'mapcmdkey', 'j', 'cmd_visual_forward_line');
         await page.evaluate(() => {
             window.getSelection()?.removeAllRanges();
             window.scrollTo(0, 0);
@@ -133,7 +149,7 @@ test.describe('cmd_visual_backward_char (Playwright)', () => {
                 while (node) { const el = node as Element; if (el.id) { id = el.id; break; } node = node.parentNode; }
                 return id;
             });
-            await page.keyboard.press('j');
+            await invokeCommand(page, 'cmd_visual_forward_line');
             await page.waitForTimeout(300);
             const after = await page.evaluate(() => {
                 const sel = window.getSelection();

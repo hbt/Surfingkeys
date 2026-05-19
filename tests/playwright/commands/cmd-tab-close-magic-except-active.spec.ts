@@ -29,6 +29,15 @@ function assertBasicCoverage(bgPath: string | null, contentPath: string | null):
     }
 }
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 async function waitForTabCount(activePage: Page, expected: number) {
     const ctx = activePage.context();
     for (let i = 0; i < 50; i++) {
@@ -87,6 +96,8 @@ test.describe('cmd_tab_close_magic_except_active (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
+        await callSKApi(keeper, 'unmapAllExcept', []);
+        await callSKApi(keeper, 'mapcmdkey', 'gxc', 'cmd_tab_close_magic_except_active');
         await invokeCommand(keeper, 'cmd_tab_close_magic_except_active');
 
         await waitForTabCount(keeper, 1);

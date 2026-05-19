@@ -40,6 +40,15 @@ async function getAllWindowsViaSW(ctx: BrowserContext): Promise<any[]> {
     });
 }
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 async function waitForWindowCount(ctx: BrowserContext, expected: number, maxWaitMs = 5000): Promise<void> {
     const start = Date.now();
     while (Date.now() - start < maxWaitMs) {
@@ -63,6 +72,12 @@ test.describe('cmd_tab_detach (Playwright)', () => {
     test.afterAll(async () => {
         await covBg?.close();
         await context?.close();
+    });
+
+    test.beforeEach(async () => {
+        const page = context.pages()[0];
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', 'tdt', 'cmd_tab_detach');
     });
 
     async function closeAllExcept(keepPage: import('@playwright/test').Page) {

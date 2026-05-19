@@ -29,6 +29,18 @@ import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
+const KEY = 'sg';
+const UNIQUE_ID = 'sa_google_visual';
+
 const SUITE_LABEL = 'sa_google_visual';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
@@ -81,6 +93,10 @@ test.describe('sa_google_visual (sg — search selected with Google)', () => {
         try { await page.keyboard.press('Escape'); await page.waitForTimeout(100); } catch (_) {}
         await closeExtraPages(page);
         await page.waitForTimeout(100);
+    });
+
+    test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', [KEY]);
     });
 
     // -----------------------------------------------------------------------

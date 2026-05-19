@@ -4,6 +4,18 @@ import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { coverageSlug, withPersistedDualCoverage } from '../utils/coverage-utils';
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
+const KEY = 'yg';
+const UNIQUE_ID = 'cmd_yank_screenshot';
+
 const SUITE_LABEL = 'cmd_yank_screenshot';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
@@ -71,6 +83,11 @@ test.describe('cmd_yank_screenshot (Playwright)', () => {
 
     test.afterEach(async () => {
         try { await page.keyboard.press('Escape'); await page.waitForTimeout(200); } catch (_) {}
+    });
+
+    test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
     });
 
     test('yg shows popup with PNG screenshot and action buttons', async () => {

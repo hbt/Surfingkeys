@@ -28,6 +28,15 @@ function assertBasicCoverage(bgPath: string | null, contentPath: string | null):
     }
 }
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 async function closeAllExcept(keepPage: Page): Promise<void> {
     for (const p of context.pages()) {
         if (p !== keepPage) await p.close().catch(() => {});
@@ -75,6 +84,12 @@ test.describe('cmd_tab_copy_urls_magic_right (Playwright)', () => {
     test.afterAll(async () => {
         await covBg?.close();
         await context?.close();
+    });
+
+    test.beforeEach(async () => {
+        const page = context.pages()[0];
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', 'yte', 'cmd_tab_copy_urls_magic_right');
     });
 
     test('cmd_tab_copy_urls_magic_right copies exactly 2 tabs to the right with repeats', async () => {

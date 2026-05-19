@@ -5,6 +5,15 @@ import { coverageSlug, readCoverageStats } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const SUITE_LABEL = 'cmd_tab_parent';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
@@ -76,6 +85,9 @@ test.describe('cmd_tab_parent (Playwright)', () => {
         await childPage.waitForLoadState('load');
         await childPage.bringToFront();
         await childPage.waitForTimeout(500);
+
+        await callSKApi(childPage, 'unmapAllExcept', []);
+        await callSKApi(childPage, 'mapcmdkey', 'gK', 'cmd_tab_parent');
 
         const covContent = await initContentCoverageForUrl?.(childUrl);
         await covBg?.snapshot();

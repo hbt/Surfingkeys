@@ -5,6 +5,15 @@ import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const SUITE_LABEL = 'cmd_tab_restore';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
@@ -30,12 +39,19 @@ test.describe('cmd_tab_restore (Playwright)', () => {
         await context?.close();
     });
 
+    test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', 'X', 'cmd_tab_restore');
+    });
+
     test('pressing X restores most recently closed tab', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             // Open a page to close
             const toClose = await context.newPage();
             await toClose.goto(FIXTURE_URL, { waitUntil: 'load' });
             await toClose.waitForTimeout(500);
+            await callSKApi(toClose, 'unmapAllExcept', []);
+            await callSKApi(toClose, 'mapcmdkey', 'x', 'cmd_tab_close');
 
             // Close it via SK
             await toClose.bringToFront();
