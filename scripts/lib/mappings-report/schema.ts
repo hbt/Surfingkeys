@@ -460,7 +460,7 @@ export const REPORT_JSON_SCHEMA = {
                 "annotations": {
                     "type": "object",
                     "description": "Annotation validation issues",
-                    "required": ["invalid", "not_migrated"],
+                    "required": ["invalid", "not_migrated", "empty_key"],
                     "properties": {
                         "invalid": {
                             "type": "array",
@@ -485,6 +485,19 @@ export const REPORT_JSON_SCHEMA = {
                                 "required": ["key", "file", "line"],
                                 "properties": {
                                     "key": { "type": "string", "description": "Key sequence that triggers this mapping" },
+                                    "file": { "type": "string", "description": "Relative path from src/ to the source file" },
+                                    "line": { "type": "integer", "description": "Line number in the source file" }
+                                }
+                            }
+                        },
+                        "empty_key": {
+                            "type": "array",
+                            "description": "Mappings with an empty or missing key — should always be 0; non-zero indicates an extractor regression",
+                            "items": {
+                                "type": "object",
+                                "required": ["key", "file", "line"],
+                                "properties": {
+                                    "key": { "type": "string", "description": "Key value (empty string if null/undefined)" },
                                     "file": { "type": "string", "description": "Relative path from src/ to the source file" },
                                     "line": { "type": "integer", "description": "Line number in the source file" }
                                 }

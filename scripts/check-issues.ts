@@ -100,6 +100,7 @@ interface IssueCheck {
 const requiredChecks: IssueCheck[] = [
     { label: 'annotations.invalid',                          items: issues.annotations.invalid },
     { label: 'annotations.not_migrated',                     items: issues.annotations.not_migrated },
+    { label: 'annotations.empty_key',                        items: issues.annotations.empty_key },
     { label: 'tests.missing',                                items: issues.tests.missing.filter((id: string) => !excluded(id)) },
     { label: 'tests.invalid_files',                          items: issues.tests.invalid_files },
     { label: 'source_validation.prefix_conflicts',           items: issues.source_validation.prefix_conflicts },

@@ -6,7 +6,7 @@ const sha = process.argv[2];
 if (!sha) process.exit(1);
 
 // 1. Push commit objects to ctms-ops bare repo
-const push = Bun.spawnSync(["git", "push", "ctms-ops", `${sha}:refs/heads/ci`], {
+const push = Bun.spawnSync(["git", "push", "ctms-ops", `+${sha}:refs/heads/ci`], {
   stdout: "pipe", stderr: "pipe"
 });
 if (push.exitCode !== 0) {
