@@ -211,14 +211,9 @@ Worktrees let you work on a branch in a separate directory without disturbing th
 ### Create a worktree
 
 ```bash
-git worktree add /home/hassen/workspace/surfingkeys-<branch-name> -b <branch-name>
-```
-
-### Required setup after creation
-
-```bash
-cd /path/to/new-worktree
-npm run worktree:setup   # symlinks node_modules + builds extension
+npm run worktree:create -- <branch-name>
+# → creates /home/hassen/workspace/surfingkeys-<branch-name>
+# → symlinks node_modules + builds extension automatically
 ```
 
 > After each cherry-pick or code change, re-run `npm run build:dev` before running tests.
@@ -233,11 +228,10 @@ git worktree remove /path/to/worktree
 ### Upstream sync workflow
 
 When syncing from `brookhong/Surfingkeys`:
-1. Create worktree on a dedicated branch (`upstream-sync`)
-2. Run `npm run worktree:setup`
-3. Cherry-pick commits one at a time oldest→newest, skipping version bumps
-4. For each: review diff → cherry-pick → build → smoke test → full suite
-5. Commits that conflict with hbt work go in `upstream-excluded.json` with a reason
+1. Create worktree on a dedicated branch: `npm run worktree:create -- upstream-sync`
+2. Cherry-pick commits one at a time oldest→newest, skipping version bumps
+3. For each: review diff → cherry-pick → build → smoke test → full suite
+4. Commits that conflict with hbt work go in `upstream-excluded.json` with a reason
 
 ```bash
 git fetch brookhong
