@@ -8,8 +8,18 @@ const FIXTURE_URL_1 = `${FIXTURE_BASE}/scroll-test.html`;
 const FIXTURE_URL_2 = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
+let sharedPage: import('@playwright/test').Page;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
 
 async function clearSessions(ctx: BrowserContext): Promise<void> {
     const sw = ctx.serviceWorkers()[0];
@@ -77,9 +87,9 @@ test.describe('cmd_open_session (Playwright)', () => {
         context = result.context;
         covBg = result.covBg;
         initContentCoverageForUrl = result.covForPageUrl;
-        const page = await context.newPage();
-        await page.goto(FIXTURE_URL_1, { waitUntil: 'load' });
-        await page.waitForTimeout(500);
+        sharedPage = await context.newPage();
+        await sharedPage.goto(FIXTURE_URL_1, { waitUntil: 'load' });
+        await sharedPage.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
@@ -89,11 +99,13 @@ test.describe('cmd_open_session (Playwright)', () => {
 
     test.beforeEach(async () => {
         await clearSessions(context);
-        // Close extra pages leaving just the first
+        // Close extra pages leaving just sharedPage
         const pages = context.pages();
-        for (let i = 1; i < pages.length; i++) {
-            await pages[i].close().catch(() => {});
+        for (const p of pages) {
+            if (p !== sharedPage) await p.close().catch(() => {});
         }
+        await callSKApi(sharedPage, 'unmapAllExcept', []);
+        await callSKApi(sharedPage, 'mapcmdkey', 'openSession', 'cmd_open_session');
     });
 
     test('openSession saves and retrieves session data correctly', async () => {

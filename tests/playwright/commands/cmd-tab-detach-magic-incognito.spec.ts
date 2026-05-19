@@ -13,6 +13,15 @@ let context: BrowserContext;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 function assertBasicCoverage(bgPath: string | null, contentPath: string | null): void {
     if (process.env.COVERAGE !== 'true') return;
     expect(bgPath).toBeTruthy();
@@ -44,6 +53,12 @@ test.describe('cmd_tab_detach_magic_incognito (Playwright)', () => {
     test.afterAll(async () => {
         await covBg?.close();
         await context?.close();
+    });
+
+    test.beforeEach(async () => {
+        const page = context.pages()[0];
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', 'tdo', 'cmd_tab_detach_magic_incognito');
     });
 
     async function closeAllExcept(keepPage: Page) {

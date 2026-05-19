@@ -1,12 +1,24 @@
-import { test, expect, BrowserContext } from '@playwright/test';
+import { test, expect, BrowserContext, Page } from '@playwright/test';
 import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
+
+async function callSKApi(page: Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a],
+            bubbles: true,
+            composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
 
 const SUITE_LABEL = 'cmd_list_session';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
+let page: Page;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
@@ -55,7 +67,7 @@ test.describe('cmd_list_session (Playwright)', () => {
         context = result.context;
         covBg = result.covBg;
         initContentCoverageForUrl = result.covForPageUrl;
-        const page = await context.newPage();
+        page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
     });
@@ -67,6 +79,8 @@ test.describe('cmd_list_session (Playwright)', () => {
 
     test.beforeEach(async () => {
         await clearSessions(context);
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', 'listSession', 'cmd_list_session');
     });
 
     test('listSession retrieves empty list when no sessions exist', async () => {

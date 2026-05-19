@@ -3,6 +3,15 @@ import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const DEBUG = !!process.env.DEBUG;
 
 const SUITE_LABEL = 'cmd_tools_delete_history';
@@ -24,6 +33,11 @@ test.describe('cmd_tools_delete_history (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
+    });
+
+    test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', ';dh', 'cmd_tools_delete_history');
     });
 
     test.afterAll(async () => {

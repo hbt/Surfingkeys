@@ -5,7 +5,18 @@ import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const SUITE_LABEL = 'cmd_visual_click_node_newtab';
+const KEY = '<Shift-Enter>';
+const UNIQUE_ID = 'cmd_visual_click_node_newtab';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
@@ -51,6 +62,8 @@ test.describe('cmd_visual_click_node_newtab (Playwright)', () => {
             window.location.hash = '';
         });
         await page.waitForTimeout(100);
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
     });
 
     test.afterEach(async () => {

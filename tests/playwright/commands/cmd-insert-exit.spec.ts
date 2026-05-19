@@ -13,6 +13,17 @@ let page: Page;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a],
+            bubbles: true,
+            composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 test.describe('cmd_insert_exit (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(FIXTURE_URL);
@@ -30,6 +41,8 @@ test.describe('cmd_insert_exit (Playwright)', () => {
     });
 
     test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', ['j']);
+        await callSKApi(page, 'mapcmdkey', '<Esc>', 'cmd_insert_exit');
         // Blur any focused element between tests so each test starts in normal mode
         await page.evaluate(() => (document.activeElement as HTMLElement)?.blur?.());
         await page.waitForTimeout(100);

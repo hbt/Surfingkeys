@@ -7,8 +7,20 @@ const SUITE_LABEL = 'cmd_create_session';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
+let sharedPage: import('@playwright/test').Page;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a],
+            bubbles: true,
+            composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
 
 async function getSessions(ctx: BrowserContext): Promise<Record<string, any>> {
     const sw = ctx.serviceWorkers()[0];
@@ -50,9 +62,9 @@ test.describe('cmd_create_session (Playwright)', () => {
         context = result.context;
         covBg = result.covBg;
         initContentCoverageForUrl = result.covForPageUrl;
-        const page = await context.newPage();
-        await page.goto(FIXTURE_URL, { waitUntil: 'load' });
-        await page.waitForTimeout(500);
+        sharedPage = await context.newPage();
+        await sharedPage.goto(FIXTURE_URL, { waitUntil: 'load' });
+        await sharedPage.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
@@ -62,6 +74,8 @@ test.describe('cmd_create_session (Playwright)', () => {
 
     test.beforeEach(async () => {
         await clearSessions(context);
+        await callSKApi(sharedPage, 'unmapAllExcept', []);
+        await callSKApi(sharedPage, 'mapcmdkey', 'zC', 'cmd_create_session');
     });
 
     test('creating a session saves tabs to storage', async () => {

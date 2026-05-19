@@ -1,6 +1,7 @@
 const typescriptEslintPlugin = require('@typescript-eslint/eslint-plugin');
 const typescriptEslintParser = require('@typescript-eslint/parser');
 const playwrightPlugin = require('eslint-plugin-playwright');
+const requireCustomCommandMapping = require('./eslint-rules/require-custom-command-mapping');
 
 module.exports = [
     {
@@ -156,6 +157,17 @@ module.exports = [
             'playwright/missing-playwright-await': 'error',
             'playwright/valid-describe-callback': 'error',
             'playwright/no-unsafe-references': 'error',
+        }
+    },
+    {
+        files: ['tests/playwright/commands/**/*.spec.ts'],
+        plugins: {
+            local: {
+                rules: { 'require-custom-command-mapping': requireCustomCommandMapping }
+            }
+        },
+        rules: {
+            'local/require-custom-command-mapping': 'error',
         }
     }
 ];

@@ -11,6 +11,15 @@ let context: BrowserContext;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 function assertBasicCoverage(bgPath: string | null, contentPath: string | null): void {
     if (process.env.COVERAGE !== 'true') return;
     expect(bgPath).toBeTruthy();
@@ -76,6 +85,8 @@ test.describe('cmd_tab_copy_urls_magic_incognito (Playwright)', () => {
                 const anchorUrl = `${FIXTURE_URL}#${coverageSlug(`${SUITE_LABEL}/incognito_anchor`)}`;
                 const anchor = await createPage(anchorUrl);
                 await closeAllExcept(anchor);
+                await callSKApi(anchor, 'unmapAllExcept', []);
+                await callSKApi(anchor, 'mapcmdkey', 'g-022', 'cmd_tab_copy_urls_magic_incognito');
                 const covContent = await initContentCoverageForUrl?.(anchorUrl);
 
                 await writeClipboard(anchor, 'before');

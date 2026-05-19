@@ -5,6 +5,15 @@ import { coverageSlug, readCoverageStats } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const SUITE_LABEL = 'cmd_tab_close_magic_children_recursive';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
@@ -101,6 +110,8 @@ test.describe('cmd_tab_close_magic_children_recursive (Playwright)', () => {
 
         await parent.bringToFront();
         await parent.waitForTimeout(300);
+        await callSKApi(parent, 'unmapAllExcept', []);
+        await callSKApi(parent, 'mapcmdkey', 'gxK', 'cmd_tab_close_magic_children_recursive');
         const covContent = await initContentCoverageForUrl?.(parentUrl);
 
         const parentTab = await getActiveTabViaSW(context);

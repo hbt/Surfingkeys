@@ -29,6 +29,15 @@ function assertBasicCoverage(bgPath: string | null, contentPath: string | null):
     }
 }
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 test.describe('cmd_tab_close_magic_incognito (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(FIXTURE_URL);
@@ -71,6 +80,8 @@ test.describe('cmd_tab_close_magic_incognito (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
+        await callSKApi(anchor, 'unmapAllExcept', []);
+        await callSKApi(anchor, 'mapcmdkey', 'gxo', 'cmd_tab_close_magic_incognito');
         await invokeCommand(anchor, 'cmd_tab_close_magic_incognito');
         await anchor.waitForTimeout(500);
 

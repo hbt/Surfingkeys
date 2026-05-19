@@ -13,6 +13,17 @@ let page: Page;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a],
+            bubbles: true,
+            composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 async function getTabGroups(ctx: BrowserContext): Promise<any[]> {
     const sw = ctx.serviceWorkers()[0];
     if (!sw) throw new Error('No service worker found');
@@ -100,6 +111,8 @@ test.describe('cmd_create_tab_group (Playwright)', () => {
     });
 
     test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', 'zT', 'cmd_create_tab_group');
         // Ungroup active tab if grouped
         const tabId = await getActiveTabId(context);
         if (tabId !== -1) {

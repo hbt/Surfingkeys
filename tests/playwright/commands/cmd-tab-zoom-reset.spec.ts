@@ -3,6 +3,15 @@ import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const DEBUG = !!process.env.DEBUG;
 
 const SUITE_LABEL = 'cmd_tab_zoom_reset';
@@ -36,6 +45,13 @@ test.describe('cmd_tab_zoom_reset (Playwright)', () => {
         page = await context.newPage();
         await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
+    });
+
+    test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', 'zr', 'cmd_tab_zoom_reset');
+        await callSKApi(page, 'mapcmdkey', 'zi', 'cmd_tab_zoom_in');
+        await callSKApi(page, 'mapcmdkey', 'zo', 'cmd_tab_zoom_out');
     });
 
     test.afterAll(async () => {

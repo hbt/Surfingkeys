@@ -5,6 +5,15 @@ import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const SUITE_LABEL = 'cmd_tab_next';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
@@ -76,6 +85,9 @@ test.describe('cmd_tab_next (Playwright)', () => {
             const tab1 = await context.newPage();
             await tab1.goto(FIXTURE_URL, { waitUntil: 'load' });
             await tab1.waitForTimeout(200);
+
+            await callSKApi(tab0, 'unmapAllExcept', []);
+            await callSKApi(tab0, 'mapcmdkey', 'g-035', 'cmd_tab_next');
 
             const allTabs = await getTabsViaSW(context);
             expect(allTabs.length).toBe(2);

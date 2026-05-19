@@ -29,6 +29,15 @@ function assertBasicCoverage(bgPath: string | null, contentPath: string | null):
     }
 }
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 async function getTabsViaSW(ctx: BrowserContext): Promise<any[]> {
     const sw = ctx.serviceWorkers()[0];
     if (!sw) throw new Error('No service worker found');
@@ -124,6 +133,8 @@ test.describe('cmd_tab_close_magic_children (Playwright)', () => {
         await covBg?.snapshot();
         await covContent?.snapshot();
 
+        await callSKApi(parent, 'unmapAllExcept', []);
+        await callSKApi(parent, 'mapcmdkey', 'gxk', 'cmd_tab_close_magic_children');
         await invokeCommand(parent, 'cmd_tab_close_magic_children');
 
         await waitForTabCount(parent, beforeCount - 2);

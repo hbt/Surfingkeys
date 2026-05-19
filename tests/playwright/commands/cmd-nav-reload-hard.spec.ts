@@ -5,6 +5,15 @@ import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const SUITE_LABEL = 'cmd_nav_reload_hard';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
@@ -27,6 +36,11 @@ test.describe('cmd_nav_reload_hard (Playwright)', () => {
     test.afterAll(async () => {
         await covBg?.close();
         await context?.close();
+    });
+
+    test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', 'R', 'cmd_nav_reload_hard');
     });
 
     test('cmd_nav_reload_hard clears injected window variable', async () => {
