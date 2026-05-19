@@ -2401,6 +2401,178 @@ function start(browser: Record<string, unknown>) {
     self.removeBookmark = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         removeBookmark(sender.tab!.url!);
     };
+
+    // --- Bookmark folder helpers ---
+    function _getBookmarkFolderByName(
+        folderName: string,
+        cb: (folder: chrome.bookmarks.BookmarkTreeNode | undefined) => void
+    ) {
+        chrome.bookmarks.search({ title: folderName }, function(results) {
+            const folder = results.find(r => !r.url && r.title === folderName);
+            cb(folder);
+        });
+    }
+
+    function _getBookmarkChildrenByName(
+        folderName: string,
+        cb: (children: chrome.bookmarks.BookmarkTreeNode[]) => void
+    ) {
+        _getBookmarkFolderByName(folderName, function(folder) {
+            if (!folder) { cb([]); return; }
+            chrome.bookmarks.getChildren(folder.id, function(children) {
+                cb(children || []);
+            });
+        });
+    }
+
+    function _deepPluck(obj: unknown, key: string): string[] {
+        const results: string[] = [];
+        if (Array.isArray(obj)) {
+            obj.forEach(item => results.push(..._deepPluck(item, key)));
+        } else if (obj && typeof obj === 'object') {
+            const o = obj as Record<string, unknown>;
+            if (key in o && typeof o[key] === 'string') results.push(o[key] as string);
+            Object.values(o).forEach(v => results.push(..._deepPluck(v, key)));
+        }
+        return results;
+    }
+
+    function _normalizeUrl(url: string): string {
+        return url.endsWith('/') ? url.slice(0, -1) : url;
+    }
+
+    self.bookmarkToggleFolder = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const folder = message.folder as string;
+        const url = _normalizeUrl(sender.tab!.url!);
+        const title = sender.tab!.title || url;
+        _getBookmarkFolderByName(folder, function(folderNode) {
+            if (!folderNode) {
+                chrome.bookmarks.create({ parentId: "1", title: folder }, function(newFolder) {
+                    chrome.bookmarks.create({ parentId: newFolder.id, title, url });
+                });
+                return;
+            }
+            chrome.bookmarks.getChildren(folderNode.id, function(children) {
+                const existing = children.find(c => c.url && _normalizeUrl(c.url) === url);
+                if (existing) {
+                    chrome.bookmarks.remove(existing.id);
+                } else {
+                    chrome.bookmarks.create({ parentId: folderNode.id, title, url });
+                }
+            });
+        });
+    };
+
+    self.bookmarkCopyFolder = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const folder = message.folder as string;
+        const reverse = message.reverse as boolean;
+        const repeats = message.repeats as number; // -1 = all
+        _getBookmarkFolderByName(folder, function(folderNode) {
+            if (!folderNode) return;
+            chrome.bookmarks.getSubTree(folderNode.id, function(subtree) {
+                let urls = [...new Set(
+                    _deepPluck(subtree, 'url')
+                        .map(_normalizeUrl)
+                        .filter(Boolean)
+                )];
+                if (reverse) urls = urls.reverse();
+                if (repeats > 0) urls = urls.slice(0, repeats);
+                navigator.clipboard.writeText(urls.join('\n'));
+            });
+        });
+    };
+
+    self.bookmarkEmptyFolder = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const folder = message.folder as string;
+        _getBookmarkFolderByName(folder, function(folderNode) {
+            if (!folderNode) return;
+            const { parentId, title, index } = folderNode;
+            chrome.bookmarks.removeTree(folderNode.id, function() {
+                chrome.bookmarks.create({ parentId, title, index });
+            });
+        });
+    };
+
+    self.bookmarkAddM = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const folder = message.folder as string;
+        const repeats = message.repeats as number;
+        chrome.tabs.query({}, function(allTabs) {
+            const windowTabs = allTabs.filter(t => t.windowId === sender.tab?.windowId);
+            const tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, windowTabs, allTabs);
+            const selectedTabs = allTabs.filter(t => tabIds.includes(t.id!));
+            _getBookmarkFolderByName(folder, function(folderNode) {
+                if (!folderNode) {
+                    chrome.bookmarks.create({ parentId: "1", title: folder }, function(newFolder) {
+                        selectedTabs.forEach(t => {
+                            chrome.bookmarks.create({ parentId: newFolder.id, title: t.title, url: t.url });
+                        });
+                    });
+                    return;
+                }
+                const parentId = folderNode.id;
+                chrome.bookmarks.getChildren(parentId, function(children) {
+                    const existingUrls = new Set(children.map(c => _normalizeUrl(c.url || '')));
+                    selectedTabs.forEach(t => {
+                        if (t.url && !existingUrls.has(_normalizeUrl(t.url))) {
+                            chrome.bookmarks.create({ parentId, title: t.title, url: t.url });
+                        }
+                    });
+                });
+            });
+        });
+    };
+
+    self.bookmarkRemoveM = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const folder = message.folder as string;
+        const repeats = message.repeats as number;
+        chrome.tabs.query({}, function(allTabs) {
+            const windowTabs = allTabs.filter(t => t.windowId === sender.tab?.windowId);
+            const tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, windowTabs, allTabs);
+            const selectedTabs = allTabs.filter(t => tabIds.includes(t.id!));
+            _getBookmarkChildrenByName(folder, function(children) {
+                const urlToId = new Map(children.map(c => [_normalizeUrl(c.url || ''), c.id]));
+                selectedTabs.forEach(t => {
+                    const bid = t.url ? urlToId.get(_normalizeUrl(t.url)) : undefined;
+                    if (bid) chrome.bookmarks.remove(bid);
+                });
+            });
+        });
+    };
+
+    self.bookmarkCutFromFolder = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const folder = message.folder as string;
+        const reverse = message.reverse as boolean;
+        const repeats = Math.min(Math.max(message.repeats as number || 1, 1), 50);
+        // Copy all first (backup), then remove N items
+        (self.bookmarkCopyFolder as (m: Msg, s: chrome.runtime.MessageSender, r: (response: unknown) => void) => void)({ ...message, reverse, repeats: -1 } as Msg, _sender, _sendResponse);
+        _getBookmarkFolderByName(folder, function(folderNode) {
+            if (!folderNode) return;
+            chrome.bookmarks.getChildren(folderNode.id, function(children) {
+                let items = [...children];
+                if (reverse) items = items.reverse();
+                items.slice(0, repeats).forEach(c => chrome.bookmarks.remove(c.id));
+            });
+        });
+    };
+
+    self.bookmarkLookupCurrentURL = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
+        const url = _normalizeUrl(sender.tab!.url!);
+        chrome.bookmarks.search({ url }, function(results) {
+            const folderIds = [...new Set(results.map(r => r.parentId!))];
+            if (!folderIds.length) { _response(message, sendResponse, { msg: 'Not bookmarked' }); return; }
+            let pending = folderIds.length;
+            const folderNames: string[] = [];
+            folderIds.forEach(id => {
+                chrome.bookmarks.getSubTree(id, function(nodes) {
+                    if (nodes[0]) folderNames.push(nodes[0].title);
+                    if (--pending === 0) {
+                        _response(message, sendResponse, { msg: `Found in: ${folderNames.join(', ')}` });
+                    }
+                });
+            });
+        });
+    };
+
     self.getBookmark = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
         chrome.bookmarks.search({
             url: sender.tab!.url

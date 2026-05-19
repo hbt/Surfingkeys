@@ -200,5 +200,70 @@ export default function registerSettings(
         RUNTIME('removeBookmark');
     });
     } // end !Safari guard
+
+    mapkey('', {
+        short: "Toggle bookmark in folder",
+        unique_id: "cmd_bookmark_toggle_folder",
+        feature_group: 14,
+        category: "settings",
+        description: "Toggle current page bookmark in a named folder",
+        tags: ["bookmarks", "folder"],
+    }, function() {
+        RUNTIME('bookmarkToggleFolder', { folder: 'default' });
+    });
+
+    mapkey('', {
+        short: "Copy folder bookmarks to clipboard",
+        unique_id: "cmd_bookmark_copy_folder",
+        feature_group: 14,
+        category: "settings",
+        description: "Copy all URLs from a named bookmark folder to clipboard",
+        tags: ["bookmarks", "folder", "clipboard"],
+    }, function() {});
+
+    mapkey('', {
+        short: "Empty bookmark folder",
+        unique_id: "cmd_bookmark_empty_folder",
+        feature_group: 14,
+        category: "settings",
+        description: "Delete all bookmarks in a named folder",
+        tags: ["bookmarks", "folder"],
+    }, function() {});
+
+    mapkey('', {
+        short: "Add tabs to bookmark folder",
+        unique_id: "cmd_bookmark_add_m",
+        feature_group: 14,
+        category: "settings",
+        description: "Add current or multiple tabs to a named bookmark folder",
+        tags: ["bookmarks", "folder", "tabs"],
+    }, function() {});
+
+    mapkey('', {
+        short: "Remove tabs from bookmark folder",
+        unique_id: "cmd_bookmark_remove_m",
+        feature_group: 14,
+        category: "settings",
+        description: "Remove current or multiple tabs from a named bookmark folder",
+        tags: ["bookmarks", "folder", "tabs"],
+    }, function() {});
+
+    mapkey('', {
+        short: "Cut bookmarks from folder",
+        unique_id: "cmd_bookmark_cut_folder",
+        feature_group: 14,
+        category: "settings",
+        description: "Copy folder to clipboard then remove N items",
+        tags: ["bookmarks", "folder", "clipboard"],
+    }, function() {});
+
+    mapkey('', {
+        short: "Lookup current URL in bookmarks",
+        unique_id: "cmd_bookmark_lookup_url",
+        feature_group: 14,
+        category: "settings",
+        description: "Find all bookmark folders containing the current page URL",
+        tags: ["bookmarks", "lookup"],
+    }, function() {});
 }
 
