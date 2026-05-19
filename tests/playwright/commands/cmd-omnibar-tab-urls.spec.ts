@@ -68,7 +68,7 @@ test.describe('cmd_omnibar_tab_urls (Playwright)', () => {
     });
 
     test.beforeEach(async () => {
-        await callSKApi(page, 'unmapAllExcept', ['T']);
+        await callSKApi(page, 'unmapAllExcept', []);
         await callSKApi(page, 'mapcmdkey', 'H', 'cmd_omnibar_tab_urls');
     });
 
@@ -79,22 +79,21 @@ test.describe('cmd_omnibar_tab_urls (Playwright)', () => {
         } catch (_) {}
     });
 
-    test('pressing T opens tab URLs omnibar', async () => {
-        test.fail(); // flagged: omnibar does not open after key isolation
+    test('pressing H opens tab URLs omnibar', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            // T = Shift+t
-            await page.keyboard.press('Shift+t');
+            await page.keyboard.press('H');
 
             const opened = await waitForOmnibarState(page, true);
             expect(opened).toBe(true);
-            if (DEBUG) console.log('Tab URLs omnibar opened with T key');
+            if (DEBUG) console.log('Tab URLs omnibar opened with H key');
         });
     });
 
     test('tab URLs omnibar closes after pressing Escape', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            await page.keyboard.press('Shift+t');
-            await waitForOmnibarState(page, true);
+            await page.keyboard.press('H');
+            const opened = await waitForOmnibarState(page, true);
+            expect(opened).toBe(true);
 
             await page.keyboard.press('Escape');
             const closed = await waitForOmnibarState(page, false);
@@ -103,11 +102,10 @@ test.describe('cmd_omnibar_tab_urls (Playwright)', () => {
         });
     });
 
-    test('T command can be used multiple times consecutively', async () => {
-        test.fail(); // flagged: omnibar does not open after key isolation
+    test('H command can be used multiple times consecutively', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             // First cycle
-            await page.keyboard.press('Shift+t');
+            await page.keyboard.press('H');
             const firstOpen = await waitForOmnibarState(page, true);
             expect(firstOpen).toBe(true);
 
@@ -116,7 +114,7 @@ test.describe('cmd_omnibar_tab_urls (Playwright)', () => {
             await page.waitForTimeout(300);
 
             // Second cycle
-            await page.keyboard.press('Shift+t');
+            await page.keyboard.press('H');
             const secondOpen = await waitForOmnibarState(page, true);
             expect(secondOpen).toBe(true);
             if (DEBUG) console.log('Tab URLs omnibar works multiple times');

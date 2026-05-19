@@ -70,11 +70,9 @@ test.describe('sa_youtube_visual (sy — Search selected with YouTube)', () => {
     });
 
     test.beforeEach(async () => {
-        await callSKApi(page, 'unmapAllExcept', []);
-        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'unmapAllExcept', [KEY]);
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('sy opens a new tab with youtube search URL', async () => {
         await withPersistedDualCoverage(
             { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },

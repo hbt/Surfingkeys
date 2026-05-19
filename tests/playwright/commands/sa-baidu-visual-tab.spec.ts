@@ -96,12 +96,10 @@ test.describe('sa_baidu_visual_tab (sB — Search selected with Baidu in omnibar
     });
 
     test.beforeEach(async () => {
-        await callSKApi(page, 'unmapAllExcept', []);
-        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'unmapAllExcept', [KEY]);
     });
 
     test('sB opens baidu search omnibar (interactive mode)', async () => {
-        test.fail(); // flagged: fails after key isolation
         await withPersistedDualCoverage(
             { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
             test.info().title,

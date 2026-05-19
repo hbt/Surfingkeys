@@ -70,6 +70,10 @@ test.describe('cmd_visual_line_start (Playwright)', () => {
     test.beforeEach(async () => {
         await callSKApi(page, 'unmapAllExcept', []);
         await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'mapcmdkey', 'v', 'cmd_visual_toggle');
+        await callSKApi(page, 'mapcmdkey', 'l', 'cmd_visual_forward_char');
+        await callSKApi(page, 'mapcmdkey', '$', 'cmd_visual_line_end');
+        await callSKApi(page, 'mapcmdkey', 'j', 'cmd_visual_forward_line');
         await page.evaluate(() => {
             window.getSelection()?.removeAllRanges();
             window.scrollTo(0, 0);
@@ -81,7 +85,6 @@ test.describe('cmd_visual_line_start (Playwright)', () => {
         try { await page.keyboard.press('Escape'); await page.waitForTimeout(100); } catch (_) {}
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('pressing 0 in visual mode does not error', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
@@ -94,7 +97,6 @@ test.describe('cmd_visual_line_start (Playwright)', () => {
         });
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('pressing 0 multiple times does not error', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
@@ -108,7 +110,6 @@ test.describe('cmd_visual_line_start (Playwright)', () => {
         });
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('0 after l does not error', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
@@ -124,7 +125,6 @@ test.describe('cmd_visual_line_start (Playwright)', () => {
         });
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('0 and $ in sequence do not error', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
@@ -138,7 +138,6 @@ test.describe('cmd_visual_line_start (Playwright)', () => {
         });
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('visual mode remains accessible after pressing 0', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
@@ -153,7 +152,7 @@ test.describe('cmd_visual_line_start (Playwright)', () => {
                 while (node) { const el = node as Element; if (el.id) { id = el.id; break; } node = node.parentNode; }
                 return id;
             });
-            await page.keyboard.press('j');
+            await invokeCommand(page, 'cmd_visual_forward_line');
             await page.waitForTimeout(300);
             const after = await page.evaluate(() => {
                 const sel = window.getSelection();

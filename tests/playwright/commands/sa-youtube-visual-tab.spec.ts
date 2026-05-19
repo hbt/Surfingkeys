@@ -90,12 +90,10 @@ test.describe('sa_youtube_visual_tab (sY — Search selected with YouTube intera
     });
 
     test.beforeEach(async () => {
-        await callSKApi(page, 'unmapAllExcept', []);
-        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'unmapAllExcept', [KEY]);
     });
 
     test('sY opens youtube search omnibar in interactive mode', async () => {
-        test.fail(); // flagged: fails after key isolation
         await withPersistedDualCoverage(
             { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
             test.info().title,

@@ -144,6 +144,9 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
         await page.waitForTimeout(200);
         await callSKApi(page, 'unmapAllExcept', []);
         await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'mapcmdkey', 'v', 'cmd_visual_toggle');
+        await callSKApi(page, 'mapcmdkey', 'j', 'cmd_visual_forward_line');
+        await callSKApi(page, 'mapcmdkey', 'G', 'cmd_visual_document_end');
     });
 
     test.afterEach(async () => {
@@ -162,7 +165,6 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
     });
 
     test('gg moves cursor to an earlier line', async () => {
-        test.fail(); // flagged: fails after key isolation
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             // Move down first using j
             await enterVisualMode(page);
@@ -184,7 +186,6 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
     });
 
     test('gg moves cursor to beginning of document', async () => {
-        test.fail(); // flagged: fails after key isolation
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
             // Move down first
@@ -221,7 +222,6 @@ test.describe('cmd_visual_document_start (Playwright)', () => {
     });
 
     test('gg after G moves to an earlier line', async () => {
-        test.fail(); // flagged: fails after key isolation
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
             // Go to end first

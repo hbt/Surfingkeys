@@ -70,11 +70,9 @@ test.describe('sa_wikipedia_visual (se — Search selected text with Wikipedia)'
     });
 
     test.beforeEach(async () => {
-        await callSKApi(page, 'unmapAllExcept', []);
-        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'unmapAllExcept', [KEY]);
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('se opens a new tab with wikipedia search URL', async () => {
         await withPersistedDualCoverage(
             { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },

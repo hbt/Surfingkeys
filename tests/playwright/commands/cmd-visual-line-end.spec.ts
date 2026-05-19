@@ -74,13 +74,15 @@ test.describe('cmd_visual_line_end (Playwright)', () => {
         await page.waitForTimeout(200);
         await callSKApi(page, 'unmapAllExcept', []);
         await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'mapcmdkey', 'v', 'cmd_visual_toggle');
+        await callSKApi(page, 'mapcmdkey', '0', 'cmd_visual_line_start');
+        await callSKApi(page, 'mapcmdkey', 'j', 'cmd_visual_forward_line');
     });
 
     test.afterEach(async () => {
         try { await page.keyboard.press('Escape'); await page.waitForTimeout(100); } catch (_) {}
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('pressing $ in visual mode does not error', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
@@ -147,7 +149,7 @@ test.describe('cmd_visual_line_end (Playwright)', () => {
                 while (node) { const el = node as Element; if (el.id) { id = el.id; break; } node = node.parentNode; }
                 return id;
             });
-            await page.keyboard.press('j');
+            await invokeCommand(page, 'cmd_visual_forward_line');
             await page.waitForTimeout(300);
             const after = await page.evaluate(() => {
                 const sel = window.getSelection();

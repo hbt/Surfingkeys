@@ -82,13 +82,13 @@ test.describe('cmd_visual_forward_line (Playwright)', () => {
         await page.waitForTimeout(200);
         await callSKApi(page, 'unmapAllExcept', []);
         await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'mapcmdkey', 'v', 'cmd_visual_toggle');
     });
 
     test.afterEach(async () => {
         try { await page.keyboard.press('Escape'); await page.waitForTimeout(100); } catch (_) {}
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('pressing j in visual mode moves cursor forward one line', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);

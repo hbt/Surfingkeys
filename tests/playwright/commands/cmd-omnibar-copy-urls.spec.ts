@@ -65,7 +65,7 @@ test.describe('cmd_omnibar_copy_urls (Playwright)', () => {
     test.beforeEach(async () => {
         await callSKApi(page, 'unmapAllExcept', []);
         await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
-        await callSKApi(page, 'mapcmdkey', 'o', 'cmd_omnibar_history');
+        await callSKApi(page, 'mapcmdkey', 'o', 'cmd_omnibar_commands');
     });
 
     test.afterEach(async () => {
@@ -79,7 +79,6 @@ test.describe('cmd_omnibar_copy_urls (Playwright)', () => {
     });
 
     test('cmd_omnibar_copy_urls is invocable with omnibar open', async () => {
-        test.fail(); // flagged: omnibar does not open after key isolation
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             // Copy URLs of all omnibar results to clipboard
             // Open omnibar first (history mode via 'o' key)

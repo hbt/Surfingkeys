@@ -96,12 +96,10 @@ test.describe('sa_duckduckgo_visual_tab (sD — Search selected with DuckDuckGo 
     });
 
     test.beforeEach(async () => {
-        await callSKApi(page, 'unmapAllExcept', []);
-        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'unmapAllExcept', [KEY]);
     });
 
     test('sD opens duckduckgo search omnibar (interactive mode)', async () => {
-        test.fail(); // flagged: fails after key isolation
         await withPersistedDualCoverage(
             { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
             test.info().title,

@@ -88,11 +88,9 @@ test.describe('sa_google_omnibar (Playwright)', () => {
     });
 
     test.beforeEach(async () => {
-        await callSKApi(page, 'unmapAllExcept', []);
-        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'unmapAllExcept', [KEY]);
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('pressing og opens Google search omnibar', async () => {
         await withPersistedDualCoverage(
             { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },

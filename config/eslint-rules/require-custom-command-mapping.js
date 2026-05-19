@@ -22,8 +22,16 @@ module.exports = {
                 if (node.callee.type !== 'Identifier' || node.callee.name !== 'callSKApi') return;
                 const secondArg = node.arguments[1];
                 if (!secondArg || secondArg.type !== 'Literal') return;
-                if (secondArg.value === 'unmapAllExcept') hasUnmapAll = true;
-                if (secondArg.value === 'mapcmdkey')     hasMapcmdkey = true;
+                if (secondArg.value === 'unmapAllExcept') {
+                    hasUnmapAll = true;
+                    // unmapAllExcept([KEY]) with a non-empty array preserves the SA key binding
+                    // and counts as the explicit key declaration (SA commands can't use mapcmdkey)
+                    const thirdArg = node.arguments[2];
+                    if (thirdArg && thirdArg.type === 'ArrayExpression' && thirdArg.elements.length > 0) {
+                        hasMapcmdkey = true;
+                    }
+                }
+                if (secondArg.value === 'mapcmdkey') hasMapcmdkey = true;
             },
             'Program:exit'(node) {
                 if (!hasUnmapAll)  context.report({ node, messageId: 'missingUnmapAll' });

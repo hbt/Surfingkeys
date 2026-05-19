@@ -70,11 +70,9 @@ test.describe('sa_baidu_visual (sb — Search selected text with Baidu)', () => 
     });
 
     test.beforeEach(async () => {
-        await callSKApi(page, 'unmapAllExcept', []);
-        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'unmapAllExcept', [KEY]);
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('sb opens a new tab with baidu search URL', async () => {
         await withPersistedDualCoverage(
             { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },

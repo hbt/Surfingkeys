@@ -93,13 +93,15 @@ test.describe('cmd_visual_document_end (Playwright)', () => {
         await page.waitForTimeout(200);
         await callSKApi(page, 'unmapAllExcept', []);
         await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        await callSKApi(page, 'mapcmdkey', 'v', 'cmd_visual_toggle');
+        await callSKApi(page, 'mapcmdkey', 'j', 'cmd_visual_forward_line');
+        await callSKApi(page, 'mapcmdkey', 'gg', 'cmd_visual_document_start');
     });
 
     test.afterEach(async () => {
         try { await page.keyboard.press('Escape'); await page.waitForTimeout(100); } catch (_) {}
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('pressing G in visual mode does not error', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
@@ -112,7 +114,6 @@ test.describe('cmd_visual_document_end (Playwright)', () => {
         });
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('G moves cursor to a later line', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
@@ -132,7 +133,6 @@ test.describe('cmd_visual_document_end (Playwright)', () => {
         });
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('G after multiple j moves to later line', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
@@ -153,7 +153,6 @@ test.describe('cmd_visual_document_end (Playwright)', () => {
         });
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('pressing G twice does not error', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
@@ -171,7 +170,6 @@ test.describe('cmd_visual_document_end (Playwright)', () => {
         });
     });
 
-    test.fail(); // flagged: fails after key isolation
     test('G then gg moves to earlier line', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await enterVisualMode(page);
