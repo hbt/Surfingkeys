@@ -157,6 +157,10 @@ module.exports = [
             'playwright/missing-playwright-await': 'error',
             'playwright/valid-describe-callback': 'error',
             'playwright/no-unsafe-references': 'error',
+            'no-restricted-syntax': ['warn', {
+                selector: 'CallExpression[callee.object.name="test"][callee.property.name="fail"]',
+                message: 'test.fail() marks a test as expected to fail — remove or fix the underlying issue instead',
+            }],
         }
     },
     {
