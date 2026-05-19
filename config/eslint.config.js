@@ -151,6 +151,11 @@ module.exports = [
             'playwright/expect-expect': ['error', { assertFunctionNames: ['withPersistedDualCoverage', 'expectClipboardForCommand', 'assertBasicCoverage'] }],
             'playwright/no-standalone-expect': 'error',
             'playwright/valid-expect': 'error',
+            // Phase 1: confirmed zero-violation rules
+            'playwright/no-focused-test': 'error',
+            'playwright/missing-playwright-await': 'error',
+            'playwright/valid-describe-callback': 'error',
+            'playwright/no-unsafe-references': 'error',
         }
     }
 ];
