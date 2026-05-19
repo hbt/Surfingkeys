@@ -140,6 +140,17 @@ export default function registerNavigation(
         });
     });
 
+    mapkey('g-037', {
+        short: "Open new window",
+        unique_id: "cmd_nav_new_window",
+        feature_group: 8,
+        category: "navigation",
+        description: "Open a new browser window",
+        tags: ["navigation", "window"]
+    }, function() {
+        RUNTIME('openNewWindow');
+    });
+
     mapkey('cc', {
         short: "Open selected link",
         unique_id: "cmd_nav_open_clipboard",

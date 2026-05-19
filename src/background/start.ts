@@ -2474,6 +2474,10 @@ function start(browser: Record<string, unknown>) {
         chrome.windows.create({"url": message.url as string, "incognito": true});
     };
 
+    self.openNewWindow = function(_message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        chrome.windows.create({url: (conf.newTabUrl as string) || 'chrome://newtab'});
+    };
+
     var userAgent: string;
     function _onBeforeSendHeaders(details: chrome.webRequest.OnBeforeSendHeadersDetails) {
         const requestHeaders = details.requestHeaders || [];
