@@ -108,6 +108,7 @@ export interface Issues {
     annotations: {
         invalid: Array<{ key: string; unique_id?: string; file: string; line: number; errors: string[] }>;
         not_migrated: Array<{ key: string; file: string; line: number }>;
+        empty_key: Array<{ key: string; file: string; line: number }>;
     };
     tests: {
         missing: string[];          // unique_ids with no test file

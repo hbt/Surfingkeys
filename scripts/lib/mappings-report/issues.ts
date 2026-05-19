@@ -13,6 +13,7 @@ export function generateIssues(
 ): Issues {
     const annotationsInvalid: Array<{ key: string; unique_id?: string; file: string; line: number; errors: string[] }> = [];
     const annotationsNotMigrated: Array<{ key: string; file: string; line: number }> = [];
+    const annotationsEmptyKey: Array<{ key: string; file: string; line: number }> = [];
     const testsMissing: string[] = [];
     const customMappingsUnmapped: string[] = [];
     const codeCoverageMissing: string[] = [];
@@ -43,6 +44,10 @@ export function generateIssues(
     }
 
     for (const mapping of mappings) {
+        if (!mapping.key) {
+            annotationsEmptyKey.push({ key: mapping.key ?? '', file: mapping.source.file, line: mapping.source.line });
+        }
+
         if (mapping.validationStatus === 'invalid') {
             annotationsInvalid.push({
                 key: mapping.key,
@@ -110,7 +115,8 @@ export function generateIssues(
     return {
         annotations: {
             invalid: annotationsInvalid,
-            not_migrated: annotationsNotMigrated
+            not_migrated: annotationsNotMigrated,
+            empty_key: annotationsEmptyKey,
         },
         tests: {
             missing: testsMissing.sort(),
