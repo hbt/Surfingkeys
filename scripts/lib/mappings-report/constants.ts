@@ -118,6 +118,7 @@ export const EXCLUDED_COMMANDS: Array<{ unique_id: string; reason: string }> = [
     { unique_id: 'cmd_neovim_enable_input',       reason: 'Neovim integration — requires external Neovim process, not testable in CI' },
     // Deferred — not prioritized for current cycle
     { unique_id: 'cmd_nav_incognito',             reason: 'Deferred — incognito window lifecycle in Playwright needs investigation' },
+    { unique_id: 'cmd_nav_new_incognito_window',  reason: 'Incognito — chrome.windows.create with incognito not supported in Playwright' },
     { unique_id: 'cmd_omnibar_llm_chat',          reason: 'Deferred — LLM chat integration not yet stable for testing' },
     { unique_id: 'cmd_session_save_quit',         reason: 'Deferred — session save/quit browser lifecycle not yet set up' },
     { unique_id: 'cmd_tools_read_text',           reason: 'Deferred — TTS read-text dispatch chain not yet isolated for testing' },

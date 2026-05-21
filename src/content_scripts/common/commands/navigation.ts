@@ -151,6 +151,17 @@ export default function registerNavigation(
         RUNTIME('openNewWindow');
     });
 
+    mapkey('g-038', {
+        short: "Open new incognito window",
+        unique_id: "cmd_nav_new_incognito_window",
+        feature_group: 8,
+        category: "navigation",
+        description: "Open a new incognito browser window",
+        tags: ["navigation", "window", "incognito", "privacy"]
+    }, function() {
+        RUNTIME('openNewIncognitoWindow');
+    });
+
     mapkey('cc', {
         short: "Open selected link",
         unique_id: "cmd_nav_open_clipboard",
