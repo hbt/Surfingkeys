@@ -1,4 +1,4 @@
-import type { MapKeyAnnotation, MapKeyOptions, ModeInstance } from '../../../@types/surfingkeys';
+import type { CommandRegistryEntry, MapKeyAnnotation, MapKeyOptions, ModeInstance } from '../../../@types/surfingkeys';
 import { RUNTIME, dispatchSKEvent } from './runtime.js';
 import Trie from './trie';
 import Mode from './mode';
@@ -24,7 +24,7 @@ import {
 
 function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual: any, front: any, browser: any) {
     // Command registry - use closure variable for reliable access across all functions
-    let commandRegistry = new Map();
+    let commandRegistry = new Map<string, CommandRegistryEntry>();
 
     function createKeyTarget(code: any, ag: any, repeatIgnore: any) {
         var keybound: {
@@ -84,7 +84,9 @@ function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual:
             if (options.unique_id && commandRegistry) {
                 commandRegistry.set(options.unique_id, {
                     code: jscode,
-                    annotation: { unique_id: options.unique_id, short: annotation },
+                    annotation: typeof annotation === 'string'
+                        ? { unique_id: options.unique_id, short: annotation }
+                        : { ...annotation, unique_id: options.unique_id },
                     originalKey: keys,
                     mode: mode.name,
                     modeRef: mode,
