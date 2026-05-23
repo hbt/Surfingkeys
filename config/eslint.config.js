@@ -2,6 +2,7 @@ const typescriptEslintPlugin = require('@typescript-eslint/eslint-plugin');
 const typescriptEslintParser = require('@typescript-eslint/parser');
 const playwrightPlugin = require('eslint-plugin-playwright');
 const requireCustomCommandMapping = require('./eslint-rules/require-custom-command-mapping');
+const noPackageLock = require('./eslint-rules/no-package-lock');
 
 module.exports = [
     {
@@ -172,6 +173,18 @@ module.exports = [
         },
         rules: {
             'local/require-custom-command-mapping': 'error',
+        }
+    },
+    {
+        // Sentinel: run once to ensure package-lock.json is never committed
+        files: ['config/eslint.config.js'],
+        plugins: {
+            local: {
+                rules: { 'no-package-lock': noPackageLock }
+            }
+        },
+        rules: {
+            'local/no-package-lock': 'error',
         }
     }
 ];
