@@ -149,9 +149,9 @@ async function findExtensionTab(targetUrl: any): Promise<chrome.tabs.Tab | null>
 
 function loadRawSettings(keys: any, cb: any, defaultSet: any) {
     var rawSet = defaultSet || {};
-    chrome.storage.local.get(null, function(localSet) {
+    chrome.storage.local.get(undefined, function(localSet) {
         var localSavedAt = localSet.savedAt || 0;
-        chrome.storage.sync.get(null, function(syncSet) {
+        chrome.storage.sync.get(undefined, function(syncSet) {
             var syncSavedAt = syncSet.savedAt || 0;
             if (localSavedAt > syncSavedAt) {
                 extendObject(rawSet, localSet);
@@ -305,7 +305,7 @@ chrome.commands.onCommand.addListener(function(command) {
                     const index = (command === 'previousTab') ? tab.index - 1 : tab.index + 1;
                     chrome.tabs.query({ windowId: tab.windowId }, function(tabs) {
                         const newIndex = ((index % tabs.length) + tabs.length) % tabs.length;
-                        chrome.tabs.update(tabs[newIndex].id, { active: true });
+                        chrome.tabs.update(tabs[newIndex].id!, { active: true });
                     });
                 }
             });

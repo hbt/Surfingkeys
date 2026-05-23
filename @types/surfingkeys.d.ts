@@ -259,6 +259,16 @@ export type LLMClientFn = (request: Record<string, unknown>, opts: {
 
 export type LLMClientsMap = Record<string, LLMClientFn>;
 
+// chrome-types (official Google package) omits runtime.lastError as deprecated,
+// but it still exists in Chrome. Re-declare it so existing callback-style code compiles.
+declare global {
+    namespace chrome {
+        namespace runtime {
+            const lastError: { message?: string } | undefined;
+        }
+    }
+}
+
 declare global {
     var _isConfigReady: (() => Promise<boolean>) | undefined;
     var _configLoadError: Error | undefined;

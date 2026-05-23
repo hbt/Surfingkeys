@@ -60,7 +60,7 @@ test.describe('incognito context proof via Chrome extension APIs (Playwright)', 
 
         const windowInfo = await sw.evaluate((): Promise<{ id: number; incognito: boolean }> => {
             return new Promise((resolve, reject) => {
-                chrome.windows.getCurrent((win) => {
+                chrome.windows.getCurrent(undefined, (win) => {
                     if (chrome.runtime.lastError) {
                         reject(new Error(chrome.runtime.lastError.message));
                     } else {

@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "types": ["node", "offscreencanvas", "chrome"],
+    "types": ["node", "offscreencanvas", "chrome-types"],
     "allowJs": true,
     "strict": true,
     "useUnknownInCatchVariables": true,

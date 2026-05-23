@@ -7,9 +7,9 @@ import {
 
 function loadRawSettings(keys: any, cb: any, defaultSet: any) {
     var rawSet = defaultSet || {};
-    chrome.storage.local.get(null, function(localSet) {
+    chrome.storage.local.get(undefined, function(localSet) {
         var localSavedAt = localSet.savedAt || 0;
-        chrome.storage.sync.get(null, function(syncSet) {
+        chrome.storage.sync.get(undefined, function(syncSet) {
             var syncSavedAt = syncSet.savedAt || 0;
             if (localSavedAt > syncSavedAt) {
                 extendObject(rawSet, localSet);

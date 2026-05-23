@@ -8,7 +8,7 @@ declare const browser: any;
 
 function loadRawSettings(keys: any, cb: any, defaultSet: any) {
     var rawSet = defaultSet || {};
-    chrome.storage.local.get(null, function(localSet) {
+    chrome.storage.local.get(undefined, function(localSet) {
         var _localSavedAt = localSet.savedAt || 0;
         extendObject(rawSet, localSet);
         var subset = getSubSettings(rawSet, keys);
