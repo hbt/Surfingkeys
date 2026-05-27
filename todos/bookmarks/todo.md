@@ -3,7 +3,7 @@
 Port the archive fork's named bookmark folder system into the current fork as proper
 extension commands with `unique_id`s, RUNTIME handlers, and Playwright tests.
 
-Branch: `bookmarks` — commit `7ca13fd` — marked BROKEN.
+Branch: `bookmarks`
 
 ---
 
@@ -15,15 +15,10 @@ Branch: `bookmarks` — commit `7ca13fd` — marked BROKEN.
 
 ## Phase 2 — Write + run Playwright tests
 
-Tests target the SW directly via `callSKApi` — no key bindings needed.
+Tests use keyboard dispatch (`page.keyboard.press`) + `callSKApi` + `setConf` via `__sk_conf_override`.
 
-Invoke pattern: `callSKApi(page, 'RUNTIME', 'handlerName', { folder, ... })`
-  → `api.RUNTIME(...)` in content script → SW handler called with `sender.tab.url = FIXTURE_URL`
-Setup pattern: create test folder via `sw.evaluate(() => chrome.bookmarks.create(...))`
-Cleanup: `afterEach` removes test folder via `chrome.bookmarks.search` + `removeTree`
-Verify: `sw.evaluate(() => chrome.bookmarks.getChildren(...))` after command
-
-- [ ] `cmd-bookmark-toggle-folder` — adds URL; pressing again removes it
+- [x] `cmd-bookmark-toggle-folder` — adds URL; round-trip (add → remove via two toggles); title strip verified
+  - `tests/playwright/commands/cmd-bookmark-toggle-folder.key.spec.ts` — 3/3 pass
 - [ ] `cmd-bookmark-copy-folder` — ordered, reversed, repeats limit
 - [ ] `cmd-bookmark-empty-folder` — empties populated folder; no-op on empty
 - [ ] `cmd-bookmark-add-m` — adds tab, skips duplicate; repeats adds N tabs
@@ -40,8 +35,11 @@ COVERAGE=true bunx playwright test tests/playwright/commands/cmd-bookmark-
 
 Review `src/background/start.ts` handlers (lines 2406–2575) for type safety and correctness.
 
+- [x] `bookmarkToggleFolder` — added to `NamedAction` union in `@types/surfingkeys.d.ts`
+- [x] `bookmarkToggleFolder` — replaced `message.folder as string` with `const { folder } = message as Msg & { folder: string }`
+- [x] `bookmarkToggleFolder` — replaced `sender.tab!` non-null assertions with guard + early return
 - [ ] Define a `BookmarkMsg` interface (extends `Msg`) with `folder`, `reverse?`, `repeats?`, `magic?`
-  - Replace `message: Msg` casts throughout bookmark handlers
+  - Apply pattern to remaining bookmark handlers
 - [ ] `bookmarkCutFromFolder` — remove `|| 1` fallback on `message.repeats` (line ~2548; violates no-fallback rule)
 - [ ] `bookmarkCutFromFolder` — remove `(self.bookmarkCopyFolder as ...)()` cast if possible;
   type `self` entries properly or extract helper
@@ -50,24 +48,35 @@ Review `src/background/start.ts` handlers (lines 2406–2575) for type safety an
 - [ ] `_deepPluck` — tighten return type and recursive type guard
 - [ ] Run `npm run verify` — 0 failures after changes
 
-## Phase 4 — Wire keys in settings.ts
+## Phase 4 — Wire keys (pending-key design)
 
-> **Constraint:** `RUNTIME` is a TS import — not available in user config files.
-> `bmapping` loop must live in `settings.ts`, not in `~/.surfingkeys-2026.js`.
+> **Design change:** Per-folder unique_ids rejected. One static unique_id per action type.
+> Folder resolved at runtime from `settings.bookmarkFolders` via pending-key capture.
+> User presses `b` → pending-key mode → next key looked up in `runtime.conf.bookmarkFolders`.
 
-> **unique_id count:** 8 folders × 8 actions = ~64 unique_ids, each mapping to one of 7 RUNTIME handlers.
-
-- [ ] Add `bmapping` loop to `src/content_scripts/common/commands/settings.ts`
-  - Folders: `m r w l L W R g` (+ digits `0–9` optional)
-  - 8 key patterns per folder: `b bY by Bc BC B! Ba Br`
-  - Pattern: `mapkey(key, { short, unique_id: \`cmd_bookmark_toggle_folder_${key}\`, feature_group: 14 }, () => RUNTIME(...))`
-  - repeats: pass as `(RUNTIME as any).repeats` — no `|| 1` fallback
-- [ ] `bL` for `bookmarkLookupCurrentURL` — `LL` conflicts with `L` (cmd_hints_regional)
-- [ ] Clean up dead commented block in `~/.surfingkeys-2026.js` (lines 544–576)
+- [x] `cmd_bookmark_toggle_folder` — registered in `settings.ts` with `function(key)` pending-key handler
+- [x] `settings.bookmarkFolders?: Record<string, string>` added to `SurfingKeysConf`
+- [x] `bookmarkFolders: undefined` added to `runtime.conf` defaults (enables `__sk_conf_override` in tests)
+- [x] User config wired: `settings.bookmarkFolders = bmapping` + `api.mapcmdkey('b', 'cmd_bookmark_toggle_folder')`
+- [ ] Register remaining action commands in `settings.ts` using same pending-key pattern:
+  - `cmd_bookmark_copy_folder` (key `by` / `bY`)
+  - `cmd_bookmark_cut_folder` (key `Bc` / `BC`)
+  - `cmd_bookmark_empty_folder` (key `B!`)
+  - `cmd_bookmark_add_m` (key `Ba`)
+  - `cmd_bookmark_remove_m` (key `Br`)
+  - `cmd_bookmark_lookup_url` (key `bl`)
+- [ ] Wire each in user config via `api.mapcmdkey`
+- [ ] Clean up dead commented block in `~/.surfingkeys-2026.js` (lines ~554–578)
 - [ ] Build + reload: `npm run build:dev`, manual reload in gchrb
-- [ ] Smoke test: press `bm` on any page → check `chrome://bookmarks/` for "morning" folder
+- [ ] Smoke test: press `b` then `m` on any page → banner "Added to [morning]" → check `chrome://bookmarks/`
 
-## Phase 5 — Regression + commit
+## Phase 5 — UX polish (toggle command done as reference)
+
+- [x] `bookmarkToggleFolder` — strip `[N] ` tab-index prefix from bookmark title
+- [x] `bookmarkToggleFolder` — show banner feedback: `Added to [folder]` / `Removed from [folder]`
+- [ ] Apply same title-strip + banner pattern to all other bookmark handlers
+
+## Phase 6 — Regression + commit
 
 - [ ] `npm run test:playwright:parallel` — 0 unexpected failures (4 known Docker skips OK)
 - [ ] `npm run verify` — all 5 checks green
@@ -86,6 +95,9 @@ Review `src/background/start.ts` handlers (lines 2406–2575) for type safety an
 | `mapkey('')` stubs | Triggers `annotations.empty_key` — never register empty-key stubs |
 | `LL` key conflict | `L` → `cmd_hints_regional` blocks `LL` — use `bL` |
 | `RUNTIME` not in config files | It's a TS import — config `api.mapkey` callbacks can only call `api.*` |
+| Pending-key: `invokeCommand` won't work | `cmd.code()` called with no args — `key` is `undefined`; use keyboard dispatch in tests |
+| `__sk_conf_override` needs `hasOwnProperty` | Field must exist in `runtime.conf` defaults; `bookmarkFolders: undefined` added for this |
+| Tab-index prefix `[N] ` | Content script prepends to `document.title`; strip with `/^\[\d+\] /` before bookmarking |
 
 ---
 
@@ -94,6 +106,9 @@ Review `src/background/start.ts` handlers (lines 2406–2575) for type safety an
 | File | Status |
 |------|--------|
 | `src/background/start.ts` | ✅ Handlers implemented (lines 2406–2575) |
-| `src/content_scripts/common/commands/settings.ts` | ✅ Empty-key stubs removed — ❌ bmapping loop missing (Phase 4) |
-| `tests/playwright/commands/cmd-bookmark-*.spec.ts` | ❌ Removed — recreate in Phase 2 |
-| `/home/hassen/.surfingkeys-2026.js` | ⚠️ Dead commented block (lines 544–576) — clean up in Phase 4 |
+| `src/content_scripts/common/commands/settings.ts` | ✅ `cmd_bookmark_toggle_folder` registered (pending-key) — ❌ other 6 actions missing |
+| `@types/surfingkeys.d.ts` | ✅ `bookmarkFolders` in `SurfingKeysConf`; `bookmarkToggleFolder` in `NamedAction` |
+| `src/content_scripts/common/runtime.ts` | ✅ `bookmarkFolders: undefined` in conf defaults |
+| `tests/playwright/commands/cmd-bookmark-toggle-folder.key.spec.ts` | ✅ 3/3 pass |
+| `tests/playwright/commands/cmd-bookmark-*.spec.ts` | ❌ Remaining 6 commands untested |
+| `/home/hassen/.surfingkeys-2026.js` | ✅ `bookmarkFolders` + `mapcmdkey('b', ...)` — ⚠️ dead commented block ~554–578 |

@@ -2443,10 +2443,12 @@ function start(browser: Record<string, unknown>) {
     }
 
     self.bookmarkToggleFolder = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
-        const folder = message.folder as string;
-        const tabId = sender.tab!.id;
-        const url = _normalizeUrl(sender.tab!.url!);
-        const title = (sender.tab!.title || url).replace(/^\[\d+\] /, '');
+        const { folder } = message as Msg & { folder: string };
+        const tab = sender.tab;
+        if (!tab?.id || !tab.url) return;
+        const tabId = tab.id;
+        const url = _normalizeUrl(tab.url);
+        const title = (tab.title || url).replace(/^\[\d+\] /, '');
         _getBookmarkFolderByName(folder, function(folderNode) {
             if (!folderNode) {
                 chrome.bookmarks.create({ parentId: "1", title: folder }, function(newFolder) {

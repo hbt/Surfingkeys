@@ -216,7 +216,8 @@ type NamedAction =
     | { action: 'toggleBlocklist'; url?: string }
     | { action: 'read'; text: string; tone?: number }
     | { action: 'getTopURL' }
-    | { action: 'userLog'; message: string; level?: string };
+    | { action: 'userLog'; message: string; level?: string }
+    | { action: 'bookmarkToggleFolder'; folder: string };
 
 // Catch-all for the remaining actions:
 type UnknownAction = { action: string; [key: string]: unknown };
