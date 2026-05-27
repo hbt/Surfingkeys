@@ -15,8 +15,10 @@ Branch: `bookmarks` — commit `7ca13fd` — marked BROKEN.
 
 ## Phase 2 — Write + run Playwright tests
 
-Tests target the SW directly — no key bindings needed to run them.
+Tests target the SW directly via `callSKApi` — no key bindings needed.
 
+Invoke pattern: `callSKApi(page, 'RUNTIME', 'handlerName', { folder, ... })`
+  → `api.RUNTIME(...)` in content script → SW handler called with `sender.tab.url = FIXTURE_URL`
 Setup pattern: create test folder via `sw.evaluate(() => chrome.bookmarks.create(...))`
 Cleanup: `afterEach` removes test folder via `chrome.bookmarks.search` + `removeTree`
 Verify: `sw.evaluate(() => chrome.bookmarks.getChildren(...))` after command
@@ -24,9 +26,9 @@ Verify: `sw.evaluate(() => chrome.bookmarks.getChildren(...))` after command
 - [ ] `cmd-bookmark-toggle-folder` — adds URL; pressing again removes it
 - [ ] `cmd-bookmark-copy-folder` — ordered, reversed, repeats limit
 - [ ] `cmd-bookmark-empty-folder` — empties populated folder; no-op on empty
-- [ ] `cmd-bookmark-add-m` — adds tab, skips duplicate
-- [ ] `cmd-bookmark-remove-m` — removes bookmarked tab; no-op if not present
-- [ ] `cmd-bookmark-cut-folder` — cuts 1 reversed + backs up to clipboard
+- [ ] `cmd-bookmark-add-m` — adds tab, skips duplicate; repeats adds N tabs
+- [ ] `cmd-bookmark-remove-m` — removes bookmarked tab; no-op if not present; repeats removes N tabs
+- [ ] `cmd-bookmark-cut-folder` — cuts N items (repeats); backs up to clipboard
 - [ ] `cmd-bookmark-lookup-url` — finds folder names containing current URL
 
 ```bash
@@ -40,6 +42,7 @@ Review `src/background/start.ts` handlers (lines 2406–2575) for type safety an
 
 - [ ] Define a `BookmarkMsg` interface (extends `Msg`) with `folder`, `reverse?`, `repeats?`, `magic?`
   - Replace `message: Msg` casts throughout bookmark handlers
+- [ ] `bookmarkCutFromFolder` — remove `|| 1` fallback on `message.repeats` (line ~2548; violates no-fallback rule)
 - [ ] `bookmarkCutFromFolder` — remove `(self.bookmarkCopyFolder as ...)()` cast if possible;
   type `self` entries properly or extract helper
 - [ ] `bookmarkLookupCurrentURL` — verify `_response()` / `sendResponse` path is always called

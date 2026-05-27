@@ -199,6 +199,17 @@ export default function registerSettings(
     }, function() {
         RUNTIME('removeBookmark');
     });
+
+    mapkey('g-039', {
+        short: "Toggle bookmark in folder: test-bookmark-folder",
+        unique_id: "cmd_bookmark_toggle_folder_k",
+        feature_group: 14,
+        category: "settings",
+        description: "Toggle current page in bookmark folder",
+        tags: ["settings", "bookmarks", "toggle"]
+    }, function() {
+        RUNTIME('bookmarkToggleFolder', { folder: 'test-bookmark-folder' });
+    });
     } // end !Safari guard
 
 }
