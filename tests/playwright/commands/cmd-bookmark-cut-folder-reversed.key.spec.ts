@@ -10,9 +10,9 @@ const UNIQUE_ID = 'cmd_bookmark_cut_folder_reversed';
 const TEST_FOLDER = 'test-cut-reversed-folder';
 const FOLDER_KEY = 'm';
 
-// Two items: reversed means [B, A] → remove first 1 (B) → A remains
 const URL_A = 'https://example.com/alpha';
 const URL_B = 'https://example.com/beta';
+const URL_C = 'https://example.com/gamma';
 
 let context: BrowserContext;
 let page: Page;
@@ -98,6 +98,7 @@ test.describe('cmd_bookmark_cut_folder_reversed (pending-key, Playwright)', () =
         context = result.context;
         covBg = result.covBg;
         initContentCoverageForUrl = result.covForPageUrl;
+        await context.grantPermissions(['clipboard-read', 'clipboard-write']);
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
@@ -121,7 +122,6 @@ test.describe('cmd_bookmark_cut_folder_reversed (pending-key, Playwright)', () =
 
     test('cuts last item (reversed order): A remains after cutting B', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            // Seed [A, B] in folder order
             await seedFolderOrdered(context, TEST_FOLDER, [URL_A, URL_B]);
 
             await page.keyboard.press(KEY);
@@ -130,6 +130,41 @@ test.describe('cmd_bookmark_cut_folder_reversed (pending-key, Playwright)', () =
             await page.waitForTimeout(500);
 
             // reverse=true: list is [B, A], cut first 1 (B) → A remains
+            const after = await getBookmarksInFolder(context, TEST_FOLDER);
+            expect(after.map(b => b.url)).toEqual([URL_A]);
+        });
+    });
+
+    test('clipboard backup contains all URLs in reversed order', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await seedFolderOrdered(context, TEST_FOLDER, [URL_A, URL_B, URL_C]);
+
+            await page.keyboard.press(KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(300);
+
+            // backup is the whole folder reversed
+            const clip = await page.evaluate(() => navigator.clipboard.readText());
+            expect(clip.split('\n')).toEqual([URL_C, URL_B, URL_A]);
+            // C was cut (first when reversed), A and B remain
+            const after = await getBookmarksInFolder(context, TEST_FOLDER);
+            expect(after.map(b => b.url)).toEqual([URL_A, URL_B]);
+        });
+    });
+
+    test('repeats cuts N items from reversed list', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await seedFolderOrdered(context, TEST_FOLDER, [URL_A, URL_B, URL_C]);
+
+            await page.keyboard.press('2');
+            await page.waitForTimeout(30);
+            await page.keyboard.press(KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(300);
+
+            // reversed: [C, B, A] → cut first 2 (C, B) → only A remains
             const after = await getBookmarksInFolder(context, TEST_FOLDER);
             expect(after.map(b => b.url)).toEqual([URL_A]);
         });

@@ -301,9 +301,9 @@ export default function registerSettings(
         category: "settings",
         description: "Copy then remove URLs from bookmark folder in reverse order (next key selects folder)",
         tags: ["settings", "bookmarks", "cut"]
-    }, function(key: string) {
+    }, function(this: any, key: string) {
         const folder = runtime.conf.bookmarkFolders?.[key];
-        if (folder) RUNTIME('bookmarkCutFromFolder', { folder, reverse: true, repeats: 1 });
+        if (folder) RUNTIME('bookmarkCutFromFolder', { folder, reverse: true, repeats: parseInt(this.repeats) || 1 });
     });
 
     mapkey('g-047', {
@@ -313,9 +313,9 @@ export default function registerSettings(
         category: "settings",
         description: "Copy then remove URLs from bookmark folder in order (next key selects folder)",
         tags: ["settings", "bookmarks", "cut"]
-    }, function(key: string) {
+    }, function(this: any, key: string) {
         const folder = runtime.conf.bookmarkFolders?.[key];
-        if (folder) RUNTIME('bookmarkCutFromFolder', { folder, reverse: false, repeats: 1 });
+        if (folder) RUNTIME('bookmarkCutFromFolder', { folder, reverse: false, repeats: parseInt(this.repeats) || 1 });
     });
 
     } // end !Safari guard

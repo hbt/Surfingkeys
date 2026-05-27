@@ -10,9 +10,9 @@ const UNIQUE_ID = 'cmd_bookmark_cut_folder_ordered';
 const TEST_FOLDER = 'test-cut-ordered-folder';
 const FOLDER_KEY = 'm';
 
-// Two items: ordered means [A, B] → remove first 1 (A) → B remains
 const URL_A = 'https://example.com/alpha';
 const URL_B = 'https://example.com/beta';
+const URL_C = 'https://example.com/gamma';
 
 let context: BrowserContext;
 let page: Page;
@@ -98,6 +98,7 @@ test.describe('cmd_bookmark_cut_folder_ordered (pending-key, Playwright)', () =>
         context = result.context;
         covBg = result.covBg;
         initContentCoverageForUrl = result.covForPageUrl;
+        await context.grantPermissions(['clipboard-read', 'clipboard-write']);
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
@@ -121,7 +122,6 @@ test.describe('cmd_bookmark_cut_folder_ordered (pending-key, Playwright)', () =>
 
     test('cuts first item (ordered): B remains after cutting A', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            // Seed [A, B] in folder order
             await seedFolderOrdered(context, TEST_FOLDER, [URL_A, URL_B]);
 
             await page.keyboard.press(KEY);
@@ -132,6 +132,41 @@ test.describe('cmd_bookmark_cut_folder_ordered (pending-key, Playwright)', () =>
             // reverse=false: list is [A, B], cut first 1 (A) → B remains
             const after = await getBookmarksInFolder(context, TEST_FOLDER);
             expect(after.map(b => b.url)).toEqual([URL_B]);
+        });
+    });
+
+    test('clipboard backup contains all URLs in original order', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await seedFolderOrdered(context, TEST_FOLDER, [URL_A, URL_B, URL_C]);
+
+            await page.keyboard.press(KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(300);
+
+            // backup is the whole folder in order
+            const clip = await page.evaluate(() => navigator.clipboard.readText());
+            expect(clip.split('\n')).toEqual([URL_A, URL_B, URL_C]);
+            // A was cut (first in order), B and C remain
+            const after = await getBookmarksInFolder(context, TEST_FOLDER);
+            expect(after.map(b => b.url)).toEqual([URL_B, URL_C]);
+        });
+    });
+
+    test('repeats cuts N items from ordered list', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await seedFolderOrdered(context, TEST_FOLDER, [URL_A, URL_B, URL_C]);
+
+            await page.keyboard.press('2');
+            await page.waitForTimeout(30);
+            await page.keyboard.press(KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(300);
+
+            // ordered: [A, B, C] → cut first 2 (A, B) → only C remains
+            const after = await getBookmarksInFolder(context, TEST_FOLDER);
+            expect(after.map(b => b.url)).toEqual([URL_C]);
         });
     });
 });
