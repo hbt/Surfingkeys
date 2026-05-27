@@ -2,8 +2,7 @@
 
 Replace `invokeCommand` calls in Playwright specs with `mapcmdkey` + `keyboard.press()` for more realistic key dispatch testing.
 
-Reference implementation: `tests/playwright/ref/cmd-tab-next.v2.spec.ts`
-Scope: **165 specs** currently use `invokeCommand`
+Reference implementation: `tests/playwright/commands/cmd-tab-next.v2.spec.ts`
 
 ## Why
 
@@ -11,7 +10,7 @@ Scope: **165 specs** currently use `invokeCommand`
 
 ## Todo
 
-- [ ] Audit all specs using `invokeCommand` and identify candidates for migration
+- [ ] Audit all 165 specs using `invokeCommand` and identify candidates for migration
 - [ ] Migrate SW-target specs first (tab, bookmark, session, tools) — key dispatch is most meaningful there
 - [ ] For each migrated spec: bind a short chord via `mapcmdkey`, trigger via sequential `keyboard.press()` calls
 - [ ] Keep `invokeCommand` only where key dispatch is irrelevant (e.g. coverage-only tests)
