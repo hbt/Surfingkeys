@@ -223,6 +223,19 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkEmptyFolder', { folder });
     });
 
+    mapkey('g-041', {
+        short: "Lookup URL in bookmark folders",
+        unique_id: "cmd_bookmark_lookup_url",
+        feature_group: 14,
+        category: "settings",
+        description: "Show which bookmark folders contain the current URL",
+        tags: ["settings", "bookmarks", "lookup"]
+    }, function() {
+        RUNTIME('bookmarkLookupCurrentURL', {}, function(r: any) {
+            showPopup(r.msg);
+        });
+    });
+
     } // end !Safari guard
 
 }

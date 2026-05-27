@@ -153,15 +153,12 @@ test.describe('cmd_bookmark_empty_folder (pending-key, Playwright)', () => {
         });
     });
 
-    test('no-op on already empty folder, folder still exists', async () => {
+    test('empties folder with 1 item, count goes 1 → 0', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            // create empty folder
-            const sw = context.serviceWorkers()[0];
-            await sw.evaluate((name: string) => {
-                return new Promise<void>((resolve) => {
-                    chrome.bookmarks.create({ parentId: '1', title: name }, () => resolve());
-                });
-            }, TEST_FOLDER);
+            await seedFolder(context, TEST_FOLDER, ['https://example.com/single']);
+
+            const before = await getBookmarksInFolder(context, TEST_FOLDER);
+            expect(before).toHaveLength(1);
 
             await page.keyboard.press(KEY);
             await page.waitForTimeout(50);
