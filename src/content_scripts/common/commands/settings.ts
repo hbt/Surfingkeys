@@ -211,6 +211,18 @@ export default function registerSettings(
         const folder = runtime.conf.bookmarkFolders?.[key];
         if (folder) RUNTIME('bookmarkToggleFolder', { folder });
     });
+    mapkey('g-040', {
+        short: "Empty bookmark folder",
+        unique_id: "cmd_bookmark_empty_folder",
+        feature_group: 14,
+        category: "settings",
+        description: "Remove all bookmarks from folder (next key selects folder from bookmarkFolders config)",
+        tags: ["settings", "bookmarks", "empty"]
+    }, function(key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        if (folder) RUNTIME('bookmarkEmptyFolder', { folder });
+    });
+
     } // end !Safari guard
 
 }

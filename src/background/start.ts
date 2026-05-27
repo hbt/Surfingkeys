@@ -2492,13 +2492,16 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
-    self.bookmarkEmptyFolder = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+    self.bookmarkEmptyFolder = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const folder = message.folder as string;
+        const tabId = sender.tab?.id;
         _getBookmarkFolderByName(folder, function(folderNode) {
             if (!folderNode) return;
             const { parentId, title, index } = folderNode;
             chrome.bookmarks.removeTree(folderNode.id, function() {
-                chrome.bookmarks.create({ parentId, title, index });
+                chrome.bookmarks.create({ parentId, title, index }, function() {
+                    sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Emptied [${folder}]` });
+                });
             });
         });
     };
