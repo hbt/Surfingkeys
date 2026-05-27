@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithDualCoverage, FIXTURE_BASE, openSiblingTabViaSW } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -38,8 +38,79 @@ async function getClipboardText(p: Page): Promise<string> {
     return p.evaluate(() => navigator.clipboard.readText());
 }
 
+// SW helpers
+
+async function getAllTabsViaSW(): Promise<any[]> {
+    const sw = context.serviceWorkers()[0];
+    if (!sw) throw new Error('No service worker found');
+    return sw.evaluate(() => {
+        return new Promise<any[]>((resolve) => {
+            chrome.tabs.query({}, (tabs: any[]) => resolve(tabs));
+        });
+    });
+}
+
+async function getActiveTabViaSW(): Promise<any> {
+    const sw = context.serviceWorkers()[0];
+    if (!sw) throw new Error('No service worker found');
+    return sw.evaluate(() => {
+        return new Promise<any>((resolve) => {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any[]) => resolve(tabs[0] ?? null));
+        });
+    });
+}
+
+async function openChildTabViaSW(openerTabId: number, url: string): Promise<number> {
+    const sw = context.serviceWorkers()[0];
+    if (!sw) throw new Error('No service worker found');
+    return sw.evaluate(({ openerTabId, url }) => {
+        return new Promise<number>((resolve) => {
+            chrome.tabs.create({ url, openerTabId, active: false }, (tab: any) => resolve(tab.id));
+        });
+    }, { openerTabId, url });
+}
+
+async function openWindowViaSW(url: string): Promise<number> {
+    const sw = context.serviceWorkers()[0];
+    if (!sw) throw new Error('No service worker found');
+    return sw.evaluate((url: string) => {
+        return new Promise<number>((resolve) => {
+            chrome.windows.create({ url }, (win: any) => resolve(win.id));
+        });
+    }, url);
+}
+
+async function closeWindowViaSW(windowId: number): Promise<void> {
+    const sw = context.serviceWorkers()[0];
+    if (!sw) throw new Error('No service worker found');
+    await sw.evaluate((windowId: number) => {
+        return new Promise<void>((resolve) => {
+            chrome.windows.remove(windowId, () => resolve());
+        });
+    }, windowId);
+}
+
+// Press a 3-key chord: g Y <magicKey>
+async function pressChord(p: Page, magicKey: string) {
+    await p.keyboard.press('g');
+    await p.waitForTimeout(50);
+    await p.keyboard.press('Y');
+    await p.waitForTimeout(50);
+    await p.keyboard.press(magicKey);
+    await p.waitForTimeout(500);
+}
+
+// Close all pages except keepPage
+async function closeAllExcept(keepPage: Page) {
+    for (const p of context.pages()) {
+        if (p !== keepPage) await p.close().catch(() => {});
+    }
+    await keepPage.bringToFront();
+    await keepPage.waitForTimeout(200);
+}
+
 test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
-    test.setTimeout(20_000);
+    test.setTimeout(30_000);
 
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
@@ -60,8 +131,10 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
     test.beforeEach(async () => {
         await callSKApi(page, 'unmapAllExcept', []);
         await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
-        await setConf(page, 'magicKeys', { 't': 'CurrentTab', 'a': 'AllInWindow' });
+        await setConf(page, 'magicKeys', { 't': 'CurrentTab', 'C': 'AllInWindow' });
     });
+
+    // ─── gYt ─────────────────────────────────────────────────────────────────
 
     test('gYt copies current tab URL to clipboard', async () => {
         await withPersistedDualCoverage(
@@ -74,19 +147,14 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 await covBg?.snapshot();
                 await covContent?.snapshot();
 
-                await page.keyboard.press('g');
-                await page.waitForTimeout(50);
-                await page.keyboard.press('Y');
-                await page.waitForTimeout(50);
-                await page.keyboard.press('t');
-                await page.waitForTimeout(500);
+                await pressChord(page, 't');
 
                 const clip = await getClipboardText(page).catch(() => '');
                 expect(clip).toContain('scroll-test.html');
                 if (DEBUG) console.log(`gYt: clipboard=${clip}`);
 
                 const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYt/command_window/background`) ?? null;
-                const contentPath = await covContent?.flush(`${SUITE_LABEL}/gYt/content`).catch(() => null) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYt/content`).catch(() => null);
                 if (process.env.COVERAGE === 'true') {
                     expect(bgPath).toBeTruthy();
                 }
@@ -95,11 +163,58 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
         );
     });
 
-    test('gYa copies all tab URLs in window to clipboard', async () => {
+    // ─── gYC (AllInWindow) ────────────────────────────────────────────────────
+
+    test('gYC copies all tab URLs in window to clipboard (AllInWindow)', async () => {
         await withPersistedDualCoverage(
             { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
             test.info().title,
             async () => {
+                await closeAllExcept(page);
+
+                // Open an additional tab so we have at least 2
+                const extra = await context.newPage();
+                await extra.goto(`${FIXTURE_URL}#extra_C`, { waitUntil: 'load' });
+                await extra.waitForTimeout(200);
+
+                await page.bringToFront();
+                await page.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(page, 'unmapAllExcept', []);
+                await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(page, 'magicKeys', { 'C': 'AllInWindow' });
+
+                await pressChord(page, 'C');
+
+                const clip = await getClipboardText(page).catch(() => '');
+                expect(clip).toContain('scroll-test.html');
+                // AllInWindow should include both tabs
+                expect(clip.split('\n').length).toBeGreaterThanOrEqual(2);
+                if (DEBUG) console.log(`gYC: clipboard lines=${clip.split('\n').length}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYC/command_window/background`) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYC/content`).catch(() => null);
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await extra.close().catch(() => {});
+            },
+        );
+    });
+
+    // ─── gYa (legacy alias for AllInWindow, keep for backward compat) ─────────
+
+    test('gYa copies all tab URLs in window to clipboard (AllInWindow legacy key)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await closeAllExcept(page);
+
                 // Open an additional tab so we have at least 2
                 const extra = await context.newPage();
                 await extra.goto(`${FIXTURE_URL}#extra`, { waitUntil: 'load' });
@@ -115,12 +230,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
                 await setConf(page, 'magicKeys', { 'a': 'AllInWindow' });
 
-                await page.keyboard.press('g');
-                await page.waitForTimeout(50);
-                await page.keyboard.press('Y');
-                await page.waitForTimeout(50);
-                await page.keyboard.press('a');
-                await page.waitForTimeout(500);
+                await pressChord(page, 'a');
 
                 const clip = await getClipboardText(page).catch(() => '');
                 expect(clip).toContain('scroll-test.html');
@@ -129,12 +239,567 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 if (DEBUG) console.log(`gYa: clipboard lines=${clip.split('\n').length}`);
 
                 const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYa/command_window/background`) ?? null;
-                const contentPath = await covContent?.flush(`${SUITE_LABEL}/gYa/content`).catch(() => null) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYa/content`).catch(() => null);
                 if (process.env.COVERAGE === 'true') {
                     expect(bgPath).toBeTruthy();
                 }
                 await covContent?.close().catch(() => {});
                 await extra.close().catch(() => {});
+            },
+        );
+    });
+
+    // ─── gYe (DirectionRight) ─────────────────────────────────────────────────
+
+    test('gYe copies URLs of tabs to the right (DirectionRight)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await closeAllExcept(page);
+                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+
+                const right1 = await context.newPage();
+                await right1.goto(`${FIXTURE_URL}#right1_e`, { waitUntil: 'load' });
+                await right1.waitForTimeout(200);
+                const right2 = await context.newPage();
+                await right2.goto(`${FIXTURE_URL}#right2_e`, { waitUntil: 'load' });
+                await right2.waitForTimeout(200);
+
+                await page.bringToFront();
+                await page.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(page, 'unmapAllExcept', []);
+                await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(page, 'magicKeys', { 'e': 'DirectionRight' });
+
+                await pressChord(page, 'e');
+
+                const clip = await getClipboardText(page).catch(() => '');
+                expect(clip).toContain('right1_e');
+                expect(clip).toContain('right2_e');
+                // Active tab URL should NOT be in clipboard (DirectionRight = tabs to the right only)
+                expect(clip).not.toContain('cov_content_anchor');
+                const lines = clip.split('\n').filter(Boolean);
+                expect(lines.length).toBe(2);
+                if (DEBUG) console.log(`gYe: clipboard=${clip}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYe/command_window/background`) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYe/content`).catch(() => null);
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await right1.close().catch(() => {});
+                await right2.close().catch(() => {});
+            },
+        );
+    });
+
+    // ─── gYq (DirectionLeft) ─────────────────────────────────────────────────
+
+    test('gYq copies URLs of tabs to the left (DirectionLeft)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                // Setup: [left1, left2, anchor] — need anchor to be rightmost tab.
+                // Close all pages in context, then open left1, left2, anchor in that order.
+                for (const p of context.pages()) {
+                    await p.close().catch(() => {});
+                }
+                await new Promise(r => setTimeout(r, 200));
+
+                const left1 = await context.newPage();
+                await left1.goto(`${FIXTURE_URL}#left1_q`, { waitUntil: 'load' });
+                await left1.waitForTimeout(200);
+                const left2 = await context.newPage();
+                await left2.goto(`${FIXTURE_URL}#left2_q`, { waitUntil: 'load' });
+                await left2.waitForTimeout(200);
+
+                const anchor = await context.newPage();
+                await anchor.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await anchor.waitForTimeout(300);
+                // Update module-level page so beforeEach remains valid for subsequent tests
+                page = anchor;
+
+                await anchor.bringToFront();
+                await anchor.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(anchor, 'unmapAllExcept', []);
+                await callSKApi(anchor, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(anchor, 'magicKeys', { 'q': 'DirectionLeft' });
+
+                await pressChord(anchor, 'q');
+
+                const clip = await getClipboardText(anchor).catch(() => '');
+                expect(clip).toContain('left1_q');
+                expect(clip).toContain('left2_q');
+                // Active tab should NOT be in clipboard
+                expect(clip).not.toContain('cov_content_anchor');
+                const lines = clip.split('\n').filter(Boolean);
+                expect(lines.length).toBe(2);
+                if (DEBUG) console.log(`gYq: clipboard=${clip}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYq/command_window/background`) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYq/content`).catch(() => null);
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await left1.close().catch(() => {});
+                await left2.close().catch(() => {});
+            },
+        );
+    });
+
+    // ─── gYE (DirectionRightInclusive) ────────────────────────────────────────
+
+    test('gYE copies current tab + tabs to the right (DirectionRightInclusive)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await closeAllExcept(page);
+                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+
+                const right1 = await context.newPage();
+                await right1.goto(`${FIXTURE_URL}#right1_E`, { waitUntil: 'load' });
+                await right1.waitForTimeout(200);
+                const right2 = await context.newPage();
+                await right2.goto(`${FIXTURE_URL}#right2_E`, { waitUntil: 'load' });
+                await right2.waitForTimeout(200);
+
+                await page.bringToFront();
+                await page.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(page, 'unmapAllExcept', []);
+                await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(page, 'magicKeys', { 'E': 'DirectionRightInclusive' });
+
+                await pressChord(page, 'E');
+
+                const clip = await getClipboardText(page).catch(() => '');
+                // Should include active tab + tabs to the right (3 total)
+                expect(clip).toContain('scroll-test.html');
+                expect(clip).toContain('right1_E');
+                expect(clip).toContain('right2_E');
+                const lines = clip.split('\n').filter(Boolean);
+                expect(lines.length).toBe(3);
+                if (DEBUG) console.log(`gYE: clipboard lines=${lines.length}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYE/command_window/background`) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYE/content`).catch(() => null);
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await right1.close().catch(() => {});
+                await right2.close().catch(() => {});
+            },
+        );
+    });
+
+    // ─── gYQ (DirectionLeftInclusive) ─────────────────────────────────────────
+
+    test('gYQ copies current tab + tabs to the left (DirectionLeftInclusive)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                // Setup: [left1, left2, anchor] — anchor must be rightmost.
+                for (const p of context.pages()) {
+                    await p.close().catch(() => {});
+                }
+                await new Promise(r => setTimeout(r, 200));
+
+                const left1 = await context.newPage();
+                await left1.goto(`${FIXTURE_URL}#left1_Q`, { waitUntil: 'load' });
+                await left1.waitForTimeout(200);
+                const left2 = await context.newPage();
+                await left2.goto(`${FIXTURE_URL}#left2_Q`, { waitUntil: 'load' });
+                await left2.waitForTimeout(200);
+
+                const anchor = await context.newPage();
+                await anchor.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await anchor.waitForTimeout(300);
+                page = anchor;
+
+                await anchor.bringToFront();
+                await anchor.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(anchor, 'unmapAllExcept', []);
+                await callSKApi(anchor, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(anchor, 'magicKeys', { 'Q': 'DirectionLeftInclusive' });
+
+                await pressChord(anchor, 'Q');
+
+                const clip = await getClipboardText(anchor).catch(() => '');
+                // Should include active tab + tabs to the left (3 total)
+                expect(clip).toContain('left1_Q');
+                expect(clip).toContain('left2_Q');
+                expect(clip).toContain('scroll-test.html');
+                const lines = clip.split('\n').filter(Boolean);
+                expect(lines.length).toBe(3);
+                if (DEBUG) console.log(`gYQ: clipboard lines=${lines.length}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYQ/command_window/background`) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYQ/content`).catch(() => null);
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await left1.close().catch(() => {});
+                await left2.close().catch(() => {});
+            },
+        );
+    });
+
+    // ─── gYc (AllExceptActive) ────────────────────────────────────────────────
+
+    test('gYc copies all tab URLs except active (AllExceptActive)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await closeAllExcept(page);
+                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+
+                const extra1 = await context.newPage();
+                await extra1.goto(`${FIXTURE_URL}#extra1_c`, { waitUntil: 'load' });
+                await extra1.waitForTimeout(200);
+                const extra2 = await context.newPage();
+                await extra2.goto(`${FIXTURE_URL}#extra2_c`, { waitUntil: 'load' });
+                await extra2.waitForTimeout(200);
+
+                await page.bringToFront();
+                await page.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(page, 'unmapAllExcept', []);
+                await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(page, 'magicKeys', { 'c': 'AllExceptActive' });
+
+                await pressChord(page, 'c');
+
+                const clip = await getClipboardText(page).catch(() => '');
+                expect(clip).toContain('extra1_c');
+                expect(clip).toContain('extra2_c');
+                // Active tab URL should NOT be included
+                expect(clip).not.toContain('cov_content_anchor');
+                const lines = clip.split('\n').filter(Boolean);
+                expect(lines.length).toBe(2);
+                if (DEBUG) console.log(`gYc: clipboard=${clip}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYc/command_window/background`) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYc/content`).catch(() => null);
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await extra1.close().catch(() => {});
+                await extra2.close().catch(() => {});
+            },
+        );
+    });
+
+    // ─── gYg (AllExceptActiveAllWindows) ──────────────────────────────────────
+
+    test('gYg copies all tab URLs except active across all windows (AllExceptActiveAllWindows)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await closeAllExcept(page);
+                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+
+                // Extra tab in current window
+                const extra = await context.newPage();
+                await extra.goto(`${FIXTURE_URL}#extra_g`, { waitUntil: 'load' });
+                await extra.waitForTimeout(200);
+
+                // Second window
+                const win2Id = await openWindowViaSW(`${FIXTURE_URL}#win2_g`);
+                await page.waitForTimeout(500);
+
+                await page.bringToFront();
+                await page.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(page, 'unmapAllExcept', []);
+                await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(page, 'magicKeys', { 'g': 'AllExceptActiveAllWindows' });
+
+                await pressChord(page, 'g');
+
+                const clip = await getClipboardText(page).catch(() => '');
+                expect(clip).toContain('extra_g');
+                expect(clip).toContain('win2_g');
+                // Active tab URL should NOT be included
+                expect(clip).not.toContain('cov_content_anchor');
+                const lines = clip.split('\n').filter(Boolean);
+                expect(lines.length).toBeGreaterThanOrEqual(2);
+                if (DEBUG) console.log(`gYg: clipboard lines=${lines.length}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYg/command_window/background`) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYg/content`).catch(() => null);
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await extra.close().catch(() => {});
+                await closeWindowViaSW(win2Id).catch(() => {});
+            },
+        );
+    });
+
+    // ─── gYk (ChildrenTabs) ───────────────────────────────────────────────────
+
+    test('gYk copies only direct child tab URLs (ChildrenTabs)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await closeAllExcept(page);
+                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+
+                // Add an unrelated sibling
+                const sibling = await openSiblingTabViaSW(context, `${FIXTURE_URL}#sibling_k`);
+                await sibling.waitForTimeout(200);
+
+                await page.bringToFront();
+                await page.waitForTimeout(300);
+
+                await callSKApi(page, 'unmapAllExcept', []);
+                await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(page, 'magicKeys', { 'k': 'ChildrenTabs' });
+
+                const parentTab = await getActiveTabViaSW();
+
+                // Open 2 child tabs
+                await openChildTabViaSW(parentTab.id, `${FIXTURE_URL}#child1_k`);
+                await page.waitForTimeout(300);
+                await openChildTabViaSW(parentTab.id, `${FIXTURE_URL}#child2_k`);
+                await page.waitForTimeout(400);
+
+                await page.bringToFront();
+                await page.waitForTimeout(300);
+
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await pressChord(page, 'k');
+
+                const clip = await getClipboardText(page).catch(() => '');
+                expect(clip).toContain('child1_k');
+                expect(clip).toContain('child2_k');
+                // Sibling should NOT be included
+                expect(clip).not.toContain('sibling_k');
+                // Active tab should NOT be included
+                expect(clip).not.toContain('cov_content_anchor');
+                const lines = clip.split('\n').filter(Boolean);
+                expect(lines.length).toBe(2);
+                if (DEBUG) console.log(`gYk: clipboard=${clip}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYk/command_window/background`) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYk/content`).catch(() => null);
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await sibling.close().catch(() => {});
+            },
+        );
+    });
+
+    // ─── gYK (ChildrenTabsRecursively) ────────────────────────────────────────
+
+    test('gYK copies child and grandchild tab URLs recursively (ChildrenTabsRecursively)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await closeAllExcept(page);
+                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+
+                const sibling = await openSiblingTabViaSW(context, `${FIXTURE_URL}#sibling_K`);
+                await sibling.waitForTimeout(200);
+
+                await page.bringToFront();
+                await page.waitForTimeout(300);
+
+                await callSKApi(page, 'unmapAllExcept', []);
+                await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(page, 'magicKeys', { 'K': 'ChildrenTabsRecursively' });
+
+                const parentTab = await getActiveTabViaSW();
+
+                // parent → child → grandchild
+                const childId = await openChildTabViaSW(parentTab.id, `${FIXTURE_URL}#child_K`);
+                await page.waitForTimeout(300);
+                await openChildTabViaSW(childId, `${FIXTURE_URL}#grandchild_K`);
+                await page.waitForTimeout(300);
+
+                await page.bringToFront();
+                await page.waitForTimeout(300);
+
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await pressChord(page, 'K');
+
+                const clip = await getClipboardText(page).catch(() => '');
+                expect(clip).toContain('child_K');
+                expect(clip).toContain('grandchild_K');
+                // Sibling and active tab should NOT be included
+                expect(clip).not.toContain('sibling_K');
+                expect(clip).not.toContain('cov_content_anchor');
+                const lines = clip.split('\n').filter(Boolean);
+                expect(lines.length).toBe(2);
+                if (DEBUG) console.log(`gYK: clipboard=${clip}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYK/command_window/background`) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYK/content`).catch(() => null);
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await sibling.close().catch(() => {});
+            },
+        );
+    });
+
+    // ─── gYw (OtherWindowsNoPinned) ───────────────────────────────────────────
+
+    test('gYw copies non-pinned tab URLs from other windows (OtherWindowsNoPinned)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await closeAllExcept(page);
+                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+
+                const sw = context.serviceWorkers()[0];
+
+                // 2nd window: no pinned tabs → should be included
+                const win2Id = await openWindowViaSW(`${FIXTURE_URL}#win2_w`);
+                await page.waitForTimeout(500);
+
+                // 3rd window: has a pinned tab → should NOT be included
+                const win3Id = await openWindowViaSW(`${FIXTURE_URL}#win3_w`);
+                await page.waitForTimeout(500);
+
+                // Pin the tab in win3
+                const allTabs = await getAllTabsViaSW();
+                const win3Tab = allTabs.find((t: any) => t.windowId === win3Id);
+                await sw.evaluate((tabId: number) => {
+                    return new Promise<void>((resolve) => {
+                        chrome.tabs.update(tabId, { pinned: true }, () => resolve());
+                    });
+                }, win3Tab.id);
+                await page.waitForTimeout(300);
+
+                await page.bringToFront();
+                await page.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(page, 'unmapAllExcept', []);
+                await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(page, 'magicKeys', { 'w': 'OtherWindowsNoPinned' });
+
+                await pressChord(page, 'w');
+
+                const clip = await getClipboardText(page).catch(() => '');
+                // win2 tab (no pinned) should be included
+                expect(clip).toContain('win2_w');
+                // win3 tab (pinned) should NOT be included
+                expect(clip).not.toContain('win3_w');
+                // Current window active tab should NOT be included
+                expect(clip).not.toContain('cov_content_anchor');
+                if (DEBUG) console.log(`gYw: clipboard=${clip}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYw/command_window/background`) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYw/content`).catch(() => null);
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await closeWindowViaSW(win2Id).catch(() => {});
+                await closeWindowViaSW(win3Id).catch(() => {});
+            },
+        );
+    });
+
+    // ─── gYW (AllOtherWindowsTabs) ────────────────────────────────────────────
+
+    test('gYW copies all tab URLs from other windows (AllOtherWindowsTabs)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                await closeAllExcept(page);
+                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+
+                // Second window with 2 tabs
+                const win2Id = await openWindowViaSW(`${FIXTURE_URL}#win2a_W`);
+                await page.waitForTimeout(500);
+
+                const sw = context.serviceWorkers()[0];
+                await sw.evaluate(({ win2Id, url }: { win2Id: number; url: string }) => {
+                    return new Promise<void>((resolve) => {
+                        chrome.tabs.create({ windowId: win2Id, url, active: false }, () => resolve());
+                    });
+                }, { win2Id, url: `${FIXTURE_URL}#win2b_W` });
+                await page.waitForTimeout(500);
+
+                await page.bringToFront();
+                await page.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(page, 'unmapAllExcept', []);
+                await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(page, 'magicKeys', { 'W': 'AllOtherWindowsTabs' });
+
+                await pressChord(page, 'W');
+
+                const clip = await getClipboardText(page).catch(() => '');
+                expect(clip).toContain('win2a_W');
+                expect(clip).toContain('win2b_W');
+                // Current window tab should NOT be included
+                expect(clip).not.toContain('cov_content_anchor');
+                const lines = clip.split('\n').filter(Boolean);
+                expect(lines.length).toBeGreaterThanOrEqual(2);
+                if (DEBUG) console.log(`gYW: clipboard lines=${lines.length}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYW/command_window/background`) ?? null;
+                await covContent?.flush(`${SUITE_LABEL}/gYW/content`).catch(() => null);
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await closeWindowViaSW(win2Id).catch(() => {});
             },
         );
     });
