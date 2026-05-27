@@ -908,7 +908,7 @@ function constructSearchURL(se: any, word: any) {
  * @example tabOpenLink('https://github.com/brookhong/Surfingkeys')
  */
 function tabOpenLink(str: any, simultaneousness?: any) {
-    simultaneousness = simultaneousness || 5;
+    simultaneousness = simultaneousness || 30;
 
     var urls: any;
     if (str.constructor.name === "Array") {
