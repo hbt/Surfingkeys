@@ -23,6 +23,24 @@ async function callSKApi(p: Page, fn: string, ...args: unknown[]) {
     await p.waitForTimeout(100);
 }
 
+async function waitForPopupVisible(p: Page, timeoutMs = 5000): Promise<string | null> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        for (const frame of p.frames()) {
+            if (!frame.url().includes('frontend.html')) continue;
+            const text = await frame.evaluate(() => {
+                const popup = document.getElementById('sk_popup');
+                if (!popup) return null;
+                if (popup.style.display === 'none') return null;
+                return popup.textContent ?? null;
+            }).catch(() => null);
+            if (text !== null) return text;
+        }
+        await p.waitForTimeout(100);
+    }
+    return null;
+}
+
 async function cleanupFolder(ctx: BrowserContext, folderName: string): Promise<void> {
     const sw = ctx.serviceWorkers()[0];
     if (!sw) throw new Error('No service worker found');
@@ -70,10 +88,28 @@ test.describe('cmd_bookmark_lookup_url (Playwright)', () => {
         await cleanupFolder(context, TEST_FOLDER);
     });
 
-    test('smoke: command is registered and executes without throw', async () => {
+    test('URL not bookmarked → popup shows "Not bookmarked"', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            const ok = await invokeCommand(page, UNIQUE_ID);
-            expect(ok).toBe(true);
+            await invokeCommand(page, UNIQUE_ID);
+            const text = await waitForPopupVisible(page);
+            expect(text).toBe('Not bookmarked');
+        });
+    });
+
+    test('URL in folder → popup shows folder name', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const sw = context.serviceWorkers()[0];
+            await sw.evaluate(({ name, url }: { name: string; url: string }) => {
+                return new Promise<void>((resolve) => {
+                    chrome.bookmarks.create({ parentId: '1', title: name }, (folder) => {
+                        chrome.bookmarks.create({ parentId: folder.id, title: 'test', url }, () => resolve());
+                    });
+                });
+            }, { name: TEST_FOLDER, url: FIXTURE_URL });
+
+            await invokeCommand(page, UNIQUE_ID);
+            const text = await waitForPopupVisible(page);
+            expect(text).toContain(TEST_FOLDER);
         });
     });
 });
