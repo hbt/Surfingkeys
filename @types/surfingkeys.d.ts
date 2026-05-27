@@ -240,6 +240,14 @@ export interface GistComment { id: number; body: string; }
 // Internal data structures
 export interface ScrollPositionData { scrollLeft: number; scrollTop: number; }
 export interface BookmarkFolder { id: string; title: string; }
+
+// Message type for bookmark handlers that carry folder/repeat/magic fields
+export interface BookmarkMsg {
+    folder: string;
+    reverse?: boolean;
+    repeats?: number;
+    magic?: string;
+}
 export interface LLMClientRequest { tabId: number; frameId: number; }
 
 // Message handler type

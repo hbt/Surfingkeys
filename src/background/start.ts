@@ -2,9 +2,11 @@ import {
     filterByTitleOrUrl,
 } from '../common/utils.js';
 import llmClientsRaw from './llm.js';
-import type { RuntimeAction, LLMClientsMap, TabURLMap, TabMessageMap, BookmarkFolder } from '../../@types/surfingkeys';
+import type { RuntimeAction, LLMClientsMap, TabURLMap, TabMessageMap, BookmarkFolder, BookmarkMsg } from '../../@types/surfingkeys';
 // Convenience type for message handlers that access arbitrary message properties
 type Msg = RuntimeAction & { [key: string]: unknown };
+// Bookmark handlers receive a Msg that always carries BookmarkMsg fields
+type BMsg = Msg & BookmarkMsg;
 type MessageHandler = (
     message: Msg,
     sender: chrome.runtime.MessageSender,
@@ -2429,11 +2431,12 @@ function start(browser: Record<string, unknown>) {
     function _deepPluck(obj: unknown, key: string): string[] {
         const results: string[] = [];
         if (Array.isArray(obj)) {
-            obj.forEach(item => results.push(..._deepPluck(item, key)));
-        } else if (obj && typeof obj === 'object') {
+            obj.forEach((item: unknown) => results.push(..._deepPluck(item, key)));
+        } else if (obj !== null && typeof obj === 'object') {
             const o = obj as Record<string, unknown>;
-            if (key in o && typeof o[key] === 'string') results.push(o[key] as string);
-            Object.values(o).forEach(v => results.push(..._deepPluck(v, key)));
+            const val = o[key];
+            if (typeof val === 'string') results.push(val);
+            Object.values(o).forEach((v: unknown) => results.push(..._deepPluck(v, key)));
         }
         return results;
     }
@@ -2442,8 +2445,8 @@ function start(browser: Record<string, unknown>) {
         return url.endsWith('/') ? url.slice(0, -1) : url;
     }
 
-    self.bookmarkToggleFolder = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
-        const { folder } = message as Msg & { folder: string };
+    self.bookmarkToggleFolder = function(message: BMsg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const { folder } = message;
         const tab = sender.tab;
         if (!tab?.id || !tab.url) return;
         const tabId = tab.id;
@@ -2473,11 +2476,8 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
-    self.bookmarkCopyFolder = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
-        const folder = message.folder as string;
-        const reverse = message.reverse as boolean;
-        const repeats = message.repeats as number; // -1 = all
-        const tabId = sender.tab?.id;
+    /** Shared core: copy URLs from a named bookmark folder to clipboard. */
+    function _copyFolderURLs(folder: string, reverse: boolean, repeats: number, tabId: number | undefined) {
         _getBookmarkFolderByName(folder, function(folderNode) {
             if (!folderNode) return;
             chrome.bookmarks.getSubTree(folderNode.id, function(subtree) {
@@ -2492,10 +2492,17 @@ function start(browser: Record<string, unknown>) {
                 sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Copied ${urls.length} URLs from [${folder}]` });
             });
         });
+    }
+
+    self.bookmarkCopyFolder = function(message: BMsg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const { folder } = message;
+        const reverse = message.reverse ?? false;
+        const repeats = message.repeats as number; // -1 = all
+        _copyFolderURLs(folder, reverse, repeats, sender.tab?.id);
     };
 
-    self.bookmarkEmptyFolder = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
-        const folder = message.folder as string;
+    self.bookmarkEmptyFolder = function(message: BMsg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const { folder } = message;
         const tabId = sender.tab?.id;
         _getBookmarkFolderByName(folder, function(folderNode) {
             if (!folderNode) return;
@@ -2508,13 +2515,13 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
-    self.bookmarkAddM = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
-        const folder = message.folder as string;
+    self.bookmarkAddM = function(message: BMsg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const { folder, magic } = message;
         const repeats = message.repeats as number;
         const tabId = sender.tab?.id;
         chrome.tabs.query({}, function(allTabs) {
             const windowTabs = allTabs.filter(t => t.windowId === sender.tab?.windowId);
-            const tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, windowTabs, allTabs);
+            const tabIds = tabHandleMagic(magic as string, sender.tab!, repeats, windowTabs, allTabs);
             const selectedTabs = allTabs.filter(t => tabIds.includes(t.id!));
             _getBookmarkFolderByName(folder, function(folderNode) {
                 if (!folderNode) {
@@ -2540,13 +2547,13 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
-    self.bookmarkRemoveM = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
-        const folder = message.folder as string;
+    self.bookmarkRemoveM = function(message: BMsg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const { folder, magic } = message;
         const repeats = message.repeats as number;
         const tabId = sender.tab?.id;
         chrome.tabs.query({}, function(allTabs) {
             const windowTabs = allTabs.filter(t => t.windowId === sender.tab?.windowId);
-            const tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, windowTabs, allTabs);
+            const tabIds = tabHandleMagic(magic as string, sender.tab!, repeats, windowTabs, allTabs);
             const selectedTabs = allTabs.filter(t => tabIds.includes(t.id!));
             _getBookmarkChildrenByName(folder, function(children) {
                 const urlToId = new Map(children.map(c => [_normalizeUrl(c.url || ''), c.id]));
@@ -2559,13 +2566,13 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
-    self.bookmarkCutFromFolder = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
-        const folder = message.folder as string;
-        const reverse = message.reverse as boolean;
-        const repeats = Math.min(Math.max(message.repeats as number, 1), 50);
+    self.bookmarkCutFromFolder = function(message: BMsg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const { folder } = message;
+        const reverse = message.reverse ?? false;
+        const repeats = message.repeats as number;
         const tabId = sender.tab?.id;
         // Copy all first (backup), then remove N items
-        (self.bookmarkCopyFolder as (m: Msg, s: chrome.runtime.MessageSender, r: (response: unknown) => void) => void)({ ...message, reverse, repeats: -1 } as Msg, sender, _sendResponse);
+        _copyFolderURLs(folder, reverse, -1, tabId);
         _getBookmarkFolderByName(folder, function(folderNode) {
             if (!folderNode) return;
             chrome.bookmarks.getChildren(folderNode.id, function(children) {
