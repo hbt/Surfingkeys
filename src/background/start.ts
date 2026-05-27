@@ -2512,6 +2512,7 @@ function start(browser: Record<string, unknown>) {
     self.bookmarkAddM = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const folder = message.folder as string;
         const repeats = message.repeats as number;
+        const tabId = sender.tab?.id;
         chrome.tabs.query({}, function(allTabs) {
             const windowTabs = allTabs.filter(t => t.windowId === sender.tab?.windowId);
             const tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, windowTabs, allTabs);
@@ -2522,6 +2523,7 @@ function start(browser: Record<string, unknown>) {
                         selectedTabs.forEach(t => {
                             chrome.bookmarks.create({ parentId: newFolder.id, title: t.title, url: t.url });
                         });
+                        sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Added to [${folder}]` });
                     });
                     return;
                 }
@@ -2533,6 +2535,7 @@ function start(browser: Record<string, unknown>) {
                             chrome.bookmarks.create({ parentId, title: t.title, url: t.url });
                         }
                     });
+                    sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Added to [${folder}]` });
                 });
             });
         });

@@ -260,6 +260,18 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: false, repeats: -1 });
     });
 
+    mapkey('g-044', {
+        short: "Add current tab to bookmark folder",
+        unique_id: "cmd_bookmark_add_m",
+        feature_group: 14,
+        category: "settings",
+        description: "Bookmark current tab in folder (next key selects folder from bookmarkFolders config)",
+        tags: ["settings", "bookmarks", "add"]
+    }, function(key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        if (folder) RUNTIME('bookmarkAddM', { folder, magic: 'CurrentTab', repeats: 1 });
+    });
+
     } // end !Safari guard
 
 }
