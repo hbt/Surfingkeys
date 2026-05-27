@@ -38,9 +38,14 @@ export interface RunEntry {
   stats: RunStats;
 }
 
+export interface ProcessingContainer {
+  name: string;
+  runningFor: string;  // e.g. "3 minutes ago"
+}
+
 export interface GatherResult {
   queue: string[];               // queue entry filenames
-  processingContainer: string | null;
+  processingContainer: ProcessingContainer | null;
   runs: RunEntry[];
 }
 
@@ -65,9 +70,12 @@ function fetchQueue(): string[] {
   return sshLines(`ls ${QUEUE_DIR} 2>/dev/null`).filter(f => f !== "worker.lock" && f !== "last-docker-built-sha").sort();
 }
 
-function fetchContainer(): string | null {
-  const lines = sshLines(`docker ps --format '{{.Names}}' 2>/dev/null`);
-  return lines.find(l => l.includes("surfingkeys")) ?? null;
+function fetchContainer(): ProcessingContainer | null {
+  const lines = sshLines(`docker ps --format '{{.Names}}\t{{.RunningFor}}' 2>/dev/null`);
+  const line = lines.find(l => l.includes("surfingkeys"));
+  if (!line) return null;
+  const [name, ...rest] = line.split("\t");
+  return { name: name.trim(), runningFor: rest.join("\t").trim() };
 }
 
 // ── Local run parsing ─────────────────────────────────────────────────────────

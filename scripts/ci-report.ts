@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // report subcommand — bun scripts/ci.ts report [--json] [--limit N]
 
-import { gather, type RunEntry, type GatherResult } from "./ci-gather.ts";
+import { gather, type RunEntry, type GatherResult, type ProcessingContainer } from "./ci-gather.ts";
 
 interface GitInfo {
   sha: string;
@@ -89,7 +89,7 @@ function pad(s: string, len: number): string {
 
 function formatHuman(
   pending: QueueEntry[],
-  container: string | null,
+  container: ProcessingContainer | null,
   runs: EnrichedRun[]
 ): string {
   const lines: string[] = [];
@@ -99,7 +99,9 @@ function formatHuman(
 
   lines.push("Queue");
   lines.push(`  pending     ${pending.length}`);
-  lines.push(container ? `  processing  1  (${container})` : `  processing  0`);
+  lines.push(container
+    ? `  processing  1  (${container.name})  started ${container.runningFor}`
+    : `  processing  0`);
   lines.push("");
 
   lines.push(`Completed (last ${runs.length})`);
@@ -123,11 +125,11 @@ function formatHuman(
 
 // ── JSON output ───────────────────────────────────────────────────────────────
 
-function formatJson(pending: QueueEntry[], container: string | null, runs: EnrichedRun[]) {
+function formatJson(pending: QueueEntry[], container: ProcessingContainer | null, runs: EnrichedRun[]) {
   return {
     queue: {
       pending,
-      processing: container ? { container } : null,
+      processing: container ? { container: container.name, runningFor: container.runningFor } : null,
     },
     completed: runs.map(r => ({
       filename: r.filename,
