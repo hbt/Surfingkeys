@@ -80,6 +80,9 @@ const EXCLUDED_IDS = new Set([
     // which Playwright cannot access from a regular context
     'cmd_nav_incognito',
     'cmd_tab_close_magic_incognito',
+    'cmd_tab_reload_magic_incognito',
+    'cmd_tab_copy_urls_magic_incognito',
+    'cmd_tab_detach_magic_incognito',
     // Neovim — requires native messaging host + nvim --headless + WebSocket + PIXI.js renderer
     'cmd_neovim_enable_input',
     'cmd_insert_neovim_editor',
