@@ -296,6 +296,18 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkCutFromFolder', { folder, reverse: true, repeats: 1 });
     });
 
+    mapkey('g-047', {
+        short: "Cut bookmark folder URLs (ordered)",
+        unique_id: "cmd_bookmark_cut_folder_ordered",
+        feature_group: 14,
+        category: "settings",
+        description: "Copy then remove URLs from bookmark folder in order (next key selects folder)",
+        tags: ["settings", "bookmarks", "cut"]
+    }, function(key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        if (folder) RUNTIME('bookmarkCutFromFolder', { folder, reverse: false, repeats: 1 });
+    });
+
     } // end !Safari guard
 
 }
