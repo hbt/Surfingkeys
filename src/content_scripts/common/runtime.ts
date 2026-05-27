@@ -1,4 +1,4 @@
-import type { SurfingKeysConf, RuntimeMessage } from '../../../@types/surfingkeys';
+import type { SurfingKeysConf, RuntimeMessage, MagicDirection } from '../../../@types/surfingkeys';
 
 function dispatchSKEvent(type: string, args?: unknown[], target?: EventTarget): void {
     if (target === undefined) {
@@ -21,7 +21,7 @@ function dispatchSKEvent(type: string, args?: unknown[], target?: EventTarget): 
  * });
  */
 function RUNTIME(action: string, args?: Record<string, unknown> | null, callback?: (response: any) => void): void {
-    var actionsRepeatBackground = ['closeTab', 'nextTab', 'previousTab', 'moveTab', 'moveToWindowMagic', 'copyTabUrlsMagic', 'reloadTab', 'setZoom', 'focusTabByIndex', 'closeTabMagic', 'reloadTabMagic', 'tabGotoIndex'];
+    var actionsRepeatBackground = ['closeTab', 'nextTab', 'previousTab', 'moveTab', 'moveToWindowMagic', 'copyTabUrlsMagic', 'reloadTab', 'setZoom', 'focusTabByIndex', 'closeTabMagic', 'reloadTabMagic', 'pinTabMagic', 'tabGotoIndex'];
     (args = args || {}).action = action;
     if (actionsRepeatBackground.indexOf(action) !== -1) {
         // if the action can only be repeated in background, pass repeats to background with args,
@@ -117,6 +117,7 @@ const runtime = (function() {
             useNeovim: false,
             useLocalMarkdownAPI: true,
             bookmarkFolders: undefined,
+            // TODO(hbt) NEXT [magic] remove bookmarkMagicKeys — migrate callers to magicKeys
             bookmarkMagicKeys: {
                 'h': 'DirectionLeft',
                 'l': 'DirectionRight',
@@ -131,7 +132,22 @@ const runtime = (function() {
                 'w': 'OtherWindowsNoPinned',
                 'W': 'AllOtherWindowsTabs',
                 'o': 'AllIncognitoTabs',
-            } as Record<string, string>
+            } as Record<string, string>,
+            magicKeys: {
+                'h': 'DirectionLeft',
+                'l': 'DirectionRight',
+                'H': 'DirectionLeftInclusive',
+                'L': 'DirectionRightInclusive',
+                't': 'CurrentTab',
+                'a': 'AllInWindow',
+                'A': 'AllExceptActiveAllWindows',
+                'c': 'AllExceptActive',
+                'k': 'ChildrenTabs',
+                'K': 'ChildrenTabsRecursively',
+                'w': 'OtherWindowsNoPinned',
+                'W': 'AllOtherWindowsTabs',
+                'o': 'AllIncognitoTabs',
+            } as Record<string, MagicDirection>
         },
     }, _handlers = {};
 

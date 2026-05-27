@@ -1,6 +1,10 @@
-import { RUNTIME } from '../runtime.js';
+import { RUNTIME, runtime } from '../runtime.js';
 import { tabOpenLink, getBrowserName } from '../utils.js';
-import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { CommandAPI, MagicDirection } from '../../../../@types/surfingkeys';
+
+function resolveMagic(magicKey: string): MagicDirection {
+    return (runtime.conf.magicKeys as Record<string, MagicDirection>)?.[magicKey] ?? 'CurrentTab';
+}
 
 function copyTabUrlsMagic(magic: string, clipboard: unknown): void {
     RUNTIME("copyTabUrlsMagic", {magic: magic}, function(response: any) {
@@ -189,6 +193,7 @@ export default function registerTabs(
         RUNTIME("duplicateTab", {active: false});
     });
 
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxt', {
         short: "Close current tab",
         unique_id: "cmd_tab_close_current",
@@ -199,6 +204,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'CurrentTab'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxe', {
         short: "Close tabs to the right",
         unique_id: "cmd_tab_close_magic_right",
@@ -209,6 +215,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'DirectionRight'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxq', {
         short: "Close tabs to the left",
         unique_id: "cmd_tab_close_magic_left",
@@ -219,6 +226,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'DirectionLeft'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxc', {
         short: "Close all tabs except current",
         unique_id: "cmd_tab_close_magic_except_active",
@@ -229,6 +237,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'AllExceptActive'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxC', {
         short: "Close all tabs in window",
         unique_id: "cmd_tab_close_magic_all_window",
@@ -239,6 +248,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'AllInWindow'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxg', {
         short: "Close all tabs in all windows except current",
         unique_id: "cmd_tab_close_magic_all_windows",
@@ -256,6 +266,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'AllExceptActiveAllWindows'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxk', {
         short: "Close child tabs",
         unique_id: "cmd_tab_close_magic_children",
@@ -266,6 +277,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'ChildrenTabs'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxE', {
         short: "Close current tab and all to the right",
         unique_id: "cmd_tab_close_magic_right_inclusive",
@@ -276,6 +288,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'DirectionRightInclusive'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxQ', {
         short: "Close current tab and all to the left",
         unique_id: "cmd_tab_close_magic_left_inclusive",
@@ -286,6 +299,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'DirectionLeftInclusive'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxK', {
         short: "Close descendant tabs recursively",
         unique_id: "cmd_tab_close_magic_children_recursive",
@@ -296,6 +310,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'ChildrenTabsRecursively'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxW', {
         short: "Close all tabs in other windows",
         unique_id: "cmd_tab_close_magic_other_windows",
@@ -306,6 +321,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'AllOtherWindowsTabs'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxw', {
         short: "Close other windows without pinned tabs",
         unique_id: "cmd_tab_close_magic_other_windows_no_pinned",
@@ -316,6 +332,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("closeTabMagic", {magic: 'OtherWindowsNoPinned'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_close_m
     mapkey('gxo', {
         short: "Close all incognito tabs",
         unique_id: "cmd_tab_close_magic_incognito",
@@ -358,6 +375,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("moveToWindow", {windowId: -1});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_detach_m
     mapkey('g-004', {
         short: "Detach tabs except current into new window",
         unique_id: "cmd_tab_detach_magic_except_active",
@@ -368,6 +386,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'AllExceptActive'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_detach_m
     mapkey('g-005', {
         short: "Detach all tabs in current window into new window",
         unique_id: "cmd_tab_detach_magic_all_window",
@@ -378,6 +397,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'AllInWindow'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_detach_m
     mapkey('g-006', {
         short: "Detach child tabs",
         unique_id: "cmd_tab_detach_magic_children",
@@ -388,6 +408,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'ChildrenTabs'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_detach_m
     mapkey('g-002', {
         short: "Detach tabs to the right into new window",
         unique_id: "cmd_tab_detach_magic_right",
@@ -398,6 +419,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'DirectionRight'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_detach_m
     mapkey('g-007', {
         short: "Detach tabs to the right and current into new window",
         unique_id: "cmd_tab_detach_magic_right_inclusive",
@@ -408,6 +430,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'DirectionRightInclusive'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_detach_m
     mapkey('g-003', {
         short: "Detach tabs to the left into new window",
         unique_id: "cmd_tab_detach_magic_left",
@@ -418,6 +441,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'DirectionLeft'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_detach_m
     mapkey('g-008', {
         short: "Detach tabs to the left and current into new window",
         unique_id: "cmd_tab_detach_magic_left_inclusive",
@@ -428,6 +452,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'DirectionLeftInclusive'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_detach_m
     mapkey('g-009', {
         short: "Detach descendant tabs recursively",
         unique_id: "cmd_tab_detach_magic_children_recursive",
@@ -438,6 +463,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'ChildrenTabsRecursively'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_detach_m
     mapkey('g-010', {
         short: "Detach all tabs in other windows",
         unique_id: "cmd_tab_detach_magic_other_windows",
@@ -448,6 +474,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'AllOtherWindowsTabs'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_detach_m
     mapkey('g-011', {
         short: "Detach other windows without pinned tabs",
         unique_id: "cmd_tab_detach_magic_other_windows_no_pinned",
@@ -458,6 +485,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("moveToWindowMagic", {magic: 'OtherWindowsNoPinned'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_detach_m
     mapkey('g-012', {
         short: "Detach all incognito tabs",
         unique_id: "cmd_tab_detach_magic_incognito",
@@ -470,6 +498,7 @@ export default function registerTabs(
     });
 
     // Group D — Copy Tab URLs Magic
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('gyce', {
         short: "Copy URLs of tabs to the right",
         unique_id: "cmd_tab_copy_urls_magic_right",
@@ -480,6 +509,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('DirectionRight', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('gycc', {
         short: "Copy URLs of all tabs except active",
         unique_id: "cmd_tab_copy_urls_magic_except_active",
@@ -490,6 +520,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('AllExceptActive', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('gyck', {
         short: "Copy URLs of children tabs",
         unique_id: "cmd_tab_copy_urls_magic_children",
@@ -500,6 +531,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('ChildrenTabs', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('g-013', {
         short: "Copy current tab URL",
         unique_id: "cmd_tab_copy_urls_magic_current",
@@ -510,6 +542,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('CurrentTab', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('g-014', {
         short: "Copy URLs of all tabs in current window",
         unique_id: "cmd_tab_copy_urls_magic_all_window",
@@ -520,6 +553,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('AllInWindow', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('g-015', {
         short: "Copy URLs of all tabs except current across all windows",
         unique_id: "cmd_tab_copy_urls_magic_all_windows",
@@ -530,6 +564,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('AllExceptActiveAllWindows', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('g-016', {
         short: "Copy URLs of tabs to the left",
         unique_id: "cmd_tab_copy_urls_magic_left",
@@ -540,6 +575,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('DirectionLeft', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('g-017', {
         short: "Copy URLs of current tab and tabs to the left",
         unique_id: "cmd_tab_copy_urls_magic_left_inclusive",
@@ -550,6 +586,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('DirectionLeftInclusive', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('g-018', {
         short: "Copy URLs of current tab and tabs to the right",
         unique_id: "cmd_tab_copy_urls_magic_right_inclusive",
@@ -560,6 +597,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('DirectionRightInclusive', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('g-019', {
         short: "Copy URLs of descendant tabs recursively",
         unique_id: "cmd_tab_copy_urls_magic_children_recursive",
@@ -570,6 +608,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('ChildrenTabsRecursively', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('g-020', {
         short: "Copy URLs of all tabs in other windows",
         unique_id: "cmd_tab_copy_urls_magic_other_windows",
@@ -580,6 +619,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('AllOtherWindowsTabs', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('g-021', {
         short: "Copy URLs from other windows without pinned tabs",
         unique_id: "cmd_tab_copy_urls_magic_other_windows_no_pinned",
@@ -590,6 +630,7 @@ export default function registerTabs(
     }, function() {
         copyTabUrlsMagic('OtherWindowsNoPinned', clipboard);
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_copy_urls_m
     mapkey('g-022', {
         short: "Copy URLs of all incognito tabs",
         unique_id: "cmd_tab_copy_urls_magic_incognito",
@@ -602,6 +643,7 @@ export default function registerTabs(
     });
 
     // Group G — Reload Magic
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-023', {
         short: "Reload tabs to the right",
         unique_id: "cmd_tab_reload_magic_right",
@@ -612,6 +654,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionRight'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-024', {
         short: "Reload tabs to the left",
         unique_id: "cmd_tab_reload_magic_left",
@@ -622,6 +665,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionLeft'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-025', {
         short: "Reload all except current",
         unique_id: "cmd_tab_reload_magic_except_active",
@@ -632,6 +676,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'AllExceptActive'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-026', {
         short: "Reload all tabs in window",
         unique_id: "cmd_tab_reload_magic_all_window",
@@ -642,6 +687,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'AllInWindow'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-027', {
         short: "Reload all tabs in all windows except current",
         unique_id: "cmd_tab_reload_magic_all_windows",
@@ -652,6 +698,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'AllExceptActiveAllWindows'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-028', {
         short: "Reload child tabs",
         unique_id: "cmd_tab_reload_magic_children",
@@ -662,6 +709,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'ChildrenTabs'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-029', {
         short: "Reload current and all to the right",
         unique_id: "cmd_tab_reload_magic_right_inclusive",
@@ -672,6 +720,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionRightInclusive'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-030', {
         short: "Reload current and all to the left",
         unique_id: "cmd_tab_reload_magic_left_inclusive",
@@ -682,6 +731,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'DirectionLeftInclusive'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-031', {
         short: "Reload descendant tabs recursively",
         unique_id: "cmd_tab_reload_magic_children_recursive",
@@ -692,6 +742,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'ChildrenTabsRecursively'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-032', {
         short: "Reload all tabs in other windows",
         unique_id: "cmd_tab_reload_magic_other_windows",
@@ -702,6 +753,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'AllOtherWindowsTabs'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-033', {
         short: "Reload other windows without pinned tabs",
         unique_id: "cmd_tab_reload_magic_other_windows_no_pinned",
@@ -712,6 +764,7 @@ export default function registerTabs(
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'OtherWindowsNoPinned'});
     });
+    // TODO(hbt) NEXT [magic] remove — superseded by cmd_tab_reload_m
     mapkey('g-034', {
         short: "Reload all incognito tabs",
         unique_id: "cmd_tab_reload_magic_incognito",
@@ -721,6 +774,58 @@ export default function registerTabs(
         tags: ["tabs", "reload", "magic"]
     }, function() {
         RUNTIME("reloadTabMagic", {magic: 'AllIncognitoTabs'});
+    });
+
+    // Group M — Pending-key magic tab commands
+    mapkey('gX', {
+        short: "Close tab(s) via magic key",
+        unique_id: "cmd_tab_close_m",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close tab(s): next key selects magic direction (magicKeys config). Pinned tabs skipped.",
+        tags: ["tabs", "close", "magic"]
+    }, function(magicKey: string): void {
+        RUNTIME('closeTabMagic', { magic: resolveMagic(magicKey) });
+    });
+    mapkey('gR', {
+        short: "Reload tab(s) via magic key",
+        unique_id: "cmd_tab_reload_m",
+        feature_group: 3,
+        category: "tabs",
+        description: "Reload tab(s): next key selects magic direction (magicKeys config).",
+        tags: ["tabs", "reload", "magic"]
+    }, function(magicKey: string): void {
+        RUNTIME('reloadTabMagic', { magic: resolveMagic(magicKey) });
+    });
+    mapkey('gY', {
+        short: "Copy tab URL(s) via magic key",
+        unique_id: "cmd_tab_copy_urls_m",
+        feature_group: 3,
+        category: "tabs",
+        description: "Copy tab URL(s) to clipboard: next key selects magic direction (magicKeys config).",
+        tags: ["tabs", "copy", "url", "magic"]
+    }, function(magicKey: string): void {
+        copyTabUrlsMagic(resolveMagic(magicKey), clipboard);
+    });
+    mapkey('gP', {
+        short: "Pin/unpin tab(s) via magic key",
+        unique_id: "cmd_tab_pin_m",
+        feature_group: 3,
+        category: "tabs",
+        description: "Toggle pin on tab(s): next key selects magic direction (magicKeys config).",
+        tags: ["tabs", "pin", "magic"]
+    }, function(magicKey: string): void {
+        RUNTIME('pinTabMagic', { magic: resolveMagic(magicKey) });
+    });
+    mapkey('gD', {
+        short: "Detach tab(s) to new window via magic key",
+        unique_id: "cmd_tab_detach_m",
+        feature_group: 3,
+        category: "tabs",
+        description: "Move tab(s) to a new window: next key selects magic direction (magicKeys config).",
+        tags: ["tabs", "detach", "window", "magic"]
+    }, function(magicKey: string): void {
+        RUNTIME('moveToWindowMagic', { magic: resolveMagic(magicKey) });
     });
 
     mapkey('X', {

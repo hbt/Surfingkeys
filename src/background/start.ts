@@ -1555,6 +1555,7 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
+    // TODO(hbt) NEXT [magic] remove — orphaned handler, no mapkey wired
     self.bookmarkTabsMagic = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         chrome.tabs.query({currentWindow: true}, function(tabs) {
             var repeats = (message.repeats as number) || 1;
@@ -1566,6 +1567,7 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
+    // TODO(hbt) NEXT [magic] remove — orphaned handler, no mapkey wired
     self.unbookmarkTabsMagic = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         chrome.tabs.query({currentWindow: true}, function(tabs) {
             var repeats = (message.repeats as number) || 1;

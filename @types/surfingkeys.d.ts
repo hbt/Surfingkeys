@@ -55,6 +55,25 @@ declare global {
     }
 }
 
+export type MagicDirection =
+    | 'CurrentTab'
+    | 'DirectionRight'
+    | 'DirectionRightInclusive'
+    | 'DirectionLeft'
+    | 'DirectionLeftInclusive'
+    | 'AllExceptActive'
+    | 'AllInWindow'
+    | 'AllExceptActiveAllWindows'
+    | 'ChildrenTabs'
+    | 'ChildrenTabsRecursively'
+    | 'AllOtherWindowsTabs'
+    | 'OtherWindowsNoPinned'
+    | 'AllIncognitoTabs';
+
+export interface MagicPendingContext {
+    pendingMap: (key: string) => void;
+}
+
 export interface SurfingKeysConf {
     autoSpeakOnInlineQuery: boolean;
     lastKeys: string[];
@@ -115,6 +134,7 @@ export interface SurfingKeysConf {
     useLocalMarkdownAPI: boolean;
     bookmarkFolders?: Record<string, string>;
     bookmarkMagicKeys?: Record<string, string>;
+    magicKeys?: Record<string, MagicDirection>;
 }
 
 export interface MapKeyAnnotation {
@@ -194,13 +214,14 @@ type RepeatAction =
     | { action: 'nextTab'; repeats?: number }
     | { action: 'previousTab'; repeats?: number }
     | { action: 'moveTab'; repeats?: number; position?: number }
-    | { action: 'moveToWindowMagic'; repeats?: number; direction?: string }
-    | { action: 'copyTabUrlsMagic'; repeats?: number; direction?: string }
+    | { action: 'moveToWindowMagic'; repeats?: number; direction?: string; magic?: MagicDirection }
+    | { action: 'copyTabUrlsMagic'; repeats?: number; direction?: string; magic?: MagicDirection }
     | { action: 'reloadTab'; repeats?: number; nocache?: boolean }
     | { action: 'setZoom'; zoomFactor?: number }
     | { action: 'focusTabByIndex'; repeats?: number }
-    | { action: 'closeTabMagic'; repeats?: number; magic?: string }
-    | { action: 'reloadTabMagic'; repeats?: number; magic?: string }
+    | { action: 'closeTabMagic'; repeats?: number; magic?: MagicDirection }
+    | { action: 'reloadTabMagic'; repeats?: number; magic?: MagicDirection }
+    | { action: 'pinTabMagic'; repeats?: number; magic?: MagicDirection }
     | { action: 'tabGotoIndex'; repeats?: number };
 
 // 13 common query/mutation actions:

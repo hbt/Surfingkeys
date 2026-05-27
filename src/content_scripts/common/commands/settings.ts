@@ -273,6 +273,7 @@ export default function registerSettings(
         const folder = runtime.conf.bookmarkFolders?.[folderKey];
         if (!folder) return;
         this.pendingMap = function(magicKey: string) {
+            // TODO(hbt) NEXT [magic] switch to magicKeys after bookmarkMagicKeys removed
             const magic = (runtime.conf.bookmarkMagicKeys as Record<string, string>)?.[magicKey] ?? 'CurrentTab';
             RUNTIME('bookmarkAddM', { folder, magic, repeats: 1 });
         };
@@ -289,6 +290,7 @@ export default function registerSettings(
         const folder = runtime.conf.bookmarkFolders?.[folderKey];
         if (!folder) return;
         this.pendingMap = function(magicKey: string) {
+            // TODO(hbt) NEXT [magic] switch to magicKeys after bookmarkMagicKeys removed
             const magic = (runtime.conf.bookmarkMagicKeys as Record<string, string>)?.[magicKey] ?? 'CurrentTab';
             RUNTIME('bookmarkRemoveM', { folder, magic, repeats: 1 });
         };
