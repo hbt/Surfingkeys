@@ -4,6 +4,19 @@ import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
+
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
+const KEY = 'se';
+const UNIQUE_ID = 'sa_wikipedia_visual';
+
 const SUITE_LABEL = 'sa_wikipedia_visual';
 const FIXTURE_URL = `${FIXTURE_BASE}/visual-test.html`;
 
@@ -54,6 +67,10 @@ test.describe('sa_wikipedia_visual (se — Search selected text with Wikipedia)'
         try { await page.keyboard.press('Escape'); await page.waitForTimeout(100); } catch (_) {}
         await closeExtraPages(page);
         await page.waitForTimeout(100);
+    });
+
+    test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', [KEY]);
     });
 
     test('se opens a new tab with wikipedia search URL', async () => {

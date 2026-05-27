@@ -3,6 +3,17 @@ import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a],
+            bubbles: true,
+            composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const SUITE_LABEL = 'cmd_marks_jump_new_tab';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const FIXTURE_URL_2 = `${FIXTURE_BASE}/input-test.html`;
@@ -54,6 +65,8 @@ test.describe('cmd_marks_jump_new_tab (Playwright)', () => {
 
     test.beforeEach(async () => {
         await clearMarks(context);
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', "<Ctrl-'>", 'cmd_marks_jump_new_tab');
         // Close extra pages (anything beyond the main page)
         const pages = context.pages();
         for (const p of pages) {

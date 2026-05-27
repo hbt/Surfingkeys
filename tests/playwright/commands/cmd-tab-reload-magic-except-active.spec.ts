@@ -5,6 +5,15 @@ import { coverageSlug, readCoverageStats } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const SUITE_LABEL = 'cmd_tab_reload_magic_except_active';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
@@ -79,6 +88,9 @@ test.describe('cmd_tab_reload_magic_except_active (Playwright)', () => {
         await keeper.bringToFront();
         await keeper.waitForTimeout(300);
         const covContent = await initContentCoverageForUrl?.(anchorUrl);
+
+        await callSKApi(keeper, 'unmapAllExcept', []);
+        await callSKApi(keeper, 'mapcmdkey', 'g-025', 'cmd_tab_reload_magic_except_active');
 
         const tabsBefore = await getTabsViaSW(context);
         const beforeTabIds = tabsBefore.map((t: any) => t.id);

@@ -5,6 +5,15 @@ import { coverageSlug, readCoverageStats, withPersistedDualCoverage } from '../u
 
 const DEBUG = !!process.env.DEBUG;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const SUITE_LABEL = 'cmd_scroll_percentage';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
@@ -72,6 +81,9 @@ test.describe('cmd_scroll_percentage (Playwright)', () => {
         // Scroll back to top before each test
         await page.evaluate(() => window.scrollTo(0, 0));
         await page.waitForTimeout(200);
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', '%', 'cmd_scroll_percentage');
+        await callSKApi(page, 'mapcmdkey', 'G', 'cmd_scroll_bottom');
     });
 
     test('pressing 1% from bottom scrolls to top area', async () => {

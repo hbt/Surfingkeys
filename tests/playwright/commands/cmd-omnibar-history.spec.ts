@@ -56,6 +56,18 @@ async function pressEscapeToCloseOmnibar(p: Page): Promise<void> {
     await p.waitForTimeout(100);
 }
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
+const UNIQUE_ID = 'cmd_omnibar_history';
+const KEY = 'oh';
+
 test.describe('cmd_omnibar_history (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(FIXTURE_URL);
@@ -81,6 +93,8 @@ test.describe('cmd_omnibar_history (Playwright)', () => {
 
     test('pressing oh opens history omnibar', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await callSKApi(page, 'unmapAllExcept', []);
+            await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
             await page.keyboard.press('o');
             await page.waitForTimeout(50);
             await page.keyboard.press('h');

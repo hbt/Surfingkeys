@@ -113,7 +113,7 @@ async function evalInBG(code: string): Promise<EvalResult> {
 
 function evalInPage(code: string): Promise<EvalResult> {
   return new Promise((resolve, reject) => {
-    chrome.devtools.inspectedWindow.eval(code, (result, exceptionInfo) => {
+    chrome.devtools.inspectedWindow.eval(code, undefined, (result, exceptionInfo) => {
       if (exceptionInfo && exceptionInfo.isException) {
         reject(new Error(exceptionInfo.value || exceptionInfo.description));
       } else {

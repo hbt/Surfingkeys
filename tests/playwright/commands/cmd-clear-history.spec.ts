@@ -13,6 +13,17 @@ let page: Page;
 let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a],
+            bubbles: true,
+            composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 async function isOmnibarOpen(p: Page): Promise<boolean> {
     return p.evaluate(() => {
         const divs = document.querySelectorAll('div');
@@ -48,6 +59,11 @@ test.describe('cmd_clear_history (Playwright)', () => {
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
+    });
+
+    test.beforeEach(async () => {
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', 'zH', 'cmd_clear_history');
     });
 
     test.afterEach(async () => {

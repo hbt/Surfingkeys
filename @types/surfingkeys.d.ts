@@ -124,10 +124,29 @@ export interface MapKeyAnnotation {
     tags?: string[];
 }
 
+export interface CommandRegistryEntry {
+    code: () => void;
+    annotation: MapKeyAnnotation;
+    feature_group?: number;
+    originalKey: string;
+    mode: string;
+    modeRef: ModeInstance;
+    repeatIgnore?: boolean;
+}
+
 export interface MapKeyOptions {
     domain?: RegExp;
     repeatIgnore?: boolean;
     unique_id?: string;
+}
+
+export interface TrieNode {
+    stem?: string;
+    meta?: unknown;
+    find(word: string): TrieNode | undefined;
+    add(word: string, meta: unknown): void;
+    remove(word: string): TrieNode | undefined;
+    getMetas(criterion: (meta: unknown) => boolean): unknown[];
 }
 
 export interface ModeInstance {
@@ -135,11 +154,8 @@ export interface ModeInstance {
     statusLine: string;
     priority: number;
     activatedOnElement: boolean;
-    mappings: {
-        add(keys: string, meta: unknown): void;
-        remove(keys: string): unknown;
-        find(keys: string): unknown;
-    };
+    mappings: TrieNode;
+    map_node?: TrieNode | null;
     addEventListener(evtName: string, handler: (event: KeyboardEvent) => void): ModeInstance;
     enter(priority?: number, reentrant?: boolean): number;
     exit(peek?: boolean): void;
@@ -242,6 +258,16 @@ export type LLMClientFn = (request: Record<string, unknown>, opts: {
 }) => void;
 
 export type LLMClientsMap = Record<string, LLMClientFn>;
+
+// chrome-types (official Google package) omits runtime.lastError as deprecated,
+// but it still exists in Chrome. Re-declare it so existing callback-style code compiles.
+declare global {
+    namespace chrome {
+        namespace runtime {
+            const lastError: { message?: string } | undefined;
+        }
+    }
+}
 
 declare global {
     var _isConfigReady: (() => Promise<boolean>) | undefined;

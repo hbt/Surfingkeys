@@ -6,10 +6,19 @@
 
 import { readdirSync, readFileSync, existsSync } from "fs";
 import * as path from "path";
+import { execSync } from "child_process";
+
+function getMainWorktreePath(): string {
+  const out = execSync("git worktree list --porcelain", { encoding: "utf8" });
+  const firstBlock = out.split("\n\n")[0];
+  const match = firstBlock.match(/^worktree (.+)$/m);
+  if (!match) throw new Error("Could not determine main worktree path");
+  return match[1].trim();
+}
 
 const REMOTE_HOST = "ctms-ops";
 const REMOTE_RUNS = `${REMOTE_HOST}:/home/ctmsadmin/projects/surfingkeys/test-artifacts/reports/runs/`;
-const LOCAL_RUNS  = path.resolve("test-artifacts/reports/runs");
+const LOCAL_RUNS  = path.join(getMainWorktreePath(), "test-artifacts/reports/runs");
 const QUEUE_DIR   = "/home/ctmsadmin/ci-queue";
 
 export interface RunStats {

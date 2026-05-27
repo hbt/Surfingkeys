@@ -1,3 +1,4 @@
+import type { CommandRegistryEntry, TrieNode } from '../../@types/surfingkeys';
 import { RUNTIME, dispatchSKEvent, runtime } from './common/runtime.js';
 import Mode from './common/mode.js';
 import createNormal from './common/normal.js';
@@ -140,7 +141,7 @@ function applySettings(api: any, normal: any, rs: any) {
  * @returns {Map} Registry mapping unique_id -> command metadata
  */
 function buildCommandRegistry(modes: any) {
-    const registry = new Map();
+    const registry = new Map<string, CommandRegistryEntry>();
     const modesToScan = [modes.normal, modes.insert, modes.visual, modes.hints];
 
     modesToScan.forEach(mode => {
@@ -160,7 +161,7 @@ function buildCommandRegistry(modes: any) {
 
             if (unique_id) {
                 if (registry.has(unique_id)) {
-                    console.warn(`Duplicate unique_id detected: ${unique_id} (existing: ${registry.get(unique_id).originalKey}, new: ${meta.word})`);
+                    console.warn(`Duplicate unique_id detected: ${unique_id} (existing: ${registry.get(unique_id)!.originalKey}, new: ${meta.word})`);
                 }
                 registry.set(unique_id, {
                     code: meta.code,
@@ -212,7 +213,7 @@ function _initModules() {
                 const mode = cmd.modeRef;
                 const previousMapNode = mode?.map_node;
                 if (mode?.mappings && cmd.originalKey) {
-                    let node = mode.mappings;
+                    let node: TrieNode | undefined = mode.mappings;
                     for (const ch of cmd.originalKey) {
                         node = node?.find(ch);
                     }
@@ -231,8 +232,8 @@ function _initModules() {
                 cmd.code();
                 document.documentElement.dataset.skInvokeResult = 'true';
 
-                if (mode && previousMapNode) {
-                    mode.map_node = previousMapNode;
+                if (mode) {
+                    mode.map_node = previousMapNode ?? null;
                 }
             } catch (_) {
                 document.documentElement.dataset.skInvokeResult = 'false';

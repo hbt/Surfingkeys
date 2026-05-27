@@ -716,7 +716,7 @@ function start(browser: Record<string, unknown>) {
                     var index = (command === 'previousTab') ? tab.index - 1 : tab.index + 1;
                     chrome.tabs.query({ windowId: tab.windowId }, function(tabs) {
                         index = ((index % tabs.length) + tabs.length) % tabs.length;
-                        chrome.tabs.update(tabs[index].id, { active: true });
+                        chrome.tabs.update(tabs[index].id!, { active: true });
                     });
                 });
                 break;
@@ -775,6 +775,7 @@ function start(browser: Record<string, unknown>) {
         chrome.runtime.onUserScriptMessage.addListener((m, s, r) => {
             m.fromUserScript = true;
             handleMessage(m, s, r);
+            return undefined;
         });
         chrome.runtime.onInstalled.addListener((_e) => {
             if (isUserScriptsAvailable()) {
@@ -933,7 +934,7 @@ function start(browser: Record<string, unknown>) {
             chrome.scripting.executeScript({
                 target: { tabId: sender.tab.id },
                 world: 'MAIN',
-                func: (code: string) => { (0, eval)(code); },
+                func: ((code: string) => { (0, eval)(code); }) as unknown as () => void,
                 args: [message.code]
             }).catch((e) => console.error('[mainWorldEval]', e));
         }
@@ -970,8 +971,8 @@ function start(browser: Record<string, unknown>) {
                 if (allTabs.length > 1) {
                     var otherTab = allTabs.find(function(t) { return t.id !== currentTab.id; });
                     if (otherTab) {
-                        chrome.tabs.update(otherTab.id, { active: true }, function() {
-                            chrome.tabs.update(currentTab.id, { active: true });
+                        chrome.tabs.update(otherTab.id!, { active: true }, function() {
+                            chrome.tabs.update(currentTab.id!, { active: true });
                         });
                     }
                 }
@@ -1178,7 +1179,7 @@ function start(browser: Record<string, unknown>) {
     };
     self.getTabs = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
         var tab = sender.tab;
-        var queryInfo = (message.queryInfo as chrome.tabs.QueryInfo) || {};
+        var queryInfo = (message.queryInfo as Parameters<typeof chrome.tabs.query>[0]) || {};
         chrome.tabs.query(queryInfo, function(tabs) {
             tabs = _filterByTitleOrUrl(tabs, message.filter as string) as chrome.tabs.Tab[];
             if (tabs.length > (message.tabsThreshold as number) && conf.tabsMRUOrder) {
@@ -1288,7 +1289,7 @@ function start(browser: Record<string, unknown>) {
         }
     };
     self.focusTabByIndex = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
-        var queryInfo = (message.queryInfo as chrome.tabs.QueryInfo) || {currentWindow: true};
+        var queryInfo = (message.queryInfo as Parameters<typeof chrome.tabs.query>[0]) || {currentWindow: true};
         chrome.tabs.query(queryInfo, function(tabs) {
             const repeats = message.repeats as number;
             if (repeats > 0 && repeats <= tabs.length) {
@@ -1352,7 +1353,7 @@ function start(browser: Record<string, unknown>) {
                     step = 1 - tabs.length ;
                 }
                 var to = _fixTo(tab.index + step, tabs.length - 1);
-                chrome.tabs.update(tabs[to].id, {
+                chrome.tabs.update(tabs[to].id!, {
                     active: true
                 });
             });
@@ -1373,7 +1374,7 @@ function start(browser: Record<string, unknown>) {
         chrome.tabs.query({ currentWindow: true }, function(tabs) {
             var target = tabs[index] || tabs[tabs.length - 1];
             if (target) {
-                chrome.tabs.update(target.id, { active: true });
+                chrome.tabs.update(target.id!, { active: true });
             }
         });
     };
@@ -1970,7 +1971,7 @@ function start(browser: Record<string, unknown>) {
         } else if (message.status === "lurking") {
             icon = "icons/48-l.png";
         }
-        const browserAction = isMV3 ? chrome.action : chrome.browserAction;
+        const browserAction = isMV3 ? chrome.action : (chrome as any).browserAction;
         browserAction.setIcon({
             path: icon,
             tabId: (sender.tab ? sender.tab.id : undefined)
@@ -2271,11 +2272,11 @@ function start(browser: Record<string, unknown>) {
             chrome.tabs.getZoomSettings(tabId, function(settings) {
                 const defaultZoom = settings.defaultZoomFactor ?
                     settings.defaultZoomFactor : 1;
-                chrome.tabs.setZoom(tabId, defaultZoom);
+                chrome.tabs.setZoom(tabId!, defaultZoom);
             });
         } else {
             chrome.tabs.getZoom(tabId, function(zf) {
-                chrome.tabs.setZoom(tabId, zf + zoomFactor);
+                chrome.tabs.setZoom(tabId!, zf + zoomFactor);
             });
         }
     };
@@ -2345,7 +2346,7 @@ function start(browser: Record<string, unknown>) {
         }
     };
     self.captureVisibleTab = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
-        chrome.tabs.captureVisibleTab({format: "png"}, function(dataUrl) {
+        chrome.tabs.captureVisibleTab(undefined, {format: "png"}, function(dataUrl: string) {
             if (chrome.runtime.lastError || !dataUrl) {
                 console.error("[capture] captureVisibleTab failed:", chrome.runtime.lastError?.message);
                 _response(message, sendResponse, { dataUrl: null });
@@ -2357,7 +2358,7 @@ function start(browser: Record<string, unknown>) {
         });
     };
     self.getCaptureSize = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
-        chrome.tabs.captureVisibleTab({format: "png"}, function(dataUrl) {
+        chrome.tabs.captureVisibleTab(undefined, {format: "png"}, function(dataUrl: string) {
             if (chrome.runtime.lastError || !dataUrl) {
                 _response(message, sendResponse, { width: 0, height: 0 });
                 return;
@@ -2655,8 +2656,12 @@ function start(browser: Record<string, unknown>) {
         chrome.windows.create({url: (conf.newTabUrl as string) || 'chrome://newtab'});
     };
 
+    self.openNewIncognitoWindow = function(_message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        chrome.windows.create({url: (conf.newTabUrl as string) || 'chrome://newtab', incognito: true});
+    };
+
     var userAgent: string;
-    function _onBeforeSendHeaders(details: chrome.webRequest.OnBeforeSendHeadersDetails) {
+    function _onBeforeSendHeaders(details: Parameters<Parameters<typeof chrome.webRequest.onBeforeSendHeaders.addListener>[0]>[0]) {
         const requestHeaders = details.requestHeaders || [];
         for (var i = 0; i < requestHeaders.length; ++i) {
             if (requestHeaders[i].name === 'User-Agent') {

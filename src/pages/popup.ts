@@ -39,7 +39,7 @@ function RUNTIME(action: string, args: Record<string, unknown>, callback?: (resp
     (args = args || {}).action = action;
     args['needResponse'] = callback !== undefined;
     if (callback !== undefined) {
-        chrome.runtime.sendMessage(args, callback);
+        chrome.runtime.sendMessage(args).then(callback);
     } else {
         chrome.runtime.sendMessage(args);
     }

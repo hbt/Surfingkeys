@@ -3,6 +3,15 @@ import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
+async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
+    await page.evaluate(([f, a]: [string, unknown[]]) => {
+        document.dispatchEvent(new CustomEvent('surfingkeys:api', {
+            detail: [f, ...a], bubbles: true, composed: true,
+        }));
+    }, [fn, args] as [string, unknown[]]);
+    await page.waitForTimeout(100);
+}
+
 const DEBUG = !!process.env.DEBUG;
 
 const SUITE_LABEL = 'cmd_tab_detach';
@@ -73,6 +82,8 @@ test.describe('cmd_tab_detach (Playwright)', () => {
 
             await tab1.bringToFront();
             await tab1.waitForTimeout(300);
+            await callSKApi(tab1, 'unmapAllExcept', []);
+            await callSKApi(tab1, 'mapcmdkey', 'g-001', 'cmd_tab_detach');
 
             const beforeWindows = await getAllWindowsViaSW(context);
             const beforeCount = beforeWindows.length;

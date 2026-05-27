@@ -1,4 +1,4 @@
-import type { MapKeyAnnotation, MapKeyOptions, ModeInstance } from '../../../@types/surfingkeys';
+import type { CommandRegistryEntry, MapKeyAnnotation, MapKeyOptions, ModeInstance } from '../../../@types/surfingkeys';
 import { RUNTIME, dispatchSKEvent } from './runtime.js';
 import Trie from './trie';
 import Mode from './mode';
@@ -24,7 +24,7 @@ import {
 
 function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual: any, front: any, browser: any) {
     // Command registry - use closure variable for reliable access across all functions
-    let commandRegistry = new Map();
+    let commandRegistry = new Map<string, CommandRegistryEntry>();
 
     function createKeyTarget(code: any, ag: any, repeatIgnore: any) {
         var keybound: {
@@ -84,7 +84,9 @@ function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual:
             if (options.unique_id && commandRegistry) {
                 commandRegistry.set(options.unique_id, {
                     code: jscode,
-                    annotation: { unique_id: options.unique_id, short: annotation },
+                    annotation: typeof annotation === 'string'
+                        ? { unique_id: options.unique_id, short: annotation }
+                        : { ...annotation, unique_id: options.unique_id },
                     originalKey: keys,
                     mode: mode.name,
                     modeRef: mode,
@@ -172,22 +174,13 @@ function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual:
             repeatIgnore: command.repeatIgnore
         });
 
-        // Extract annotation string - handle both object and string annotations
-        let annotationStr;
-        if (typeof command.annotation === 'object' && command.annotation !== null && !Array.isArray(command.annotation)) {
-            // Structured annotation object - use the short description
-            annotationStr = command.annotation.short || unique_id;
-        } else {
-            // Legacy string or array annotation
-            annotationStr = command.annotation;
-        }
-
+        // Pass the full annotation object so structured fields (e.g. selectionModify) are preserved
         if (command.mode === 'Insert') {
-            imapkey(keys, annotationStr, command.code, mappingOptions);
+            imapkey(keys, command.annotation, command.code, mappingOptions);
         } else if (command.mode === 'Visual') {
-            vmapkey(keys, annotationStr, command.code, mappingOptions);
+            vmapkey(keys, command.annotation, command.code, mappingOptions);
         } else {
-            mapkey(keys, annotationStr, command.code, mappingOptions);
+            mapkey(keys, command.annotation, command.code, mappingOptions);
         }
     }
 

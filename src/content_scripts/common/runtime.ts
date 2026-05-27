@@ -148,6 +148,7 @@ const runtime = (function() {
         if ((_handlers as any)[msg.subject]) {
             (_handlers as any)[msg.subject](msg, sender, response);
         }
+        return undefined;
     });
 
     self.getTopURL = function(cb) {
