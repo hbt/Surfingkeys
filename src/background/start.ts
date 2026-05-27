@@ -2560,18 +2560,21 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
-    self.bookmarkCutFromFolder = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+    self.bookmarkCutFromFolder = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const folder = message.folder as string;
         const reverse = message.reverse as boolean;
-        const repeats = Math.min(Math.max(message.repeats as number || 1, 1), 50);
+        const repeats = Math.min(Math.max(message.repeats as number, 1), 50);
+        const tabId = sender.tab?.id;
         // Copy all first (backup), then remove N items
-        (self.bookmarkCopyFolder as (m: Msg, s: chrome.runtime.MessageSender, r: (response: unknown) => void) => void)({ ...message, reverse, repeats: -1 } as Msg, _sender, _sendResponse);
+        (self.bookmarkCopyFolder as (m: Msg, s: chrome.runtime.MessageSender, r: (response: unknown) => void) => void)({ ...message, reverse, repeats: -1 } as Msg, sender, _sendResponse);
         _getBookmarkFolderByName(folder, function(folderNode) {
             if (!folderNode) return;
             chrome.bookmarks.getChildren(folderNode.id, function(children) {
                 let items = [...children];
                 if (reverse) items = items.reverse();
-                items.slice(0, repeats).forEach(c => chrome.bookmarks.remove(c.id));
+                const toRemove = items.slice(0, repeats);
+                toRemove.forEach(c => chrome.bookmarks.remove(c.id));
+                sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Cut ${toRemove.length} from [${folder}]` });
             });
         });
     };

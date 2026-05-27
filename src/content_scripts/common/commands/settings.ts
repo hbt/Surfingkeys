@@ -284,6 +284,18 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkRemoveM', { folder, magic: 'CurrentTab', repeats: 1 });
     });
 
+    mapkey('g-046', {
+        short: "Cut bookmark folder URLs (reversed)",
+        unique_id: "cmd_bookmark_cut_folder_reversed",
+        feature_group: 14,
+        category: "settings",
+        description: "Copy then remove URLs from bookmark folder in reverse order (next key selects folder)",
+        tags: ["settings", "bookmarks", "cut"]
+    }, function(key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        if (folder) RUNTIME('bookmarkCutFromFolder', { folder, reverse: true, repeats: 1 });
+    });
+
     } // end !Safari guard
 
 }
