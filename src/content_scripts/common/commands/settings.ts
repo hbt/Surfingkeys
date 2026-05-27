@@ -248,6 +248,18 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: true, repeats: -1 });
     });
 
+    mapkey('g-043', {
+        short: "Copy bookmark folder URLs (ordered)",
+        unique_id: "cmd_bookmark_copy_folder_ordered",
+        feature_group: 14,
+        category: "settings",
+        description: "Copy all URLs from bookmark folder to clipboard in order (next key selects folder)",
+        tags: ["settings", "bookmarks", "copy"]
+    }, function(key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: false, repeats: -1 });
+    });
+
     } // end !Safari guard
 
 }

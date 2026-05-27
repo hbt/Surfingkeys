@@ -3,11 +3,11 @@ import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
-const SUITE_LABEL = 'cmd_bookmark_copy_folder_reversed';
+const SUITE_LABEL = 'cmd_bookmark_copy_folder_ordered';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const KEY = 'b';
-const UNIQUE_ID = 'cmd_bookmark_copy_folder_reversed';
-const TEST_FOLDER = 'test-copy-reversed-folder';
+const UNIQUE_ID = 'cmd_bookmark_copy_folder_ordered';
+const TEST_FOLDER = 'test-copy-ordered-folder';
 const FOLDER_KEY = 'm';
 
 const URL_A = 'https://example.com/alpha';
@@ -90,7 +90,7 @@ async function getBookmarksInFolder(ctx: BrowserContext, folderName: string): Pr
     }, folderName);
 }
 
-test.describe('cmd_bookmark_copy_folder_reversed (pending-key, Playwright)', () => {
+test.describe('cmd_bookmark_copy_folder_ordered (pending-key, Playwright)', () => {
     test.setTimeout(15_000);
 
     test.beforeAll(async () => {
