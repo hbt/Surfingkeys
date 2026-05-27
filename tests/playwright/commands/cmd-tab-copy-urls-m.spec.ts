@@ -257,7 +257,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
             test.info().title,
             async () => {
                 await closeAllExcept(page);
-                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await page.waitForTimeout(100);
 
                 const right1 = await context.newPage();
                 await right1.goto(`${FIXTURE_URL}#right1_e`, { waitUntil: 'load' });
@@ -367,7 +367,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
             test.info().title,
             async () => {
                 await closeAllExcept(page);
-                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await page.waitForTimeout(100);
 
                 const right1 = await context.newPage();
                 await right1.goto(`${FIXTURE_URL}#right1_E`, { waitUntil: 'load' });
@@ -475,7 +475,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
             test.info().title,
             async () => {
                 await closeAllExcept(page);
-                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await page.waitForTimeout(100);
 
                 const extra1 = await context.newPage();
                 await extra1.goto(`${FIXTURE_URL}#extra1_c`, { waitUntil: 'load' });
@@ -525,7 +525,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
             test.info().title,
             async () => {
                 await closeAllExcept(page);
-                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await page.waitForTimeout(100);
 
                 // Extra tab in current window
                 const extra = await context.newPage();
@@ -577,7 +577,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
             test.info().title,
             async () => {
                 await closeAllExcept(page);
-                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await page.waitForTimeout(100);
 
                 // Add an unrelated sibling
                 const sibling = await openSiblingTabViaSW(context, `${FIXTURE_URL}#sibling_k`);
@@ -637,7 +637,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
             test.info().title,
             async () => {
                 await closeAllExcept(page);
-                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await page.waitForTimeout(100);
 
                 const sibling = await openSiblingTabViaSW(context, `${FIXTURE_URL}#sibling_K`);
                 await sibling.waitForTimeout(200);
@@ -695,7 +695,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
             test.info().title,
             async () => {
                 await closeAllExcept(page);
-                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await page.waitForTimeout(100);
 
                 const sw = context.serviceWorkers()[0];
 
@@ -758,7 +758,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
             test.info().title,
             async () => {
                 await closeAllExcept(page);
-                await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await page.waitForTimeout(100);
 
                 // Second window with 2 tabs
                 const win2Id = await openWindowViaSW(`${FIXTURE_URL}#win2a_W`);
