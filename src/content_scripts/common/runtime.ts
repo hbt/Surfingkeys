@@ -115,7 +115,23 @@ const runtime = (function() {
             caretViewport: [] as number[],
             mouseSelectToQuery: [],
             useNeovim: false,
-            useLocalMarkdownAPI: true
+            useLocalMarkdownAPI: true,
+            bookmarkFolders: undefined,
+            bookmarkMagicKeys: {
+                'h': 'DirectionLeft',
+                'l': 'DirectionRight',
+                'H': 'DirectionLeftInclusive',
+                'L': 'DirectionRightInclusive',
+                't': 'CurrentTab',
+                'a': 'AllInWindow',
+                'A': 'AllExceptActiveAllWindows',
+                'c': 'AllExceptActive',
+                'k': 'ChildrenTabs',
+                'K': 'ChildrenTabsRecursively',
+                'w': 'OtherWindowsNoPinned',
+                'W': 'AllOtherWindowsTabs',
+                'o': 'AllIncognitoTabs',
+            } as Record<string, string>
         },
     }, _handlers = {};
 

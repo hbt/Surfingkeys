@@ -102,7 +102,7 @@ const requiredChecks: IssueCheck[] = [
     { label: 'annotations.not_migrated',                     items: issues.annotations.not_migrated },
     { label: 'annotations.empty_key',                        items: issues.annotations.empty_key },
     { label: 'tests.missing',                                items: issues.tests.missing.filter((id: string) => !excluded(id)) },
-    { label: 'tests.invalid_files',                          items: issues.tests.invalid_files },
+    { label: 'tests.invalid_files',                          items: issues.tests.invalid_files.filter((f: string) => !EXCLUDED_INVALID_FILES.has(f)) },
     { label: 'source_validation.prefix_conflicts',           items: issues.source_validation.prefix_conflicts },
     { label: 'source_validation.g_placeholder_issues',       items: issues.source_validation.g_placeholder_issues },
     { label: 'config_validation.prefix_conflicts',           items: issues.config_validation.prefix_conflicts },

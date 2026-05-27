@@ -368,6 +368,9 @@ function start(browser?: any) {
             runtime.on('showBanner', function(msg, _sender, _response) {
                 showBanner(msg.message, 3000);
             });
+            runtime.on('writeClipboard', function(msg: any, _sender, _response) {
+                navigator.clipboard.writeText(msg.text as string);
+            });
             document.addEventListener("surfingkeys:ensureFrontEnd", function(_evt) {
                 modes.front.attach();
             });

@@ -199,6 +199,126 @@ export default function registerSettings(
     }, function() {
         RUNTIME('removeBookmark');
     });
+
+    mapkey('g-039', {
+        short: "Toggle bookmark in folder",
+        unique_id: "cmd_bookmark_toggle_folder",
+        feature_group: 14,
+        category: "settings",
+        description: "Toggle current page in bookmark folder (next key selects folder from bookmarkFolders config)",
+        tags: ["settings", "bookmarks", "toggle"]
+    }, function(key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        if (folder) RUNTIME('bookmarkToggleFolder', { folder });
+    });
+    mapkey('g-040', {
+        short: "Empty bookmark folder",
+        unique_id: "cmd_bookmark_empty_folder",
+        feature_group: 14,
+        category: "settings",
+        description: "Remove all bookmarks from folder (next key selects folder from bookmarkFolders config)",
+        tags: ["settings", "bookmarks", "empty"]
+    }, function(key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        if (folder) RUNTIME('bookmarkEmptyFolder', { folder });
+    });
+
+    mapkey('g-041', {
+        short: "Lookup URL in bookmark folders",
+        unique_id: "cmd_bookmark_lookup_url",
+        feature_group: 14,
+        category: "settings",
+        description: "Show which bookmark folders contain the current URL",
+        tags: ["settings", "bookmarks", "lookup"]
+    }, function() {
+        RUNTIME('bookmarkLookupCurrentURL', {}, function(r: any) {
+            showPopup(r.msg);
+        });
+    });
+
+    mapkey('g-042', {
+        short: "Copy bookmark folder URLs (reversed)",
+        unique_id: "cmd_bookmark_copy_folder_reversed",
+        feature_group: 14,
+        category: "settings",
+        description: "Copy all URLs from bookmark folder to clipboard in reverse order (next key selects folder)",
+        tags: ["settings", "bookmarks", "copy"]
+    }, function(this: any, key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        const r = parseInt(this.repeats) || 1;
+        if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: true, repeats: r > 1 ? r : -1 });
+    });
+
+    mapkey('g-043', {
+        short: "Copy bookmark folder URLs (ordered)",
+        unique_id: "cmd_bookmark_copy_folder_ordered",
+        feature_group: 14,
+        category: "settings",
+        description: "Copy all URLs from bookmark folder to clipboard in order (next key selects folder)",
+        tags: ["settings", "bookmarks", "copy"]
+    }, function(this: any, key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        const r = parseInt(this.repeats) || 1;
+        if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: false, repeats: r > 1 ? r : -1 });
+    });
+
+    mapkey('g-044', {
+        short: "Add tab(s) to bookmark folder (magic)",
+        unique_id: "cmd_bookmark_add_m",
+        feature_group: 14,
+        category: "settings",
+        description: "Bookmark tab(s) in folder: next key = folder (bookmarkFolders), then key = magic direction (bookmarkMagicKeys)",
+        tags: ["settings", "bookmarks", "add", "magic"]
+    }, function(this: any, folderKey: string) {
+        const folder = runtime.conf.bookmarkFolders?.[folderKey];
+        if (!folder) return;
+        this.pendingMap = function(magicKey: string) {
+            const magic = (runtime.conf.bookmarkMagicKeys as Record<string, string>)?.[magicKey] ?? 'CurrentTab';
+            RUNTIME('bookmarkAddM', { folder, magic, repeats: 1 });
+        };
+    });
+
+    mapkey('g-045', {
+        short: "Remove tab(s) from bookmark folder (magic)",
+        unique_id: "cmd_bookmark_remove_m",
+        feature_group: 14,
+        category: "settings",
+        description: "Remove tab(s) from bookmark folder: next key = folder (bookmarkFolders), then key = magic direction (bookmarkMagicKeys)",
+        tags: ["settings", "bookmarks", "remove", "magic"]
+    }, function(this: any, folderKey: string) {
+        const folder = runtime.conf.bookmarkFolders?.[folderKey];
+        if (!folder) return;
+        this.pendingMap = function(magicKey: string) {
+            const magic = (runtime.conf.bookmarkMagicKeys as Record<string, string>)?.[magicKey] ?? 'CurrentTab';
+            RUNTIME('bookmarkRemoveM', { folder, magic, repeats: 1 });
+        };
+    });
+
+    mapkey('g-046', {
+        short: "Cut bookmark folder URLs (reversed)",
+        unique_id: "cmd_bookmark_cut_folder_reversed",
+        feature_group: 14,
+        category: "settings",
+        description: "Copy then remove URLs from bookmark folder in reverse order (next key selects folder)",
+        tags: ["settings", "bookmarks", "cut"]
+    }, function(this: any, key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        if (folder) RUNTIME('bookmarkCutFromFolder', { folder, reverse: true, repeats: parseInt(this.repeats) || 1 });
+    });
+
+    mapkey('g-047', {
+        short: "Cut bookmark folder URLs (ordered)",
+        unique_id: "cmd_bookmark_cut_folder_ordered",
+        feature_group: 14,
+        category: "settings",
+        description: "Copy then remove URLs from bookmark folder in order (next key selects folder)",
+        tags: ["settings", "bookmarks", "cut"]
+    }, function(this: any, key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        if (folder) RUNTIME('bookmarkCutFromFolder', { folder, reverse: false, repeats: parseInt(this.repeats) || 1 });
+    });
+
     } // end !Safari guard
+
 }
 

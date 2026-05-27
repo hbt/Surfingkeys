@@ -113,6 +113,8 @@ export interface SurfingKeysConf {
     mouseSelectToQuery: unknown[];
     useNeovim: boolean;
     useLocalMarkdownAPI: boolean;
+    bookmarkFolders?: Record<string, string>;
+    bookmarkMagicKeys?: Record<string, string>;
 }
 
 export interface MapKeyAnnotation {
@@ -215,7 +217,8 @@ type NamedAction =
     | { action: 'toggleBlocklist'; url?: string }
     | { action: 'read'; text: string; tone?: number }
     | { action: 'getTopURL' }
-    | { action: 'userLog'; message: string; level?: string };
+    | { action: 'userLog'; message: string; level?: string }
+    | { action: 'bookmarkToggleFolder'; folder: string };
 
 // Catch-all for the remaining actions:
 type UnknownAction = { action: string; [key: string]: unknown };
@@ -237,6 +240,14 @@ export interface GistComment { id: number; body: string; }
 // Internal data structures
 export interface ScrollPositionData { scrollLeft: number; scrollTop: number; }
 export interface BookmarkFolder { id: string; title: string; }
+
+// Message type for bookmark handlers that carry folder/repeat/magic fields
+export interface BookmarkMsg {
+    folder: string;
+    reverse?: boolean;
+    repeats?: number;
+    magic?: string;
+}
 export interface LLMClientRequest { tabId: number; frameId: number; }
 
 // Message handler type
