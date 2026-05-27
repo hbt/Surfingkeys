@@ -53,16 +53,16 @@ async function cleanupFolder(ctx: BrowserContext, folderName: string): Promise<v
     }, folderName);
 }
 
-async function getBookmarksInFolder(ctx: BrowserContext, folderName: string): Promise<{ id: string; url?: string }[]> {
+async function getBookmarksInFolder(ctx: BrowserContext, folderName: string): Promise<{ id: string; url?: string; title?: string }[]> {
     const sw = ctx.serviceWorkers()[0];
     if (!sw) throw new Error('No service worker found');
     return sw.evaluate((name: string) => {
-        return new Promise<{ id: string; url?: string }[]>((resolve) => {
+        return new Promise<{ id: string; url?: string; title?: string }[]>((resolve) => {
             chrome.bookmarks.search({ title: name }, (results) => {
                 const folder = results.find(r => !r.url && r.title === name);
                 if (!folder) { resolve([]); return; }
                 chrome.bookmarks.getChildren(folder.id, (children) => {
-                    resolve((children || []).map(c => ({ id: c.id, url: c.url })));
+                    resolve((children || []).map(c => ({ id: c.id, url: c.url, title: c.title })));
                 });
             });
         });
@@ -108,6 +108,29 @@ test.describe('cmd_bookmark_toggle_folder (pending-key, Playwright)', () => {
             const children = await getBookmarksInFolder(context, TEST_FOLDER);
             expect(children).toHaveLength(1);
             expect(children[0].url).toBe(FIXTURE_URL);
+            expect(children[0].title).not.toMatch(/^\[\d+\] /);
+            expect(children[0].title).toBeTruthy();
+        });
+    });
+
+    test('round-trip: add then remove via two toggles', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.keyboard.press(KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(300);
+
+            const after_add = await getBookmarksInFolder(context, TEST_FOLDER);
+            expect(after_add).toHaveLength(1);
+            expect(after_add[0].url).toBe(FIXTURE_URL);
+
+            await page.keyboard.press(KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(300);
+
+            const after_remove = await getBookmarksInFolder(context, TEST_FOLDER);
+            expect(after_remove).toHaveLength(0);
         });
     });
 

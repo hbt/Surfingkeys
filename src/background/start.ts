@@ -2445,7 +2445,7 @@ function start(browser: Record<string, unknown>) {
     self.bookmarkToggleFolder = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const folder = message.folder as string;
         const url = _normalizeUrl(sender.tab!.url!);
-        const title = sender.tab!.title || url;
+        const title = (sender.tab!.title || url).replace(/^\[\d+\] /, '');
         _getBookmarkFolderByName(folder, function(folderNode) {
             if (!folderNode) {
                 chrome.bookmarks.create({ parentId: "1", title: folder }, function(newFolder) {
