@@ -140,7 +140,7 @@ export default function registerNavigation(
         });
     });
 
-    mapkey('g-037', {
+    mapkey('g-004', {
         short: "Open new window",
         unique_id: "cmd_nav_new_window",
         feature_group: 8,
@@ -151,7 +151,7 @@ export default function registerNavigation(
         RUNTIME('openNewWindow');
     });
 
-    mapkey('g-038', {
+    mapkey('g-005', {
         short: "Open new incognito window",
         unique_id: "cmd_nav_new_incognito_window",
         feature_group: 8,

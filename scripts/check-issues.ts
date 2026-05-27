@@ -91,19 +91,6 @@ const EXCLUDED_IDS = new Set([
     'cmd_tools_source_neovim',
     // captureVisibleTab — Chrome service worker API doesn't function in headless Playwright
     'cmd_capture_full_page',
-    // Legacy close-magic per-direction commands — tested via cmd-tab-close-m.spec.ts (pending removal in todo #3)
-    'cmd_tab_close_current',
-    'cmd_tab_close_magic_right',
-    'cmd_tab_close_magic_right_inclusive',
-    'cmd_tab_close_magic_left',
-    'cmd_tab_close_magic_left_inclusive',
-    'cmd_tab_close_magic_except_active',
-    'cmd_tab_close_magic_all_window',
-    'cmd_tab_close_magic_all_windows',
-    'cmd_tab_close_magic_children',
-    'cmd_tab_close_magic_children_recursive',
-    'cmd_tab_close_magic_other_windows',
-    'cmd_tab_close_magic_other_windows_no_pinned',
 ]);
 
 const excluded = (id: string) => EXCLUDED_IDS.has(id);

@@ -1162,7 +1162,7 @@ function createNormal(insert: any) {
             RUNTIME("previousTab");
         }
     });
-    self.mappings.add("g-035", {
+    self.mappings.add("g-002", {
         annotation: {
             short: "Go to next tab",
             unique_id: "cmd_tab_next",
@@ -1176,7 +1176,7 @@ function createNormal(insert: any) {
             RUNTIME("nextTab");
         }
     });
-    self.mappings.add("g-036", {
+    self.mappings.add("g-003", {
         annotation: {
             short: "Go to tab by index",
             unique_id: "cmd_tab_goto_index",
