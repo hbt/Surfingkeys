@@ -2544,6 +2544,7 @@ function start(browser: Record<string, unknown>) {
     self.bookmarkRemoveM = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const folder = message.folder as string;
         const repeats = message.repeats as number;
+        const tabId = sender.tab?.id;
         chrome.tabs.query({}, function(allTabs) {
             const windowTabs = allTabs.filter(t => t.windowId === sender.tab?.windowId);
             const tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, windowTabs, allTabs);
@@ -2554,6 +2555,7 @@ function start(browser: Record<string, unknown>) {
                     const bid = t.url ? urlToId.get(_normalizeUrl(t.url)) : undefined;
                     if (bid) chrome.bookmarks.remove(bid);
                 });
+                sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Removed from [${folder}]` });
             });
         });
     };

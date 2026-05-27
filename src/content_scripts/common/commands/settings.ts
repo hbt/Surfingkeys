@@ -272,6 +272,18 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkAddM', { folder, magic: 'CurrentTab', repeats: 1 });
     });
 
+    mapkey('g-045', {
+        short: "Remove current tab from bookmark folder",
+        unique_id: "cmd_bookmark_remove_m",
+        feature_group: 14,
+        category: "settings",
+        description: "Remove current tab from bookmark folder (next key selects folder from bookmarkFolders config)",
+        tags: ["settings", "bookmarks", "remove"]
+    }, function(key: string) {
+        const folder = runtime.conf.bookmarkFolders?.[key];
+        if (folder) RUNTIME('bookmarkRemoveM', { folder, magic: 'CurrentTab', repeats: 1 });
+    });
+
     } // end !Safari guard
 
 }
