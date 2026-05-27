@@ -9,6 +9,7 @@ const KEY = 'b';
 const UNIQUE_ID = 'cmd_bookmark_remove_m';
 const TEST_FOLDER = 'test-remove-m-folder';
 const FOLDER_KEY = 'm';
+const MAGIC_KEY = 't'; // 't' → CurrentTab
 
 let context: BrowserContext;
 let page: Page;
@@ -92,6 +93,7 @@ test.describe('cmd_bookmark_remove_m (pending-key, Playwright)', () => {
         await callSKApi(page, 'unmapAllExcept', []);
         await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
         await setConf(page, 'bookmarkFolders', { [FOLDER_KEY]: TEST_FOLDER });
+        await setConf(page, 'bookmarkMagicKeys', { [MAGIC_KEY]: 'CurrentTab' });
     });
 
     test.afterEach(async () => {
@@ -115,10 +117,65 @@ test.describe('cmd_bookmark_remove_m (pending-key, Playwright)', () => {
             await page.keyboard.press(KEY);
             await page.waitForTimeout(50);
             await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(MAGIC_KEY);
             await page.waitForTimeout(500);
 
             const after = await getBookmarksInFolder(context, TEST_FOLDER);
             expect(after).toHaveLength(0);
+        });
+    });
+
+    test('removes all tabs to the right when magic key is DirectionRight', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await setConf(page, 'bookmarkMagicKeys', { [MAGIC_KEY]: 'CurrentTab', 'e': 'DirectionRight' });
+
+            const rightUrls = [
+                `${FIXTURE_BASE}/scroll-test.html#right1`,
+                `${FIXTURE_BASE}/scroll-test.html#right2`,
+                `${FIXTURE_BASE}/scroll-test.html#right3`,
+            ];
+
+            // Pre-populate the folder with the 3 right-tab URLs + an unrelated one
+            const sw = context.serviceWorkers()[0];
+            await sw.evaluate(({ name, urls }: { name: string; urls: string[] }) => {
+                return new Promise<void>((resolve) => {
+                    chrome.bookmarks.create({ parentId: '1', title: name }, (folder) => {
+                        let remaining = urls.length;
+                        for (const url of urls) {
+                            chrome.bookmarks.create({ parentId: folder.id, title: url, url }, () => {
+                                remaining -= 1;
+                                if (remaining === 0) resolve();
+                            });
+                        }
+                    });
+                });
+            }, { name: TEST_FOLDER, urls: rightUrls });
+
+            const rightPages = [];
+            for (const url of rightUrls) {
+                const p = await context.newPage();
+                await p.goto(url, { waitUntil: 'load' });
+                rightPages.push(p);
+            }
+
+            await page.bringToFront();
+            await page.waitForTimeout(200);
+
+            // b → m → e  (trigger → folder key → magic key)
+            await page.keyboard.press(KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press('e');
+            await page.waitForTimeout(500);
+
+            const after = await getBookmarksInFolder(context, TEST_FOLDER);
+            expect(after).toHaveLength(0);
+
+            for (const p of rightPages) {
+                await p.close();
+            }
         });
     });
 
@@ -137,6 +194,8 @@ test.describe('cmd_bookmark_remove_m (pending-key, Playwright)', () => {
             await page.keyboard.press(KEY);
             await page.waitForTimeout(50);
             await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(MAGIC_KEY);
             await page.waitForTimeout(500);
 
             // Different URL → should remain untouched

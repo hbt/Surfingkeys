@@ -114,6 +114,7 @@ export interface SurfingKeysConf {
     useNeovim: boolean;
     useLocalMarkdownAPI: boolean;
     bookmarkFolders?: Record<string, string>;
+    bookmarkMagicKeys?: Record<string, string>;
 }
 
 export interface MapKeyAnnotation {

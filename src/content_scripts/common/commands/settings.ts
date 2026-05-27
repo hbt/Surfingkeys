@@ -263,27 +263,35 @@ export default function registerSettings(
     });
 
     mapkey('g-044', {
-        short: "Add current tab to bookmark folder",
+        short: "Add tab(s) to bookmark folder (magic)",
         unique_id: "cmd_bookmark_add_m",
         feature_group: 14,
         category: "settings",
-        description: "Bookmark current tab in folder (next key selects folder from bookmarkFolders config)",
-        tags: ["settings", "bookmarks", "add"]
-    }, function(key: string) {
-        const folder = runtime.conf.bookmarkFolders?.[key];
-        if (folder) RUNTIME('bookmarkAddM', { folder, magic: 'CurrentTab', repeats: 1 });
+        description: "Bookmark tab(s) in folder: next key = folder (bookmarkFolders), then key = magic direction (bookmarkMagicKeys)",
+        tags: ["settings", "bookmarks", "add", "magic"]
+    }, function(this: any, folderKey: string) {
+        const folder = runtime.conf.bookmarkFolders?.[folderKey];
+        if (!folder) return;
+        this.pendingMap = function(magicKey: string) {
+            const magic = (runtime.conf.bookmarkMagicKeys as Record<string, string>)?.[magicKey] ?? 'CurrentTab';
+            RUNTIME('bookmarkAddM', { folder, magic, repeats: 1 });
+        };
     });
 
     mapkey('g-045', {
-        short: "Remove current tab from bookmark folder",
+        short: "Remove tab(s) from bookmark folder (magic)",
         unique_id: "cmd_bookmark_remove_m",
         feature_group: 14,
         category: "settings",
-        description: "Remove current tab from bookmark folder (next key selects folder from bookmarkFolders config)",
-        tags: ["settings", "bookmarks", "remove"]
-    }, function(key: string) {
-        const folder = runtime.conf.bookmarkFolders?.[key];
-        if (folder) RUNTIME('bookmarkRemoveM', { folder, magic: 'CurrentTab', repeats: 1 });
+        description: "Remove tab(s) from bookmark folder: next key = folder (bookmarkFolders), then key = magic direction (bookmarkMagicKeys)",
+        tags: ["settings", "bookmarks", "remove", "magic"]
+    }, function(this: any, folderKey: string) {
+        const folder = runtime.conf.bookmarkFolders?.[folderKey];
+        if (!folder) return;
+        this.pendingMap = function(magicKey: string) {
+            const magic = (runtime.conf.bookmarkMagicKeys as Record<string, string>)?.[magicKey] ?? 'CurrentTab';
+            RUNTIME('bookmarkRemoveM', { folder, magic, repeats: 1 });
+        };
     });
 
     mapkey('g-046', {

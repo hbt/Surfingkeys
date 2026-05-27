@@ -299,8 +299,17 @@ Mode.handleMapKey = function(this: any, event: any, onNoMatched?: any) {
         var pf = this.pendingMap.bind(this);
         event.sk_stopPropagation = (!this.map_node.meta.stopPropagation
             || this.map_node.meta.stopPropagation(key));
+        this.pendingMap = null;
         pf(key);
-        actionDone = Mode.finish(this);
+        if (this.pendingMap !== null) {
+            if (this.isTrustedEvent) {
+                dispatchSKEvent("front", ['showKeystroke', key, this]);
+            }
+            actionDone = true;
+            event.sk_stopPropagation = true;
+        } else {
+            actionDone = Mode.finish(this);
+        }
     } else if (this.repeats !== undefined &&
         this.map_node === this.mappings &&
         runtime.conf.digitForRepeat &&
