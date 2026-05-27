@@ -2473,10 +2473,11 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
-    self.bookmarkCopyFolder = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+    self.bookmarkCopyFolder = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const folder = message.folder as string;
         const reverse = message.reverse as boolean;
         const repeats = message.repeats as number; // -1 = all
+        const tabId = sender.tab?.id;
         _getBookmarkFolderByName(folder, function(folderNode) {
             if (!folderNode) return;
             chrome.bookmarks.getSubTree(folderNode.id, function(subtree) {
@@ -2487,7 +2488,9 @@ function start(browser: Record<string, unknown>) {
                 )];
                 if (reverse) urls = urls.reverse();
                 if (repeats > 0) urls = urls.slice(0, repeats);
-                navigator.clipboard.writeText(urls.join('\n'));
+                navigator.clipboard.writeText(urls.join('\n')).then(function() {
+                    sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Copied ${urls.length} URLs from [${folder}]` });
+                });
             });
         });
     };
