@@ -2444,21 +2444,28 @@ function start(browser: Record<string, unknown>) {
 
     self.bookmarkToggleFolder = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const folder = message.folder as string;
+        const tabId = sender.tab!.id;
         const url = _normalizeUrl(sender.tab!.url!);
         const title = (sender.tab!.title || url).replace(/^\[\d+\] /, '');
         _getBookmarkFolderByName(folder, function(folderNode) {
             if (!folderNode) {
                 chrome.bookmarks.create({ parentId: "1", title: folder }, function(newFolder) {
-                    chrome.bookmarks.create({ parentId: newFolder.id, title, url });
+                    chrome.bookmarks.create({ parentId: newFolder.id, title, url }, function() {
+                        sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Added to [${folder}]` });
+                    });
                 });
                 return;
             }
             chrome.bookmarks.getChildren(folderNode.id, function(children) {
                 const existing = children.find(c => c.url && _normalizeUrl(c.url) === url);
                 if (existing) {
-                    chrome.bookmarks.remove(existing.id);
+                    chrome.bookmarks.remove(existing.id, function() {
+                        sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Removed from [${folder}]` });
+                    });
                 } else {
-                    chrome.bookmarks.create({ parentId: folderNode.id, title, url });
+                    chrome.bookmarks.create({ parentId: folderNode.id, title, url }, function() {
+                        sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Added to [${folder}]` });
+                    });
                 }
             });
         });
