@@ -267,14 +267,13 @@ export default function registerSettings(
         unique_id: "cmd_bookmark_add_m",
         feature_group: 14,
         category: "settings",
-        description: "Bookmark tab(s) in folder: next key = folder (bookmarkFolders), then key = magic direction (bookmarkMagicKeys)",
+        description: "Bookmark tab(s) in folder: next key = folder (bookmarkFolders), then key = magic direction (magicKeys)",
         tags: ["settings", "bookmarks", "add", "magic"]
     }, function(this: any, folderKey: string) {
         const folder = runtime.conf.bookmarkFolders?.[folderKey];
         if (!folder) return;
         this.pendingMap = function(magicKey: string) {
-            // TODO(hbt) NEXT [magic] switch to magicKeys after bookmarkMagicKeys removed
-            const magic = (runtime.conf.bookmarkMagicKeys as Record<string, string>)?.[magicKey] ?? 'CurrentTab';
+            const magic = (runtime.conf.magicKeys as Record<string, string>)?.[magicKey] ?? 'CurrentTab';
             RUNTIME('bookmarkAddM', { folder, magic, repeats: 1 });
         };
     });
@@ -284,14 +283,13 @@ export default function registerSettings(
         unique_id: "cmd_bookmark_remove_m",
         feature_group: 14,
         category: "settings",
-        description: "Remove tab(s) from bookmark folder: next key = folder (bookmarkFolders), then key = magic direction (bookmarkMagicKeys)",
+        description: "Remove tab(s) from bookmark folder: next key = folder (bookmarkFolders), then key = magic direction (magicKeys)",
         tags: ["settings", "bookmarks", "remove", "magic"]
     }, function(this: any, folderKey: string) {
         const folder = runtime.conf.bookmarkFolders?.[folderKey];
         if (!folder) return;
         this.pendingMap = function(magicKey: string) {
-            // TODO(hbt) NEXT [magic] switch to magicKeys after bookmarkMagicKeys removed
-            const magic = (runtime.conf.bookmarkMagicKeys as Record<string, string>)?.[magicKey] ?? 'CurrentTab';
+            const magic = (runtime.conf.magicKeys as Record<string, string>)?.[magicKey] ?? 'CurrentTab';
             RUNTIME('bookmarkRemoveM', { folder, magic, repeats: 1 });
         };
     });

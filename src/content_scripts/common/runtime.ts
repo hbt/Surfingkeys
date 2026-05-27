@@ -117,22 +117,6 @@ const runtime = (function() {
             useNeovim: false,
             useLocalMarkdownAPI: true,
             bookmarkFolders: undefined,
-            // TODO(hbt) NEXT [magic] remove bookmarkMagicKeys — migrate callers to magicKeys
-            bookmarkMagicKeys: {
-                'h': 'DirectionLeft',
-                'l': 'DirectionRight',
-                'H': 'DirectionLeftInclusive',
-                'L': 'DirectionRightInclusive',
-                't': 'CurrentTab',
-                'a': 'AllInWindow',
-                'A': 'AllExceptActiveAllWindows',
-                'c': 'AllExceptActive',
-                'k': 'ChildrenTabs',
-                'K': 'ChildrenTabsRecursively',
-                'w': 'OtherWindowsNoPinned',
-                'W': 'AllOtherWindowsTabs',
-                'o': 'AllIncognitoTabs',
-            } as Record<string, string>,
             magicKeys: {
                 'q': 'DirectionLeft',
                 'e': 'DirectionRight',

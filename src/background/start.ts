@@ -1555,29 +1555,6 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
-    // TODO(hbt) NEXT [magic] remove — orphaned handler, no mapkey wired
-    self.bookmarkTabsMagic = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
-        chrome.tabs.query({currentWindow: true}, function(tabs) {
-            var repeats = (message.repeats as number) || 1;
-            var tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, tabs);
-            var idSet = new Set(tabIds);
-            tabs.filter(function(t) { return idSet.has(t.id!); }).forEach(function(t) {
-                chrome.bookmarks.create({ parentId: "1", title: t.title, url: t.url });
-            });
-        });
-    };
-
-    // TODO(hbt) NEXT [magic] remove — orphaned handler, no mapkey wired
-    self.unbookmarkTabsMagic = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
-        chrome.tabs.query({currentWindow: true}, function(tabs) {
-            var repeats = (message.repeats as number) || 1;
-            var tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, tabs);
-            var idSet = new Set(tabIds);
-            tabs.filter(function(t) { return idSet.has(t.id!); }).forEach(function(t) {
-                if (t.url) removeBookmark(t.url);
-            });
-        });
-    };
 
     self.closeAudibleTab = function(_message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         chrome.tabs.query({audible: true}, function(tabs) {
