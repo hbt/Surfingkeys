@@ -116,6 +116,17 @@ COVERAGE=true bunx playwright test tests/playwright/commands/cmd-scroll-down.spe
 npm run test:playwright:parallel
 ```
 
+### Scratch Tests
+
+`tests/playwright/scratch/` — one-off diagnostic/verification specs. Excluded from the normal suite (`testIgnore` in `playwright.config.ts`). Require the scratch config to run:
+
+```bash
+# Run a specific scratch test (never runs all scratch tests)
+bunx playwright test tests/playwright/scratch/<name>.spec.ts --config=playwright.scratch.config.ts
+```
+
+When the user says "scratch test" or "write a scratch spec", put it in `tests/playwright/scratch/`.
+
 ### Playwright conventions (enforce strictly)
 
 | Rule | Detail |
