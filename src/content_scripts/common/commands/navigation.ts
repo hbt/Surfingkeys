@@ -170,11 +170,17 @@ export default function registerNavigation(
         description: "Open selected text or clipboard content as URL",
         tags: ["navigation", "clipboard", "link"]
     }, function() {
+        const n = (RUNTIME as any).repeats;
+        (RUNTIME as any).repeats = 1;
         if (window.getSelection()?.toString()) {
-            tabOpenLink(window.getSelection()!.toString());
+            let urls = window.getSelection()!.toString().split('\n').filter((u: string) => u.trim().length > 0);
+            if (n > 1) urls = urls.slice(0, n);
+            tabOpenLink(urls.join('\n'));
         } else {
             (clipboard as any).read(function(response: any) {
-                tabOpenLink(response.data);
+                let urls = response.data.split('\n').filter((u: string) => u.trim().length > 0);
+                if (n > 1) urls = urls.slice(0, n);
+                tabOpenLink(urls.join('\n'));
             });
         }
     });

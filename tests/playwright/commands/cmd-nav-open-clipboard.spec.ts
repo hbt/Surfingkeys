@@ -160,4 +160,36 @@ test.describe('cmd_nav_open_clipboard (Playwright)', () => {
             if (DEBUG) console.log(`cc opened clipboard URL: tab count ${initialTabCount} → ${newTabCount}`);
         });
     });
+
+    test('cc command with count prefix opens only first N clipboard URLs', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const urls = [
+                `${FIXTURE_BASE}/scroll-test.html`,
+                `${FIXTURE_BASE}/form-test.html`,
+                `${FIXTURE_BASE}/scroll-test.html`,
+                `${FIXTURE_BASE}/form-test.html`,
+                `${FIXTURE_BASE}/scroll-test.html`,
+            ].join('\n');
+            await page.evaluate((text: string) => navigator.clipboard.writeText(text), urls);
+            await page.waitForTimeout(200);
+            await page.evaluate(() => window.getSelection()?.removeAllRanges());
+
+            const initialTabCount = await getTabCount();
+
+            // Press 2cc — count prefix 2, only first 2 URLs should open
+            await page.keyboard.press('2');
+            await page.keyboard.press('c');
+            await page.waitForTimeout(50);
+            await page.keyboard.press('c');
+
+            let newTabCount = initialTabCount;
+            for (let i = 0; i < 30; i++) {
+                await page.waitForTimeout(200);
+                newTabCount = await getTabCount();
+                if (newTabCount >= initialTabCount + 2) break;
+            }
+
+            expect(newTabCount).toBe(initialTabCount + 2);
+        });
+    });
 });
