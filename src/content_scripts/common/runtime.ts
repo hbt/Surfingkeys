@@ -107,6 +107,7 @@ const runtime = (function() {
             stealFocusOnLoad: true,
             tabIndicesSeparator: "|",
             tabsThreshold: 100,
+            tabOpenLinkThreshold: 30,
             verticalTabs: true,
             textAnchorPat: /(^[\n\r\s]*\S{3,}|\b\S{4,})/g,
             ignoredFrameHosts: ["https://tpc.googlesyndication.com"],

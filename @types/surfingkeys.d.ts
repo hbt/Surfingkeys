@@ -123,6 +123,7 @@ export interface SurfingKeysConf {
     stealFocusOnLoad: boolean;
     tabIndicesSeparator: string;
     tabsThreshold: number;
+    tabOpenLinkThreshold: number;
     verticalTabs: boolean;
     textAnchorPat: RegExp;
     ignoredFrameHosts: string[];
