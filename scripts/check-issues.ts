@@ -76,8 +76,10 @@ const EXCLUDED_IDS = new Set([
     // LLM / AI — external API dependency
     'cmd_omnibar_llm_chat',
     'cmd_visual_llm_chat',
-    // Incognito — opens new incognito window (separate context)
+    // Incognito — opens new incognito window (separate context) or targets incognito tabs
+    // which Playwright cannot access from a regular context
     'cmd_nav_incognito',
+    'cmd_tab_close_magic_incognito',
     // Neovim — requires native messaging host + nvim --headless + WebSocket + PIXI.js renderer
     'cmd_neovim_enable_input',
     'cmd_insert_neovim_editor',
