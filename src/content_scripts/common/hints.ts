@@ -555,7 +555,7 @@ div.hint-scrollable {
         var start = new Date().getTime();
         var found = createHints(_cssSelector, _lastCreateAttrs);
         if (found > 0) {
-            self.statusLine += " - " + (new Date().getTime() - start) + "ms / " + found;
+            console.log("[hints] Hints to click (reset) - " + (new Date().getTime() - start) + "ms / " + found);
             Mode.showStatus();
         }
     }
@@ -793,7 +793,7 @@ div.hint-scrollable {
         for (var attr in attrs) {
             behaviours[attr] = attrs[attr];
         }
-        self.statusLine = (attrs && attrs.statusLine) || "Hints to click";
+        self.statusLine = (attrs && attrs.statusLine) || "";
 
         elements = filterInvisibleElements(elements);
         if (elements.length > 0) {
@@ -803,7 +803,7 @@ div.hint-scrollable {
     }
 
     function createHintsForClick(cssSelector: any, attrs: any) {
-        self.statusLine = "Hints to click";
+        self.statusLine = "";
 
         attrs = attrs || {};
         for (var attr in attrs) {
@@ -1021,7 +1021,7 @@ div.hint-scrollable {
         var start = new Date().getTime();
         var found = createHints(cssSelector, attrs);
         if (found > (runtime.conf.hintExplicit ? 0 : 1)) {
-            self.statusLine += " - " + (new Date().getTime() - start) + "ms / " + found;
+            console.log("[hints] Hints to click - " + (new Date().getTime() - start) + "ms / " + found);
             self.enter();
         } else {
             handleHint();
