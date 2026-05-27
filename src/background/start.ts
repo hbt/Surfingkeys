@@ -2488,9 +2488,8 @@ function start(browser: Record<string, unknown>) {
                 )];
                 if (reverse) urls = urls.reverse();
                 if (repeats > 0) urls = urls.slice(0, repeats);
-                navigator.clipboard.writeText(urls.join('\n')).then(function() {
-                    sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Copied ${urls.length} URLs from [${folder}]` });
-                });
+                sendTabMessage(tabId, 0, { subject: 'writeClipboard', text: urls.join('\n') });
+                sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Copied ${urls.length} URLs from [${folder}]` });
             });
         });
     };

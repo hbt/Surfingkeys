@@ -243,9 +243,10 @@ export default function registerSettings(
         category: "settings",
         description: "Copy all URLs from bookmark folder to clipboard in reverse order (next key selects folder)",
         tags: ["settings", "bookmarks", "copy"]
-    }, function(key: string) {
+    }, function(this: any, key: string) {
         const folder = runtime.conf.bookmarkFolders?.[key];
-        if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: true, repeats: -1 });
+        const r = parseInt(this.repeats) || 1;
+        if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: true, repeats: r > 1 ? r : -1 });
     });
 
     mapkey('g-043', {
@@ -255,9 +256,10 @@ export default function registerSettings(
         category: "settings",
         description: "Copy all URLs from bookmark folder to clipboard in order (next key selects folder)",
         tags: ["settings", "bookmarks", "copy"]
-    }, function(key: string) {
+    }, function(this: any, key: string) {
         const folder = runtime.conf.bookmarkFolders?.[key];
-        if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: false, repeats: -1 });
+        const r = parseInt(this.repeats) || 1;
+        if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: false, repeats: r > 1 ? r : -1 });
     });
 
     mapkey('g-044', {

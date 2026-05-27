@@ -98,6 +98,7 @@ test.describe('cmd_bookmark_copy_folder_ordered (pending-key, Playwright)', () =
         context = result.context;
         covBg = result.covBg;
         initContentCoverageForUrl = result.covForPageUrl;
+        await context.grantPermissions(['clipboard-read', 'clipboard-write']);
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
@@ -135,6 +136,36 @@ test.describe('cmd_bookmark_copy_folder_ordered (pending-key, Playwright)', () =
             // Copy is non-destructive — all 3 items must still be present in original order
             const after = await getBookmarksInFolder(context, TEST_FOLDER);
             expect(after.map(b => b.url)).toEqual([URL_A, URL_B, URL_C]);
+        });
+    });
+
+    test('copies all URLs in original order', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await seedFolderOrdered(context, TEST_FOLDER, [URL_A, URL_B, URL_C]);
+
+            await page.keyboard.press(KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(300);
+
+            const clip = await page.evaluate(() => navigator.clipboard.readText());
+            expect(clip.split('\n')).toEqual([URL_A, URL_B, URL_C]);
+        });
+    });
+
+    test('repeats limits number of URLs copied (ordered)', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await seedFolderOrdered(context, TEST_FOLDER, [URL_A, URL_B, URL_C]);
+
+            await page.keyboard.press('2');
+            await page.waitForTimeout(30);
+            await page.keyboard.press(KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(300);
+
+            const clip = await page.evaluate(() => navigator.clipboard.readText());
+            expect(clip.split('\n')).toEqual([URL_A, URL_B]);
         });
     });
 });
