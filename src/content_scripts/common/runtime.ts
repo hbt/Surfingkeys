@@ -115,7 +115,8 @@ const runtime = (function() {
             caretViewport: [] as number[],
             mouseSelectToQuery: [],
             useNeovim: false,
-            useLocalMarkdownAPI: true
+            useLocalMarkdownAPI: true,
+            bookmarkFolders: undefined
         },
     }, _handlers = {};
 

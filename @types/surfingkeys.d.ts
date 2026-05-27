@@ -113,6 +113,7 @@ export interface SurfingKeysConf {
     mouseSelectToQuery: unknown[];
     useNeovim: boolean;
     useLocalMarkdownAPI: boolean;
+    bookmarkFolders?: Record<string, string>;
 }
 
 export interface MapKeyAnnotation {
