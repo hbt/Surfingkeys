@@ -1,5 +1,11 @@
 # Enhance Settings System
 
+## Audit: Settings Tests (in progress)
+
+- [ ] **[audit-inclusion]** Are settings specs included in ci.ts + package.json playwright parallel? Naming linter in verify.ts?
+- [ ] **[audit-standardization]** Are the 3 specs standardized? Structure, helpers, naming conventions?
+- [ ] **[audit-coverage]** Do tests hit the actual read/write ops of each setting? (run with COVERAGE=true)
+
 ## High Priority
 
 - [ ] **SW restart loses snippet settings** — `loadSettings()` fetches from storage but never writes back into `conf`; fix by merging storage result into `conf` after startup load (`start.ts:551`)
