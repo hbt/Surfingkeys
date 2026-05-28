@@ -269,6 +269,42 @@ test.describe('cmd_hints_open_link (Playwright)', () => {
         });
     });
 
+    test('4.3 should position hints at center of elements (default hintAlign=center)', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await page.keyboard.press('f');
+            await waitForHintCount(page, 10);
+
+            // Correlate first 3 links to their hint divs by index (hints are rendered
+            // in the same order as elements). For center alignment:
+            //   hint.offsetLeft ≈ elem.rect.left - hintsHost.rect.left + elem.width / 2
+            const alignData = await page.evaluate(() => {
+                const links = Array.from(document.querySelectorAll('a')).slice(0, 3);
+                const hintsHost = document.querySelector('.surfingkeys_hints_host') as HTMLElement | null;
+                if (!hintsHost?.shadowRoot) return null;
+                const hintDivs = (Array.from(hintsHost.shadowRoot.querySelectorAll('div')) as HTMLElement[]).filter(d => {
+                    const text = (d.textContent || '').trim();
+                    return text.length >= 1 && text.length <= 3 && /^[A-Z]+$/.test(text);
+                });
+                const hostLeft = hintsHost.getBoundingClientRect().left;
+                return links.map((link, i) => {
+                    const r = link.getBoundingClientRect();
+                    const hint = hintDivs[i];
+                    return {
+                        expectedCenter: r.left - hostLeft + r.width / 2,
+                        hintLeft: hint ? hint.offsetLeft : -1,
+                    };
+                });
+            });
+
+            expect(alignData).not.toBeNull();
+            for (const { expectedCenter, hintLeft } of alignData!) {
+                // Center alignment: hint label should sit within ±10px of the element center
+                expect(Math.abs(hintLeft - expectedCenter)).toBeLessThan(10);
+            }
+        });
+    });
+
     // -----------------------------------------------------------------------
     // 5.0 Hint Clearing
     // -----------------------------------------------------------------------
