@@ -1,147 +1,183 @@
 # Surfingkeys Settings Reference
 
 This document catalogs all Surfingkeys settings discovered in the codebase.
+Generated from: `bun scripts/mappings-json-report.ts`
 
 ## Overview
 
-- **Total documented in README:** 52 settings
-- **Additional in runtime.conf:** 11 settings
-- **Found in settings.* only:** 14 settings
-- **Grand total:** ~77 unique settings
+| Metric | Count |
+|--------|-------|
+| Total usages (all accesses) | 126 |
+| Unique settings | 60 |
+| Accessed via `runtime.conf.*` | 56 |
+| Accessed via `settings.*` | 4 |
+| Excluded (false positives) | 4 |
 
-## 1.0 Documented Settings (from README.md)
+## 1.0 Process Breakdown
 
-These are user-configurable settings documented in the README:
+| Process | Count | Description |
+|---------|-------|-------------|
+| `content_script` | 56 | Used exclusively in content scripts |
+| `background` | 3 | Used exclusively in the background service worker |
+| `mixed` | 1 | Referenced across multiple process types (nvim) |
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| aceKeybindings | "vim" | Keybindings for ACE editor ("vim" or "emacs") |
-| autoSpeakOnInlineQuery | false | Automatically speak query string with TTS on inline query |
-| blocklistPattern | undefined | Regex to match sites where Surfingkeys is disabled |
-| caretViewport | null | Limit hints generation on `v` in format `[top, left, bottom, right]` |
-| caseSensitive | false | Whether finding in page/Omnibar is case sensitive |
-| clickablePat | /(https?\|thunder\|magnet):\/\/\S+/ig | Regex to detect clickable links from text |
-| clickableSelector | "" | Extra CSS selector to pick elements for hints mode |
-| cursorAtEndOfInput | true | Whether to put cursor at end of input when entering input box |
-| defaultSearchEngine | "g" | Default search engine used in Omnibar |
-| digitForRepeat | true | Whether digits are reserved for repeats |
-| disabledOnActiveElementPattern | undefined | Auto-disable extension when active element matches pattern |
-| editableBodyCare | true | Don't auto-activate Insert mode when document.body is editable |
-| editableSelector | div.CodeMirror-scroll,div.ace_content | CSS selector for additional editable elements |
-| enableAutoFocus | true | Whether to enable auto focus after mouse click |
-| enableEmojiInsertion | false | Whether to turn on Emoji completion in Insert mode |
-| focusAfterClosed | "right" | Which tab is focused after current tab closes ["left", "right", "last"] |
-| focusFirstCandidate | false | Whether to focus first candidate of matched result in Omnibar |
-| focusOnSaved | true | Whether to focus text input after quitting from vim editor |
-| hintAlign | "center" | Alignment of hints on target elements ["left", "center", "right"] |
-| hintExplicit | false | Whether to wait for explicit input when only single hint available |
-| hintShiftNonActive | false | Whether new tab is active after entering hint while holding shift |
-| historyMUOrder | true | Whether to list history in order of most used beneath Omnibar |
-| ignoredFrameHosts | ["https://tpc.googlesyndication.com"] | Frames to exclude when looping with `w` |
-| interceptedErrors | [] | Which errors to show Surfingkeys error page for |
-| language | undefined | Language of usage popover ("zh-CN", "ru-RU") |
-| modeAfterYank | "" | Mode to fall back to after yanking text in visual mode |
-| mouseSelectToQuery | [] | Hosts with enabled mouse selection to query feature |
-| newTabPosition | 'default' | Where to place new tab ["left", "right", "first", "last", "default"] |
-| nextLinkRegex | /((>>\|next)+)/i | Regex to match links indicating next page |
-| omnibarHistoryCacheSize | 100 | Maximum items fetched from browser history |
-| omnibarMaxResults | 10 | How many results listed per page in Omnibar |
-| omnibarPosition | "middle" | Where to position Omnibar ["middle", "bottom"] |
-| omnibarSuggestion | false | Show suggestion URLs |
-| omnibarSuggestionTimeout | 200 | Timeout before Omnibar suggestion URLs are queried (ms) |
-| prevLinkRegex | /((<<\|prev(ious)?)+)/i | Regex to match links indicating previous page |
-| repeatThreshold | 9 | Maximum number of actions to be repeated |
-| richHintsForKeystroke | 500 | Timeout (ms) to show rich hints for keystroke (0 disables) |
-| scrollFriction | 0 | Force needed to start continuous scrolling after initial step |
-| scrollStepSize | 70 | Step size for each move by `j`/`k` |
-| showModeStatus | false | Whether to always show mode status |
-| showProxyInStatusBar | false | Whether to show proxy info in status bar |
-| showTabIndices | false | Whether to show tab numbers in tab titles |
-| smartCase | true | Make caseSensitive true if search pattern has uppercase |
-| smoothScroll | true | Use smooth scrolling for `j`/`k`/`e`/`d` keys |
-| startToShowEmoji | 2 | Characters needed after colon to show emoji suggestion |
-| stealFocusOnLoad | true | Prevent focus on input on page load |
-| tabIndicesSeparator | "\|" | Separator between index and original tab title |
-| tabsMRUOrder | true | List opened tabs in MRU order beneath Omnibar |
-| tabsThreshold | 100 | When opened tabs exceed this, Omnibar used for choosing tabs |
-| theme | undefined | CSS to change Surfingkeys UI elements |
-| useLocalMarkdownAPI | true | Use chjj/marked vs github markdown API |
-| verticalTabs | true | Show tab pickers vertically aligned |
+## 2.0 Content Script Settings (`runtime.conf.*`)
 
-## 2.0 Additional Runtime Settings (in runtime.conf but not README)
+All 56 settings below are accessed via `runtime.conf.*` in content scripts. Sorted by usage frequency.
 
-These settings are used in the code but not documented in README:
+| Setting | Freq | Source Files | Notes |
+|---------|------|-------------|-------|
+| bookmarkFolders | 8 | commands/settings.ts | |
+| lastQuery | 7 | visual.ts, content.ts | internal state |
+| richHintsForKeystroke | 5 | ui/frontend.ts | ms timeout; 0 disables |
+| omnibarPosition | 5 | ui/omnibar.ts | `"middle"` or `"bottom"` |
+| omnibarMaxResults | 5 | ui/omnibar.ts | results per page |
+| blocklistPattern | 4 | normal.ts, content.ts | regex; disables SK on match |
+| clickableSelector | 4 | common/utils.ts | extra CSS selector for hints |
+| textAnchorPat | 4 | clipboard.ts, hints.ts, visual.ts | internal |
+| scrollStepSize | 4 | common/normal.ts | px per `j`/`k` step |
+| aceKeybindings | 4 | ui/frontend.ts | `"vim"` or `"emacs"` |
+| historyMUOrder | 4 | ui/omnibar.ts | most-used order |
+| showModeStatus | 3 | insert.ts, mode.ts, normal.ts | always show mode |
+| magicKeys | 3 | commands/settings.ts, commands/tabs.ts | |
+| disabledOnActiveElementPattern | 3 | hints.ts, normal.ts | auto-disable regex |
+| caretViewport | 3 | common/hints.ts | `[top,left,bottom,right]` |
+| useLocalMarkdownAPI | 3 | content_scripts/markdown.ts | chjj/marked vs GitHub API |
+| lurkingPattern | 2 | content.ts | internal |
+| stealFocusOnLoad | 2 | normal.ts, content.ts | prevent focus on load |
+| modeAfterYank | 2 | common/visual.ts | mode after yank in visual |
+| lastKeys | 2 | commands/settings.ts | internal state |
+| editableBodyCare | 2 | common/normal.ts | don't auto-Insert on body |
+| enableAutoFocus | 2 | common/normal.ts | focus after click |
+| pageUrlRegex | 2 | common/hints.ts | internal |
+| hintAlign | 2 | common/hints.ts | `"left"` / `"center"` / `"right"` |
+| tabsThreshold | 2 | ui/frontend.ts, ui/omnibar.ts | tab count for Omnibar |
+| omnibarHistoryCacheSize | 2 | ui/omnibar.ts | max history items |
+| showProxyInStatusBar | 1 | content.ts | |
+| ignoredFrameHosts | 1 | content.ts | frames excluded from `w` loop |
+| editableSelector | 1 | common/utils.ts | extra editable CSS selectors |
+| language | 1 | common/utils.ts | `"zh-CN"`, `"ru-RU"` |
+| tabOpenLinkThreshold | 1 | common/utils.ts | |
+| cursorAtEndOfInput | 1 | common/insert.ts | cursor at end on input enter |
+| clickablePat | 1 | commands/navigation.ts | regex for clickable text links |
+| smartPageBoundary | 1 | common/normal.ts | |
+| smoothScroll | 1 | common/normal.ts | smooth `j`/`k`/`e`/`d` |
+| scrollFriction | 1 | common/normal.ts | force to start continuous scroll |
+| scrollFallback | 1 | common/normal.ts | |
+| mouseSelectToQuery | 1 | common/normal.ts | hosts with select-to-query |
+| hintShiftNonActive | 1 | common/hints.ts | new tab inactive on shift-hint |
+| prevLinkRegex | 1 | common/hints.ts | regex for prev-page links |
+| nextLinkRegex | 1 | common/hints.ts | regex for next-page links |
+| hintExplicit | 1 | common/hints.ts | wait for input on single hint |
+| digitForRepeat | 1 | common/mode.ts | digits reserved for repeat |
+| repeatThreshold | 1 | common/mode.ts | max repeat count |
+| defaultVoice | 1 | content_scripts/chrome.ts | TTS voice |
+| verticalTabs | 1 | ui/frontend.ts | vertical tab picker |
+| colorfulKeystrokeHints | 1 | ui/frontend.ts | colored hint display |
+| defaultLLMProvider | 1 | ui/llmchat.ts | |
+| defaultSearchEngine | 1 | ui/omnibar.ts | default search alias |
+| focusFirstCandidate | 1 | ui/omnibar.ts | focus first Omnibar result |
+| omnibarTabsQuery | 1 | ui/omnibar.ts | internal |
+| omnibarSuggestion | 1 | ui/omnibar.ts | show suggestion URLs |
+| omnibarSuggestionTimeout | 1 | ui/omnibar.ts | ms before suggestion query |
+| useNeovim | 1 | content_scripts/front.ts | Neovim integration |
+| autoSpeakOnInlineQuery | 1 | content_scripts/front.ts | auto TTS on inline query |
+| focusOnSaved | 1 | content_scripts/front.ts | focus input after vim editor |
 
-| Setting | Usage |
-|---------|-------|
-| colorfulKeystrokeHints | Display hints with colors |
-| defaultLLMProvider | Default LLM provider for AI features |
-| defaultVoice | Default voice for TTS |
-| lastKeys | Last pressed keys (internal state) |
-| lastQuery | Last search query (internal state) |
-| lurkingPattern | Pattern for lurking mode |
-| omnibarTabsQuery | Query for tabs in Omnibar (internal) |
-| pageUrlRegex | Regex pattern for page URLs |
-| smartPageBoundary | Smart boundary detection for pages |
-| textAnchorPat | Pattern for text anchors |
-| useNeovim | Whether to use Neovim integration |
+## 3.0 Background Settings (`settings.*`)
 
-## 3.0 Settings API Methods (settings.*)
+Used exclusively in `background/start.ts`.
 
-These are methods/properties on the settings object (not user config):
+| Setting | Freq | Notes |
+|---------|------|-------|
+| defaultZoomFactor | 2 | Default zoom level |
+| llm | 1 | LLM provider configuration |
+| showAdvanced | 1 | Show advanced settings UI |
 
-| Property | Purpose |
-|----------|---------|
-| blocklist | Access blocklist data |
-| clear | Clear settings |
-| cmdHistory | Command history storage |
-| defaultZoomFactor | Default zoom factor |
-| error | Error handling |
-| findHistory | Find-in-page history |
-| llm | LLM configuration |
-| llmChatHistory | LLM chat history storage |
-| marks | Vim-style marks storage |
-| noPdfViewer | Disable PDF viewer setting |
-| OmniQueryHistory | Omnibar query history |
-| sessions | Tab sessions storage |
-| set | Method to set settings |
-| showAdvanced | Show advanced settings |
+## 4.0 Mixed / Other (`settings.*`)
 
-## 4.0 Settings Related to Commands
+Settings referenced across process boundaries or outside the standard src directories.
+
+| Setting | Freq | Files | Notes |
+|---------|------|-------|-------|
+| element | 3 | nvim/renderer.ts, nvim/screen.ts | Neovim renderer internal |
+
+## 5.0 Excluded Settings (False Positives)
+
+| Name | Reason |
+|------|--------|
+| hasOwnProperty | Built-in JS method, not a config setting |
+| k | Loop variable in `for...in`, not a literal property |
+| error | Transient UI error message property |
+| regexName | Function parameter in `ensureRegex()` helper |
+
+## 6.0 Settings by Command Group
 
 ### Scroll Commands
-- **scrollStepSize** - Used by: j, k, h, l (scroll commands)
-- **scrollFriction** - Used by: scroll commands with smooth scrolling
-- **smoothScroll** - Used by: j, k, e, d, U, P (all scroll commands)
+| Setting | Role |
+|---------|------|
+| scrollStepSize | px per `j`/`k` step |
+| scrollFriction | force needed for continuous scroll |
+| scrollFallback | fallback scroll behaviour |
+| smoothScroll | smooth scroll for `j`/`k`/`e`/`d` |
 
-### Omnibar Commands
-- **omnibarMaxResults** - Used by: all Omnibar searches
-- **omnibarHistoryCacheSize** - Used by: history searches
-- **omnibarPosition** - Used by: Omnibar display
-- **omnibarSuggestion** - Used by: Omnibar suggestions
-- **omnibarSuggestionTimeout** - Used by: Omnibar suggestions
-- **defaultSearchEngine** - Used by: Omnibar search
+### Omnibar
+| Setting | Role |
+|---------|------|
+| omnibarMaxResults | results per page |
+| omnibarHistoryCacheSize | max history items fetched |
+| omnibarPosition | `"middle"` or `"bottom"` |
+| omnibarSuggestion | show suggestion URLs |
+| omnibarSuggestionTimeout | ms before suggestion query |
+| defaultSearchEngine | default search alias |
+| historyMUOrder | list history by most-used |
+| tabsThreshold | tab count before Omnibar forced |
+| focusFirstCandidate | focus first Omnibar candidate |
 
 ### Hints Mode
-- **hintAlign** - Used by: hint display
-- **hintExplicit** - Used by: hint selection behavior
-- **hintShiftNonActive** - Used by: hint with Shift modifier
-- **clickableSelector** - Used by: hint element detection
-- **clickablePat** - Used by: clickable link detection
+| Setting | Role |
+|---------|------|
+| hintAlign | alignment on target elements |
+| hintExplicit | wait for input on single hint |
+| hintShiftNonActive | shift-hint opens inactive tab |
+| clickableSelector | extra CSS for hintable elements |
+| clickablePat | regex for clickable text links |
+| nextLinkRegex | regex for next-page links |
+| prevLinkRegex | regex for prev-page links |
+| caretViewport | limit hint generation area |
 
-### Repeat Behavior
-- **digitForRepeat** - Used by: all commands with repeat support
-- **repeatThreshold** - Used by: repeat count limiting
+### Repeat Behaviour
+| Setting | Role |
+|---------|------|
+| digitForRepeat | reserve digits for repeat |
+| repeatThreshold | max repeat count |
 
-## 5.0 Notes
+### Input / Focus
+| Setting | Role |
+|---------|------|
+| cursorAtEndOfInput | cursor at end on input enter |
+| enableAutoFocus | focus after mouse click |
+| stealFocusOnLoad | prevent page focus on load |
+| editableBodyCare | don't auto-Insert when body editable |
+| editableSelector | extra editable element selectors |
+| focusOnSaved | focus input after vim editor quit |
 
-1. **User Config vs Runtime**: Settings defined as `settings.xxx` in user config are accessed as `runtime.conf.xxx` at runtime
-2. **Internal State**: Some `runtime.conf.*` properties are internal state, not user-configurable
-3. **Documentation Gap**: 11 settings in code not documented in README
-4. **Settings Methods**: 14 additional `settings.*` properties are API methods/storage, not user config
+## 7.0 Notes
 
-## 6.0 References
+| Note | Detail |
+|------|--------|
+| User config vs runtime | Settings defined as `settings.xxx` in user config are accessed as `runtime.conf.xxx` at runtime |
+| Internal state | `lastQuery`, `lastKeys`, `omnibarTabsQuery`, `lurkingPattern`, `pageUrlRegex`, `magicKeys` are internal runtime state, not user-configurable |
+| Process | 93% of settings (56/60) are content-script-only; only 3 live in the background SW |
+| Source of truth | Run `bun scripts/mappings-json-report.ts` for live counts; this file reflects the last manual sync |
 
-- Main documentation: `/README.md` (settings table)
-- Source code: `src/` (runtime.conf usage)
-- Related: `/docs/glossary.md` (smoothScroll definition)
+## 8.0 References
+
+| Resource | Path |
+|----------|------|
+| Live report | `bun scripts/mappings-json-report.ts` |
+| Report schema | `bun scripts/mappings-json-report.ts --schema` |
+| Integrity check | `bun scripts/mappings-json-report.ts --integrity` |
+| Settings annotations | `docs/settings/all.json` |
+| README user docs | `/README.md` (settings table) |
+| Glossary | `docs/initial-upstream-repo-analysis/glossary.md` |
