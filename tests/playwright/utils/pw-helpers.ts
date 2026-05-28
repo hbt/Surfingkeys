@@ -40,6 +40,8 @@ async function findFreePort(): Promise<number> {
 
 export const EXTENSION_PATH = path.resolve(__dirname, '../../../dist/development/chrome-test');
 export const FIXTURE_BASE = 'http://127.0.0.1:9873';
+// Stable ID derived from the "key" field in manifest.json (sha256 of DER-encoded public key, nibbles a-p).
+export const EXTENSION_ID = 'aajlcoiaogpknhgninhopncaldipjdnp';
 
 /**
  * Launch a persistent Chrome context with the Surfingkeys extension loaded.
@@ -55,7 +57,14 @@ export async function launchExtensionContext(opts?: { headless?: boolean; enable
     fs.mkdirSync(defaultDir, { recursive: true });
     fs.writeFileSync(
         path.join(defaultDir, 'Preferences'),
-        JSON.stringify({ extensions: { ui: { developer_mode: true } } }),
+        JSON.stringify({
+            extensions: {
+                ui: { developer_mode: true },
+                // Pre-allowlist the extension for incognito so chrome.tabs.query / chrome.windows.getAll
+                // can observe incognito tabs when the SW calls chrome.windows.create({ incognito: true }).
+                settings: { [EXTENSION_ID]: { incognito: true } },
+            },
+        }),
     );
 
     const headless = opts?.headless ?? true;
@@ -75,6 +84,8 @@ export async function launchExtensionContext(opts?: { headless?: boolean; enable
             `--load-extension=${EXTENSION_PATH}`,
             '--enable-experimental-extension-apis',
             '--enable-features=UserScriptsAPI',
+            // Prevent Chrome 134+ from disabling extensions toggled for incognito via pre-written prefs.
+            '--disable-features=ExtensionDisableUnsupportedDeveloper',
             '--disable-gpu',
             '--no-sandbox',
             '--disable-dev-shm-usage',
