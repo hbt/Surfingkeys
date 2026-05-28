@@ -29,7 +29,7 @@
 
 - [x] **SW restart loses snippet settings** — `loadSettings()` fetches from storage but never writes back into `conf`; fix by merging storage result into `conf` after startup load (`start.ts:551`)
   - Scratch test plan: `tests/playwright/scratch/sw-restart-loses-settings.spec.ts` — set `newTabPosition='last'` via snippets, trigger `cdpReloadExtension`, verify setting reverts to `'right'` (demonstrates bug)
-- [ ] **Snippets have no error isolation** — one bad `api.mapkey()` aborts all subsequent mappings; wrap each call or wrap the full snippet with try/catch per-statement; add execution timeout (`content.ts:122`)
+- [x] **Snippets have no error isolation** — one bad `api.mapkey()` aborts all subsequent mappings; wrap each call or wrap the full snippet with try/catch per-statement; add execution timeout (`content.ts:122`)
   - Scratch test plan: `tests/playwright/scratch/snippets-error-isolation.spec.ts` — register snippet with valid→throw→valid mapkeys; assert mapping before error works, mapping after error does NOT (bug signal)
 
 ## Medium Priority

@@ -318,14 +318,33 @@ export default (extensionRootUrl: any, uf: any) => {
     EXTENSION_ROOT_URL = extensionRootUrl;
     if (isInUIFrame()) return;
     userScriptTask = () => {
-        var settings = {}, error = "";
+        var settings = {}, errors: string[] = [];
+
+        // Wrap each api method so individual call failures don't abort subsequent calls
+        const safeApi = new Proxy(api, {
+            get(target: any, prop: string) {
+                const value = target[prop];
+                if (typeof value !== 'function') return value;
+                return (...args: any[]) => {
+                    try {
+                        return value.apply(target, args);
+                    } catch(e) {
+                        errors.push(`api.${prop}: ${(e as Error).toString()}`);
+                        console.error(`[SK] Error in api.${prop}:`, e);
+                    }
+                };
+            }
+        });
+
         try {
-            uf(api, settings);
+            uf(safeApi, settings);
         } catch(e) {
-            error = (e as Error).toString();
-            console.error(e);
+            // Top-level catch for non-api errors (e.g. syntax errors, undefined refs)
+            errors.push((e as Error).toString());
+            console.error('[SK] Error in user snippet:', e);
         }
-        applyUserSettings({settings, error});
+
+        applyUserSettings({ settings, error: errors.join('\n') });
     };
     if (window === top) {
         userScriptTask();

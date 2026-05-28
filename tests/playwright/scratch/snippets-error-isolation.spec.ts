@@ -1,17 +1,19 @@
 /**
- * Regression / canary test: a throw inside a user script snippet aborts all
- * subsequent mapcmdkey calls (bug in src/user_scripts/index.ts:320–329).
+ * Regression / canary test: an error thrown inside an api call in a user script
+ * snippet must not abort subsequent api calls (fixed in src/user_scripts/index.ts).
  *
- * The entire user function `uf(api, settings)` runs inside a single try/catch.
- * When an error is thrown mid-execution the catch fires immediately and all
- * remaining api.mapcmdkey() calls after the throw are never reached.
+ * Previously, the entire user function `uf(api, settings)` ran inside a single
+ * try/catch. When an api method threw mid-execution, the catch fired immediately
+ * and all remaining api calls after the throw were never reached.
+ *
+ * Fix: a safeApi Proxy wraps each api method with an individual try/catch so that
+ * a failure in one api call is isolated and subsequent calls proceed normally.
  *
  * This test:
- *   - Registers a snippet with a deliberate throw between two mapcmdkey calls
+ *   - Registers a snippet with a deliberate throw INSIDE an api call (api.mapkey
+ *     called with null jscode → null.length throws) between two mapcmdkey calls
  *   - Asserts the BEFORE command is registered (always expected)
- *   - Asserts the AFTER command is NOT registered (confirms the bug is present)
- *
- * When the bug is fixed, the AFTER assertion must be flipped to toBe(true).
+ *   - Asserts the AFTER command IS registered (confirms the bug is fixed)
  *
  * Run:
  *   bunx playwright test tests/playwright/scratch/snippets-error-isolation.spec.ts \
@@ -46,13 +48,13 @@ test('snippet error should not prevent subsequent mapkey registrations', async (
 
     // Register a broken snippet:
     //   cmd A: valid mapcmdkey BEFORE the deliberate throw
-    //   deliberate throw (accessing property on undefined)
-    //   cmd B: valid mapcmdkey AFTER the throw — should register if error isolation worked
+    //   deliberate throw INSIDE an api call (api.mapkey with null jscode → null.length throws)
+    //   cmd B: valid mapcmdkey AFTER the throw — must register because safeApi proxy isolates the error
     const snippetCode = `
         import(${JSON.stringify(absoluteApiUrl)}).then((module) => {
             module.default("chrome-extension://${extensionId}/", (api, settings) => {
                 api.mapcmdkey('<F10>', 'cmd_scroll_down', {unique_id: 'test_before_error'});
-                (undefined).deliberate_throw_to_test_isolation;
+                api.mapkey('t', 'broken call — null jscode causes null.length throw inside mapkey', null);
                 api.mapcmdkey('<F11>', 'cmd_scroll_up', {unique_id: 'test_after_error'});
             });
         }).catch((err) => {
@@ -89,16 +91,16 @@ test('snippet error should not prevent subsequent mapkey registrations', async (
     expect(beforeResult, 'mapping before error should be registered').toBe(true);
 
     // --- Assertion B: command AFTER the throw ---
-    // BUG: currently false because the single try/catch in index.ts aborts on the throw.
-    // When the bug is fixed (per-snippet error isolation), this must be flipped to toBe(true).
+    // Bug fixed: safeApi proxy wraps each api method individually so a throw inside one
+    // api call does not abort subsequent api calls. after_error must now be true.
     const afterResult = await invokeCommand(page, 'test_after_error');
     expect(
         afterResult,
-        'mapping after error should NOT be registered (BUG confirmed: false = single try/catch aborts remaining calls)',
-    ).toBe(false);
+        'mapping after error should be registered (bug fixed: safeApi proxy isolates per-call errors)',
+    ).toBe(true);
 
     console.log(`before_error registered: ${beforeResult}`);
-    console.log(`after_error registered:  ${afterResult} (false = bug confirmed)`);
+    console.log(`after_error registered:  ${afterResult} (true = bug fixed)`);
 
     await cov?.close();
     await context.close();
