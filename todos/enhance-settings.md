@@ -43,4 +43,3 @@
 - [ ] **`loadSettings` called on every page load** — no caching; add a cached result with explicit invalidation; decouple config-server fetch from local/sync merge
 - [ ] **Broadcast hits all tabs unconditionally** — add change detection; skip broadcast if settings unchanged (`start.ts:870`)
 - [ ] **`scope: "snippets"` dual behavior undocumented** — rename or document transient vs persistent semantics; make the distinction explicit (`start.ts:1879`)
-
