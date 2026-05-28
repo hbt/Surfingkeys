@@ -129,16 +129,6 @@ export default function registerOmnibar(
         };
         (front as any).openOmnibar(({type: "AddBookmark", extra: page}));
     });
-    mapkey('oh', {
-        short: "Open history omnibar",
-        unique_id: "cmd_omnibar_history",
-        feature_group: 8,
-        category: "omnibar",
-        description: "Open omnibar to select URL from browser history",
-        tags: ["omnibar", "history", "navigation"]
-    }, function() {
-        (front as any).openOmnibar({type: "History"});
-    });
     } // end !Safari guard
 
     addSearchAlias('g', 'google', 'https://www.google.com/search?q=', 's', 'https://www.google.com/complete/search?client=chrome-omni&gs_ri=chrome-ext&oit=1&cp=1&pgcl=7&q=', function(response: any) {
@@ -179,4 +169,21 @@ export default function registerOmnibar(
             return d[0];
         });
     });
+
+    // Register cmd_omnibar_history AFTER addSearchAlias('h', ...) because addSearchAlias maps 'oh'
+    // to github search (overriding the earlier key registration). By registering last, 'oh' stays
+    // bound to the history omnibar and cmd_omnibar_history appears in the commandRegistry when
+    // buildCommandRegistry scans the trie after all default mappings load.
+    if (!getBrowserName().startsWith("Safari")) {
+    mapkey('oh', {
+        short: "Open history omnibar",
+        unique_id: "cmd_omnibar_history",
+        feature_group: 8,
+        category: "omnibar",
+        description: "Open omnibar to select URL from browser history",
+        tags: ["omnibar", "history", "navigation"]
+    }, function() {
+        (front as any).openOmnibar({type: "History"});
+    });
+    } // end !Safari guard
 }

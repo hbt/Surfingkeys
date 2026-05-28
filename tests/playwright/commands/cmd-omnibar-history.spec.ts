@@ -84,6 +84,15 @@ test.describe('cmd_omnibar_history (Playwright)', () => {
         await context?.close();
     });
 
+    test.beforeEach(async () => {
+        // Preserve the 'oh' chord so the key mapping is available for all tests.
+        await callSKApi(page, 'unmapAllExcept', [KEY]);
+        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+        // Ensure page has focus before sending keyboard events.
+        await page.mouse.click(100, 100);
+        await page.waitForTimeout(100);
+    });
+
     test.afterEach(async () => {
         try {
             await pressEscapeToCloseOmnibar(page);
@@ -93,8 +102,6 @@ test.describe('cmd_omnibar_history (Playwright)', () => {
 
     test('pressing oh opens history omnibar', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            await callSKApi(page, 'unmapAllExcept', []);
-            await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
             await page.keyboard.press('o');
             await page.waitForTimeout(50);
             await page.keyboard.press('h');
@@ -133,7 +140,9 @@ test.describe('cmd_omnibar_history (Playwright)', () => {
             await waitForOmnibarState(page, false);
             await page.waitForTimeout(300);
 
-            // Second cycle
+            // Second cycle — click to restore page focus after omnibar close
+            await page.mouse.click(100, 100);
+            await page.waitForTimeout(100);
             await page.keyboard.press('o');
             await page.waitForTimeout(50);
             await page.keyboard.press('h');

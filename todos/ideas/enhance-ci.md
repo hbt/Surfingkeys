@@ -46,6 +46,20 @@ This gives the agent a concrete command to loop on and a human-readable reminder
 
 ---
 
+## Remaining Optimisations to verify.ts
+
+### 3. Deduplicate `buildReport()` — merge `integrity` + `issues` into one check
+
+Both the `integrity` and `issues` fast checks independently call `buildReport()` (full AST scan of `src/`, coverage data, custom config parse — ~13s each). They run in parallel so wall time is unaffected, but they double CPU load during that window.
+
+Options:
+- Merge into a single `verify.ts` check that runs `buildReport()` once, then validates schema + checks issues in the same process
+- Or: make `check-issues.ts` accept a pre-built report JSON on stdin / as a flag to avoid the subprocess re-spawn
+
+**Impact:** reduces CPU load, makes the parallel window cleaner. Wall time unchanged.
+
+---
+
 ## What CI Already Handles (no changes needed)
 
 | Component | What it does |
