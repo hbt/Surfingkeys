@@ -1,0 +1,2 @@
+- [x] SA1: Create tests/cdp/commands/cmd-nav-new-incognito-window.spec.ts (Playwright, SW eval, verify window created incognito), run it, commit
+- [x] SA2: Write plan to integrate tests/cdp/ into ci.ts / test-parallel runs

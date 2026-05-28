@@ -29,13 +29,14 @@ Each ADR follows this structure:
 | [ADR-007](adr-007-service-worker-dormancy-wake.md) | Service Worker Dormancy and Wake Pattern | Accepted | 2026-01-21 | Auto-wake dormant service worker for reliable command execution |
 | [ADR-008](adr-008-startup-settings-persistence.md) | Startup Settings Persistence Pattern | Accepted | 2026-01-22 | Enable user config settings in early-firing background listeners |
 | [ADR-009](adr-009-command-metadata-system.md) | Command Metadata System for Persistent Identification | Accepted | 2026-01-22 | Track commands by ID instead of key for remap-safe statistics |
+| [ADR-CDP-CI](adr-cdp-test-ci-integration.md) | CDP Test Suite CI Integration | Proposed | 2026-05-28 | Bring tests/cdp/ Playwright suite into the full CI pipeline |
 
 ## adrs.status_summary
 
 | Status | Count | ADRs |
 |--------|-------|------|
 | Accepted | 9 | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009 |
-| Proposed | 0 | - |
+| Proposed | 1 | ADR-CDP-CI |
 | Deprecated | 0 | - |
 | Superseded | 0 | - |
 
