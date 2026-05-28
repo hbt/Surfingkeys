@@ -30,12 +30,15 @@ export const REPORT_JSON_SCHEMA = {
                 "summary": {
                     "type": "object",
                     "description": "Aggregate statistics for all settings usages found across source files",
-                    "required": ["total_usages", "unique_settings", "runtime_conf_settings", "settings_api", "excluded_count"],
+                    "required": ["total_usages", "unique_settings", "runtime_conf_settings", "settings_api", "background_settings", "content_script_settings", "mixed_settings", "excluded_count"],
                     "properties": {
                         "total_usages": { "type": "integer", "description": "Total number of individual setting accesses found across all source files, after excluded settings are filtered out" },
                         "unique_settings": { "type": "integer", "description": "Count of distinct setting names; multiple usages of the same setting count as one" },
                         "runtime_conf_settings": { "type": "integer", "description": "Number of unique settings accessed via runtime.conf.*" },
                         "settings_api": { "type": "integer", "description": "Number of unique settings accessed via settings.*" },
+                        "background_settings": { "type": "integer", "description": "Number of unique settings used exclusively in the background service worker" },
+                        "content_script_settings": { "type": "integer", "description": "Number of unique settings used exclusively in content scripts" },
+                        "mixed_settings": { "type": "integer", "description": "Number of unique settings used across multiple process types" },
                         "excluded_count": { "type": "integer", "description": "Number of entries in the hardcoded EXCLUDED_SETTINGS list (false positives such as loop variables and built-in methods, filtered before counting)" }
                     }
                 },
@@ -281,13 +284,18 @@ export const REPORT_JSON_SCHEMA = {
         "SettingEntry": {
             "type": "object",
             "description": "Aggregated usage data for a single setting name",
-            "required": ["setting", "type", "frequency", "files", "functions", "usages"],
+            "required": ["setting", "type", "process", "frequency", "files", "functions", "usages"],
             "properties": {
                 "setting": { "type": "string", "description": "The setting name, e.g. scrollStepSize" },
                 "type": {
                     "type": "string",
                     "description": "Whether this setting is accessed via runtime.conf.* or settings.*",
                     "enum": ["runtime.conf", "settings"]
+                },
+                "process": {
+                    "type": "string",
+                    "description": "Which runtime process owns this setting, derived from the source files that reference it",
+                    "enum": ["background", "content_script", "pages", "mixed"]
                 },
                 "frequency": { "type": "integer", "description": "Total number of individual accesses across all source files" },
                 "files": { "type": "array", "description": "Sorted list of source files that reference this setting", "items": { "type": "string" } },

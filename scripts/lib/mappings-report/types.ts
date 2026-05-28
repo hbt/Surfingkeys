@@ -176,6 +176,7 @@ export interface SettingUsage {
 export interface SettingStats {
     setting: string;
     type: 'runtime.conf' | 'settings';
+    process: 'background' | 'content_script' | 'pages' | 'mixed';
     count: number;
     files: Set<string>;
     functions: Set<string>;

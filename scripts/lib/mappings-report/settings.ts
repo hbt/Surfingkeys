@@ -175,6 +175,18 @@ export function loadSettingsAnnotations(projectRoot: string): Map<string, Settin
     }
 }
 
+function deriveProcess(files: Set<string>): 'background' | 'content_script' | 'pages' | 'mixed' {
+    const zones = new Set<string>();
+    for (const f of files) {
+        if (f.startsWith('background/'))          zones.add('background');
+        else if (f.startsWith('content_scripts/')) zones.add('content_script');
+        else if (f.startsWith('pages/'))           zones.add('pages');
+        // files outside known directories contribute to mixed
+    }
+    if (zones.size === 1) return [...zones][0] as 'background' | 'content_script' | 'pages';
+    return 'mixed';
+}
+
 /**
  * Generate settings statistics from usages
  */
@@ -207,6 +219,11 @@ export function generateSettingsStatistics(usages: SettingUsage[], annotationsMa
         stat.usages.push(usage);
     }
 
+    // Compute process classification for each stat
+    for (const stat of statsMap.values()) {
+        stat.process = deriveProcess(stat.files);
+    }
+
     // Convert to array and sort by frequency
     const settingsList = Array.from(statsMap.values()).sort((a, b) => b.count - a.count);
 
@@ -216,6 +233,9 @@ export function generateSettingsStatistics(usages: SettingUsage[], annotationsMa
             unique_settings: settingsList.length,
             runtime_conf_settings: settingsList.filter(s => s.type === 'runtime.conf').length,
             settings_api: settingsList.filter(s => s.type === 'settings').length,
+            background_settings: settingsList.filter(s => s.process === 'background').length,
+            content_script_settings: settingsList.filter(s => s.process === 'content_script').length,
+            mixed_settings: settingsList.filter(s => s.process === 'mixed').length,
             excluded_count: EXCLUDED_SETTINGS.length
         },
         excluded: EXCLUDED_SETTINGS,
@@ -227,6 +247,7 @@ export function generateSettingsStatistics(usages: SettingUsage[], annotationsMa
             return {
                 setting: stat.setting,
                 type: stat.type,
+                process: stat.process,
                 frequency: stat.count,
                 files: Array.from(stat.files).sort(),
                 functions: Array.from(stat.functions).sort(),
