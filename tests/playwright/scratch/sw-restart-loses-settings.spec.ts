@@ -111,13 +111,12 @@ test.describe('SW restart loses snippet settings', () => {
         ));
         console.log(`[post-restart] chrome.storage.local.newTabPosition = ${JSON.stringify(storedAfterRestart.newTabPosition)}`);
 
-        // BUG: after restart, newTabPosition reverted to 'right' (default).
-        // So the new tab lands at activeTab.index + 1, NOT at index 0.
-        // This assertion is written as "should be true if bug were fixed" —
-        // it FAILS demonstrating the bug.
+        // Bug fixed: after restart, newTabPosition is restored from chrome.storage.local.
+        // The new tab now lands at index 0 as expected.
+        // bug fixed — test confirms fix.
         expect(
             post.newTab?.index,
-            'post-restart: tab should still be at index 0 (BUG: newTabPosition reverts to right after SW restart)',
+            'post-restart: tab should still be at index 0 (bug fixed — newTabPosition persists across SW restart)',
         ).toBe(0);
 
         await post.newTabPage.close();

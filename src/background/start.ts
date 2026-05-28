@@ -438,6 +438,16 @@ function start(browser: Record<string, unknown>) {
         interceptedErrors: []
     };
 
+    // Keys that must survive SW restarts: written to chrome.storage.local when set via
+    // scope='snippets' and merged back into conf during startup (see loadSettings callback).
+    const persistentSettingKeys = new Set<string>([
+        'newTabPosition',
+        'newTabUrl',
+        'focusAfterClosed',
+        'tabsMRUOrder',
+        'showTabIndices',
+    ]);
+
     var bookmarkFolders: BookmarkFolder[] = [];
     function getFolders(tree: chrome.bookmarks.BookmarkTreeNode, root: string) {
         var cd = root;
@@ -552,9 +562,16 @@ function start(browser: Record<string, unknown>) {
 
     loadSettings(null, function(initialSettings: Record<string, unknown>) {
         (browser._applyProxySettings as (settings: Record<string, unknown>) => void)(initialSettings);
-        ensureSettingsSnippetRegistration({
-            showAdvanced: Boolean(initialSettings && initialSettings.showAdvanced),
-            snippets: (initialSettings && typeof initialSettings.snippets === 'string') ? initialSettings.snippets : ''
+        chrome.storage.local.get(Array.from(persistentSettingKeys), function(stored) {
+            for (const k of persistentSettingKeys) {
+                if (stored[k] !== undefined) {
+                    conf[k] = stored[k];
+                }
+            }
+            ensureSettingsSnippetRegistration({
+                showAdvanced: Boolean(initialSettings && initialSettings.showAdvanced),
+                snippets: (initialSettings && typeof initialSettings.snippets === 'string') ? initialSettings.snippets : ''
+            });
         });
     });
 
@@ -1880,15 +1897,16 @@ function start(browser: Record<string, unknown>) {
     self.updateSettings = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         let error = "";
         const settings = message.settings as Record<string, unknown>;
+        // scope='snippets': transient+persistent settings from user config snippets.
+        // Values are written directly to conf (no broadcast to content scripts).
+        // Keys in persistentSettingKeys are also written to chrome.storage.local
+        // so they survive SW restarts. All other keys are transient (lost on restart).
         if (message.scope === "snippets") {
-            // For settings from snippets, don't broadcast the update
-            // neither persist into storage (except newTabUrl which needs storage for onCreated)
             for (var k in settings) {
                 if (conf.hasOwnProperty(k)) {
                     conf[k] = settings[k];
-                    // Persist newTabUrl to storage for onCreated listener
-                    if (k === 'newTabUrl') {
-                        chrome.storage.local.set({ newTabUrl: settings[k] as string });
+                    if (persistentSettingKeys.has(k)) {
+                        chrome.storage.local.set({ [k]: settings[k] });
                     }
                 }
             }
