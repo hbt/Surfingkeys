@@ -432,7 +432,7 @@ function start(browser: Record<string, unknown>) {
         llm: { },
         focusAfterClosed: "right",
         tabsMRUOrder: true,
-        newTabPosition: 'default',
+        newTabPosition: 'right',
         newTabUrl: (browser._setNewTabUrl as () => string)(),
         showTabIndices: true,
         interceptedErrors: []
@@ -661,6 +661,28 @@ function start(browser: Record<string, unknown>) {
                     newTabRedirectedTabs.add(tab.id);
                     chrome.tabs.update(tab.id!, { url: targetUrl });
                 }
+            });
+        }
+
+        // Position new tab according to conf.newTabPosition
+        if (tab.openerTabId && conf.newTabPosition !== 'default' && conf.newTabPosition !== 'last') {
+            chrome.tabs.get(tab.openerTabId, function(openerTab) {
+                if (chrome.runtime.lastError || !openerTab) return;
+                let targetIndex: number;
+                switch (conf.newTabPosition) {
+                    case 'left':
+                        targetIndex = openerTab.index;
+                        break;
+                    case 'right':
+                        targetIndex = openerTab.index + 1;
+                        break;
+                    case 'first':
+                        targetIndex = 0;
+                        break;
+                    default:
+                        return;
+                }
+                chrome.tabs.move(tab.id!, { index: targetIndex });
             });
         }
     });
