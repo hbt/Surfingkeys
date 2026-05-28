@@ -1,4 +1,5 @@
 import type { SurfingKeysConf, RuntimeMessage, MagicDirection } from '../../../@types/surfingkeys';
+import { CONF_DEFAULTS } from '../../shared/conf-defaults.js';
 
 function dispatchSKEvent(type: string, args?: unknown[], target?: EventTarget): void {
     if (target === undefined) {
@@ -58,6 +59,8 @@ const runtime = (function() {
         postTopMessage: null as any,
         getCaseSensitive: null as any,
         conf: {
+            // SW-shared defaults — must match start.ts via src/shared/conf-defaults.ts
+            ...CONF_DEFAULTS,
             autoSpeakOnInlineQuery: false,
             lastKeys: [] as string[],
             // local part from settings

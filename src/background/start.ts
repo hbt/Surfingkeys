@@ -2,6 +2,7 @@ import {
     filterByTitleOrUrl,
 } from '../common/utils.js';
 import llmClientsRaw from './llm.js';
+import { CONF_DEFAULTS } from '../shared/conf-defaults.js';
 import type { RuntimeAction, LLMClientsMap, TabURLMap, TabMessageMap, BookmarkFolder, BookmarkMsg } from '../../@types/surfingkeys';
 // Convenience type for message handlers that access arbitrary message properties
 type Msg = RuntimeAction & { [key: string]: unknown };
@@ -430,13 +431,13 @@ function start(browser: Record<string, unknown>) {
 
     var conf: Record<string, unknown> = {
         llm: { },
-        focusAfterClosed: "right",
-        tabsMRUOrder: true,
-        newTabPosition: 'right',
+        ...CONF_DEFAULTS,
         newTabUrl: (browser._setNewTabUrl as () => string)(),
-        showTabIndices: true,
         interceptedErrors: []
     };
+
+    // Tracks the last hash broadcast to tabs; used for change detection in _broadcastSettings.
+    var _lastBroadcastHash = "";
 
     // Keys that must survive SW restarts: written to chrome.storage.local when set via
     // scope='snippets' and merged back into conf during startup (see loadSettings callback).
@@ -490,8 +491,33 @@ function start(browser: Record<string, unknown>) {
         }).catch(() => {});
     }
 
+    // Cache for full loadSettings(null, ...) results — avoids redundant storage+network fetches
+    // on rapid page loads. Only caches null-key (full) loads; partial-key calls bypass it.
+    let _settingsCache: Record<string, unknown> | null = null;
+    let _settingsCacheTs = 0;
+    const SETTINGS_CACHE_TTL = 5000; // 5 s
+
+    // Invalidate cache whenever storage changes (e.g. after updateSettings).
+    chrome.storage.onChanged.addListener(function() {
+        _settingsCache = null;
+    });
+
     function loadSettings(keys: string | string[] | null, cb: (data: Record<string, unknown>) => void) {
         debugLog('loadSettings', 'started'); console.log('[loadSettings] started');
+
+        // Return cached result for full loads that are still fresh.
+        if (keys === null && _settingsCache && (Date.now() - _settingsCacheTs) < SETTINGS_CACHE_TTL) {
+            cb(_settingsCache);
+            return;
+        }
+
+        // For full loads, wrap cb to populate the cache on first result.
+        const _cb = (keys === null) ? function(data: Record<string, unknown>) {
+            _settingsCache = data;
+            _settingsCacheTs = Date.now();
+            cb(data);
+        } : cb;
+
         var tmpSet = {
             blocklist: {},
             marks: {},
@@ -518,7 +544,7 @@ function start(browser: Record<string, unknown>) {
                 if (resp.ok) {
                     const snippets = await resp.text();
                     debugLog('config-fetch', `ok snippetsLength=${snippets.length}`); console.log(`[config-fetch] ok snippetsLength=${snippets.length}`);
-                    cb({ ...set, snippets, localPath: LOCAL_SERVER, showAdvanced: true });
+                    _cb({ ...set, snippets, localPath: LOCAL_SERVER, showAdvanced: true });
                     // Confirm delivery to server (fire-and-forget, non-blocking)
                     fetch(`http://localhost:${__CONFIG_SERVER_PORT__}/loaded`, {
                         method: 'POST',
@@ -548,14 +574,14 @@ function start(browser: Record<string, unknown>) {
             if (set.localPath) {
                 request(appendNonce(set.localPath as string), function(resp: string) {
                     set.snippets = resp;
-                    cb(set);
+                    _cb(set);
                 }, undefined, undefined, function (_po: Error) {
                     // failed to read snippets from localPath
                     set.error = "Failed to read snippets from " + set.localPath;
-                    cb(set);
+                    _cb(set);
                 });
             } else {
-                cb(set);
+                _cb(set);
             }
         }, tmpSet);
     }
@@ -910,6 +936,12 @@ function start(browser: Record<string, unknown>) {
     }
 
     function _broadcastSettings(data: Record<string, unknown>) {
+        // Only broadcast if settings actually changed — prevents redundant messages to all tabs.
+        const hash = JSON.stringify(data);
+        if (hash === _lastBroadcastHash) {
+            return;
+        }
+        _lastBroadcastHash = hash;
         chrome.tabs.query({}, function(tabs) {
             tabs.forEach(function(tab) {
                 sendTabMessage(tab.id, -1, {
