@@ -1,0 +1,3 @@
+- [x] SA1: Check db/session history for incognito + CDP playwright constraint research
+- [x] SA2: Check git log for deleted CDP tests related to incognito
+- [x] SA3: Write plan + scratch test — open incognito with playwright (expect fail) and with CDP (check if works)

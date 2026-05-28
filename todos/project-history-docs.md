@@ -1,0 +1,4 @@
+- [x] SA1: git commit counts, eras breakdown, major works per era (pre-2025)
+- [x] SA2: commit counts post-2025, breakdown by month
+- [x] Write docs/project-history.md — fork origin, timeline, eras
+- [x] Write docs/project-contributions.md — human vs agent commits breakdown
