@@ -49,6 +49,16 @@ tester.run('settings-spec-coverage-flush', rule, {
             filename: 'tests/playwright/settings/setting-bar.spec.ts',
             errors: [{ messageId: 'missingFlush' }],
         },
+        // Coverage flush only in a comment — AST-based rule must still FAIL
+        {
+            code: `
+                // await cov?.close();
+                // withPersistedDualCoverage
+                test('something', async () => {});
+            `,
+            filename: 'tests/playwright/settings/setting-comment-only.spec.ts',
+            errors: [{ messageId: 'missingFlush' }],
+        },
     ],
 });
 

@@ -69,6 +69,17 @@ tester.run('settings-spec-restore-on-apply', rule, {
             filename: 'tests/playwright/settings/setting-digit-for-repeat.spec.ts',
             errors: [{ messageId: 'missingRestore' }],
         },
+        // restoreSetting only in a comment — AST-based rule must still FAIL
+        {
+            code: `
+                test('restoreInComment', async () => {
+                    await applySetting(page, 'scrollStepSize', 100);
+                    // await restoreSetting(page, 'scrollStepSize');
+                });
+            `,
+            filename: 'tests/playwright/settings/setting-scroll-step-size.spec.ts',
+            errors: [{ messageId: 'missingRestore' }],
+        },
     ],
 });
 
