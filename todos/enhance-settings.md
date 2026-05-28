@@ -14,16 +14,16 @@
 
 ## Settings Spec Linter (planned)
 
-- [ ] **[lint-types]** Create `scripts/lib/playwright-lint/types.ts` — `LintDiagnostic`, `Severity`, `SettingsLintResult`, `SpecFile`
-- [ ] **[lint-checks]** Create `scripts/lib/playwright-lint/settings-spec-linter.ts` — implement all 6 checks:
+- [x] **[lint-types]** Implemented as ESLint local plugin rules (no separate types.ts needed — used ESLint rule meta + RuleTester)
+- [x] **[lint-checks]** Implemented 5 per-file checks as `config/eslint-rules/settings-spec-*.js`:
   - `naming-convention` (error) — filename regex `setting-<name>.spec.ts`
   - `coverage-flush` (warning) — text regex for `cov?.close()` / `withPersistedDualCoverage`
-  - `describe-label` (error) — Babel AST, `test.describe('setting: <camelCase>', ...)`
-  - `restore-on-apply` (error) — Babel AST, every `test()` with `applySetting` must also have `restoreSetting`
+  - `describe-label` (error) — AST, `test.describe('setting: <camelCase>', ...)`
+  - `restore-on-apply` (error) — AST, every `test()` with `applySetting` must also have `restoreSetting`
   - `boolean-both-states` (warning) — AST + `docs/settings/all.json` `valueType: 'boolean'`
-  - `source-cross-reference` (warning) — reuse `scanDirectoryForSettings` + `loadSettingsAnnotations`
-- [ ] **[lint-entry]** Create `scripts/lint-settings-specs.ts` — entry point, exits 1 on errors
-- [ ] **[lint-integrate]** Edit `scripts/verify.ts` — add `settings-spec-lint` to CHECKS (`fast` group, after `issues`)
+  - `source-cross-reference` (warning) — skipped (cross-file; does not fit ESLint model)
+- [x] **[lint-entry]** Wired into `config/eslint.config.js` under `tests/playwright/settings/**/*.spec.ts` — runs via `bun scripts/run-lint.ts` automatically
+- [x] **[lint-integrate]** No new entry in `scripts/verify.ts` needed — existing `lint` check already runs these rules
 
 ## High Priority
 

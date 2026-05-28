@@ -88,7 +88,7 @@ async function getTabsViaSW(): Promise<any[]> {
 // Setup
 // ---------------------------------------------------------------------------
 
-test.describe('open 3 links via cmd_hints_link_background_tab', () => {
+test.describe('setting: newTabPosition', () => {
     test.setTimeout(60_000);
 
     test.beforeAll(async () => {

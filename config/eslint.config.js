@@ -3,6 +3,11 @@ const typescriptEslintParser = require('@typescript-eslint/parser');
 const playwrightPlugin = require('eslint-plugin-playwright');
 const requireCustomCommandMapping = require('./eslint-rules/require-custom-command-mapping');
 const noPackageLock = require('./eslint-rules/no-package-lock');
+const settingsSpecNamingConvention = require('./eslint-rules/settings-spec-naming-convention');
+const settingsSpecCoverageFlush = require('./eslint-rules/settings-spec-coverage-flush');
+const settingsSpecDescribeLabel = require('./eslint-rules/settings-spec-describe-label');
+const settingsSpecRestoreOnApply = require('./eslint-rules/settings-spec-restore-on-apply');
+const settingsSpecBooleanBothStates = require('./eslint-rules/settings-spec-boolean-both-states');
 
 module.exports = [
     {
@@ -185,6 +190,28 @@ module.exports = [
         },
         rules: {
             'local/no-package-lock': 'error',
+        }
+    },
+    {
+        // Settings spec linter rules — applied to tests/playwright/settings/
+        files: ['tests/playwright/settings/**/*.spec.ts'],
+        plugins: {
+            'settings-spec': {
+                rules: {
+                    'naming-convention': settingsSpecNamingConvention,
+                    'coverage-flush': settingsSpecCoverageFlush,
+                    'describe-label': settingsSpecDescribeLabel,
+                    'restore-on-apply': settingsSpecRestoreOnApply,
+                    'boolean-both-states': settingsSpecBooleanBothStates,
+                }
+            }
+        },
+        rules: {
+            'settings-spec/naming-convention': 'error',
+            'settings-spec/coverage-flush': 'warn',
+            'settings-spec/describe-label': 'error',
+            'settings-spec/restore-on-apply': 'error',
+            'settings-spec/boolean-both-states': 'warn',
         }
     }
 ];

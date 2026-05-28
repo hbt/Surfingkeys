@@ -5,6 +5,15 @@
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
+# Get all staged files
+STAGED=$(git diff --cached --name-only)
+
+# If there are staged files and ALL of them are .md, skip verify
+if [ -n "$STAGED" ] && ! echo "$STAGED" | grep -qv '\.md$'; then
+    echo "⚡ Skipping verify — markdown-only commit"
+    exit 0
+fi
+
 bun "$REPO_ROOT/scripts/verify.ts"
 
 if [ $? -eq 0 ]; then
