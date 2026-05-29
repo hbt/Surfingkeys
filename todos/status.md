@@ -1,6 +1,6 @@
 # Status
 
-<!-- one section per work stream — todos live in the linked detail files -->
+<!-- sections ordered by priority — stream.migration is #1, Bugs are last (blocked) -->
 
 ## stream.migration
 
@@ -37,14 +37,19 @@
 
 ---
 
-## Bugs
+## stream.coding-agents
 
-> **Blocked on infrastructure.** ACE/neovim bugs require probing editor popup state — not reliably possible without better devtools + scratch test patterns for UI commands. Investigate after `stream.coding-agents` devtools work matures.
+Improving agent-navigability: CLAUDE.md accuracy, docs/ structure, slash command coverage.
+Prerequisite for bug work — devtools + scratch patterns must mature before ACE/neovim bugs can be investigated.
 
 | Item | File | Status |
 |------|------|--------|
-| ACE editor broken (pre-fill + save) | [bugs/cmd-insert-vim-editor-ace-broken.md](bugs/cmd-insert-vim-editor-ace-broken.md) | blocked |
-| Neovim editor fires-once — secondary issue | [bugs/cmd-insert-neovim-editor-fires-once.md](bugs/cmd-insert-neovim-editor-fires-once.md) | blocked |
+| `cce todo list` cwd auto-scoping (cce todo #129) | [features/coding-agents.md](features/coding-agents.md#0-cce-todo-integration) | blocked/cce |
+| Review + update CLAUDE.md files | [features/coding-agents.md](features/coding-agents.md) | planned |
+| Move generated docs → docs/gen/, .gitignore | [features/coding-agents.md](features/coding-agents.md) | planned |
+| Create docs/llm/ for agent-navigable project knowledge | [features/coding-agents.md](features/coding-agents.md) | planned |
+| Audit + gap-fill .claude/commands/ slash commands | [features/coding-agents.md](features/coding-agents.md) | planned |
+| Design bug workflow process + `/bug` slash command | [features/coding-agents.md](features/coding-agents.md#4-bug-workflow-process) | planned |
 
 ---
 
@@ -91,23 +96,9 @@ CI is part of this stream. Goal: standardize patterns, enforce coverage, give co
 
 ---
 
-## stream.settings
-
-Linters done (5 rules). Helpers done. 3 specs exist. Gap: most settings have no dedicated spec.
-
-| Item | File | Status |
-|------|------|--------|
-| Expand test coverage — inventory all settings, write missing specs | [enhance-settings.md](enhance-settings.md#settings-test-coverage-expansion) | active |
-| Migrate existing 3 specs to `withPersistedDualCoverage` | [enhance-settings.md](enhance-settings.md#settings-test-coverage-expansion) | active |
-| Fix/promote `setting-show-tab-indices` from scratch | [enhance-settings.md](enhance-settings.md#settings-test-coverage-expansion) | active |
-| Resolve scratch `sw-restart-loses-settings` (bug fixed — promote or delete?) | [enhance-settings.md](enhance-settings.md#settings-test-coverage-expansion) | active |
-| Resolve duplicate `features/digit-repeat.spec.ts` | [enhance-settings.md](enhance-settings.md#settings-test-coverage-expansion) | active |
-| `newTabUrl` → generalize `persistentSettingKeys` registry | [enhance-settings.md](enhance-settings.md) | planned |
-| Untyped settings flow → schema validation at storage boundary | [enhance-settings.md](enhance-settings.md) | planned |
-
----
-
 ## stream.typescript
+
+Background/incremental — can run in parallel with higher-priority streams.
 
 | Item | File | Status |
 |------|------|--------|
@@ -124,6 +115,22 @@ Linters done (5 rules). Helpers done. 3 specs exist. Gap: most settings have no 
 
 ---
 
+## stream.settings
+
+Linters done (5 rules). Helpers done. 3 specs exist. Gap: most settings have no dedicated spec.
+
+| Item | File | Status |
+|------|------|--------|
+| Expand test coverage — inventory all settings, write missing specs | [enhance-settings.md](enhance-settings.md#settings-test-coverage-expansion) | active |
+| Migrate existing 3 specs to `withPersistedDualCoverage` | [enhance-settings.md](enhance-settings.md#settings-test-coverage-expansion) | active |
+| Fix/promote `setting-show-tab-indices` from scratch | [enhance-settings.md](enhance-settings.md#settings-test-coverage-expansion) | active |
+| Resolve scratch `sw-restart-loses-settings` (bug fixed — promote or delete?) | [enhance-settings.md](enhance-settings.md#settings-test-coverage-expansion) | active |
+| Resolve duplicate `features/digit-repeat.spec.ts` | [enhance-settings.md](enhance-settings.md#settings-test-coverage-expansion) | active |
+| `newTabUrl` → generalize `persistentSettingKeys` registry | [enhance-settings.md](enhance-settings.md) | planned |
+| Untyped settings flow → schema validation at storage boundary | [enhance-settings.md](enhance-settings.md) | planned |
+
+---
+
 ## Features (new)
 
 | Item | File | Status |
@@ -133,15 +140,11 @@ Linters done (5 rules). Helpers done. 3 specs exist. Gap: most settings have no 
 
 ---
 
-## stream.coding-agents
+## Bugs
 
-Improving agent-navigability: CLAUDE.md accuracy, docs/ structure, slash command coverage.
+> **Blocked on infrastructure.** ACE/neovim bugs require probing editor popup state — not reliably possible without better devtools + scratch test patterns for UI commands. Investigate after `stream.coding-agents` devtools work matures.
 
 | Item | File | Status |
 |------|------|--------|
-| `cce todo list` cwd auto-scoping (cce todo #129) | [features/coding-agents.md](features/coding-agents.md#0-cce-todo-integration) | blocked/cce |
-| Review + update CLAUDE.md files | [features/coding-agents.md](features/coding-agents.md) | planned |
-| Move generated docs → docs/gen/, .gitignore | [features/coding-agents.md](features/coding-agents.md) | planned |
-| Create docs/llm/ for agent-navigable project knowledge | [features/coding-agents.md](features/coding-agents.md) | planned |
-| Audit + gap-fill .claude/commands/ slash commands | [features/coding-agents.md](features/coding-agents.md) | planned |
-| Design bug workflow process + `/bug` slash command | [features/coding-agents.md](features/coding-agents.md#4-bug-workflow-process) | planned |
+| ACE editor broken (pre-fill + save) | [bugs/cmd-insert-vim-editor-ace-broken.md](bugs/cmd-insert-vim-editor-ace-broken.md) | blocked |
+| Neovim editor fires-once — secondary issue | [bugs/cmd-insert-neovim-editor-fires-once.md](bugs/cmd-insert-neovim-editor-fires-once.md) | blocked |
