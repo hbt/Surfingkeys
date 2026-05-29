@@ -139,6 +139,7 @@ Improving agent-navigability: CLAUDE.md accuracy, docs/ structure, slash command
 
 | Item | File | Status |
 |------|------|--------|
+| `cce todo list` cwd auto-scoping (cce todo #129) | [features/coding-agents.md](features/coding-agents.md#0-cce-todo-integration) | blocked/cce |
 | Review + update CLAUDE.md files | [features/coding-agents.md](features/coding-agents.md) | planned |
 | Move generated docs → docs/gen/, .gitignore | [features/coding-agents.md](features/coding-agents.md) | planned |
 | Create docs/llm/ for agent-navigable project knowledge | [features/coding-agents.md](features/coding-agents.md) | planned |

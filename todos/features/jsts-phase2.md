@@ -24,6 +24,19 @@ npm run test:playwright:parallel
 git commit -m "[ts] enforce noImplicitAny — phase 2.1"
 ```
 
+## Strategy for `any` elimination (983 `: any` + 339 `as any`)
+
+Not mechanical annotation — use types as an **architecture enforcer**.
+
+Two tiers:
+- **Boundary types** — catch real bugs at compile time (dispatch/execution boundaries, registry shapes). Do these interactively. Examples: `CommandRegistryEntry`, `TrieNode.meta` (KeyBound type), settings flow.
+- **Documentation types** — legibility only, no bug-catching value. Batch these to an LLM.
+
+Approach:
+- [ ] Phase 2.1–2.3 (noImplicitAny, strictNull, strictFunctionTypes): focus interactive work on boundaries where types catch actual bugs
+- [ ] Identify mechanical bulk: mode interface generation, large `as any` cast clusters → batch to LLM as single-pass PRs
+- [ ] Do not manually fix what an LLM can batch — reserve human review for boundary types only
+
 ## Notes
 
 - Suite must pass before committing each rule

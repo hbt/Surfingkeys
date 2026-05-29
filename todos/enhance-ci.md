@@ -88,6 +88,11 @@ No single view of key metrics. Hard to track trends.
   - Excluded / skipped test count
   - Flaky test count and which tests
   - Pre-commit check duration trend
+- [ ] Build `scripts/quality.ts` CLI — unified query layer over all quality artifacts via DuckDB JSON reads:
+  - Sources: mappings report, Playwright test history (`test-artifacts/reports/runs/`), ESLint output, error logs
+  - Canned SQL queries over timestamped artifacts — coverage % trends, pass rate over commits, cross-join uncovered mappings × lint errors
+  - File-based caching with `--refresh` flag (no separate DB schema needed — read files directly)
+  - Similar pattern to existing `logs.ts`
 - [ ] Evaluate options: static HTML from `ci.ts report`, Grafana + JSON, simple terminal dashboard, or a proper web UI
 - [ ] Dedicated worktree branch pattern for agent-driven fixes:
   - CI detects failure → creates `ci/fix-<sha>-<test-slug>` branch → agent gets test name + failure output → fixes in worktree → PR for review

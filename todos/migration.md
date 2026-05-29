@@ -70,6 +70,8 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 
 ## Tab Management Keys
 
+> **Magic variants note:** Adding direction-awareness (`*TabMagic` pattern) to a command is low-cost — "like adding a vector to a one-dimensional command." A previous analysis was too conservative about which commands should get magic variants. When porting each item below, explicitly decide: plain command only, or include magic variant? Default bias should be **include magic** unless there's a clear reason not to.
+
 - [ ] `ts` / `tS` — suspend / unsuspend tab (impl needed; archive: `tabSuspendM` / `tabUnsuspendM`)
 - [ ] `tR` — reverse tab order (impl needed; archive: `tabReverseM`)
 - [ ] `t!u` — deduplicate tabs by URL (impl needed; archive: `tabUnique`)

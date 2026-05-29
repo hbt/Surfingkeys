@@ -65,6 +65,28 @@ Findings from 3-agent investigation (pw-rules, test-pats, skapi-unmap).
 - [ ] Add afterEach cleanup to missing files
 - [ ] Add to test template in `tests/playwright/TEMPLATE_TEST.md`
 
+## Phase 8 — test.info().annotations for test metadata
+
+Currently flaky/skipped/docker-only tests are documented in CLAUDE.md as prose — not machine-readable.
+
+- [ ] Add `test.info().annotations.push({ type, description })` inline in tests that are flaky, slow, docker-CI-only, or skipped
+  - Enables HTML reports to surface metadata (flaky badge, skip reason)
+  - Enables CLI filtering: `--grep @flaky`, `--grep @docker-only`
+  - Replaces the manual CLAUDE.md "known flaky" list as the source of truth
+- [ ] Define standard annotation types: `flaky`, `slow`, `docker-only`, `skipped`
+- [ ] Migrate known flaky tests in CLAUDE.md to inline annotations first
+- [ ] Add lint rule or grep check to enforce annotations on `test.skip()` calls
+
+## Phase 9 — parameterize similar test files (post-stabilization)
+
+296 separate test files include many near-duplicates (all scroll commands, all hint variants). Low priority — do after suite stabilizes.
+
+- [ ] Identify candidate groups: scroll commands, hint commands, tab reload magic variants
+- [ ] Replace each group with `test.describe.each()` parameterized spec
+  - e.g. 10 scroll files → 1 file with `[{cmd:'j', label:'scroll-down'}, ...]`
+- [ ] Reduces file count, centralizes test data, makes adding new cases trivial
+- [ ] Do not attempt until test patterns are fully mature (after Phases 2–7 complete)
+
 ---
 
 ## Reference

@@ -5,6 +5,25 @@ navigability, and tooling alignment.
 
 ---
 
+## 0. cce todo integration
+
+`cce todo list` shows todos from all projects. When working in surfingkeys, agents see noise from cce, nvim, etc.
+
+**Current state:**
+- `cce me` returns current session's cwd — the data is available
+- `cwd` is stored as a tag on todos (`todo_tags` table, key=`cwd`)
+- `project` column exists on todos; `cce todo list --project surfingkeys` already works as a manual workaround
+- `session_id` column exists; `cce todo list --session-id <id>` already works
+
+**Missing:** `cce todo list` does not auto-infer `--project` from the current session's cwd. Must be added to cce.
+
+- [ ] **cce todo #129** — implement cwd-based auto-scoping: call `cce me`, infer project from cwd basename, default `--project` to it; `--all-projects` flag to override
+- Related cce todos: #19 (session auto-detect), #21 (auto-detect for list/kanban/outline), #24 (group by project), #25 (per-project numbering)
+
+**Workaround until fixed:** `cce todo list --project surfingkeys`
+
+---
+
 ## 1. CLAUDE.md review
 
 Ensure both files reflect current practices and are not stale.
