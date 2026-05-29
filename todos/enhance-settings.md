@@ -38,6 +38,19 @@
 - [ ] **`newTabUrl` persistence is a one-off hack** — generalize to a `persistentSettingKeys: Set<string>` registry; loop it in `updateSettings` scope=snippets instead of hardcoding (`start.ts:1886`)
 - [ ] **Untyped settings flow** — settings move as `Record<string, unknown>` with `(runtime.conf as any)[k]`; add schema validation at storage read boundary using `SurfingKeysConf` interface (`start.ts:856`, `content.ts:105`)
 
+## Settings Test Coverage Expansion
+
+Infrastructure is done (linters, helpers, directory). Only 3 settings have dedicated specs.
+Most settings have no read/write coverage.
+
+- [ ] **Inventory all settings** — run `bun scripts/mappings-json-report.ts` and list every key in `settings.list`; cross-ref against `tests/playwright/settings/` to find uncovered settings
+- [ ] **Write specs for uncovered settings** — prioritize settings that have real user-visible behavior and are writable via `applySetting`; each spec must cover at minimum: default value observable, write new value observable, restore verified
+- [ ] **Fix or promote `setting-show-tab-indices.spec.ts`** — currently in `scratch/` as "weak test" (no disable test, no `applySetting`); either fix it to spec standard and move to `settings/` or delete and rewrite from scratch
+- [ ] **Resolve `sw-restart-loses-settings.spec.ts`** — bug was fixed (`loadSettings()` merge fix); scratch test demonstrates the bug; determine if it should become a proper spec in `settings/` or be deleted now that the bug is resolved
+- [ ] **Resolve duplicate: `features/digit-repeat.spec.ts` vs `settings/setting-digit-for-repeat.spec.ts`** — both test the same setting; keep one, delete or merge the other
+- [ ] **Migrate settings specs to `withPersistedDualCoverage`** — current specs use old `launchWithCoverage()` which never flushes coverage; migrate all 3 production specs
+- [ ] **Audit `boolean-both-states` warnings** — linter warns when a boolean setting isn't tested in both states; run lint and fix each warning in the 3 existing specs
+
 ## Low Priority
 
 - [x] **`loadSettings` called on every page load** — no caching; add a cached result with explicit invalidation; decouple config-server fetch from local/sync merge

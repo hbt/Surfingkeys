@@ -2,7 +2,33 @@
 
 Tracking items from `.surfingkeys-2018.js` and `surfingkeys-archive` not yet in master / `.surfingkeysrc.js`.
 
+**Goal:** complete this migration to fully switch from the old Chrome + old extension to the new Chrome + MV3 extension. Some items below are hard blockers for that switch; the rest are quality-of-life.
+
 Reference plan: `/home/hassen/.claude/plans/glowing-popping-falcon.md`
+
+---
+
+## Blockers (must be done before switching browsers)
+
+These are the items whose absence makes the new extension not usable as a daily driver.
+Need a pass through the full list below to identify and move items here.
+
+- [ ] **Audit the full list** — go through every section, mark items as `[blocker]` or `[nice-to-have]`; anything used daily or relied on for workflow goes in blockers
+- [ ] **Settings** — at minimum `hintAlign`, `focusAfterClosed`, `newTabPosition`, `theme`, `interceptedErrors` (all config-only, quick)
+- [ ] **Key conflicts** — resolve the 5 conflicts in the table below before porting those commands
+
+---
+
+## Chrome Extensions (to investigate)
+
+Extensions currently used in the old browser that are MV2 or have no MV3 equivalent.
+Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
+
+- [ ] **Inventory** — list all extensions installed in the old Chrome profile; identify which are MV2-only
+- [ ] **PushBullet** — used for cross-device clipboard/notification; check if MV3 version exists or if a native alternative covers it; `opb` key in migration list
+- [ ] **Dark Reader** — check MV3 status (it has an MV3 version as of v4.9+); verify it works in the new profile
+- [ ] **Chrome dotfiles / custom NTP / other custom extensions** — inventory what exists; decide what to port, replace, or drop
+- [ ] **For each extension with no MV3 equivalent** — decide: build a surfingkeys command, find an alternative, or accept the loss
 
 ---
 
