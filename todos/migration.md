@@ -11,10 +11,9 @@ Reference plan: `/home/hassen/.claude/plans/glowing-popping-falcon.md`
 ## Blockers (must be done before switching browsers)
 
 These are the items whose absence makes the new extension not usable as a daily driver.
-Need a pass through the full list below to identify and move items here.
 
-- [ ] **Audit the full list** — go through every section, mark items as `[blocker]` or `[nice-to-have]`; anything used daily or relied on for workflow goes in blockers
-- [ ] **Settings** — at minimum `hintAlign`, `focusAfterClosed`, `newTabPosition`, `theme`, `interceptedErrors` (all config-only, quick)
+- [x] **Audit the full list** — done: 3/7 settings done; rest of backlog is backlog
+- [x] **Settings** — 3/7 done (hintAlign, focusAfterClosed, newTabPosition); 4 remaining marked [NTH]
 - [ ] **Key conflicts** — resolve the 5 conflicts in the table below before porting those commands
 
 ---
@@ -34,21 +33,21 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 
 ## Settings (config-only — add to `.surfingkeysrc.js`)
 
-- [ ] `settings.hintAlign = "left"` — default is `"center"` (`runtime.ts:81`)
-- [ ] `settings.focusAfterClosed = "left"` — default is `"right"` (`start.ts:433`)
-- [ ] `settings.newTabPosition = "right"` — default is `"default"` (`start.ts:435`)
-- [ ] `settings.modeAfterYank = "Normal"` — default is `""` (`runtime.ts:87`)
-- [ ] `settings.interceptedErrors = ["*"]` — default is `[]` (`start.ts:438`)
-- [ ] `settings.theme` — restore custom CSS (font sizes, `sk_find` 20pt)
-- [ ] `settings.prevLinkRegex` / `settings.nextLinkRegex` — restore custom regexes
+- [x] `settings.hintAlign = "left"` — default is `"center"` (`runtime.ts:81`)
+- [x] `settings.focusAfterClosed = "left"` — default is `"right"` (`start.ts:433`)
+- [x] `settings.newTabPosition = "right"` — default is `"default"` (`start.ts:435`)
+- [ ] `settings.modeAfterYank = "Normal"` — default is `""` (`runtime.ts:87`) [NTH]
+- [ ] `settings.interceptedErrors = ["*"]` — default is `[]` (`start.ts:438`) [NTH]
+- [ ] `settings.theme` — restore custom CSS (font sizes, `sk_find` 20pt) [NTH]
+- [ ] `settings.prevLinkRegex` / `settings.nextLinkRegex` — restore custom regexes [NTH]
 
 ---
 
 ## Yank / Clipboard Keys
 
-- [ ] `ymd` — copy URL as markdown (config mapping, inline JS)
-- [ ] `ymt` — copy title as markdown (config mapping, inline JS)
-- [ ] `yw` — copy all URLs in current window (impl needed; `yY` does all tabs, not window-scoped)
+- [ ] `ymd` — copy URL as markdown (config mapping, inline JS) ^4kp2mx
+- [ ] `ymt` — copy title as markdown (config mapping, inline JS) ^9b3wr7
+- [ ] `yw` — copy all URLs in current window (impl needed; `yY` does all tabs, not window-scoped) ^t5q8vn
 - [ ] `yr` — readability via txtify.it (config mapping, inline redirect)
 - [ ] `yD` — enable disabled elements on page (impl needed)
 - [ ] `yI` — open Chrome inspector / debugger (impl needed)
@@ -160,3 +159,13 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 | `of` | Open hinted link incognito | Open local markdown file | `cmd_markdown_open_file` |
 | `oi` | Search IMDB | Open incognito window | `cmd_nav_incognito` |
 | `on` | Search NPM | Open new tab | `cmd_tab_new` |
+
+---
+
+## References
+
+^4kp2mx — `ymd`: archive `surfingskeysrc-config-example.js:166` (inline JS — `Clipboard.write("[" + document.location.href + "](" + window.location.href + ")")`). No master equivalent; closest `cmd_yank_url` (`yy`) copies URL only.
+
+^9b3wr7 — `ymt`: archive `surfingskeysrc-config-example.js:169` (inline JS — `Clipboard.write("[" + document.title + "](" + window.location.href + ")")`). No master equivalent; closest `cmd_yank_title` (`yl`) copies title only.
+
+^t5q8vn — `yw`: archive `surfingskeysrc-config-example.js:165` → content impl `content_scripts/hbt.js:391` → bg handler `bg.js:1850`. Master: `cmd_tab_copy_urls_m` (`yta` = AllInWindow) likely covers this; verify scope matches.
