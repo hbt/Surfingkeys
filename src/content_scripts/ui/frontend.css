@@ -149,10 +149,10 @@ body {
     content: var(--llm-assistant-icon, 'ℹ︎');
 }
 .sk_theme #sk_omnibarSearchResult>ul>li:nth-child(odd) {
-    background: #fafafa;
+    background: rgba(255, 255, 255, 0.05);
 }
 .sk_theme #sk_omnibarSearchResult>ul>li.focused {
-    background: #cddef9;
+    background: #264f78;
 }
 .sk_theme #sk_omnibarSearchResult>ul>li.window {
     border: 2px solid #c7c7c773;

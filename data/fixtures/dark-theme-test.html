@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: dark;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <title>Dark Theme Test Page</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --border: #30363d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            padding: 40px;
+            min-height: 200vh;
+        }
+
+        h1 {
+            color: var(--text-primary);
+            font-size: 2em;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        h2 {
+            color: var(--text-secondary);
+            font-size: 1.2em;
+            margin: 24px 0 8px;
+        }
+
+        p {
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        code {
+            background-color: #1c2128;
+            color: #79c0ff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dark Theme Test Page</h1>
+
+    <div class="card">
+        <h2>Section One</h2>
+        <p>This page uses a native dark color scheme. The background is <code>#0d1117</code> and text is <code>#e6edf3</code>.</p>
+        <p>It does <em>not</em> rely on <code>prefers-color-scheme</code> media queries — the dark palette is applied unconditionally.</p>
+    </div>
+
+    <div class="card">
+        <h2>Section Two</h2>
+        <p>Useful for testing how Surfingkeys UI elements (hints, popup, keystroke bar) look on a dark page.</p>
+        <p>Check that the <a href="#">link color</a> and hint labels are legible against the dark background.</p>
+    </div>
+
+    <div class="card">
+        <h2>Section Three</h2>
+        <p>Additional content to make the page scrollable for scroll-related command tests.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.</p>
+    </div>
+</body>
+</html>
