@@ -399,25 +399,25 @@ function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual:
         mapkey('o' + alias, ['#8Open Omnibar for {0} Search', prompt] as any, () => {
             front.openOmnibar({type: "SearchEngine", extra: alias});
         });
-        vmapkey((search_leader_key || 's') + alias, '', ssw);
+        vmapkey((search_leader_key || 's') + alias, ['#6Search selected with {0}', prompt] as any, ssw);
         function ssw2() {
             searchSelectedWith(search_url, true);
         }
-        mapkey((search_leader_key || 's') + (only_this_site_key || 'o') + alias, '', ssw2);
-        vmapkey((search_leader_key || 's') + (only_this_site_key || 'o') + alias, '', ssw2);
+        mapkey((search_leader_key || 's') + (only_this_site_key || 'o') + alias, ['#6Search this site with {0}', prompt] as any, ssw2);
+        vmapkey((search_leader_key || 's') + (only_this_site_key || 'o') + alias, ['#6Search this site with {0}', prompt] as any, ssw2);
 
         var capitalAlias = alias.toUpperCase();
         if (capitalAlias !== alias) {
             function ssw4() {
                 searchSelectedWith(search_url, false, true, alias);
             }
-            mapkey((search_leader_key || 's') + capitalAlias, '', ssw4);
-            vmapkey((search_leader_key || 's') + capitalAlias, '', ssw4);
+            mapkey((search_leader_key || 's') + capitalAlias, ['#6Search selected with {0} interactively', prompt] as any, ssw4);
+            vmapkey((search_leader_key || 's') + capitalAlias, ['#6Search selected with {0} interactively', prompt] as any, ssw4);
             function ssw5() {
                 searchSelectedWith(search_url, true, true, alias);
             }
-            mapkey((search_leader_key || 's') + (only_this_site_key || 'o') + capitalAlias, '', ssw5);
-            vmapkey((search_leader_key || 's') + (only_this_site_key || 'o') + capitalAlias, '', ssw5);
+            mapkey((search_leader_key || 's') + (only_this_site_key || 'o') + capitalAlias, ['#6Search this site with {0} interactively', prompt] as any, ssw5);
+            vmapkey((search_leader_key || 's') + (only_this_site_key || 'o') + capitalAlias, ['#6Search this site with {0} interactively', prompt] as any, ssw5);
         }
     }
 
