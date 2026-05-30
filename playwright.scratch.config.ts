@@ -3,12 +3,12 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
     testDir: './tests/playwright/scratch',
     outputDir: 'test-artifacts/results',
-    reporter: [['dot']],
+    reporter: [['dot'], ['html', { outputFolder: process.env.REPORT_DIR ?? 'test-artifacts/playwright', open: 'never' }]],
     workers: 1,
     projects: [{ name: '' }],
     retries: 0,
     timeout: 30_000,
-    use: { trace: 'off' },
+    use: { trace: process.env.PW_TRACE ? 'on' : 'off' },
     webServer: [
         {
             command: 'node tests/fixtures-server.js',

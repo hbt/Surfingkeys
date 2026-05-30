@@ -28,8 +28,8 @@ function readTraceMap(): TraceEntry[] {
   const html = readFileSync(indexHtml, "utf8");
   const scripts = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
 
-  // Second script block is the base64-encoded zip with test JSON files
-  const b64 = scripts[1]?.replace("data:application/zip;base64,", "");
+  // Second script block contains a base64-encoded zip (may be wrapped in a JS assignment)
+  const b64 = scripts[1]?.match(/data:application\/zip;base64,([A-Za-z0-9+/=]+)/)?.[1];
   if (!b64) return [];
 
   const zipBuf = Buffer.from(b64, "base64");

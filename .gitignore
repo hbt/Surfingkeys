@@ -14,3 +14,4 @@ src/content_scripts/safari.js
 .idea
 .env
 scripts/commits-index.json
+.zsh_aliases

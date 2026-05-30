@@ -131,7 +131,7 @@ export function generateIssues(
             by_category: buildCategoryRecord(coverageCat),
         },
         source_validation: generateSourceValidation(mappings),
-        config_validation: generateConfigValidation(customConfig, validIds),
+        config_validation: generateConfigValidation(customConfig, validIds, mappings),
         relevant_coverage: {
             dead_tests: relevantCoverageDeadTests.sort(),
             thin_coverage: relevantCoverageThin.sort((a, b) => (a.content_fns + a.bg_fns) - (b.content_fns + b.bg_fns)),

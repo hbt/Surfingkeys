@@ -206,6 +206,7 @@ export interface CustomConfigMapping {
     unique_id?: string;
     description?: string;
     line?: number;
+    hasDomain?: boolean;
 }
 
 export interface CustomConfiguration {

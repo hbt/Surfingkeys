@@ -99,11 +99,18 @@ export function parseCustomConfigAST(configPath: string): CustomConfiguration {
                 }
             }
 
+            // Detect domain option: mapkey/vmapkey/imapkey/cmapkey use args[3], mapcmdkey uses args[2]
+            const optionsArgIndex = ['mapcmdkey', 'vmapcmdkey', 'imapcmdkey', 'cmapcmdkey'].includes(functionName) ? 2 : 3;
+            const optionsArg = args[optionsArgIndex];
+            const hasDomain = !!(optionsArg && t.isObjectExpression(optionsArg) &&
+                optionsArg.properties.some((p: any) => t.isObjectProperty(p) && t.isIdentifier(p.key) && p.key.name === 'domain'));
+
             mappings.push({
                 key,
                 type: functionName as any,
                 ...(unique_id && { unique_id }),
                 ...(description && { description }),
+                ...(hasDomain && { hasDomain }),
                 ...(path.node.loc?.start.line !== undefined && { line: path.node.loc.start.line }),
             });
         }
