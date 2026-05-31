@@ -81,16 +81,7 @@ export const EXCLUDED_MAPPING_KEY_PATTERNS: Array<{ pattern: RegExp; reason: str
  * These will not appear as "missing tests" in reports or issues.
  */
 export const EXCLUDED_COMMANDS: Array<{ unique_id: string; reason: string }> = [
-    // chrome:// navigation — Playwright cannot access chrome:// pages
-    { unique_id: 'cmd_chrome_about',              reason: 'chrome:// page — not accessible in Playwright' },
-    { unique_id: 'cmd_chrome_bookmarks',          reason: 'chrome:// page — not accessible in Playwright' },
-    { unique_id: 'cmd_chrome_cache',              reason: 'chrome:// page — not accessible in Playwright' },
-    { unique_id: 'cmd_chrome_downloads',          reason: 'chrome:// page — not accessible in Playwright' },
-    { unique_id: 'cmd_chrome_extensions',         reason: 'chrome:// page — not accessible in Playwright' },
-    { unique_id: 'cmd_chrome_history',            reason: 'chrome:// page — not accessible in Playwright' },
-    { unique_id: 'cmd_chrome_cookies',            reason: 'chrome:// page — not accessible in Playwright' },
-    { unique_id: 'cmd_chrome_net_internals',      reason: 'chrome:// page — not accessible in Playwright' },
-    { unique_id: 'cmd_chrome_view_source',        reason: 'chrome:// page — not accessible in Playwright' },
+    // chrome:// navigation — DevTools / UI-only actions not testable via tabs API
     { unique_id: 'cmd_chrome_inspect',            reason: 'Opens Chrome DevTools — requires CDP, not testable in Playwright' },
     { unique_id: 'cmd_chrome_close_downloads_shelf', reason: 'Chrome UI shelf element — not accessible in Playwright' },
     // Browser lifecycle
@@ -119,8 +110,6 @@ export const EXCLUDED_COMMANDS: Array<{ unique_id: string; reason: string }> = [
     // Platform-conditional key — <Ctrl-a> on Mac/Linux, <Ctrl-f> on Windows; deferred
     { unique_id: 'cmd_insert_cursor_start',       reason: 'Platform-conditional key (Ctrl-a vs Ctrl-f) — deferred until insert-mode test harness is established' },
     // Deferred — not prioritized for current cycle
-    { unique_id: 'cmd_nav_incognito',             reason: 'Deferred — incognito window lifecycle in Playwright needs investigation' },
-    { unique_id: 'cmd_nav_new_incognito_window',  reason: 'Incognito — chrome.windows.create with incognito not supported in Playwright' },
     { unique_id: 'cmd_omnibar_llm_chat',          reason: 'Deferred — LLM chat integration not yet stable for testing' },
     { unique_id: 'cmd_session_save_quit',         reason: 'Deferred — session save/quit browser lifecycle not yet set up' },
     { unique_id: 'cmd_tools_read_text',           reason: 'Deferred — TTS read-text dispatch chain not yet isolated for testing' },

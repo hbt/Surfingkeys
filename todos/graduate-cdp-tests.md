@@ -1,0 +1,3 @@
+- [x] A1: Graduate cmd_nav_incognito + cmd_nav_new_incognito_window → tests/playwright/commands/ (dual coverage), remove from excluded list
+- [x] A2: Write + graduate all chrome:// page command tests → tests/playwright/commands/ (dual coverage), remove from excluded list
+- [x] A3: Run coverage pass on all new tests + review quality

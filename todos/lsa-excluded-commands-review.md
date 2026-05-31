@@ -1,0 +1,3 @@
+- [x] A1 (incognito): Find existing CDP tests for incognito commands, run them, check cmd_nav_incognito has no CDP test → write scratch CDP test, update excluded list
+- [x] A2 (chrome-pages): Investigate whether CDP tests can open/verify chrome:// page commands, write scratch CDP tests
+- [x] A3 (lurk-mode): Review lurk mode implementation, clarify how it works, document a clear user use case
