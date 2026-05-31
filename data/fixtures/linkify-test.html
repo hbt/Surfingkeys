@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Linkify Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    p { line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <p id="plain-url">Visit https://example.com for more info.</p>
+  <p id="multiple-urls">See https://foo.example.org and https://bar.example.net too.</p>
+  <p id="already-linked">Already linked: <a href="https://linked.example.com">https://linked.example.com</a></p>
+  <p id="no-url">No URL here, just plain text.</p>
+  <script>
+    // anchor for coverage instrumentation
+    if (window.location.hash === '#cov_content_anchor') {
+      document.documentElement.setAttribute('data-cov-anchor', '1');
+    }
+  </script>
+</body>
+</html>

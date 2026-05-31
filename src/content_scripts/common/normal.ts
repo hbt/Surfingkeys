@@ -1190,6 +1190,48 @@ function createNormal(insert: any) {
         }
     });
 
+    function linkifyPage() {
+        const urlRegex = /\b(https?:\/\/[^\s<>"')\]]+)/gi;
+        function walk(node: Node) {
+            if (node.nodeType === Node.TEXT_NODE && node.parentNode) {
+                const parent = node.parentNode as Element;
+                if (['A', 'SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT'].includes(parent.tagName)) return;
+                const text = node.textContent || '';
+                if (!urlRegex.test(text)) { urlRegex.lastIndex = 0; return; }
+                urlRegex.lastIndex = 0;
+                const frag = document.createDocumentFragment();
+                let lastIndex = 0, match: RegExpExecArray | null;
+                while ((match = urlRegex.exec(text)) !== null) {
+                    frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+                    const a = document.createElement('a');
+                    a.href = match[0];
+                    a.textContent = match[0];
+                    frag.appendChild(a);
+                    lastIndex = match.index + match[0].length;
+                }
+                frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+                parent.replaceChild(frag, node);
+            } else {
+                Array.from(node.childNodes).forEach(walk);
+            }
+        }
+        walk(document.body);
+    }
+
+    self.mappings.add("g-018", {
+        annotation: {
+            short: "Linkify page",
+            unique_id: "cmd_page_linkify",
+            category: "page",
+            description: "Convert plain-text URLs in the page into clickable links",
+            tags: ["page", "links", "url"]
+        },
+        feature_group: 3,
+        code: function() {
+            linkifyPage();
+        }
+    });
+
     function _onMouseUp(event: any) {
         if (runtime.conf.mouseSelectToQuery.indexOf(window.origin) !== -1
             && !isElementClickable(event.target)
