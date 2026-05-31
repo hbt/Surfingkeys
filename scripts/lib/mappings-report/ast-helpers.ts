@@ -90,6 +90,13 @@ export function extractHandlerType(node: any): { type: 'inline' | 'named' | 'bou
 export function extractValue(node: any): any {
     if (!node) return undefined;
 
+    // Unwrap TypeScript type-only expressions that have no runtime effect
+    // e.g. `'g-001' satisfies GKey` → TSatisfiesExpression → unwrap to the inner expression
+    // e.g. `'g-001' as GKey`        → TSAsExpression       → unwrap to the inner expression
+    if (node.type === 'TSSatisfiesExpression' || node.type === 'TSAsExpression') {
+        return extractValue(node.expression);
+    }
+
     // Existing literal handling
     if (t.isStringLiteral(node)) return node.value;
     if (t.isNumericLiteral(node)) return node.value;

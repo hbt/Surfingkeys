@@ -116,12 +116,14 @@ export function parseMappingsAddPatternsAST(
             const args = path.node.arguments;
             if (args.length < 2) return;
 
-            // Extract key - can be direct string or KeyboardUtils.encodeKeystroke(string)
+            // Extract key - can be direct string, `string satisfies GKey`, or KeyboardUtils.encodeKeystroke(string)
             let key: string | undefined;
             const firstArg = args[0];
 
-            if (t.isStringLiteral(firstArg)) {
-                key = firstArg.value;
+            // Use extractValue to handle TS-only wrappers like `satisfies` and `as`
+            const extractedKey = extractValue(firstArg);
+            if (typeof extractedKey === 'string') {
+                key = extractedKey;
             } else if (t.isCallExpression(firstArg)) {
                 // Check for KeyboardUtils.encodeKeystroke
                 if (matchesMemberExpression(firstArg.callee, ['KeyboardUtils', 'encodeKeystroke'])) {

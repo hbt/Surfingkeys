@@ -65,7 +65,13 @@ function createInsert() {
     });
     const keyToBOL = KeyboardUtils.platform === "Windows" ? "<Ctrl-f>" : "<Ctrl-a>";
     self.mappings.add(KeyboardUtils.encodeKeystroke(keyToBOL), {
-        annotation: "Move the cursor to the beginning of the line",
+        annotation: {
+            short: "Move cursor to start of line",
+            unique_id: "cmd_insert_cursor_start",
+            category: "editing",
+            description: "Move the cursor to the beginning of the line in input fields",
+            tags: ["editing", "cursor", "insert"]
+        },
         feature_group: 15,
         code: function() {
             var element = getRealEdit();

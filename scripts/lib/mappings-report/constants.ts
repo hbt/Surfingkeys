@@ -116,6 +116,8 @@ export const EXCLUDED_COMMANDS: Array<{ unique_id: string; reason: string }> = [
     { unique_id: 'cmd_lurk_ephemeral_normal',     reason: 'Lurk mode — requires lurkingPattern config and mode-switch fixture not yet established' },
     // Neovim integration — requires external process
     { unique_id: 'cmd_neovim_enable_input',       reason: 'Neovim integration — requires external Neovim process, not testable in CI' },
+    // Platform-conditional key — <Ctrl-a> on Mac/Linux, <Ctrl-f> on Windows; deferred
+    { unique_id: 'cmd_insert_cursor_start',       reason: 'Platform-conditional key (Ctrl-a vs Ctrl-f) — deferred until insert-mode test harness is established' },
     // Deferred — not prioritized for current cycle
     { unique_id: 'cmd_nav_incognito',             reason: 'Deferred — incognito window lifecycle in Playwright needs investigation' },
     { unique_id: 'cmd_nav_new_incognito_window',  reason: 'Incognito — chrome.windows.create with incognito not supported in Playwright' },
