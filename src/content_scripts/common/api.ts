@@ -85,7 +85,7 @@ function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual:
                 commandRegistry.set(options.unique_id, {
                     code: jscode,
                     annotation: typeof annotation === 'string'
-                        ? { unique_id: options.unique_id, short: annotation }
+                        ? { unique_id: options.unique_id, short: annotation } as unknown as MapKeyAnnotation
                         : { ...annotation, unique_id: options.unique_id },
                     originalKey: keys,
                     mode: mode.name,

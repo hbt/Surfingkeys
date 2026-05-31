@@ -1,3 +1,5 @@
+import type { Category } from '../../../@types/surfingkeys';
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -5,7 +7,7 @@
 export interface AnnotationObject {
     short: string;
     unique_id: string;
-    category: string;
+    category: Category;
     description: string;
     tags: string[]; // Must have at least one tag
 }

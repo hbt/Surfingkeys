@@ -137,13 +137,44 @@ export interface SurfingKeysConf {
     magicKeys?: Record<string, MagicDirection>;
 }
 
+export type Category =
+    | 'browser'
+    | 'chrome'
+    | 'clipboard'
+    | 'editing'
+    | 'frames'
+    | 'help'
+    | 'hints'
+    | 'history'
+    | 'insert'
+    | 'Markdown'
+    | 'marks'
+    | 'misc'
+    | 'modes'
+    | 'navigation'
+    | 'Neovim'
+    | 'omnibar'
+    | 'page'
+    | 'proxy'
+    | 'queue'
+    | 'scroll'
+    | 'search'
+    | 'selection'
+    | 'session'
+    | 'settings'
+    | 'tabs'
+    | 'tts'
+    | 'utility'
+    | 'vim'
+    | 'visual';
+
 export interface MapKeyAnnotation {
     short: string;
     unique_id: string;
     feature_group?: number;
-    category?: string;
-    description?: string;
-    tags?: string[];
+    category: Category;
+    description: string;
+    tags: [string, ...string[]];
 }
 
 export interface CommandRegistryEntry {
@@ -193,9 +224,9 @@ export interface RuntimeMessage {
 }
 
 export interface CommandAPI {
-    mapkey(keys: string, annotation: MapKeyAnnotation | string, fn: (...args: any[]) => void, options?: MapKeyOptions): void;
-    vmapkey(keys: string, annotation: MapKeyAnnotation | string, fn: (...args: any[]) => void, options?: MapKeyOptions): void;
-    imapkey(keys: string, annotation: MapKeyAnnotation | string, fn: (...args: any[]) => void, options?: MapKeyOptions): void;
+    mapkey(keys: string, annotation: MapKeyAnnotation, fn: (...args: any[]) => void, options?: MapKeyOptions): void;
+    vmapkey(keys: string, annotation: MapKeyAnnotation, fn: (...args: any[]) => void, options?: MapKeyOptions): void;
+    imapkey(keys: string, annotation: MapKeyAnnotation, fn: (...args: any[]) => void, options?: MapKeyOptions): void;
     map(new_keystroke: string, old_keystroke: string, domain?: RegExp | null, new_annotation?: string | MapKeyAnnotation): void;
     vmap(new_keystroke: string, old_keystroke: string, domain?: RegExp | null, new_annotation?: string | MapKeyAnnotation): void;
     cmap(new_keystroke: string, old_keystroke: string, domain?: RegExp | null, new_annotation?: string | MapKeyAnnotation): void;
