@@ -891,6 +891,10 @@ function start(browser: Record<string, unknown>) {
         }
     }
     chrome.runtime.onMessage.addListener(handleMessage);
+    // Expose for Playwright/testing: allows SW eval to invoke handlers directly
+    if (typeof globalThis !== 'undefined') {
+        (globalThis as any)._handleMessage = handleMessage;
+    }
     if (isMV3) {
         chrome.runtime.onUserScriptMessage.addListener((m, s, r) => {
             m.fromUserScript = true;
@@ -2586,6 +2590,49 @@ function start(browser: Record<string, unknown>) {
                     });
                 }
             });
+        });
+    };
+
+    self.bookmarkSaveYoutubePosition = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const tab = sender.tab;
+        if (!tab?.id || !tab.url) return;
+        const { seconds, folder } = message as Msg & { seconds: number; folder: string };
+        const tabId = tab.id;
+
+        const base = new URL(tab.url);
+        base.searchParams.delete('t');
+        base.hash = ''; // strip fragment so ?t= variants match regardless of anchor
+        const baseStr = base.toString();
+
+        const target = new URL(tab.url);
+        target.searchParams.set('t', String(Math.floor(seconds)));
+        const bookmarkUrl = target.toString();
+        const title = (tab.title || bookmarkUrl).replace(/^\[\d+\] /, '');
+
+        function saveInFolder(parentId: string) {
+            chrome.bookmarks.getChildren(parentId, function(children) {
+                const stale = children.filter(c => c.url && _normalizeUrl(c.url).startsWith(_normalizeUrl(baseStr)));
+                let pending = stale.length;
+                function afterRemove() {
+                    chrome.bookmarks.create({ parentId, title, url: bookmarkUrl }, function() {
+                        sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Saved playback position` });
+                    });
+                }
+                if (pending === 0) { afterRemove(); return; }
+                stale.forEach(b => chrome.bookmarks.remove(b.id, function() {
+                    if (--pending === 0) afterRemove();
+                }));
+            });
+        }
+
+        _getBookmarkFolderByName(folder, function(folderNode) {
+            if (folderNode) {
+                saveInFolder(folderNode.id);
+            } else {
+                chrome.bookmarks.create({ parentId: "1", title: folder }, function(newFolder) {
+                    saveInFolder(newFolder.id);
+                });
+            }
         });
     };
 

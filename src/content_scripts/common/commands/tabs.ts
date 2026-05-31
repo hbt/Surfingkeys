@@ -374,4 +374,19 @@ export default function registerTabs(
             RUNTIME('openNewtab');
         });
     }
+
+    mapkey('g-016', {
+        short: "Save YouTube playback position",
+        unique_id: "cmd_bookmark_save_youtube_position",
+        feature_group: 3,
+        category: "tabs",
+        description: "Bookmark current YouTube video at current playback position",
+        tags: ["bookmark", "youtube", "playback"]
+    }, function() {
+        const el = document.querySelector('.ytp-time-current') as HTMLElement | null;
+        if (!el) return;
+        const parts = el.innerText.split(':').map(Number).reverse();
+        const seconds = (parts[0] || 0) + (parts[1] || 0) * 60 + (parts[2] || 0) * 3600;
+        RUNTIME('bookmarkSaveYoutubePosition', { seconds, folder: 'playback' });
+    });
 }

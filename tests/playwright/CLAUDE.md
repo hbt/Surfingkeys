@@ -108,6 +108,24 @@ await callSKApi(page, 'mapcmdkey', 'j', 'cmd_scroll_down');      // single key
 await callSKApi(page, 'mapcmdkey', 'tde', 'cmd_tab_detach_magic_right'); // chord
 ```
 
+### g-NNN placeholder keys
+
+Commands defined in `src/content_scripts/common/commands/` use `g-NNN` as their registered key (e.g. `mapkey('g-016', { unique_id: 'cmd_foo', ... }, fn)`). The real binding is set by `api.mapcmdkey` in the user config.
+
+**Why this matters for tests**: if a command uses a real key that conflicts with an existing default binding (e.g. `b` is already bound as `cmd_omnibar_bookmarks`), the `mapkey` call is silently rejected and the command never enters `commandRegistry`. `mapcmdkey` and `invokeCommand` both fail silently.
+
+Using a `g-NNN` placeholder avoids all prefix conflicts — the command is always registered, and `mapcmdkey` can bind it to any real key after the conflicting key is freed.
+
+In tests, bind via `unmapAllExcept` + `mapcmdkey` using the real target key (not the placeholder):
+
+```typescript
+await callSKApi(page, 'unmapAllExcept', []);
+await callSKApi(page, 'mapcmdkey', 'bv', 'cmd_bookmark_save_youtube_position');
+// Now 'bv' works — 'b' conflict is gone because unmapAllExcept cleared it
+```
+
+Or skip the key dispatch entirely and use `invokeCommand` directly (no key needed).
+
 Trigger chords with sequential individual `keyboard.press()` calls with small delays between each character.
 
 Alternative — **direct invocation** without key dispatch, using `invokeCommand` from `pw-helpers.ts`:
