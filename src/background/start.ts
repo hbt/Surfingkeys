@@ -1571,9 +1571,18 @@ function start(browser: Record<string, unknown>) {
     };
     self.closeTab = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         _roundRepeatTabs(sender.tab, message.repeats as number, function(tabIds: number[]) {
+            const tabIndex = sender.tab ? sender.tab.index : -1;
+            const windowId = sender.tab ? sender.tab.windowId : -1;
             chrome.tabs.remove(tabIds, function() {
                 if ( conf.focusAfterClosed === "left" ) {
-                    _nextTab(sender.tab, -1);
+                    if (tabIndex >= 0 && windowId >= 0) {
+                        chrome.tabs.query({ windowId }, function(tabs) {
+                            const leftTab = tabs.filter(t => t.index < tabIndex).sort((a, b) => b.index - a.index)[0];
+                            if (leftTab && leftTab.id != null) {
+                                chrome.tabs.update(leftTab.id, { active: true });
+                            }
+                        });
+                    }
                 } else if ( conf.focusAfterClosed === "last" ) {
                     (self.historyTab as MessageHandler)({action: 'historyTab', backward: true} as Msg, {} as chrome.runtime.MessageSender, () => {});
                 }

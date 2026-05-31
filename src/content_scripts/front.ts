@@ -511,9 +511,8 @@ function createFront(insert: any, normal: any, hints: any, visual: any, browser:
             for (var k in cloneUS) {
                 if (runtime.conf.hasOwnProperty(k)) {
                     (runtime.conf as any)[k] = cloneUS[k];
-                    delete cloneUS[k];
                 }
-           }
+            }
 
             if (Object.keys(cloneUS).length > 0 && window === top) {
                 // left settings are for background, need not broadcast the update, neither persist into storage
