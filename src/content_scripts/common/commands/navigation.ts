@@ -185,6 +185,20 @@ export default function registerNavigation(
         }
     });
 
+    mapkey('g-015', {
+        short: "Navigate to clipboard URL",
+        unique_id: "cmd_nav_clipboard_navigate",
+        feature_group: 7,
+        category: "navigation",
+        description: "Navigate current tab to URL from clipboard",
+        tags: ["navigation", "clipboard", "url"]
+    }, function() {
+        (clipboard as any).read(function(response: any) {
+            const url = response.data.trim();
+            if (url) window.location.href = url;
+        });
+    });
+
     mapkey('g?', {
         short: "Remove query string",
         unique_id: "cmd_nav_remove_query",

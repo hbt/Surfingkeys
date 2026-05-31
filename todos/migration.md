@@ -57,7 +57,7 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 
 ## Paste / Link-Open Keys
 
-- [ ] `pp` / `gv` — paste clipboard URL into current tab (impl needed) ^j6n8ht
+- [x] `pp` / `gv` — paste clipboard URL into current tab (impl needed) ^j6n8ht
 - [ ] `of` / `nf` — open hinted link incognito (impl needed; `of` conflict with `cmd_markdown_open_file`) ^r3p7dw
 - [ ] `nw` — open hinted link in new window (impl needed) ^x4b6fy
 - [ ] `ysd` — focus element via hint (impl needed) ^h9k2lq
