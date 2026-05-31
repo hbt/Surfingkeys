@@ -30,12 +30,13 @@ export const REPORT_JSON_SCHEMA = {
                 "summary": {
                     "type": "object",
                     "description": "Aggregate statistics for all settings usages found across source files",
-                    "required": ["total_usages", "unique_settings", "runtime_conf_settings", "settings_api", "background_settings", "content_script_settings", "mixed_settings", "excluded_count"],
+                    "required": ["total_usages", "unique_settings", "runtime_conf_settings", "settings_api", "conf_settings", "background_settings", "content_script_settings", "mixed_settings", "excluded_count"],
                     "properties": {
                         "total_usages": { "type": "integer", "description": "Total number of individual setting accesses found across all source files, after excluded settings are filtered out" },
                         "unique_settings": { "type": "integer", "description": "Count of distinct setting names; multiple usages of the same setting count as one" },
                         "runtime_conf_settings": { "type": "integer", "description": "Number of unique settings accessed via runtime.conf.*" },
                         "settings_api": { "type": "integer", "description": "Number of unique settings accessed via settings.*" },
+                        "conf_settings": { "type": "integer", "description": "Number of unique settings accessed via bare conf.* in background source files (SW-local conf object)" },
                         "background_settings": { "type": "integer", "description": "Number of unique settings used exclusively in the background service worker" },
                         "content_script_settings": { "type": "integer", "description": "Number of unique settings used exclusively in content scripts" },
                         "mixed_settings": { "type": "integer", "description": "Number of unique settings used across multiple process types" },
@@ -289,8 +290,8 @@ export const REPORT_JSON_SCHEMA = {
                 "setting": { "type": "string", "description": "The setting name, e.g. scrollStepSize" },
                 "type": {
                     "type": "string",
-                    "description": "Whether this setting is accessed via runtime.conf.* or settings.*",
-                    "enum": ["runtime.conf", "settings"]
+                    "description": "How this setting is accessed: runtime.conf.* (content script conf proxy), settings.* (background settings API), or conf.* (bare SW-local conf object in background)",
+                    "enum": ["runtime.conf", "settings", "conf"]
                 },
                 "process": {
                     "type": "string",

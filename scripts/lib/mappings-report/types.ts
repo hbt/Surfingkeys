@@ -166,7 +166,7 @@ export interface Issues {
 
 export interface SettingUsage {
     setting: string;           // e.g., "scrollStepSize"
-    type: 'runtime.conf' | 'settings';
+    type: 'runtime.conf' | 'settings' | 'conf';
     file: string;
     line: number;
     functionName: string;      // Function where it's used
@@ -175,7 +175,7 @@ export interface SettingUsage {
 
 export interface SettingStats {
     setting: string;
-    type: 'runtime.conf' | 'settings';
+    type: 'runtime.conf' | 'settings' | 'conf';
     process: 'background' | 'content_script' | 'pages' | 'mixed';
     count: number;
     files: Set<string>;
@@ -227,6 +227,7 @@ export interface Report {
             unique_settings: number;
             runtime_conf_settings: number;
             settings_api: number;
+            conf_settings: number;
             excluded_count: number;
         };
         excluded: ExcludedSetting[];

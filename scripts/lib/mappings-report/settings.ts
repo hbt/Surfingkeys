@@ -123,6 +123,23 @@ export function detectSettingsInFile(filePath: string, relPath: string, usages: 
                     context: getAccessContext(path)
                 });
             }
+
+            // Check for bare conf.* — only in background source files (SW-local conf object)
+            const isBackgroundFile = relPath.startsWith('background' + require('path').sep) ||
+                                     relPath.startsWith('background/');
+            if (isBackgroundFile &&
+                t.isIdentifier(node.object, { name: 'conf' }) &&
+                t.isIdentifier(node.property)) {
+
+                usages.push({
+                    setting: node.property.name,
+                    type: 'conf',
+                    file: relPath,
+                    line: node.loc?.start.line || 0,
+                    functionName: getContainingFunctionName(path),
+                    context: getAccessContext(path)
+                });
+            }
         }
     });
 }
@@ -233,6 +250,7 @@ export function generateSettingsStatistics(usages: SettingUsage[], annotationsMa
             unique_settings: settingsList.length,
             runtime_conf_settings: settingsList.filter(s => s.type === 'runtime.conf').length,
             settings_api: settingsList.filter(s => s.type === 'settings').length,
+            conf_settings: settingsList.filter(s => s.type === 'conf').length,
             background_settings: settingsList.filter(s => s.process === 'background').length,
             content_script_settings: settingsList.filter(s => s.process === 'content_script').length,
             mixed_settings: settingsList.filter(s => s.process === 'mixed').length,
