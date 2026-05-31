@@ -334,19 +334,6 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkYoutubePlaylist', { folder, reverse: true, repeats: hasRepeat ? r : -1 });
     });
 
-    mapkey('g-018', {
-        short: "YouTube playlist from folder (ordered)",
-        unique_id: "cmd_bookmark_youtube_playlist_ordered",
-        feature_group: 14,
-        category: "settings",
-        description: "Build YouTube playlist from bookmark folder URLs, natural order (next key selects folder)",
-        tags: ["settings", "bookmarks", "youtube", "playlist"]
-    }, function(this: any, key: string) {
-        const folder = runtime.conf.bookmarkFolders?.[key];
-        const hasRepeat = this.repeats !== "";
-        const r = parseInt(this.repeats) || 1;
-        if (folder) RUNTIME('bookmarkYoutubePlaylist', { folder, reverse: false, repeats: hasRepeat ? r : -1 });
-    });
 
     } // end !Safari guard
 
