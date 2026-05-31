@@ -433,7 +433,11 @@ function start(browser: Record<string, unknown>) {
         llm: { },
         ...CONF_DEFAULTS,
         newTabUrl: (browser._setNewTabUrl as () => string)(),
-        interceptedErrors: []
+        interceptedErrors: [],
+        // SW-only settings: not in CONF_DEFAULTS so they are not filtered out
+        // by front.ts and correctly reach conf via updateSettings({scope:'snippets'}).
+        tabsMuteAll: false,
+        tabsMuteExceptions: [] as string[],
     };
 
     // Tracks the last hash broadcast to tabs; used for change detection in _broadcastSettings.
@@ -447,6 +451,8 @@ function start(browser: Record<string, unknown>) {
         'focusAfterClosed',
         'tabsMRUOrder',
         'showTabIndices',
+        'tabsMuteAll',
+        'tabsMuteExceptions',
     ]);
 
     var bookmarkFolders: BookmarkFolder[] = [];
@@ -677,6 +683,21 @@ function start(browser: Record<string, unknown>) {
         return candidates;
     }
 
+    // Returns true if the tab at `url` should be auto-muted on load.
+    // Mutes all http/https tabs unless the hostname matches an entry in tabsMuteExceptions.
+    function _shouldMuteTab(url: string): boolean {
+        if (!conf.tabsMuteAll) return false;
+        try {
+            const { protocol, hostname } = new URL(url);
+            if (protocol !== 'http:' && protocol !== 'https:') return false;
+            const exceptions = conf.tabsMuteExceptions as string[];
+            const candidates = _domainCandidates(hostname);
+            return !candidates.some(c => exceptions.includes(c));
+        } catch (_) {
+            return false;
+        }
+    }
+
     // Fetch and inject domain-specific JS + CSS from the config server.
     // Mirrors chromedotfiles behaviour: injects all matched candidates (not first-match).
     async function _injectDomainAssets(tabId: number, hostname: string): Promise<void> {
@@ -706,6 +727,11 @@ function start(browser: Record<string, unknown>) {
     }
 
     chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+        // Auto-mute: fires on "loading" so audio is suppressed before playback can start
+        if (changeInfo.status === "loading" && tab.url && _shouldMuteTab(tab.url)) {
+            chrome.tabs.update(tabId, { muted: true });
+        }
+
         if (changeInfo.status === "complete") {
             if (tab.active) {
                 _tabActivated(tabId);
