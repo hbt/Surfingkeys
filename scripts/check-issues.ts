@@ -27,6 +27,34 @@ if (result.status !== 0) {
 const report = JSON.parse(result.stdout);
 const { issues } = report;
 
+// Build unique_id → source file map (source.file is relative to src/)
+const sourceByUid = new Map<string, string>();
+for (const m of (report.mappings?.list ?? [])) {
+    const uid = m.annotation?.unique_id;
+    const file = m.source?.file;
+    if (uid && file) sourceByUid.set(uid, file);
+}
+
+// When STAGED_FILES env var is set (pre-commit hook), scope tests.missing to
+// commands whose source file is among the staged files.
+const stagedRaw = process.env.STAGED_FILES;
+const stagedSourceFiles = stagedRaw
+    ? new Set(
+        stagedRaw.split('\n')
+            .map(f => f.trim())
+            .filter(f => f.startsWith('src/'))
+            .map(f => f.slice('src/'.length))
+      )
+    : null;
+
+function scopeToStaged(ids: string[]): string[] {
+    if (!stagedSourceFiles) return ids;
+    return ids.filter(id => {
+        const src = sourceByUid.get(id);
+        return src !== undefined && stagedSourceFiles.has(src);
+    });
+}
+
 // Commands excluded from tests.missing / code_coverage.missing:
 // - cmd_chrome_*: Chrome internal pages (chrome://) inaccessible to Playwright
 // - Global mode commands: state side-effects break parallel test suite
@@ -111,7 +139,7 @@ const requiredChecks: IssueCheck[] = [
     { label: 'annotations.invalid',                          items: issues.annotations.invalid },
     { label: 'annotations.not_migrated',                     items: issues.annotations.not_migrated },
     { label: 'annotations.empty_key',                        items: issues.annotations.empty_key },
-    { label: 'tests.missing',                                items: issues.tests.missing.filter((id: string) => !excluded(id)) },
+    { label: 'tests.missing',                                items: scopeToStaged(issues.tests.missing.filter((id: string) => !excluded(id))) },
     { label: 'tests.invalid_files',                          items: issues.tests.invalid_files.filter((f: string) => !EXCLUDED_INVALID_FILES.has(f)) },
     { label: 'source_validation.prefix_conflicts',           items: issues.source_validation.prefix_conflicts },
     { label: 'source_validation.g_placeholder_issues',       items: issues.source_validation.g_placeholder_issues },

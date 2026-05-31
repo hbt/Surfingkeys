@@ -167,7 +167,7 @@ function buildCommandRegistry(modes: any) {
                     code: meta.code,
                     annotation: meta.annotation,
                     feature_group: meta.feature_group,
-                    originalKey: meta.word,
+                    originalKey: KeyboardUtils.decodeKeystroke(meta.word),
                     mode: mode.name,
                     modeRef: mode,
                     repeatIgnore: meta.repeatIgnore
