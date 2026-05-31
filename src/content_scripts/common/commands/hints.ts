@@ -199,6 +199,19 @@ export default function registerHints(
         });
     });
 
+    mapkey("g-021" satisfies GKey, {
+        short: "Open link in incognito window",
+        unique_id: "cmd_hints_open_incognito",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to open a link in a new incognito window",
+        tags: ["hints", "link", "incognito"]
+    }, function() {
+        (hints as any).create("*[href]", function(element: any) {
+            RUNTIME('openIncognito', { url: element.href });
+        });
+    });
+
     if (!getBrowserName().startsWith("Safari")) {
         mapkey(';di', {
             short: "Download image",
