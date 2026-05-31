@@ -1,0 +1,1 @@
+alias brtt='f() { if echo "$1" | grep -q "scratch/"; then bun run test:scratch:trace-open -- "$1"; else bun run test:trace-open -- "$1"; fi }; f'
