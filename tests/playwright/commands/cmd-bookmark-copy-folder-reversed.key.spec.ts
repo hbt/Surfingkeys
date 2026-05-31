@@ -153,7 +153,7 @@ test.describe('cmd_bookmark_copy_folder_reversed (pending-key, Playwright)', () 
         });
     });
 
-    test('repeat=1 copies all URLs (treated as no limit)', async () => {
+    test('repeat=1 copies exactly 1 URL', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await seedFolderOrdered(context, TEST_FOLDER, [URL_A, URL_B, URL_C]);
 
@@ -165,7 +165,7 @@ test.describe('cmd_bookmark_copy_folder_reversed (pending-key, Playwright)', () 
             await page.waitForTimeout(300);
 
             const clip = await page.evaluate(() => navigator.clipboard.readText());
-            expect(clip.split('\n')).toEqual([URL_C, URL_B, URL_A]);
+            expect(clip.split('\n')).toEqual([URL_C]);
         });
     });
 

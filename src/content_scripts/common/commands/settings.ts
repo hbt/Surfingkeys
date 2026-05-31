@@ -245,8 +245,9 @@ export default function registerSettings(
         tags: ["settings", "bookmarks", "copy"]
     }, function(this: any, key: string) {
         const folder = runtime.conf.bookmarkFolders?.[key];
+        const hasRepeat = this.repeats !== "";
         const r = parseInt(this.repeats) || 1;
-        if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: true, repeats: r > 1 ? r : -1 });
+        if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: true, repeats: hasRepeat ? r : -1 });
     });
 
     mapkey('g-010', {
@@ -258,8 +259,9 @@ export default function registerSettings(
         tags: ["settings", "bookmarks", "copy"]
     }, function(this: any, key: string) {
         const folder = runtime.conf.bookmarkFolders?.[key];
+        const hasRepeat = this.repeats !== "";
         const r = parseInt(this.repeats) || 1;
-        if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: false, repeats: r > 1 ? r : -1 });
+        if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: false, repeats: hasRepeat ? r : -1 });
     });
 
     mapkey('g-011', {
