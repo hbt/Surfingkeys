@@ -2745,6 +2745,34 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
+    self.bookmarkYoutubePlaylist = function(message: BMsg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const { folder, reverse } = message;
+        const repeats = message.repeats as number; // -1 = all, >0 = limit
+        const tabId = sender.tab?.id;
+        _getBookmarkFolderByName(folder, function(folderNode) {
+            if (!folderNode) {
+                sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Folder not found: [${folder}]` });
+                return;
+            }
+            chrome.bookmarks.getSubTree(folderNode.id, function(subtree) {
+                let urls = [...new Set(_deepPluck(subtree, 'url').map(_normalizeUrl).filter(Boolean))];
+                if (reverse) urls = urls.reverse();
+                const limit = repeats > 0 ? repeats : 50;
+                const videoIds = urls
+                    .filter((url: string) => url.indexOf('?v=') !== -1)
+                    .map((url: string) => new URL(url).searchParams.get('v'))
+                    .filter(Boolean)
+                    .slice(0, limit);
+                if (videoIds.length === 0) {
+                    sendTabMessage(tabId, 0, { subject: 'showBanner', message: `No YouTube videos in [${folder}]` });
+                    return;
+                }
+                const playlistUrl = `https://www.youtube.com/watch_videos?video_ids=${videoIds.join(',')}`;
+                chrome.tabs.update(tabId!, { url: playlistUrl });
+            });
+        });
+    };
+
     self.bookmarkLookupCurrentURL = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
         const url = _normalizeUrl(sender.tab!.url!);
         chrome.bookmarks.search({ url }, function(results) {

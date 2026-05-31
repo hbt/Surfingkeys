@@ -1,8 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-    testDir: './tests/playwright',
-    testIgnore: ['**/scratch/**'],
     outputDir: 'test-artifacts/results',
     reporter: [
         ['dot'],
@@ -14,7 +12,10 @@ export default defineConfig({
     // workers: 1 here would be inherited as project.workers in PW 1.53.2, capping --workers=N CLI overrides.
     // The explicit projects entry below keeps project.workers undefined so --workers=N works correctly.
     workers: 1,
-    projects: [{ name: '' }],
+    projects: [
+        { name: 'playwright', testDir: './tests/playwright', testIgnore: ['**/scratch/**'] },
+        { name: 'cdp',        testDir: './tests/cdp' },
+    ],
     retries: 2,
     maxFailures: process.env.PW_MAX_FAILURES !== undefined ? parseInt(process.env.PW_MAX_FAILURES) : 1,
     timeout: 30_000,

@@ -79,6 +79,7 @@ test.describe('cmd_bookmark_save_youtube_position (Playwright)', () => {
     });
 
     test.beforeEach(async () => {
+        test.skip(!process.env.DOCKER_CI, 'requires real YouTube navigation — only runs in Docker CI');
         await callSKApi(page, 'unmapAllExcept', []);
         await callSKApi(page, 'mapcmdkey', 'bv', 'cmd_bookmark_save_youtube_position');
     });
