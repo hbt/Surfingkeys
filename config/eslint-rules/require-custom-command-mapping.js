@@ -16,9 +16,15 @@ module.exports = {
     create(context) {
         let hasUnmapAll = false;
         let hasMapcmdkey = false;
+        let usesInvokeCommand = false;
 
         return {
             CallExpression(node) {
+                // invokeCommand-based tests bypass key dispatch — no mapping setup needed
+                if (node.callee.type === 'Identifier' && node.callee.name === 'invokeCommand') {
+                    usesInvokeCommand = true;
+                    return;
+                }
                 if (node.callee.type !== 'Identifier' || node.callee.name !== 'callSKApi') return;
                 const secondArg = node.arguments[1];
                 if (!secondArg || secondArg.type !== 'Literal') return;
@@ -34,6 +40,7 @@ module.exports = {
                 if (secondArg.value === 'mapcmdkey') hasMapcmdkey = true;
             },
             'Program:exit'(node) {
+                if (usesInvokeCommand) return;
                 if (!hasUnmapAll)  context.report({ node, messageId: 'missingUnmapAll' });
                 if (!hasMapcmdkey) context.report({ node, messageId: 'missingMapcmdkey' });
             },

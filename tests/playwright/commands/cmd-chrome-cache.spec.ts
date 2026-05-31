@@ -1,4 +1,3 @@
-/* eslint-disable local/require-custom-command-mapping -- command invoked via invokeCommand, no key dispatch needed */
 import { test, expect, BrowserContext } from '@playwright/test';
 import { launchWithDualCoverage, FIXTURE_BASE, invokeCommand } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
