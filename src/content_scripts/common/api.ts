@@ -168,6 +168,9 @@ function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual:
             return;
         }
 
+        // Track the user-assigned key so getCommand().originalKey reflects the live binding
+        command.originalKey = keys;
+
         // Create mapping using the original command's implementation
         // Preserve all metadata from the original command
         const mappingOptions = Object.assign({}, options, {

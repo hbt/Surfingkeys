@@ -77,11 +77,11 @@ test.describe('cmd_show_help (Playwright)', () => {
             const rowCount = await helpPage.$$eval('#sk_help_tbody tr', rows => rows.length);
             expect(rowCount).toBeGreaterThan(0);
 
-            // First row has two non-empty cells
+            // First row has three cells: mapping, unique_id, description
             const firstRow = await helpPage.$$eval('#sk_help_tbody tr:first-child td', cells => cells.map(c => c.textContent?.trim() ?? ''));
-            expect(firstRow.length).toBe(2);
-            expect(firstRow[0]).not.toBe('');
-            expect(firstRow[1]).not.toBe('');
+            expect(firstRow.length).toBe(3);
+            expect(firstRow[1]).not.toBe(''); // unique_id always set
+            expect(firstRow[2]).not.toBe(''); // description always set
 
             await helpPage.close().catch(() => {});
         });

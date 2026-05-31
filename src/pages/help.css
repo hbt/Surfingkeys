@@ -44,7 +44,17 @@ h1 {
     background: var(--dark-surface-light);
 }
 
-#sk_help_tbody td:first-child {
+#sk_help_tbody td.col-key {
+    color: var(--dark-green);
+    white-space: nowrap;
+    min-width: 60px;
+}
+
+#sk_help_tbody td.col-key-na {
+    color: var(--dark-comment);
+}
+
+#sk_help_tbody td:nth-child(2) {
     color: var(--dark-yellow);
     white-space: nowrap;
 }

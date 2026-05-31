@@ -36,6 +36,7 @@ export default function registerHelp(
         const commands = (api as any).listCommands().map((id: string) => {
             const cmd = (api as any).getCommand(id);
             return {
+                key: cmd?.originalKey || '',
                 unique_id: id,
                 description: cmd?.annotation?.description || cmd?.annotation?.short || ''
             };
