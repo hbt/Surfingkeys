@@ -1,6 +1,7 @@
 import { RUNTIME, runtime, dispatchSKEvent } from '../runtime.js';
 import { getBrowserName, getCssSelectorsOfEditable, getLargeElements, getTextNodePos } from '../utils.js';
 import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { GKey } from '../g-keys.js';
 
 export default function registerHints(
     api: CommandAPI,
@@ -179,6 +180,22 @@ export default function registerHints(
             }, function (pos: any, queryResult: any) {
                 dispatchSKEvent("front", ['showBubble', pos, queryResult, false]);
             });
+        });
+    });
+
+    mapkey('g-020' satisfies GKey, {
+        short: "Open inspector on element",
+        unique_id: "cmd_inspect_element",
+        feature_group: 1,
+        category: "hints",
+        description: "Show hints to select an element and open browser inspector at its screen position (requires config server on localhost:9600)",
+        tags: ["hints", "devtools", "inspect", "debug"]
+    }, function() {
+        (hints as any).create("", function(element: Element) {
+            const rects = element.getBoundingClientRect();
+            const x = Math.round(window.screenX + rects.x * window.devicePixelRatio + (rects.width * window.devicePixelRatio) / 2);
+            const y = Math.round(window.screenY + 100 + rects.y * window.devicePixelRatio + (rects.height * window.devicePixelRatio) / 2);
+            RUNTIME('inspectElement', { x, y });
         });
     });
 

@@ -122,6 +122,18 @@ function notFound(path: string): Response {
   return new Response(body, { status: 404 });
 }
 
+async function triggerInspectorResponse(url: URL): Promise<Response> {
+  const x = url.searchParams.get('x');
+  const y = url.searchParams.get('y');
+  if (!x || !y || isNaN(Number(x)) || isNaN(Number(y))) {
+    return new Response('bad request', { status: 400 });
+  }
+  const script = `sleep 0.2; xte "mousemove ${x} ${y}"; xdotool click --clearmodifiers 3; xdotool key Up; xdotool key Return`;
+  Bun.spawn(['bash', '-c', script], { stdout: 'ignore', stderr: 'ignore' });
+  log('GET', '/trigger/inspector', 200, 2);
+  return new Response('OK', { status: 200 });
+}
+
 async function domainAssetResponse(url: URL): Promise<Response> {
   const host = url.searchParams.get('host');
   const type = url.searchParams.get('type');
@@ -376,6 +388,7 @@ Bun.serve({
     if (url.pathname === '/eval-module') return evalModuleResponse(req);
     if (url.pathname === '/eval-script') return evalScriptResponse(req);
     if (url.pathname === '/domain-asset') return domainAssetResponse(url);
+    if (url.pathname === '/trigger/inspector') return triggerInspectorResponse(url);
     return notFound(url.pathname);
   }
 });

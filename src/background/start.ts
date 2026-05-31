@@ -1260,6 +1260,10 @@ function start(browser: Record<string, unknown>) {
             sendResponse({ logged: true, timestamp: Date.now() });
         }
     };
+    self.inspectElement = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        fetch(`http://localhost:${__CONFIG_SERVER_PORT__}/trigger/inspector?x=${message.x}&y=${message.y}`)
+            .catch((e: Error) => console.error('[sk] inspectElement: config server not reachable', e));
+    };
     self.loadSettingsFromUrl = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
         _loadSettingsFromUrl(message.url as string, function(status: Record<string, unknown>) {
             _response(message, sendResponse, status);
