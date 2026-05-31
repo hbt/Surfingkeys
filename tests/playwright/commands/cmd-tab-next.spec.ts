@@ -5,7 +5,7 @@ import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
 const DEBUG = !!process.env.DEBUG;
 
-const SUITE_LABEL = 'cmd_tab_next_v2';
+const SUITE_LABEL = 'cmd_tab_next';
 const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
@@ -52,7 +52,7 @@ async function activateTabViaSW(ctx: BrowserContext, tabId: number): Promise<voi
     }, tabId);
 }
 
-test.describe('cmd_tab_next_v2 (Playwright)', () => {
+test.describe('cmd_tab_next (Playwright)', () => {
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
         context = result.context;

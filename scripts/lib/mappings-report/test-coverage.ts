@@ -34,10 +34,7 @@ export function scanTestFiles(projectRoot: string): Map<string, string> {
 
 /**
  * Match test files with mapping entries and generate test coverage stats
- * Supports three test naming patterns:
- * 1. Direct mapping: cmd-scroll-down -> cmd_scroll_down (exact unique_id match)
- * 2. With setting: cmd-scroll-down.scrollStepSize -> tests cmd_scroll_down with scrollStepSize setting
- * 3. Qualifier variant: cmd-hints-link-background-tab.minimal -> variant test for cmd_hints_link_background_tab
+ * Only exact-match naming is valid: cmd-scroll-down.spec.ts -> cmd_scroll_down (unique_id)
  *
  * This function mutates the mappings array by adding test_coverage field to each mapping
  */
@@ -80,21 +77,6 @@ export function generateTestCoverageStats(mappings: MappingEntry[], testMap: Map
             }
             uniqueIdToTests.get(normalizedTestName)!.push(testName + '.spec.ts');
             isValid = true;
-        } else {
-            // Try pattern with last dot: cmd-scroll-down.scrollStepSize or cmd-foo.minimal
-            const lastDotIndex = testName.lastIndexOf('.');
-            if (lastDotIndex !== -1) {
-                const commandPart = testName.substring(0, lastDotIndex);
-                const normalizedCommandPart = commandPart.replace(/-/g, '_');
-
-                if (mappingsByUniqueId.has(normalizedCommandPart)) {
-                    if (!uniqueIdToTests.has(normalizedCommandPart)) {
-                        uniqueIdToTests.set(normalizedCommandPart, []);
-                    }
-                    uniqueIdToTests.get(normalizedCommandPart)!.push(testName + '.spec.ts');
-                    isValid = true;
-                }
-            }
         }
 
         if (!isValid) {
