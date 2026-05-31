@@ -30,6 +30,31 @@ h1 {
     top: 0;
 }
 
+#sk_help_filter_row th {
+    position: sticky;
+    top: 33px;
+    background: var(--dark-bg);
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--dark-surface-light);
+}
+
+#sk_help_filter_row input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--dark-surface);
+    color: var(--dark-fg);
+    border: 1px solid var(--dark-surface-light);
+    border-radius: 3px;
+    padding: 3px 6px;
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+}
+
+#sk_help_filter_row input:focus {
+    border-color: var(--dark-green);
+}
+
 #sk_help_table td {
     padding: 5px 12px;
     border-bottom: 1px solid var(--dark-surface);

@@ -87,7 +87,7 @@ function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual:
                     annotation: typeof annotation === 'string'
                         ? { unique_id: options.unique_id, short: annotation } as unknown as MapKeyAnnotation
                         : { ...annotation, unique_id: options.unique_id },
-                    originalKey: keys,
+                    originalKey: KeyboardUtils.decodeKeystroke(keys),
                     mode: mode.name,
                     modeRef: mode,
                     repeatIgnore: options.repeatIgnore,

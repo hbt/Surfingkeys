@@ -10,7 +10,14 @@
 <body>
   <h1>Command Reference</h1>
   <table id="sk_help_table">
-    <thead><tr><th>mapping</th><th>unique_id</th><th>description</th></tr></thead>
+    <thead>
+      <tr><th>mapping</th><th>unique_id</th><th>description</th></tr>
+      <tr id="sk_help_filter_row">
+        <th><input id="filter-mapping"  type="text" placeholder="mapping…"     autocomplete="off"></th>
+        <th><input id="filter-uid"      type="text" placeholder="unique_id…"   autocomplete="off"></th>
+        <th><input id="filter-desc"     type="text" placeholder="description…" autocomplete="off"></th>
+      </tr>
+    </thead>
     <tbody id="sk_help_tbody"></tbody>
   </table>
   <script src="help.js"></script>

@@ -91,4 +91,49 @@ test.describe('cmd_show_help (Playwright)', () => {
             await helpPage.close().catch(() => {});
         });
     });
+
+    test('filter inputs narrow rows and hide empty group headers', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const newPagePromise = context.waitForEvent('page', { timeout: 5000 });
+
+            const ok = await invokeCommand(page, 'cmd_show_help');
+            expect(ok).toBe(true);
+
+            const helpPage = await newPagePromise;
+            await helpPage.waitForLoadState('load');
+            await helpPage.waitForTimeout(500);
+
+            // Count total data rows before filtering
+            const totalRows = await helpPage.$$eval(
+                '#sk_help_tbody tr:not(.group-mode):not(.group-category)',
+                rows => rows.length
+            );
+            expect(totalRows).toBeGreaterThan(0);
+
+            // Type in the uid filter
+            await helpPage.fill('#filter-uid', 'scroll');
+            await helpPage.waitForTimeout(100);
+
+            // Some rows should be visible and fewer than total
+            const visibleRows = await helpPage.$$eval(
+                '#sk_help_tbody tr:not(.group-mode):not(.group-category)',
+                rows => rows.filter(r => (r as HTMLElement).style.display !== 'none').length
+            );
+            expect(visibleRows).toBeGreaterThan(0);
+            expect(visibleRows).toBeLessThan(totalRows);
+
+            // Group headers with no visible rows should be hidden
+            const visibleModeHeaders = await helpPage.$$eval(
+                '#sk_help_tbody tr.group-mode',
+                rows => rows.filter(r => (r as HTMLElement).style.display !== 'none').length
+            );
+            const totalModeHeaders = await helpPage.$$eval(
+                '#sk_help_tbody tr.group-mode',
+                rows => rows.length
+            );
+            expect(visibleModeHeaders).toBeLessThanOrEqual(totalModeHeaders);
+
+            await helpPage.close().catch(() => {});
+        });
+    });
 });

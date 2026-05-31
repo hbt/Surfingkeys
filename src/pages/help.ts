@@ -1,8 +1,12 @@
 export {};
 
+import { fuzzyMatch } from '../content_scripts/ui/fuzzyFilter';
+
 interface HelpEntry { key: string; unique_id: string; mode: string; category: string; description: string; }
+interface RenderedRow { tr: HTMLTableRowElement; key: string; uid: string; desc: string; }
 
 const MODE_ORDER = ['Normal', 'Visual', 'Insert'];
+const renderedRows: RenderedRow[] = [];
 
 function isPlaceholder(key: string): boolean {
     return !key || /^g-\d{3}$/.test(key);
@@ -26,6 +30,8 @@ function appendRow(tbody: HTMLElement, entry: HelpEntry) {
     tr.appendChild(tdId);
     tr.appendChild(tdDesc);
     tbody.appendChild(tr);
+
+    renderedRows.push({ tr, key: tdKey.textContent ?? '', uid: entry.unique_id, desc: entry.description });
 }
 
 function appendGroupHeader(tbody: HTMLElement, text: string, className: string) {
@@ -36,6 +42,40 @@ function appendGroupHeader(tbody: HTMLElement, text: string, className: string) 
     th.textContent = text;
     tr.appendChild(th);
     tbody.appendChild(tr);
+}
+
+function updateGroupVisibility() {
+    const tbody = document.getElementById('sk_help_tbody')!;
+    const children = Array.from(tbody.children) as HTMLElement[];
+    let i = children.length - 1;
+    while (i >= 0) {
+        const el = children[i] as HTMLTableRowElement;
+        if (el.classList.contains('group-mode') || el.classList.contains('group-category')) {
+            let hasVisible = false;
+            for (let j = i + 1; j < children.length; j++) {
+                const sib = children[j] as HTMLTableRowElement;
+                if (sib.classList.contains('group-mode') || sib.classList.contains('group-category')) break;
+                if (sib.style.display !== 'none') { hasVisible = true; break; }
+            }
+            el.style.display = hasVisible ? '' : 'none';
+        }
+        i--;
+    }
+}
+
+function applyFilters() {
+    const fKey  = (document.getElementById('filter-mapping') as HTMLInputElement).value;
+    const fUid  = (document.getElementById('filter-uid')     as HTMLInputElement).value;
+    const fDesc = (document.getElementById('filter-desc')    as HTMLInputElement).value;
+
+    for (const row of renderedRows) {
+        const visible =
+            fuzzyMatch(row.key,  fKey).match &&
+            fuzzyMatch(row.uid,  fUid).match &&
+            fuzzyMatch(row.desc, fDesc).match;
+        row.tr.style.display = visible ? '' : 'none';
+    }
+    updateGroupVisibility();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -71,5 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+
+        ['filter-mapping', 'filter-uid', 'filter-desc'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', applyFilters);
+        });
     });
 });
