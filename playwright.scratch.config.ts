@@ -16,7 +16,7 @@ export default defineConfig({
             reuseExistingServer: true,
         },
         {
-            command: 'PORT=9602 CONFIG_FILE=data/fixtures/test-config-server.js bun scripts/server.ts',
+            command: 'PORT=9602 CONFIG_FILE=data/fixtures/test-config-server.js DOMAIN_FILES_DIR=data/fixtures/domain-assets bun scripts/server.ts',
             port: 9602,
             reuseExistingServer: true,
         },

@@ -1,0 +1,3 @@
+/* Domain-specific stylesheet for 127.0.0.1 — injected by surfingkeys domain-asset feature. */
+/* Used by the Playwright scratch test: tests/playwright/scratch/domain-assets.spec.ts */
+body { outline: 3px solid rgb(255, 0, 128) !important; }

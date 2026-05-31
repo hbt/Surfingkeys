@@ -665,6 +665,46 @@ function start(browser: Record<string, unknown>) {
     // Track tabs redirected from newtab to focus page content after load
     const newTabRedirectedTabs = new Set();
 
+    // Generate hostname candidates for domain-asset lookup:
+    // e.g. "www.youtube.com" → ["www.youtube.com", "youtube.com", "com", "default"]
+    function _domainCandidates(hostname: string): string[] {
+        const parts = hostname.split('.');
+        const candidates: string[] = [];
+        for (let i = 0; i < parts.length; i++) {
+            candidates.push(parts.slice(i).join('.'));
+        }
+        candidates.push('default');
+        return candidates;
+    }
+
+    // Fetch and inject domain-specific JS + CSS from the config server.
+    // Mirrors chromedotfiles behaviour: injects all matched candidates (not first-match).
+    async function _injectDomainAssets(tabId: number, hostname: string): Promise<void> {
+        const base = `http://localhost:${__CONFIG_SERVER_PORT__}`;
+        for (const candidate of _domainCandidates(hostname)) {
+            try {
+                const cssResp = await fetch(`${base}/domain-asset?host=${encodeURIComponent(candidate)}&type=css`);
+                if (cssResp.ok) {
+                    const css = await cssResp.text();
+                    await chrome.scripting.insertCSS({ target: { tabId }, css }).catch(() => {});
+                }
+            } catch (_) {}
+            try {
+                const jsResp = await fetch(`${base}/domain-asset?host=${encodeURIComponent(candidate)}&type=js`);
+                if (jsResp.ok) {
+                    const code = await jsResp.text();
+                    // Use userScripts.execute (Chrome 135+) — bypasses page CSP and Trusted Types,
+                    // unlike scripting.executeScript which fails on sites like YouTube.
+                    await chrome.userScripts.execute({
+                        target: { tabId },
+                        world: 'MAIN',
+                        js: [{ code }],
+                    }).catch(() => {});
+                }
+            } catch (_) {}
+        }
+    }
+
     chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
         if (changeInfo.status === "complete") {
             if (tab.active) {
@@ -677,6 +717,15 @@ function start(browser: Record<string, unknown>) {
                     target: { tabId: tabId },
                     func: () => document.body.focus()
                 }).catch(() => {});
+            }
+            // Inject domain-specific JS/CSS from config server (chromedotfiles-style)
+            if (tab.url) {
+                try {
+                    const urlObj = new URL(tab.url);
+                    if ((urlObj.protocol === 'http:' || urlObj.protocol === 'https:') && urlObj.hostname) {
+                        _injectDomainAssets(tabId, urlObj.hostname).catch(() => {});
+                    }
+                } catch (_) {}
             }
         }
         if (browser.detectTabTitleChange && changeInfo.title) {

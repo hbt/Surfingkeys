@@ -19,6 +19,9 @@ const PID_FILE = `/tmp/sk-config-server-${PORT}.pid`;
 const CONFIG_FILE = process.env.CONFIG_FILE
     ? resolve(process.cwd(), process.env.CONFIG_FILE)
     : resolve(import.meta.dir, '../.surfingkeysrc.js');
+const DOMAIN_FILES_DIR = process.env.DOMAIN_FILES_DIR
+    ? resolve(process.cwd(), process.env.DOMAIN_FILES_DIR)
+    : '/home/hassen/config/js';
 
 function log(method: string, path: string, status: number, bytes: number): void {
   const ts = new Date().toISOString();
@@ -117,6 +120,38 @@ function notFound(path: string): Response {
   const body = 'Not Found';
   log('GET', path, 404, body.length);
   return new Response(body, { status: 404 });
+}
+
+async function domainAssetResponse(url: URL): Promise<Response> {
+  const host = url.searchParams.get('host');
+  const type = url.searchParams.get('type');
+
+  if (!host || !type || (type !== 'js' && type !== 'css')) {
+    const body = 'bad request';
+    log('GET', '/domain-asset', 400, body.length);
+    return new Response(body, { status: 400 });
+  }
+  // Security: reject path traversal attempts
+  if (host.includes('/') || host.includes('..') || host.includes('\0')) {
+    const body = 'forbidden';
+    log('GET', '/domain-asset', 403, body.length);
+    return new Response(body, { status: 403 });
+  }
+
+  const filePath = `${DOMAIN_FILES_DIR}/${host}.${type}`;
+  const file = Bun.file(filePath);
+  if (!(await file.exists())) {
+    log('GET', `/domain-asset?host=${host}&type=${type}`, 404, 0);
+    return new Response('not found', { status: 404 });
+  }
+
+  const content = await file.text();
+  const mime = type === 'js' ? 'application/javascript' : 'text/css';
+  log('GET', `/domain-asset?host=${host}&type=${type}`, 200, content.length);
+  return new Response(content, {
+    status: 200,
+    headers: { 'Content-Type': mime, 'Access-Control-Allow-Origin': '*' },
+  });
 }
 
 // ── Eval relay ──────────────────────────────────────────────────────────────
@@ -306,6 +341,7 @@ function evalScriptResponse(req: Request): Response {
 Bun.write(PID_FILE, String(process.pid));
 console.log(`[${new Date().toISOString()}] Config server starting on port ${PORT}`);
 console.log(`[${new Date().toISOString()}] Serving: ${CONFIG_FILE}`);
+console.log(`[${new Date().toISOString()}] Domain files: ${DOMAIN_FILES_DIR}`);
 console.log(`[${new Date().toISOString()}] PID: ${process.pid} → ${PID_FILE}`);
 
 // Graceful shutdown
@@ -339,6 +375,7 @@ Bun.serve({
     if (url.pathname === '/eval-result' && req.method === 'POST') return evalResultResponse(req);
     if (url.pathname === '/eval-module') return evalModuleResponse(req);
     if (url.pathname === '/eval-script') return evalScriptResponse(req);
+    if (url.pathname === '/domain-asset') return domainAssetResponse(url);
     return notFound(url.pathname);
   }
 });
