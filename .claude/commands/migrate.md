@@ -61,10 +61,14 @@ Read the legacy implementation and answer:
 ## Step 3 — Choose unique_id and key
 
 - `unique_id`: `cmd_<category>_<action>` (e.g. `cmd_tab_goto_index`, `cmd_tab_close_magic_left`)
-- Placeholder key in `normal.js`: next `g-0XX` after the last used one
+- Placeholder key: next `g-0XX` after the last used one
   ```bash
-  grep "g-0[0-9][0-9]" src/content_scripts/common/normal.js | tail -3
+  grep -r 'mapkey("g-\|mappings.add("g-' \
+    src/content_scripts/common/commands/ \
+    src/content_scripts/common/normal.ts \
+    | grep -oP 'g-\d+' | sort -V | tail -5
   ```
+- **Register the key in `src/content_scripts/common/g-keys.ts` first.** A duplicate entry causes `tsc` error TS1117. Use `"g-NNN" satisfies GKey` at every `mapkey`/`mappings.add` call site.
 - Actual keybinding: registered in `/home/hassen/.surfingkeys-2026.js` via `api.mapcmdkey('key', 'unique_id')`
 
 ---

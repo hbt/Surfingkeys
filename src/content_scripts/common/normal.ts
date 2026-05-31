@@ -1,5 +1,6 @@
 import Trie from './trie';
 import { RUNTIME, dispatchSKEvent, runtime } from './runtime.js';
+import type { GKey } from './g-keys.js';
 import Mode from './mode';
 import KeyboardUtils from './keyboardUtils';
 import {
@@ -1162,7 +1163,7 @@ function createNormal(insert: any) {
             RUNTIME("previousTab");
         }
     });
-    self.mappings.add("g-002", {
+    self.mappings.add("g-002" satisfies GKey, {
         annotation: {
             short: "Go to next tab",
             unique_id: "cmd_tab_next",
@@ -1176,7 +1177,7 @@ function createNormal(insert: any) {
             RUNTIME("nextTab");
         }
     });
-    self.mappings.add("g-003", {
+    self.mappings.add("g-003" satisfies GKey, {
         annotation: {
             short: "Go to tab by index",
             unique_id: "cmd_tab_goto_index",
@@ -1218,7 +1219,7 @@ function createNormal(insert: any) {
         walk(document.body);
     }
 
-    self.mappings.add("g-018", {
+    self.mappings.add("g-018" satisfies GKey, {
         annotation: {
             short: "Linkify page",
             unique_id: "cmd_page_linkify",

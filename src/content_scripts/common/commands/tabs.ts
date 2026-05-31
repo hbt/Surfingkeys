@@ -1,6 +1,7 @@
 import { RUNTIME, runtime } from '../runtime.js';
 import { tabOpenLink, getBrowserName } from '../utils.js';
 import type { CommandAPI, MagicDirection } from '../../../../@types/surfingkeys';
+import type { GKey } from '../g-keys.js';
 
 function resolveMagic(magicKey: string): MagicDirection {
     return (runtime.conf.magicKeys as Record<string, MagicDirection>)?.[magicKey] ?? 'CurrentTab';
@@ -215,7 +216,7 @@ export default function registerTabs(
         RUNTIME("goToParentTab");
     });
 
-    mapkey('g-001', {
+    mapkey('g-001' satisfies GKey, {
         short: "Detach current tab to new window",
         unique_id: "cmd_tab_detach",
         feature_group: 3,
@@ -375,7 +376,7 @@ export default function registerTabs(
         });
     }
 
-    mapkey('g-016', {
+    mapkey('g-016' satisfies GKey, {
         short: "Save YouTube playback position",
         unique_id: "cmd_bookmark_save_youtube_position",
         feature_group: 3,

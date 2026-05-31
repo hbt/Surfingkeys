@@ -116,6 +116,8 @@ Commands defined in `src/content_scripts/common/commands/` use `g-NNN` as their 
 
 Using a `g-NNN` placeholder avoids all prefix conflicts — the command is always registered, and `mapcmdkey` can bind it to any real key after the conflicting key is freed.
 
+**Adding a new g-NNN key**: declare it in `src/content_scripts/common/g-keys.ts` first. A duplicate entry causes `tsc` error TS1117. Use `"g-NNN" satisfies GKey` at every `mapkey`/`mappings.add` call site so an unregistered key fails at compile time.
+
 In tests, bind via `unmapAllExcept` + `mapcmdkey` using the real target key (not the placeholder):
 
 ```typescript

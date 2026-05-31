@@ -2,6 +2,7 @@ import { RUNTIME, runtime } from '../runtime.js';
 import KeyboardUtils from '../keyboardUtils.js';
 import { getBrowserName, htmlEncode, showPopup, tabOpenLink } from '../utils.js';
 import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { GKey } from '../g-keys.js';
 
 export default function registerSettings(
     api: CommandAPI,
@@ -200,7 +201,7 @@ export default function registerSettings(
         RUNTIME('removeBookmark');
     });
 
-    mapkey('g-006', {
+    mapkey('g-006' satisfies GKey, {
         short: "Toggle bookmark in folder",
         unique_id: "cmd_bookmark_toggle_folder",
         feature_group: 14,
@@ -211,7 +212,7 @@ export default function registerSettings(
         const folder = runtime.conf.bookmarkFolders?.[key];
         if (folder) RUNTIME('bookmarkToggleFolder', { folder });
     });
-    mapkey('g-007', {
+    mapkey('g-007' satisfies GKey, {
         short: "Empty bookmark folder",
         unique_id: "cmd_bookmark_empty_folder",
         feature_group: 14,
@@ -223,7 +224,7 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkEmptyFolder', { folder });
     });
 
-    mapkey('g-008', {
+    mapkey('g-008' satisfies GKey, {
         short: "Lookup URL in bookmark folders",
         unique_id: "cmd_bookmark_lookup_url",
         feature_group: 14,
@@ -236,7 +237,7 @@ export default function registerSettings(
         });
     });
 
-    mapkey('g-009', {
+    mapkey('g-009' satisfies GKey, {
         short: "Copy bookmark folder URLs (reversed)",
         unique_id: "cmd_bookmark_copy_folder_reversed",
         feature_group: 14,
@@ -250,7 +251,7 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: true, repeats: hasRepeat ? r : -1 });
     });
 
-    mapkey('g-010', {
+    mapkey('g-010' satisfies GKey, {
         short: "Copy bookmark folder URLs (ordered)",
         unique_id: "cmd_bookmark_copy_folder_ordered",
         feature_group: 14,
@@ -264,7 +265,7 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkCopyFolder', { folder, reverse: false, repeats: hasRepeat ? r : -1 });
     });
 
-    mapkey('g-011', {
+    mapkey('g-011' satisfies GKey, {
         short: "Add tab(s) to bookmark folder (magic)",
         unique_id: "cmd_bookmark_add_m",
         feature_group: 14,
@@ -280,7 +281,7 @@ export default function registerSettings(
         };
     });
 
-    mapkey('g-012', {
+    mapkey('g-012' satisfies GKey, {
         short: "Remove tab(s) from bookmark folder (magic)",
         unique_id: "cmd_bookmark_remove_m",
         feature_group: 14,
@@ -296,7 +297,7 @@ export default function registerSettings(
         };
     });
 
-    mapkey('g-013', {
+    mapkey('g-013' satisfies GKey, {
         short: "Cut bookmark folder URLs (reversed)",
         unique_id: "cmd_bookmark_cut_folder_reversed",
         feature_group: 14,
@@ -308,7 +309,7 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkCutFromFolder', { folder, reverse: true, repeats: parseInt(this.repeats) || 1 });
     });
 
-    mapkey('g-014', {
+    mapkey('g-014' satisfies GKey, {
         short: "Cut bookmark folder URLs (ordered)",
         unique_id: "cmd_bookmark_cut_folder_ordered",
         feature_group: 14,
@@ -320,7 +321,7 @@ export default function registerSettings(
         if (folder) RUNTIME('bookmarkCutFromFolder', { folder, reverse: false, repeats: parseInt(this.repeats) || 1 });
     });
 
-    mapkey('g-017', {
+    mapkey('g-017' satisfies GKey, {
         short: "YouTube playlist from folder",
         unique_id: "cmd_bookmark_youtube_playlist",
         feature_group: 14,

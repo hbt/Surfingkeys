@@ -1,6 +1,7 @@
 import { RUNTIME, runtime } from '../runtime.js';
 import { tabOpenLink } from '../utils.js';
 import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { GKey } from '../g-keys.js';
 
 export default function registerNavigation(
     api: CommandAPI,
@@ -140,7 +141,7 @@ export default function registerNavigation(
         });
     });
 
-    mapkey('g-004', {
+    mapkey('g-004' satisfies GKey, {
         short: "Open new window",
         unique_id: "cmd_nav_new_window",
         feature_group: 8,
@@ -151,7 +152,7 @@ export default function registerNavigation(
         RUNTIME('openNewWindow');
     });
 
-    mapkey('g-005', {
+    mapkey('g-005' satisfies GKey, {
         short: "Open new incognito window",
         unique_id: "cmd_nav_new_incognito_window",
         feature_group: 8,
@@ -185,7 +186,7 @@ export default function registerNavigation(
         }
     });
 
-    mapkey('g-015', {
+    mapkey('g-015' satisfies GKey, {
         short: "Navigate to clipboard URL",
         unique_id: "cmd_nav_clipboard_navigate",
         feature_group: 7,

@@ -34,6 +34,8 @@ Commands use `g-NNN` placeholder keys (the real binding is set via `api.mapcmdke
 grep -r "mapkey('g-0" src/content_scripts/common/commands/ src/content_scripts/common/normal.ts | grep -oP "g-\d+" | sort -V | tail -5
 ```
 
+**Then register the new key in `src/content_scripts/common/g-keys.ts` before using it.** A duplicate entry in that file causes `tsc` error TS1117. Use `"g-NNN" satisfies GKey` at every `mapkey`/`mappings.add` call site so an unregistered key fails at compile time.
+
 ---
 
 ## Step 3 — Add the background handler (if needed)
@@ -52,10 +54,14 @@ If it reuses an existing action (e.g. `openIncognito`) with different arguments,
 
 ## Step 4 — Register the command
 
-Add to the appropriate commands file (`navigation.ts`, `tabs.ts`, etc.) using the placeholder key from Step 2:
+Add to the appropriate commands file (`navigation.ts`, `tabs.ts`, etc.) using the placeholder key from Step 2. Import `GKey` from `../g-keys.js` at the top of the file, then use `satisfies GKey` at the call site:
 
 ```typescript
-mapkey('g-NNN', {
+import type { GKey } from '../g-keys.js';
+
+// ...
+
+mapkey('g-NNN' satisfies GKey, {
     short: "One-line description",
     unique_id: "cmd_category_action",
     feature_group: 8,
@@ -131,7 +137,8 @@ Two repos may need commits:
 ## Checklist
 
 - [ ] Analogous command identified and used as model
-- [ ] `g-NNN` placeholder key is unique (not already taken)
+- [ ] `g-NNN` placeholder key declared in `src/content_scripts/common/g-keys.ts` (duplicate → TS1117)
+- [ ] `"g-NNN" satisfies GKey` used at every `mapkey`/`mappings.add` call site
 - [ ] Background handler added (or confirmed existing action is reused)
 - [ ] Command registered in commands file with correct `unique_id`, metadata, RUNTIME call
 - [ ] Test exclusion added if Playwright cannot test it (with clear reason)
