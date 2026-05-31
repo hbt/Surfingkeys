@@ -153,6 +153,22 @@ test.describe('cmd_bookmark_copy_folder_reversed (pending-key, Playwright)', () 
         });
     });
 
+    test('repeat=1 copies all URLs (treated as no limit)', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await seedFolderOrdered(context, TEST_FOLDER, [URL_A, URL_B, URL_C]);
+
+            await page.keyboard.press('1');
+            await page.waitForTimeout(30);
+            await page.keyboard.press(KEY);
+            await page.waitForTimeout(50);
+            await page.keyboard.press(FOLDER_KEY);
+            await page.waitForTimeout(300);
+
+            const clip = await page.evaluate(() => navigator.clipboard.readText());
+            expect(clip.split('\n')).toEqual([URL_C, URL_B, URL_A]);
+        });
+    });
+
     test('repeats limits number of URLs copied (reversed)', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await seedFolderOrdered(context, TEST_FOLDER, [URL_A, URL_B, URL_C]);
