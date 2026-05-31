@@ -780,9 +780,13 @@ function start(browser: Record<string, unknown>) {
             case 'previousTab':
             case 'nextTab':
                 getActiveTab(function(tab: chrome.tabs.Tab) {
-                    var index = (command === 'previousTab') ? tab.index - 1 : tab.index + 1;
-                    chrome.tabs.query({ windowId: tab.windowId }, function(tabs) {
-                        index = ((index % tabs.length) + tabs.length) % tabs.length;
+                    var tabId = tab.id;
+                    var tabWindowId = tab.windowId;
+                    chrome.tabs.query({ windowId: tabWindowId }, function(tabs) {
+                        var liveIndex = tabs.findIndex((t: chrome.tabs.Tab) => t.id === tabId);
+                        if (liveIndex === -1) return;
+                        var step = (command === 'previousTab') ? -1 : 1;
+                        var index = (((liveIndex + step) % tabs.length) + tabs.length) % tabs.length;
                         chrome.tabs.update(tabs[index].id!, { active: true });
                     });
                 });
@@ -1399,6 +1403,10 @@ function start(browser: Record<string, unknown>) {
             });
         }
     };
+    function _getTabIndex(tabs: chrome.tabs.Tab[], tabId: number | undefined): number {
+        if (tabId == null) return -1;
+        return tabs.findIndex(t => t.id === tabId);
+    }
     // limit to between 0 and length
     function _fixTo(to: number, length: number) {
         if (to < 0) {
@@ -1420,12 +1428,14 @@ function start(browser: Record<string, unknown>) {
             chrome.tabs.query({
                 windowId: tab.windowId
             }, function(tabs) {
-                if (tab.index == 0 && step == -1) {
+                var liveIndex = _getTabIndex(tabs, tab.id);
+                if (liveIndex === -1) return;
+                if (liveIndex == 0 && step == -1) {
                     step = tabs.length -1 ;
-                } else if (tab.index == tabs.length -1 && step == 1 ) {
+                } else if (liveIndex == tabs.length -1 && step == 1 ) {
                     step = 1 - tabs.length ;
                 }
-                var to = _fixTo(tab.index + step, tabs.length - 1);
+                var to = _fixTo(liveIndex + step, tabs.length - 1);
                 chrome.tabs.update(tabs[to].id!, {
                     active: true
                 });
@@ -1459,8 +1469,10 @@ function start(browser: Record<string, unknown>) {
                 var tabIds = tabs.map(function(e) {
                     return e.id!;
                 });
+                var liveIndex = _getTabIndex(tabs, tab.id);
+                if (liveIndex === -1) return;
                 repeats = _fixTo(repeats, tabs.length);
-                var base = _roundBase(tab.index, repeats, tabs.length);
+                var base = _roundBase(liveIndex, repeats, tabs.length);
                 operation(tabIds.slice(base, base + repeats));
             });
         } else {
@@ -2228,6 +2240,7 @@ function start(browser: Record<string, unknown>) {
             tabURLs[tabId][message.url as string] = message.title as string;
             return {
                 active: sender.tab.active,
+                // sender.tab.index is Chrome-fresh at message receipt — not a stale query snapshot.
                 index: conf.showTabIndices ? sender.tab.index + 1 : 0
             };
         } else {
