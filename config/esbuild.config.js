@@ -122,6 +122,7 @@ async function build() {
         'pages/popup': './src/pages/popup.ts',
         'pages/stats-viewer': './src/pages/stats-viewer.ts',
         'pages/pages-nav': './src/pages/pages-nav.ts',
+        'pages/help': './src/pages/help.ts',
     };
 
     const moduleEntries = {

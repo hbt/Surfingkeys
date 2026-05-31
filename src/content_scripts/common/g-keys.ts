@@ -20,6 +20,7 @@ export const G_KEYS = {
     "g-016": "cmd_bookmark_save_youtube_position",
     "g-017": "cmd_bookmark_youtube_playlist",
     "g-018": "cmd_page_linkify",
+    "g-019": "cmd_show_help",
 } as const;
 
 export type GKey = keyof typeof G_KEYS;

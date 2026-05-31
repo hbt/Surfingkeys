@@ -1,0 +1,50 @@
+body {
+    margin: 0;
+    padding: 20px;
+    background: var(--dark-bg);
+    color: var(--dark-fg);
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 13px;
+}
+
+h1 {
+    color: var(--dark-green);
+    font-size: 20px;
+    margin: 0 0 16px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--dark-green);
+}
+
+#sk_help_table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+#sk_help_table th {
+    background: var(--dark-surface);
+    color: var(--dark-cyan);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--dark-surface-light);
+    position: sticky;
+    top: 0;
+}
+
+#sk_help_table td {
+    padding: 5px 12px;
+    border-bottom: 1px solid var(--dark-surface);
+    vertical-align: top;
+}
+
+#sk_help_tbody tr:nth-child(even) td {
+    background: var(--dark-surface);
+}
+
+#sk_help_tbody tr:hover td {
+    background: var(--dark-surface-light);
+}
+
+#sk_help_tbody td:first-child {
+    color: var(--dark-yellow);
+    white-space: nowrap;
+}
