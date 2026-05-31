@@ -20,7 +20,7 @@ h1 {
     width: 100%;
 }
 
-#sk_help_table th {
+#sk_help_table thead th {
     background: var(--dark-surface);
     color: var(--dark-cyan);
     text-align: left;
@@ -36,11 +36,33 @@ h1 {
     vertical-align: top;
 }
 
-#sk_help_tbody tr:nth-child(even) td {
+/* Group headers */
+tr.group-mode th {
+    background: var(--dark-surface-light);
+    color: var(--dark-purple);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 10px 12px 6px;
+    border-top: 2px solid var(--dark-purple);
+    border-bottom: 1px solid var(--dark-surface-light);
+}
+
+tr.group-category th {
+    background: var(--dark-bg);
+    color: var(--dark-orange);
+    font-size: 11px;
+    font-weight: normal;
+    padding: 6px 12px 4px 20px;
+    border-bottom: 1px solid var(--dark-surface);
+}
+
+/* Striping — exclude group header rows */
+#sk_help_tbody tr:not(.group-mode):not(.group-category):nth-child(even) td {
     background: var(--dark-surface);
 }
 
-#sk_help_tbody tr:hover td {
+#sk_help_tbody tr:not(.group-mode):not(.group-category):hover td {
     background: var(--dark-surface-light);
 }
 

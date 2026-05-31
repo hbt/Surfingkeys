@@ -74,14 +74,19 @@ test.describe('cmd_show_help (Playwright)', () => {
             const table = await helpPage.$('#sk_help_table');
             expect(table).not.toBeNull();
 
-            const rowCount = await helpPage.$$eval('#sk_help_tbody tr', rows => rows.length);
-            expect(rowCount).toBeGreaterThan(0);
+            const modeHeaderCount = await helpPage.$$eval('#sk_help_tbody tr.group-mode', rows => rows.length);
+            expect(modeHeaderCount).toBeGreaterThan(0);
 
-            // First row has three cells: mapping, unique_id, description
-            const firstRow = await helpPage.$$eval('#sk_help_tbody tr:first-child td', cells => cells.map(c => c.textContent?.trim() ?? ''));
-            expect(firstRow.length).toBe(3);
-            expect(firstRow[1]).not.toBe(''); // unique_id always set
-            expect(firstRow[2]).not.toBe(''); // description always set
+            // First data row (not a group header) has three cells: mapping, unique_id, description
+            const firstDataRow = await helpPage.$$eval(
+                '#sk_help_tbody tr:not(.group-mode):not(.group-category)',
+                rows => rows.length > 0
+                    ? [...(rows[0] as HTMLTableRowElement).querySelectorAll('td')].map(c => c.textContent?.trim() ?? '')
+                    : []
+            );
+            expect(firstDataRow.length).toBe(3);
+            expect(firstDataRow[1]).not.toBe(''); // unique_id always set
+            expect(firstDataRow[2]).not.toBe(''); // description always set
 
             await helpPage.close().catch(() => {});
         });

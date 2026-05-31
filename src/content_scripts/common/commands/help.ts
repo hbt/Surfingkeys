@@ -38,6 +38,8 @@ export default function registerHelp(
             return {
                 key: cmd?.originalKey || '',
                 unique_id: id,
+                mode: cmd?.mode || 'Normal',
+                category: cmd?.annotation?.category || '',
                 description: cmd?.annotation?.description || cmd?.annotation?.short || ''
             };
         });
