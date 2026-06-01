@@ -47,6 +47,36 @@ export default function registerTabs(
     }, function() {
         (front as any).groupTab();
     });
+    mapkey('g-023' satisfies GKey, {
+        short: "Collapse current tab's group",
+        unique_id: "cmd_tab_group_collapse",
+        feature_group: 3,
+        category: "tabs",
+        description: "Collapse the tab group containing the current tab",
+        tags: ["tabs", "group", "collapse"]
+    }, function() {
+        RUNTIME('collapseCurrentGroup');
+    });
+    mapkey('g-024' satisfies GKey, {
+        short: "Collapse all tab groups",
+        unique_id: "cmd_tab_group_collapse_all",
+        feature_group: 3,
+        category: "tabs",
+        description: "Collapse all tab groups in the current window",
+        tags: ["tabs", "group", "collapse"]
+    }, function() {
+        RUNTIME('collapseAllGroups');
+    });
+    mapkey('g-025' satisfies GKey, {
+        short: "Expand all tab groups",
+        unique_id: "cmd_tab_group_expand_all",
+        feature_group: 3,
+        category: "tabs",
+        description: "Expand all tab groups in the current window",
+        tags: ["tabs", "group", "expand"]
+    }, function() {
+        RUNTIME('expandAllGroups');
+    });
 
     map('g0', ':feedkeys 99E', null as any, {
         short: "Go to first tab",
