@@ -788,7 +788,7 @@ const screen = ({
             if (command) {
                 // @ts-ignore TODO: find the way to type it without errors
                 command(props);
-            } else {
+            } else if ((cmd as string) !== 'chdir') {
                 console.warn('Unknown redraw command', cmd, props); // eslint-disable-line no-console
             }
         });
@@ -834,8 +834,8 @@ const screen = ({
 
     const uiAttach = () => {
         const [c, r] = screenCoords(screenContainer.clientWidth, screenContainer.clientHeight);
-        cols = c || cols;
-        rows = r || rows;
+        cols = c || cols || 80;
+        rows = r || rows || 24;
         nvim.uiAttach(cols, rows, { ext_linegrid: true });
         window.addEventListener(
             'resize',

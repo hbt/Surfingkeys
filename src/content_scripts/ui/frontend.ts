@@ -605,11 +605,13 @@ const Front = (function() {
     let _neovim: Promise<unknown> | null = null;
     function renderNvim(message: any) {
         if (!_neovim) {
+            _nvim.innerHTML = '';
             _neovim  = new Promise((resolve, _reject) => {
                 // @ts-expect-error: dynamic import of runtime-only module, no type declarations
                 import(/* webpackIgnore: true */ './neovim_lib.js').then((nvimlib) => {
                     nvimlib.default(_nvim).then(({nvim, destroy}: any) => {
                         function quitNvim() {
+                            _neovim = null;
                             normal.enter();
                             destroy();
                             self.hidePopup();
