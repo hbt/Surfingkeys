@@ -3105,6 +3105,43 @@ function start(browser: Record<string, unknown>) {
         });
     };
 
+    self.cookiesGetAll = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
+        const tabUrl = (message.url as string) || sender.tab?.url || '';
+        chrome.cookies.getAll({ url: tabUrl }, function(cookies) {
+            if (chrome.runtime.lastError) {
+                _response(message, sendResponse, { error: chrome.runtime.lastError.message });
+            } else {
+                _response(message, sendResponse, { cookies });
+            }
+        });
+    };
+
+    self.cookiesClear = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
+        const tabUrl = (message.url as string) || sender.tab?.url || '';
+        chrome.cookies.getAll({ url: tabUrl }, function(cookies) {
+            const count = cookies.length;
+            const removes = cookies.map((c) =>
+                new Promise<void>((res) => chrome.cookies.remove({ url: tabUrl, name: c.name }, () => res()))
+            );
+            Promise.all(removes).then(() => {
+                _response(message, sendResponse, { count });
+            });
+        });
+    };
+
+    self.cookiesExport = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const tabUrl = (message.url as string) || sender.tab?.url || '';
+        chrome.cookies.getAll({ url: tabUrl }, function(cookies) {
+            let domain = '';
+            try { domain = new URL(tabUrl).hostname; } catch (_) { domain = 'unknown'; }
+            chrome.downloads.download({
+                url: 'data:application/json,' + encodeURIComponent(JSON.stringify(cookies, null, 2)),
+                filename: `cookies-${domain}-${Date.now()}.json`,
+                saveAs: false,
+            });
+        });
+    };
+
     self.getContainerName = (browser._getContainerName as (self: Record<string, unknown>, _response: unknown) => unknown)(self, _response);
     chrome.runtime.setUninstallURL("http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html");
 

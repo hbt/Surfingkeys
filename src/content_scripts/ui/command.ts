@@ -236,4 +236,39 @@ export default (normal: any, command: any, omnibar: any) => {
         var dt = new Date(parseInt(args[0]));
         omnibar.listWords([dt.toString()]);
     });
+    command('listCookies', {
+        short: "List cookies for current page",
+        unique_id: "cmd_cookies_list",
+        category: "cookies",
+        description: "Display all cookies for the current page URL as a selectable omnibar list; Enter copies the value",
+        tags: ["cookies", "list", "privacy"]
+    }, function() {
+        RUNTIME('cookiesGetAll', null, function(response: any) {
+            omnibar.listResults(response.cookies || [], function(c: any) {
+                return createElementWithContent('li', `${c.name} = ${c.value}`);
+            });
+        });
+    });
+    command('exportCookies', {
+        short: "Export cookies for current page as JSON",
+        unique_id: "cmd_cookies_export",
+        category: "cookies",
+        description: "Download all cookies for the current page URL as a JSON file",
+        tags: ["cookies", "export", "download"]
+    }, function() {
+        RUNTIME('cookiesExport', null);
+        return true;
+    });
+    command('clearCookies', {
+        short: "Clear all cookies for current page",
+        unique_id: "cmd_cookies_clear",
+        category: "cookies",
+        description: "Remove all cookies for the current page URL",
+        tags: ["cookies", "clear", "privacy"]
+    }, function() {
+        RUNTIME('cookiesClear', null, function(response: any) {
+            showBanner(`Cleared ${response.count} cookie(s)`);
+        });
+        return true;
+    });
 };

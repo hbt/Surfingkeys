@@ -51,6 +51,7 @@
         "scripting",
         "storage",
         "sessions",
+        "cookies",
         "downloads",
         "topSites",
         "clipboardRead",

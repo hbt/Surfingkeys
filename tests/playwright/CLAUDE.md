@@ -89,7 +89,10 @@ What are you testing?
 │  └─ → Scenario H — Custom config server
 │
 └─ Testing commands invoked via the `:` command bar?
-   └─ → Scenario I — Omnibar `:` trigger (mapcmdkey remap)
+   ├─ Just invoking a named command (e.g. clearCookies, exportCookies)?
+   │  └─ → Scenario I — `callSKApi('front:openOmnibar', ...)` (no key needed)
+   └─ Testing the full open-bar + type + select flow?
+      └─ → Scenario I — `mapcmdkey(':')` + key press
 ```
 
 ---
@@ -181,6 +184,38 @@ test('moves to next tab', async () => {
 ## 6.0 Scenario C — Key Dispatch + callSKApi (magic/chord commands)
 
 **When:** Testing the full keybinding dispatch path — specifically magic tab commands dispatched via chord (e.g. `gD` → `cmd_tab_detach_m`).
+
+### How `callSKApi` / `surfingkeys:api` works internally
+
+`callSKApi` dispatches a `surfingkeys:api` CustomEvent from the page's **main world**. In the content script's **isolated world**, `initSKFunctionListener("api", interfaces)` registers a `document.addEventListener("surfingkeys:api", ...)` handler. DOM events from the main world cross the isolation boundary, so the handler fires.
+
+The handler does:
+```javascript
+let args = evt.detail;          // e.g. ['mapcmdkey', 'gD', 'cmd_tab_detach_m']
+const fk = args.shift();        // fk = 'mapcmdkey', args = ['gD', 'cmd_tab_detach_m']
+interfaces[fk](...args);        // calls api.mapcmdkey('gD', 'cmd_tab_detach_m')
+```
+
+**Key interfaces registered** (from `initSKFunctionListener("api", {...})` in `content.ts`):
+
+| Key | Calls |
+|-----|-------|
+| `mapcmdkey` | `api.mapcmdkey(keys, unique_id, options)` |
+| `unmapAllExcept` | `api.unmapAllExcept(keys)` |
+| `mapkey` | `api.mapkey(keys, annotation, options)` |
+| `"front:openOmnibar"` | `front.openOmnibar(args)` — opens omnibar programmatically |
+| `"front:showUsage"` | `front.showUsage()` |
+| `"normal:feedkeys"` | `normal.feedkeys(keys)` |
+
+**`"front:openOmnibar"` is the direct way to open any omnibar type without a key press:**
+```typescript
+// Open the Commands bar pre-filled with a command name
+await callSKApi(page, 'front:openOmnibar', { type: 'Commands', pref: 'clearCookies' });
+await waitForOmnibar(page, true);
+await page.keyboard.press('Enter');
+```
+
+**Do not re-trace this mechanism.** The source is `initSKFunctionListener` in `src/content_scripts/common/api.ts` (compiled to content.js line ~7270). The full interface list is in the `initSKFunctionListener("api", {...})` call at that location.
 
 **`callSKApi` must be defined locally in each spec** (not exported from any shared util):
 
@@ -470,7 +505,28 @@ const markerSeen = await page.waitForFunction(
 
 **When:** Testing commands invoked via the `:` command bar (`cmd_omnibar_commands`), such as cookie commands.
 
-### Confirmed working pattern
+### Two approaches — pick based on what you need
+
+| Approach | Use when | How |
+|----------|----------|-----|
+| **`front:openOmnibar` direct** | You just want to invoke a named command (e.g. `clearCookies`) | `callSKApi(page, 'front:openOmnibar', { type: 'Commands', pref: 'clearCookies' })` → Enter |
+| **`mapcmdkey(':')` + key press** | You want to test the full colon-bar open + type + select flow | remap → click → press `':'` → type → Enter |
+
+### Approach 1 — `front:openOmnibar` (simpler, preferred for command invocation)
+
+Opens the command bar pre-filled with a command name. No key binding, no `Shift+Semicolon`, no `unmapAllExcept` needed.
+
+```typescript
+// Open Commands bar pre-filled with 'clearCookies', then execute
+await callSKApi(page, 'front:openOmnibar', { type: 'Commands', pref: 'clearCookies' });
+await waitForOmnibar(page, true);
+await page.keyboard.press('Enter');
+await page.waitForTimeout(500);
+```
+
+This is how `cmd_tab_group_edit_name` opens the omnibar internally (`front.openOmnibar({ type: "Commands", pref: "renameTabGroup ..." })`). Using it directly in tests avoids all key-binding fragility.
+
+### Approach 2 — `mapcmdkey(':')` + key press (for testing the full open flow)
 
 ```typescript
 // 1. Remap ':' to cmd_omnibar_commands via callSKApi
@@ -492,6 +548,10 @@ await waitForOmnibar(page, true);
 keyboard combo for `:`) occasionally fails to register because headless Chrome handles modifier
 key state differently from a real keyboard. The remap approach bypasses this entirely.
 
+Also: `unmapAllExcept([])` removes the `:` binding — if your test then tries to open the command
+bar via `Shift+Semicolon`, it will silently fail. Always re-establish the binding via `mapcmdkey`
+before pressing the key, or use `front:openOmnibar` instead.
+
 **Scratch test results** (all three cases on a single run):
 
 | # | Method | Result |
@@ -500,12 +560,12 @@ key state differently from a real keyboard. The remap approach bypasses this ent
 | 2 | no remap → `press('Shift+Semicolon')` | open=true (passed this run — flaky in CI) |
 | 3 | no remap → `press(':')` | open=true (passed this run — no default binding without remap) |
 
-Cases 2 and 3 passed in the scratch run but are not reliable across environments. Use case 1.
+Cases 2 and 3 passed in the scratch run but are not reliable across environments. Use case 1 or the `front:openOmnibar` approach.
 
 ### Throwing `waitForOmnibar` (required)
 
-The cookie test specs use a silently-returning `waitForOmnibar` that masks failures when the omnibar
-never opens. Always use the **throwing** variant:
+A silently-returning `waitForOmnibar` masks failures when the omnibar never opens.
+Always use the **throwing** variant:
 
 ```typescript
 async function waitForOmnibar(page: Page, open: boolean, timeoutMs = 5000): Promise<void> {
@@ -518,11 +578,12 @@ async function waitForOmnibar(page: Page, open: boolean, timeoutMs = 5000): Prom
 }
 ```
 
-**Reference:** `tests/playwright/scratch/scratch-colon-omnibar-trigger.spec.ts`
+**Reference:** `tests/playwright/scratch/scratch-colon-omnibar-trigger.spec.ts`, `tests/playwright/commands/cmd-cookies-clear.spec.ts`
 
 **Checklist:**
-- [ ] `mapcmdkey(':', 'cmd_omnibar_commands')` via `callSKApi` (not raw `Shift+Semicolon`)
-- [ ] `unmapAllExcept([])` called before `mapcmdkey`
+- [ ] Prefer `callSKApi('front:openOmnibar', ...)` for command invocation (no key binding needed)
+- [ ] If using key-press approach: `mapcmdkey(':', 'cmd_omnibar_commands')` (not raw `Shift+Semicolon`)
+- [ ] `unmapAllExcept([])` called before `mapcmdkey` if using key-press approach
 - [ ] `waitForOmnibar` **throws** on timeout (never silently returns)
 - [ ] `page.mouse.click()` before triggering to ensure page focus
 
@@ -664,5 +725,7 @@ Skipped in Docker (pass locally):
 - [ ] `unmapAllExcept([])` called before `mapcmdkey` if testing key dispatch
 - [ ] `g-NNN` placeholder registered in `g-keys.ts` if used in tests
 - [ ] `invokeCommand` for behavior testing; `callSKApi` + key press for keybinding dispatch testing
+- [ ] For omnibar command tests: use `callSKApi('front:openOmnibar', { type: 'Commands', pref: '...' })` — not `Shift+Semicolon`
+- [ ] `waitForOmnibar` **throws** on timeout (never silently returns) — see Scenario I
 - [ ] `COVERAGE=true` run passes (`hasData: true` in mappings report)
 - [ ] `bun scripts/verify.ts` (fast checks) passes before commit
