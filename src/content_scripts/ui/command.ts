@@ -207,6 +207,15 @@ export default (normal: any, command: any, omnibar: any) => {
     }, function(_args: any) {
         RUNTIME('clearQueueURLs');
     });
+    command('renameTabGroup', {
+        short: "Rename current tab group",
+        unique_id: "cmd_rename_tab_group",
+        category: "tabs",
+        description: "Rename the tab group the current tab belongs to. Usage: renameTabGroup <new name>",
+        tags: ["tabs", "group", "rename"]
+    }, function(args: any) {
+        RUNTIME('renameTabGroup', { title: (args as string[]).join(' ') });
+    });
     command('createTabGroup', {
         short: "Group tabs by domain",
         unique_id: "cmd_create_tab_group",

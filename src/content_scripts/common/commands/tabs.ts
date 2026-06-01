@@ -88,6 +88,22 @@ export default function registerTabs(
         // TODO(hbt) NEXT [tabs] add name prompt for createTabGroupMagic
         RUNTIME('createTabGroupMagic', { magic: resolveMagic(magicKey) });
     });
+    mapkey('g-029' satisfies GKey, {
+        short: "Rename current tab group",
+        unique_id: "cmd_tab_group_edit_name",
+        feature_group: 3,
+        category: "tabs",
+        description: "Open prompt to rename the tab group the current tab belongs to. No-op if the tab is not in a group.",
+        tags: ["tabs", "group", "rename"]
+    }, function() {
+        RUNTIME('getActiveTabGroupInfo', {}, function(response: any) {
+            if (!response || response.groupId < 0) return;
+            (front as any).openOmnibar({
+                type: "Commands",
+                pref: `renameTabGroup ${response.title || ''}`
+            });
+        });
+    });
 
     map('g0', ':feedkeys 99E', null as any, {
         short: "Go to first tab",

@@ -1410,6 +1410,22 @@ function start(browser: Record<string, unknown>) {
         if (!groupId || groupId === (chrome.tabGroups?.TAB_GROUP_ID_NONE ?? -1)) return;
         chrome.tabGroups.update(groupId, { collapsed: true });
     };
+    self.getActiveTabGroupInfo = function(_message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
+        const groupId = sender.tab?.groupId;
+        if (!groupId || groupId === (chrome.tabGroups?.TAB_GROUP_ID_NONE ?? -1)) {
+            sendResponse({ groupId: -1, title: '' });
+            return;
+        }
+        chrome.tabGroups.get(groupId, function(group) {
+            sendResponse({ groupId, title: group?.title || '' });
+        });
+        return true; // async sendResponse
+    };
+    self.renameTabGroup = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const groupId = sender.tab?.groupId;
+        if (!groupId || groupId === (chrome.tabGroups?.TAB_GROUP_ID_NONE ?? -1)) return;
+        chrome.tabGroups.update(groupId, { title: message.title as string });
+    };
     self.collapseAllGroups = function(_message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const windowId = sender.tab?.windowId;
         if (!windowId) return;

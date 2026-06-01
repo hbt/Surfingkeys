@@ -30,6 +30,7 @@ export const G_KEYS = {
     "g-026": "cmd_tab_quick_mark_save",
     "g-027": "cmd_tab_quick_mark_jump",
     "g-028": "cmd_tab_group_new_magic",
+    "g-029": "cmd_tab_group_edit_name",
 } as const;
 
 export type GKey = keyof typeof G_KEYS;
