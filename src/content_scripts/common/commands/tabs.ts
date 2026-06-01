@@ -348,6 +348,17 @@ export default function registerTabs(
         RUNTIME('printTabMagic', { magic: resolveMagic(magicKey) });
     });
 
+    mapkey('g-030' satisfies GKey, {
+        short: "Save tab(s) as MHTML archive",
+        unique_id: "cmd_tab_capture_mhtml",
+        feature_group: 3,
+        category: "tabs",
+        description: "Save tab(s) as MHTML archive: next key selects magic direction (magicKeys config). Downloads a .mhtml file per tab.",
+        tags: ["tabs", "capture", "mhtml", "download", "magic"]
+    }, function(magicKey: string): void {
+        RUNTIME('captureTabMagic', { magic: resolveMagic(magicKey) });
+    });
+
     mapkey('g-026' satisfies GKey, {
         short: "Save tab quick mark",
         unique_id: "cmd_tab_quick_mark_save",

@@ -1898,6 +1898,30 @@ function start(browser: Record<string, unknown>) {
             });
         });
     };
+    self.captureTabMagic = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        chrome.tabs.query({}, function(allTabs) {
+            var windowTabs = allTabs.filter(function(t) { return t.windowId === sender.tab?.windowId; });
+            var repeats = message.repeats as number;
+            var tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, windowTabs, allTabs);
+            tabIds.forEach(function(tabId: number) {
+                var tab = allTabs.find(function(t) { return t.id === tabId; });
+                var rawTitle = (tab?.title ?? tab?.url ?? 'page').replace(/[\\/:*?"<>|]/g, '_');
+                var filename = rawTitle.substring(0, 100) + '.mhtml';
+                chrome.pageCapture.saveAsMHTML({ tabId }, function(mhtmlData) {
+                    if (chrome.runtime.lastError || !mhtmlData) return;
+                    var reader = new FileReader();
+                    reader.onload = function() {
+                        chrome.downloads.download({
+                            url: reader.result as string,
+                            filename,
+                            saveAs: false
+                        });
+                    };
+                    reader.readAsDataURL(mhtmlData);
+                });
+            });
+        });
+    };
     self.gatherWindows = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const windowId = sender.tab!.windowId;
         chrome.tabs.query({currentWindow: false}, function(tabs) {

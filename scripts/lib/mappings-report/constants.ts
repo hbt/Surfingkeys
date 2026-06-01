@@ -114,6 +114,8 @@ export const EXCLUDED_COMMANDS: Array<{ unique_id: string; reason: string }> = [
     { unique_id: 'cmd_session_save_quit',         reason: 'Deferred — session save/quit browser lifecycle not yet set up' },
     { unique_id: 'cmd_tools_read_text',           reason: 'Deferred — TTS read-text dispatch chain not yet isolated for testing' },
     { unique_id: 'cmd_visual_llm_chat',           reason: 'Deferred — LLM chat visual integration not yet stable for testing' },
+    // pageCapture — chrome.pageCapture.saveAsMHTML not available in Playwright test environment
+    { unique_id: 'cmd_tab_capture_mhtml',         reason: 'pageCapture — chrome.pageCapture.saveAsMHTML not available in Playwright test environment' },
 ];
 
 // ============================================================================

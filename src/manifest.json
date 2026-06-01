@@ -55,7 +55,8 @@
         "topSites",
         "clipboardRead",
         "clipboardWrite",
-        "management"
+        "management",
+        "pageCapture"
     ],
     "background": {
         "scripts": [
