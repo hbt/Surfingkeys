@@ -1,3 +1,22 @@
+/* Toolbar: row count + toggle */
+#sk_help_toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--dark-comment);
+}
+
+#sk_help_toolbar label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    color: var(--dark-fg);
+}
+
+
 body {
     margin: 0;
     padding: 20px;
@@ -104,4 +123,30 @@ tr.group-category th {
 #sk_help_tbody td:nth-child(2) {
     color: var(--dark-yellow);
     white-space: nowrap;
+}
+
+/* unique_id column — clickable copy */
+#sk_help_tbody td.col-uid {
+    cursor: pointer;
+}
+
+#sk_help_tbody td.col-uid:hover {
+    text-decoration: underline;
+}
+
+#sk_help_tbody td.col-uid.copied {
+    color: var(--dark-green);
+}
+
+/* <kbd> elements in mapping column */
+#sk_help_tbody td.col-key kbd {
+    display: inline-block;
+    background: var(--dark-surface-light);
+    border: 1px solid var(--dark-comment);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-family: inherit;
+    font-size: 11px;
+    margin-right: 1px;
+    line-height: 1.4;
 }

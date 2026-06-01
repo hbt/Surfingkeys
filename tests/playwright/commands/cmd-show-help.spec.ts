@@ -92,6 +92,90 @@ test.describe('cmd_show_help (Playwright)', () => {
         });
     });
 
+    test('unmapped commands show N/A in mapping column', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const newPagePromise = context.waitForEvent('page', { timeout: 5000 });
+
+            const ok = await invokeCommand(page, 'cmd_show_help');
+            expect(ok).toBe(true);
+
+            const helpPage = await newPagePromise;
+            await helpPage.waitForLoadState('load');
+            await helpPage.waitForTimeout(500);
+
+            // After unmapAllExcept([]) in beforeEach, most commands are unmapped → N/A
+            const naRows = await helpPage.$$eval(
+                '#sk_help_tbody td.col-key-na',
+                cells => cells.filter(c => c.textContent?.trim() === 'N/A').length
+            );
+            expect(naRows).toBeGreaterThan(0);
+
+            await helpPage.close().catch(() => {});
+        });
+    });
+
+    test('row count updates and hide-unmapped toggle works', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const newPagePromise = context.waitForEvent('page', { timeout: 5000 });
+
+            const ok = await invokeCommand(page, 'cmd_show_help');
+            expect(ok).toBe(true);
+
+            const helpPage = await newPagePromise;
+            await helpPage.waitForLoadState('load');
+            await helpPage.waitForTimeout(500);
+
+            // Count text shows total
+            const countText = await helpPage.$eval('#sk_help_count', el => el.textContent ?? '');
+            expect(countText).toMatch(/\d+ \/ \d+ commands/);
+
+            // Toggle hide-unmapped reduces visible rows
+            const beforeToggle = await helpPage.$$eval(
+                '#sk_help_tbody tr:not(.group-mode):not(.group-category)',
+                rows => rows.filter(r => (r as HTMLElement).style.display !== 'none').length
+            );
+
+            await helpPage.click('#toggle-unmapped');
+            await helpPage.waitForTimeout(100);
+
+            const afterToggle = await helpPage.$$eval(
+                '#sk_help_tbody tr:not(.group-mode):not(.group-category)',
+                rows => rows.filter(r => (r as HTMLElement).style.display !== 'none').length
+            );
+            expect(afterToggle).toBeLessThan(beforeToggle);
+
+            // Count updates too
+            const countAfter = await helpPage.$eval('#sk_help_count', el => el.textContent ?? '');
+            expect(countAfter).toMatch(/\d+ \/ \d+ commands/);
+
+            await helpPage.close().catch(() => {});
+        });
+    });
+
+    test('mapping column renders kbd elements', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            // Bind cmd_show_help to a visible key so it shows up mapped
+            await callSKApi(page, 'mapcmdkey', 'sh', 'cmd_show_help');
+
+            const newPagePromise = context.waitForEvent('page', { timeout: 5000 });
+            const ok = await invokeCommand(page, 'cmd_show_help');
+            expect(ok).toBe(true);
+
+            const helpPage = await newPagePromise;
+            await helpPage.waitForLoadState('load');
+            await helpPage.waitForTimeout(500);
+
+            // At least one mapped row should have kbd elements
+            const kbdCount = await helpPage.$$eval(
+                '#sk_help_tbody td.col-key kbd',
+                els => els.length
+            );
+            expect(kbdCount).toBeGreaterThan(0);
+
+            await helpPage.close().catch(() => {});
+        });
+    });
+
     test('filter inputs narrow rows and hide empty group headers', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             const newPagePromise = context.waitForEvent('page', { timeout: 5000 });

@@ -12,16 +12,36 @@ function isPlaceholder(key: string): boolean {
     return !key || /^g-\d{3}$/.test(key);
 }
 
+function renderKey(td: HTMLTableCellElement, key: string) {
+    if (!key || key === 'N/A') { td.textContent = key || 'N/A'; return; }
+    const parts = key.match(/<[^>]+>|./g) ?? [key];
+    for (const part of parts) {
+        const kbd = document.createElement('kbd');
+        kbd.textContent = part;
+        td.appendChild(kbd);
+    }
+}
+
 function appendRow(tbody: HTMLElement, entry: HelpEntry) {
     const tr = document.createElement('tr');
 
     const tdKey = document.createElement('td');
     const hasMapping = !isPlaceholder(entry.key);
-    tdKey.textContent = hasMapping ? entry.key : 'N/A';
     tdKey.className = hasMapping ? 'col-key' : 'col-key col-key-na';
+    renderKey(tdKey, hasMapping ? entry.key : 'N/A');
 
     const tdId = document.createElement('td');
     tdId.textContent = entry.unique_id;
+    tdId.className = 'col-uid';
+    if (entry.unique_id) {
+        tdId.title = 'Click to copy';
+        tdId.addEventListener('click', () => {
+            navigator.clipboard.writeText(entry.unique_id).then(() => {
+                tdId.classList.add('copied');
+                setTimeout(() => tdId.classList.remove('copied'), 800);
+            });
+        });
+    }
 
     const tdDesc = document.createElement('td');
     tdDesc.textContent = entry.description;
@@ -31,7 +51,7 @@ function appendRow(tbody: HTMLElement, entry: HelpEntry) {
     tr.appendChild(tdDesc);
     tbody.appendChild(tr);
 
-    renderedRows.push({ tr, key: tdKey.textContent ?? '', uid: entry.unique_id, desc: entry.description });
+    renderedRows.push({ tr, key: hasMapping ? entry.key : 'N/A', uid: entry.unique_id, desc: entry.description });
 }
 
 function appendGroupHeader(tbody: HTMLElement, text: string, className: string) {
@@ -67,15 +87,22 @@ function applyFilters() {
     const fKey  = (document.getElementById('filter-mapping') as HTMLInputElement).value;
     const fUid  = (document.getElementById('filter-uid')     as HTMLInputElement).value;
     const fDesc = (document.getElementById('filter-desc')    as HTMLInputElement).value;
+    const hideUnmapped = (document.getElementById('toggle-unmapped') as HTMLInputElement).checked;
 
     for (const row of renderedRows) {
         const visible =
             fuzzyMatch(row.key,  fKey).match &&
             fuzzyMatch(row.uid,  fUid).match &&
-            fuzzyMatch(row.desc, fDesc).match;
+            fuzzyMatch(row.desc, fDesc).match &&
+            (!hideUnmapped || row.key !== 'N/A');
         row.tr.style.display = visible ? '' : 'none';
     }
     updateGroupVisibility();
+
+    const visibleCount = renderedRows.filter(r => r.tr.style.display !== 'none').length;
+    const totalCount = renderedRows.length;
+    const countEl = document.getElementById('sk_help_count');
+    if (countEl) countEl.textContent = `${visibleCount} / ${totalCount} commands`;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -115,5 +142,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ['filter-mapping', 'filter-uid', 'filter-desc'].forEach(id => {
             document.getElementById(id)?.addEventListener('input', applyFilters);
         });
+        document.getElementById('toggle-unmapped')?.addEventListener('change', applyFilters);
+
+        // Initial count
+        applyFilters();
     });
 });

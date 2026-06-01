@@ -600,6 +600,18 @@ function createAPI(clipboard: any, insert: any, normal: any, hints: any, visual:
         getCommand: function(unique_id: any) {
             return commandRegistry.get(unique_id);
         },
+        isLiveMapped: (unique_id: string): boolean => {
+            const entry = commandRegistry.get(unique_id);
+            if (!entry?.modeRef || !entry.originalKey) return false;
+            // placeholder keys (g-NNN) are never live-mapped
+            if (/^g-\d{3}$/.test(entry.originalKey)) return false;
+            const node = entry.modeRef.mappings.find(
+                KeyboardUtils.encodeKeystroke(entry.originalKey)
+            );
+            if (node == null) return false;
+            // Verify the key actually maps to this command, not one that overrode it
+            return (node as any).meta?.annotation?.unique_id === unique_id;
+        },
         Clipboard: clipboard,
         Normal: {
             feedkeys: normal.feedkeys,
