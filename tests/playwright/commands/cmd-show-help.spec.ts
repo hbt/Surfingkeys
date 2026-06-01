@@ -176,6 +176,76 @@ test.describe('cmd_show_help (Playwright)', () => {
         });
     });
 
+    test('omnibar commands table exists with name and description rows', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const newPagePromise = context.waitForEvent('page', { timeout: 5000 });
+            const ok = await invokeCommand(page, 'cmd_show_help');
+            expect(ok).toBe(true);
+
+            const helpPage = await newPagePromise;
+            await helpPage.waitForLoadState('load');
+            await helpPage.waitForTimeout(500);
+
+            const table = await helpPage.$('#sk_omnibar_cmd_table');
+            expect(table).not.toBeNull();
+
+            const rowCount = await helpPage.$$eval(
+                '#sk_omnibar_tbody tr',
+                rows => rows.length
+            );
+            expect(rowCount).toBeGreaterThan(0);
+
+            const firstRow = await helpPage.$$eval(
+                '#sk_omnibar_tbody tr',
+                rows => rows.length > 0
+                    ? [...(rows[0] as HTMLTableRowElement).querySelectorAll('td')].map(c => c.textContent?.trim() ?? '')
+                    : []
+            );
+            expect(firstRow.length).toBe(2);
+            expect(firstRow[0]).not.toBe('');
+            expect(firstRow[1]).not.toBe('');
+
+            await helpPage.close().catch(() => {});
+        });
+    });
+
+    test('omnibar filter "sess" narrows results and includes session commands', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const newPagePromise = context.waitForEvent('page', { timeout: 5000 });
+            const ok = await invokeCommand(page, 'cmd_show_help');
+            expect(ok).toBe(true);
+
+            const helpPage = await newPagePromise;
+            await helpPage.waitForLoadState('load');
+            await helpPage.waitForTimeout(500);
+
+            const totalRows = await helpPage.$$eval(
+                '#sk_omnibar_tbody tr', rows => rows.length
+            );
+            expect(totalRows).toBeGreaterThan(0);
+
+            await helpPage.fill('#filter-omnibar', 'sess');
+            await helpPage.waitForTimeout(100);
+
+            const visibleRows = await helpPage.$$eval(
+                '#sk_omnibar_tbody tr',
+                rows => rows.filter(r => (r as HTMLElement).style.display !== 'none').length
+            );
+            expect(visibleRows).toBeGreaterThan(0);
+            expect(visibleRows).toBeLessThan(totalRows);
+
+            const visibleNames = await helpPage.$$eval(
+                '#sk_omnibar_tbody tr',
+                rows => rows
+                    .filter(r => (r as HTMLElement).style.display !== 'none')
+                    .map(r => r.querySelectorAll('td')[0]?.textContent?.trim() ?? '')
+            );
+            expect(visibleNames.some(n => /[Ss]ession/i.test(n))).toBe(true);
+
+            await helpPage.close().catch(() => {});
+        });
+    });
+
     test('filter inputs narrow rows and hide empty group headers', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             const newPagePromise = context.waitForEvent('page', { timeout: 5000 });

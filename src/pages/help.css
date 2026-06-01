@@ -138,6 +138,54 @@ tr.group-category th {
     color: var(--dark-green);
 }
 
+/* Omnibar commands section */
+#sk_omnibar_heading {
+    margin-top: 2rem;
+    color: var(--dark-cyan);
+    font-size: 1rem;
+    letter-spacing: .05em;
+}
+
+#sk_omnibar_toolbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: .4rem;
+}
+
+#sk_omnibar_toolbar input {
+    background: var(--dark-bg-2, var(--dark-surface));
+    color: var(--dark-fg);
+    border: 1px solid var(--dark-border, var(--dark-surface-light));
+    padding: .2rem .4rem;
+    font: inherit;
+    width: 20rem;
+}
+
+#sk_omnibar_count {
+    font-size: .85em;
+    color: var(--dark-comment);
+}
+
+#sk_omnibar_cmd_table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#sk_omnibar_cmd_table thead th {
+    background: var(--dark-surface);
+    color: var(--dark-cyan);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--dark-surface-light);
+}
+
+#sk_omnibar_cmd_table td {
+    padding: 5px 12px;
+    border-bottom: 1px solid var(--dark-surface);
+    vertical-align: top;
+}
+
 /* <kbd> elements in mapping column */
 #sk_help_tbody td.col-key kbd {
     display: inline-block;

@@ -4,9 +4,12 @@ import { fuzzyMatch } from '../content_scripts/ui/fuzzyFilter';
 
 interface HelpEntry { key: string; unique_id: string; mode: string; category: string; description: string; }
 interface RenderedRow { tr: HTMLTableRowElement; key: string; uid: string; desc: string; }
+interface OmnibarEntry { name: string; description: string; }
+interface OmnibarRow   { tr: HTMLTableRowElement; name: string; desc: string; }
 
 const MODE_ORDER = ['Normal', 'Visual', 'Insert'];
 const renderedRows: RenderedRow[] = [];
+const omnibarRows: OmnibarRow[] = [];
 
 function isPlaceholder(key: string): boolean {
     return !key || /^g-\d{3}$/.test(key);
@@ -105,6 +108,32 @@ function applyFilters() {
     if (countEl) countEl.textContent = `${visibleCount} / ${totalCount} commands`;
 }
 
+function appendOmnibarRow(tbody: HTMLElement, entry: OmnibarEntry) {
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    tdName.textContent = entry.name;
+    tdName.className = 'col-uid';
+    const tdDesc = document.createElement('td');
+    tdDesc.textContent = entry.description;
+    tr.appendChild(tdName);
+    tr.appendChild(tdDesc);
+    tbody.appendChild(tr);
+    omnibarRows.push({ tr, name: entry.name, desc: entry.description });
+}
+
+function applyOmnibarFilter() {
+    const q = (document.getElementById('filter-omnibar') as HTMLInputElement).value;
+    for (const row of omnibarRows) {
+        const visible =
+            fuzzyMatch(row.name, q).match ||
+            fuzzyMatch(row.desc, q).match;
+        row.tr.style.display = visible ? '' : 'none';
+    }
+    const visible = omnibarRows.filter(r => r.tr.style.display !== 'none').length;
+    const countEl = document.getElementById('sk_omnibar_count');
+    if (countEl) countEl.textContent = `${visible} / ${omnibarRows.length}`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.get(['sk_help_commands'], (result) => {
         const commands: HelpEntry[] = result['sk_help_commands'] || [];
@@ -146,5 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Initial count
         applyFilters();
+    });
+
+    chrome.storage.local.get(['sk_help_omnibar_commands'], (res) => {
+        const entries: OmnibarEntry[] = res['sk_help_omnibar_commands'] || [];
+        const tbody = document.getElementById('sk_omnibar_tbody')!;
+        for (const entry of entries) appendOmnibarRow(tbody, entry);
+        document.getElementById('filter-omnibar')?.addEventListener('input', applyOmnibarFilter);
+        applyOmnibarFilter();
     });
 });
