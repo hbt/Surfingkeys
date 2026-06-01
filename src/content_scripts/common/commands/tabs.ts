@@ -321,6 +321,32 @@ export default function registerTabs(
         RUNTIME('printTabMagic', { magic: resolveMagic(magicKey) });
     });
 
+    mapkey('g-026' satisfies GKey, {
+        short: "Save tab quick mark",
+        unique_id: "cmd_tab_quick_mark_save",
+        feature_group: 3,
+        category: "tabs",
+        description: "Save current tab to a named quick mark",
+        tags: ["tabs", "marks", "save"]
+    }, function(mark: string) {
+        RUNTIME('tabQuickMarkSave', {mark});
+    });
+
+    mapkey('g-027' satisfies GKey, {
+        short: "Jump to tab quick mark",
+        unique_id: "cmd_tab_quick_mark_jump",
+        feature_group: 3,
+        category: "tabs",
+        description: "Jump to a named tab quick mark; backtick-backtick toggles to last tab",
+        tags: ["tabs", "marks", "navigation"]
+    }, function(mark: string) {
+        if (mark === '`') {
+            RUNTIME('goToLastTab');
+        } else {
+            RUNTIME('tabQuickMarkJump', {mark});
+        }
+    });
+
     mapkey('X', {
         short: "Restore closed tab",
         unique_id: "cmd_tab_restore",

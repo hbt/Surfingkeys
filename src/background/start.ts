@@ -419,6 +419,8 @@ function start(browser: Record<string, unknown>) {
         }
     }
 
+    var tabsQuickMarks = new Map<string, number>();
+
     var tabHistory: number[] = [],
         tabHistoryIndex = 0,
         chromelikeNewTabPosition = 0,
@@ -1484,6 +1486,18 @@ function start(browser: Record<string, unknown>) {
             chrome.tabs.update(lastTab, {
                 active: true
             });
+        }
+    };
+    self.tabQuickMarkSave = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const tabId = sender.tab?.id;
+        if (tabId != null) {
+            tabsQuickMarks.set(message.mark as string, tabId);
+        }
+    };
+    self.tabQuickMarkJump = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const tabId = tabsQuickMarks.get(message.mark as string);
+        if (tabId != null) {
+            chrome.tabs.update(tabId, {active: true});
         }
     };
     self.historyTab = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {

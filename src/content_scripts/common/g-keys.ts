@@ -27,6 +27,8 @@ export const G_KEYS = {
     "g-023": "cmd_tab_group_collapse",
     "g-024": "cmd_tab_group_collapse_all",
     "g-025": "cmd_tab_group_expand_all",
+    "g-026": "cmd_tab_quick_mark_save",
+    "g-027": "cmd_tab_quick_mark_jump",
 } as const;
 
 export type GKey = keyof typeof G_KEYS;
