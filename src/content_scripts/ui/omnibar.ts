@@ -27,6 +27,7 @@ import {
 import { getAnnotationString } from '../../common/commandMetadata.js';
 import { RUNTIME, runtime } from '../common/runtime.js';
 import LLMChat from './llmchat';
+import { fuzzyMatch } from './fuzzyFilter';
 
 const separator = '➤';
 const separatorHtml = `<span class='separator'>${separator}</span>`;
@@ -1566,15 +1567,45 @@ function Commands(omnibar: any, front: any) {
 
     self.onReset = self.onOpen;
 
+    function highlightPositions(text: string, positions: number[]): string {
+        if (!positions.length) return text;
+        const posSet = new Set(positions);
+        return text.split('').map((ch, i) =>
+            posSet.has(i) ? `<span class=omnibar_highlight>${ch}</span>` : ch
+        ).join('');
+    }
+
     self.onInput = function() {
-        var cmd = omnibar.input.value;
-        var candidates = Object.keys(items).filter(function(c) {
-            return cmd === "" || c.indexOf(cmd) !== -1;
-        });
-        if (candidates.length) {
-            omnibar.listResults(candidates, function(c: any) {
+        var cmd = omnibar.input.value.trim();
+        if (cmd === "") {
+            self.onOpen();
+            return;
+        }
+
+        type Scored = { key: string; score: number; positions: number[] };
+        var scored: Scored[] = [];
+        for (const key of Object.keys(items)) {
+            const nameResult = fuzzyMatch(key, cmd);
+            const annotationStr = getAnnotationString(items[key].annotation);
+            const descResult = fuzzyMatch(annotationStr, cmd);
+            if (nameResult.match || descResult.match) {
+                const best = nameResult.score >= descResult.score ? nameResult : descResult;
+                scored.push({
+                    key,
+                    score: best.score,
+                    positions: nameResult.match ? nameResult.positions : [],
+                });
+            }
+        }
+        scored.sort((a, b) => b.score - a.score);
+
+        if (scored.length) {
+            const scoredMap = new Map(scored.map(s => [s.key, s]));
+            omnibar.listResults(scored.map(s => s.key), function(c: any) {
                 const annotationStr = getAnnotationString(items[c].annotation);
-                var li = createElementWithContent('li', `${c}<span class=annotation>${htmlEncode(annotationStr)}</span>`);
+                const s = scoredMap.get(c)!;
+                const highlighted = highlightPositions(htmlEncode(c), s.positions);
+                var li = createElementWithContent('li', `${highlighted}<span class=annotation>${htmlEncode(annotationStr)}</span>`);
                 li.cmd = c;
                 return li;
             });
@@ -1640,6 +1671,13 @@ function Commands(omnibar: any, front: any) {
         cmd_code.feature_group = ag.feature_group;
         cmd_code.annotation = ag.annotation;
         items[cmd] = cmd_code;
+    };
+
+    omnibar.listCommands = function(): Array<{ name: string; description: string }> {
+        return Object.keys(items).map(k => ({
+            name: k,
+            description: getAnnotationString(items[k].annotation),
+        }));
     };
 
     return self;

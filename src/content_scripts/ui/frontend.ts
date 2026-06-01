@@ -50,6 +50,10 @@ const Front = (function() {
 
     createCommands(normal, omnibar.command, omnibar);
 
+    chrome.storage.local.set({
+        sk_help_omnibar_commands: omnibar.listCommands(),
+    });
+
     const modes = {
         Insert: insert,
         Normal: normal,

@@ -141,3 +141,64 @@ test('case 3 — no remap → keyboard.press(":")  [documents reliability]', asy
         console.log('[case 3] FAIL — bare ":" did NOT open omnibar without remap');
     }
 });
+
+// ---------------------------------------------------------------------------
+// Helpers for fuzzy filter cases
+// ---------------------------------------------------------------------------
+
+async function getCandidates(p: Page): Promise<string[]> {
+    // The omnibar lives in a chrome-extension iframe accessible via page.frames()
+    const skFrame = p.frames().find(f => f.url().includes('chrome-extension'));
+    if (!skFrame) return [];
+    // li.cmd holds the canonical command name (set by the Commands handler)
+    return skFrame.locator('#sk_omnibar ul li').evaluateAll(
+        (items: Element[]) => items.map(li => (li as any).cmd ?? '')
+    );
+}
+
+async function openOmnibarWithRemap(p: Page): Promise<void> {
+    await p.mouse.click(100, 100);
+    await callSKApi(p, 'unmapAllExcept', []);
+    await callSKApi(p, 'mapcmdkey', ':', 'cmd_omnibar_commands');
+    await p.waitForTimeout(200);
+    await p.keyboard.press(':');
+    await waitForOmnibar(p, true);
+}
+
+// ---------------------------------------------------------------------------
+// Case 4 — fuzzy filter: 'sess' matches session commands
+// ---------------------------------------------------------------------------
+
+test('case 4 — fuzzy filter "sess" matches createSession / deleteSession / openSession', async () => {
+    await openOmnibarWithRemap(page);
+
+    await page.keyboard.type('sess');
+    await page.waitForTimeout(300);
+
+    const candidates = await getCandidates(page);
+    console.log('[case 4] candidates for "sess":', candidates);
+
+    expect(candidates.length).toBeGreaterThan(0);
+    expect(candidates.some(c => /[Ss]ession/i.test(c))).toBe(true);
+
+    await closeOmnibar(page);
+});
+
+// ---------------------------------------------------------------------------
+// Case 5 — fuzzy filter: 'coo' matches cookie commands
+// ---------------------------------------------------------------------------
+
+test('case 5 — fuzzy filter "coo" matches clearCookies / listCookies / exportCookies', async () => {
+    await openOmnibarWithRemap(page);
+
+    await page.keyboard.type('coo');
+    await page.waitForTimeout(300);
+
+    const candidates = await getCandidates(page);
+    console.log('[case 5] candidates for "coo":', candidates);
+
+    expect(candidates.length).toBeGreaterThan(0);
+    expect(candidates.some(c => /[Cc]ookie/i.test(c))).toBe(true);
+
+    await closeOmnibar(page);
+});
