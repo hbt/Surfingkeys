@@ -104,6 +104,19 @@ async function waitForOmnibarState(p: Page, expected: boolean, timeoutMs = 6000)
     return false;
 }
 
+async function getOmnibarInputValue(p: Page): Promise<string | null> {
+    for (const frame of p.frames()) {
+        try {
+            const val = await frame.evaluate(() => {
+                const input = document.querySelector<HTMLInputElement>('#sk_omnibarSearchArea input');
+                return input ? input.value : null;
+            });
+            if (val !== null) return val;
+        } catch (_) {}
+    }
+    return null;
+}
+
 async function pressChord(p: Page) {
     await p.keyboard.press('t');
     await p.waitForTimeout(50);
@@ -185,6 +198,13 @@ test.describe('cmd_tab_group_edit_name (Playwright)', () => {
                 const titleAfter = await getGroupTitleViaSW(groupId);
                 if (DEBUG) console.log(`group title before=${titleBefore}, after=${titleAfter}`);
                 expect(titleAfter).toBe('new name');
+
+                // After execution the omnibar stays open but input is cleared
+                const omnibarStillOpen = await isOmnibarOpen(anchor);
+                expect(omnibarStillOpen).toBe(true);
+                const inputVal = await getOmnibarInputValue(anchor);
+                if (DEBUG) console.log(`omnibar input after Enter: "${inputVal}"`);
+                expect(inputVal).toBe('');
 
                 const bgPath = await covBg?.flush(`${SUITE_LABEL}/rename/background`) ?? null;
                 const contentPath = await covContent?.flush(`${SUITE_LABEL}/rename/content`).catch(() => null) ?? null;
