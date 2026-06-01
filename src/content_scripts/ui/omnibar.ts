@@ -1605,7 +1605,7 @@ function Commands(omnibar: any, front: any) {
                 const annotationStr = getAnnotationString(items[c].annotation);
                 const s = scoredMap.get(c)!;
                 const highlighted = highlightPositions(htmlEncode(c), s.positions);
-                var li = createElementWithContent('li', `${highlighted}<span class=annotation>${htmlEncode(annotationStr)}</span>`);
+                var li = createElementWithContent('li', `<span>${highlighted}</span><span class=annotation>${htmlEncode(annotationStr)}</span>`);
                 li.cmd = c;
                 return li;
             });
