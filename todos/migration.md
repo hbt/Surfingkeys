@@ -83,7 +83,7 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 - [ ] `` ` `` — quick mark jump tab (impl needed; archive: `tabQuickMarkJump`) ^n8q4bp
 - [ ] `WL` / `tL` — toggle pin all tabs across windows / in window (impl needed; archive: `tabTogglePinAll` / `windowsTogglePinAll`) ^o3t7mv
 - [x] `tb` — print tab(s) via magic key (`cmd_tab_print_m`) ^p6k2hz
-- [ ] `tB` — capture tab screenshot (impl needed; archive: `tabPageCaptureM`) ^p6k2hz
+- [ ] `tB` — capture tab screenshot (impl needed; archive: `tabPageCaptureM`) ^tB8m3kw
 - [x] `bv` — save YouTube playback position to bookmark (impl needed; archive: `bookmarkSaveYoutube`) ^q9n5xw
 - [x] `tyl{X}` / `tYl{X}` — create YouTube playlist from bookmark folder (impl needed) ^r4c8jt
 - [ ] `b!O` — clear all output bookmark folders (impl needed) ^s7v3pm
@@ -215,7 +215,9 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 
 ^o3t7mv — `WL` / `tL`: archive `.surfingkeys-2018.js:436-437` → `CustomCommands.tabTogglePinAll` / `windowsTogglePinAll` → `content_scripts/hbt.js:867,876`. No master equivalent.
 
-^p6k2hz — `tb` / `tB`: archive `.surfingkeys-2018.js:404-405` → `CustomCommands.tabPrintM` / `tabPageCaptureM` → `bg.js:2014,1988` + `content_scripts/hbt.js:1474,1461`. No master equivalent.
+^p6k2hz — `tb`: archive `.surfingkeys-2018.js:404` → `CustomCommands.tabPrintM` → `bg.js:2014` + `content_scripts/hbt.js:1474`. **Migrated** as `cmd_tab_print_m` (`g-022`); handler uses MV3 `chrome.scripting.executeScript` + `window.print()`.
+
+^tB8m3kw — `tB`: archive `.surfingkeys-2018.js:405` → `CustomCommands.tabPageCaptureM` → `bg.js:1988` + `content_scripts/hbt.js:1461`. No master equivalent.
 
 ^q9n5xw — `bv`: archive `.surfingkeys-2018.js:951` → `CustomCommands.bookmarkSaveYoutube` → `bg.js:2207`. No master equivalent.
 
