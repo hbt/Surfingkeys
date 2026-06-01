@@ -50,7 +50,7 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 - [ ] `yw` — copy all URLs in current window (impl needed; `yY` does all tabs, not window-scoped) ^t5q8vn
 - [ ] `yr` — readability via txtify.it (config mapping, inline redirect) ^m7x3np
 - [ ] `yD` — enable disabled elements on page (impl needed) ^q8wr2k
-- [ ] `yI` — open Chrome inspector / debugger (impl needed) ^v5t9bz
+- [x] `yI` — open Chrome inspector / debugger (impl needed) ^v5t9bz
 - [ ] `yp` (old: copy page body inner text) — key conflict with `cmd_yank_form_post`; pick new key ^k2m4cs
 
 ---
@@ -58,10 +58,10 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 ## Paste / Link-Open Keys
 
 - [x] `pp` / `gv` — paste clipboard URL into current tab (impl needed) ^j6n8ht
-- [ ] `of` / `nf` — open hinted link incognito (impl needed; `of` conflict with `cmd_markdown_open_file`) ^r3p7dw
+- [x] `of` / `nf` / `tnf` — open hinted link incognito (impl needed; `of` conflict with `cmd_markdown_open_file`) ^r3p7dw
 - [ ] `nw` — open hinted link in new window (impl needed) ^x4b6fy
 - [ ] `ysd` — focus element via hint (impl needed) ^h9k2lq
-- [ ] `Ml` — linkify / make URLs clickable on page (impl needed) ^w7v5rc
+- [x] `Ml` — linkify / make URLs clickable on page (impl needed) ^w7v5rc
 - [ ] `<Ctrl-a>` — increment URL last path number (impl needed) ^s2t8mx
 - [ ] `<Ctrl-x>` — decrement URL last path number (impl needed) ^a6n3pk
 
@@ -83,8 +83,8 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 - [ ] `` ` `` — quick mark jump tab (impl needed; archive: `tabQuickMarkJump`) ^n8q4bp
 - [ ] `WL` / `tL` — toggle pin all tabs across windows / in window (impl needed; archive: `tabTogglePinAll` / `windowsTogglePinAll`) ^o3t7mv
 - [ ] `tb` / `tB` — print / capture tab screenshot (impl needed; archive: `tabPrintM` / `tabPageCaptureM`) ^p6k2hz
-- [ ] `bv` — save YouTube playback position to bookmark (impl needed; archive: `bookmarkSaveYoutube`) ^q9n5xw
-- [ ] `tyl{X}` / `tYl{X}` — create YouTube playlist from bookmark folder (impl needed) ^r4c8jt
+- [x] `bv` — save YouTube playback position to bookmark (impl needed; archive: `bookmarkSaveYoutube`) ^q9n5xw
+- [x] `tyl{X}` / `tYl{X}` — create YouTube playlist from bookmark folder (impl needed) ^r4c8jt
 - [ ] `b!O` — clear all output bookmark folders (impl needed) ^s7v3pm
 
 ---
