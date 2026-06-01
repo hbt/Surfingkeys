@@ -190,7 +190,7 @@ function createNormal(insert: any) {
     var _once = false;
     self.addEventListener('keydown', function(event: any) {
         var realTarget = getRealEdit(event);
-        if (isEditable(realTarget) && event.isTrusted) {
+        if (isEditable(realTarget) && event.isTrusted && event.sk_keyName.length) {
             if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
                 realTarget.blur();
                 insert.exit();
