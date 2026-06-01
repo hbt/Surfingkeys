@@ -543,8 +543,26 @@ endfunction
 function! SetSurfingkeysStandAlone(v)
 endfunction
 
+function! SurfingkeysSaveBackup(lines)
+    let l:safe = substitute(expand('%'), 'surfingkeys://', '', '')
+    let l:safe = substitute(l:safe, '[/\.]', '-', 'g')
+    let l:path = '/tmp/sk-edit-' . strftime('%Y%m%d_%H%M%S') . '-' . l:safe . '.txt'
+    try
+        call writefile(a:lines, l:path)
+        let l:files = reverse(sort(glob('/tmp/sk-edit-*.txt', 0, 1)))
+        if len(l:files) > 10
+            for l:old in l:files[10:]
+                call delete(l:old)
+            endfor
+        endif
+    catch
+    endtry
+endfunction
+
 function! SurfingkeysWrite()
-    call SurfingkeysNotify("WriteData", getbufline('%', 0, '$'))
+    let l:lines = getbufline('%', 0, '$')
+    call SurfingkeysSaveBackup(l:lines)
+    call SurfingkeysNotify("WriteData", l:lines)
     set nomodified
 endfunction
 au BufWriteCmd surfingkeys://* call SurfingkeysWrite()
