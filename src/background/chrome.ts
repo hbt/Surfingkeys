@@ -10,9 +10,11 @@ import {
     start
 } from './start.js';
 import { installErrorHandlers } from '../common/errorCollector.js';
+import { installErrorServerReporter } from '../common/errorServerReporter.js';
 
 // Install global error handlers for background script
 installErrorHandlers('background');
+installErrorServerReporter('background');
 
 /**
  * Debug Mode Helper: Opens chrome://extensions tabs when browser is in debug mode

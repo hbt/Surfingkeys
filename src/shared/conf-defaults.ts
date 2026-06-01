@@ -7,4 +7,5 @@ export const CONF_DEFAULTS = {
     tabsMRUOrder: true,
     showTabIndices: true,
     newTabPosition: 'right' as const,
+    errorReportToServer: true,
 } as const;

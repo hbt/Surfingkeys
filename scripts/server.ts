@@ -9,10 +9,11 @@
  * PID file: /tmp/sk-config-server.pid
  */
 
-import { existsSync, appendFileSync } from 'fs';
+import { existsSync, appendFileSync, mkdirSync } from 'fs';
 import { resolve } from 'path';
 
 const DEBUG_LOG_FILE = '/tmp/sk-debug.log';
+const ERROR_LOG_FILE = resolve(import.meta.dir, '../log/errors.jsonl');
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 9600;
 const PID_FILE = `/tmp/sk-config-server-${PORT}.pid`;
@@ -114,6 +115,28 @@ function logEntryResponse(req: Request): Promise<Response> {
     const body = JSON.stringify({ ok: true });
     return new Response(body, { status: 200, headers: corsHeaders });
   });
+}
+
+function errorEntryResponse(req: Request): Promise<Response> {
+  const origin = req.headers.get('Origin');
+  if (origin !== null && !origin.startsWith('chrome-extension://')) {
+    log('POST', '/errors', 403, 9);
+    return Promise.resolve(new Response('Forbidden', { status: 403 }));
+  }
+  const corsHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(origin ? { 'Access-Control-Allow-Origin': origin } : {})
+  };
+  return req.json().then((data: unknown) => {
+    const line = JSON.stringify(data) + '\n';
+    try {
+      mkdirSync(resolve(import.meta.dir, '../log'), { recursive: true });
+      appendFileSync(ERROR_LOG_FILE, line);
+    } catch (_) {}
+    const body = JSON.stringify({ ok: true });
+    log('POST', '/errors', 200, body.length);
+    return new Response(body, { status: 200, headers: corsHeaders });
+  }).catch(() => new Response(JSON.stringify({ ok: true }), { status: 200, headers: corsHeaders }));
 }
 
 function notFound(path: string): Response {
@@ -381,6 +404,7 @@ Bun.serve({
     if (url.pathname === '/config') return configResponse(req.headers.get('Origin'));
     if (url.pathname === '/loaded' && req.method === 'POST') return loadedResponse(req);
     if (url.pathname === '/log' && req.method === 'POST') return logEntryResponse(req);
+    if (url.pathname === '/errors' && req.method === 'POST') return errorEntryResponse(req);
     if (url.pathname === '/eval-status') return evalStatusResponse();
     if (url.pathname === '/eval-subscribe') return evalSubscribeResponse(req);
     if (url.pathname === '/eval' && req.method === 'POST') return evalResponse(req);

@@ -4,9 +4,11 @@ import {
 import { dispatchSKEvent, runtime, RUNTIME } from './common/runtime.js';
 import { start } from './content.js';
 import { installErrorHandlers } from '../common/errorCollector.js';
+import { installErrorServerReporter } from '../common/errorServerReporter.js';
 
 // Install global error handlers for content script
 installErrorHandlers('content_script');
+installErrorServerReporter('content_script');
 
 function usePdfViewer() {
     window.location.replace(chrome.runtime.getURL("/pages/pdf_viewer.html") + "?file=" + encodeURIComponent(document.URL));
