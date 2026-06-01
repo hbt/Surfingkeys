@@ -167,11 +167,7 @@ const initKeyboard = ({ nvim, screen }: { nvim: Nvim; screen: Screen }): Keyboar
             inputKey = eventKeyCode(event, insertMode);
             if (inputKey) {
                 nvim.input(inputKey);
-                // prevent tab to switch focus to address bar in insert mode
-                // prevent space to scroll down under Windows
-                if (insertMode || inputKey === ' ') {
-                    event.preventDefault();
-                }
+                event.preventDefault();
             }
         }
     };
