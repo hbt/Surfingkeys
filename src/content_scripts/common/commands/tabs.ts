@@ -77,6 +77,17 @@ export default function registerTabs(
     }, function() {
         RUNTIME('expandAllGroups');
     });
+    mapkey('g-028' satisfies GKey, {
+        short: "Create new tab group (magic)",
+        unique_id: "cmd_tab_group_new_magic",
+        feature_group: 3,
+        category: "tabs",
+        description: "Create a new (unnamed) tab group from tabs matching a magic direction",
+        tags: ["tabs", "group", "organization", "magic"]
+    }, function(magicKey: string) {
+        // TODO(hbt) NEXT [tabs] add name prompt for createTabGroupMagic
+        RUNTIME('createTabGroupMagic', { magic: resolveMagic(magicKey) });
+    });
 
     map('g0', ':feedkeys 99E', null as any, {
         short: "Go to first tab",

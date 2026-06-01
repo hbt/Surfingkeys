@@ -135,6 +135,7 @@ const runtime = (function() {
                 'w': 'OtherWindowsNoPinned',
                 'W': 'AllOtherWindowsTabs',
                 'o': 'AllIncognitoTabs',
+                'd': 'SameDomain',
             } as Record<string, MagicDirection>
         },
     }, _handlers = {};

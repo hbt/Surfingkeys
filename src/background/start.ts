@@ -1384,6 +1384,21 @@ function start(browser: Record<string, unknown>) {
             }
         });
     };
+    self.createTabGroupMagic = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        chrome.tabs.query({}, function(allTabs) {
+            const windowTabs = allTabs.filter(function(t) { return t.windowId === sender.tab?.windowId; });
+            const repeats = message.repeats as number;
+            const tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, windowTabs, allTabs);
+            if (!tabIds.length) return;
+            chrome.tabs.group({ tabIds: tabIds as [number, ...number[]] }, function(groupId) {
+                const title = message.title as string | undefined;
+                const color = message.color as chrome.tabGroups.Color | undefined;
+                if (title || color) {
+                    chrome.tabGroups.update(groupId, { title, color });
+                }
+            });
+        });
+    };
     self.ungroupTab = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         chrome.tabs.ungroup([sender.tab!.id!]);
     };
@@ -1685,6 +1700,15 @@ function start(browser: Record<string, unknown>) {
             }
             case 'AllIncognitoTabs':
                 return (allTabs || []).filter(function(t: chrome.tabs.Tab) { return t.incognito; }).map(function(t: chrome.tabs.Tab) { return t.id!; });
+            case 'SameDomain': {
+                const hostname = (() => { try { return new URL(currentTab.url ?? '').hostname; } catch { return ''; } })();
+                if (!hostname) return [currentTab.id!];
+                return windowTabs
+                    .filter(function(t: chrome.tabs.Tab) {
+                        try { return new URL(t.url ?? '').hostname === hostname; } catch { return false; }
+                    })
+                    .map(function(t: chrome.tabs.Tab) { return t.id!; });
+            }
             case 'CurrentTab':
                 return [currentTab.id!];
             default:

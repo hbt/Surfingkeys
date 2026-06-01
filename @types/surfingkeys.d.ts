@@ -68,7 +68,8 @@ export type MagicDirection =
     | 'ChildrenTabsRecursively'
     | 'AllOtherWindowsTabs'
     | 'OtherWindowsNoPinned'
-    | 'AllIncognitoTabs';
+    | 'AllIncognitoTabs'
+    | 'SameDomain';
 
 export interface MagicPendingContext {
     pendingMap: (key: string) => void;

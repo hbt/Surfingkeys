@@ -853,4 +853,62 @@ test.describe('cmd_tab_close_m (pending-key, Playwright)', () => {
             },
         );
     });
+
+    test('gXd closes all same-domain tabs (SameDomain)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                const anchor = await context.newPage();
+                await anchor.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await closeAllExcept(anchor);
+
+                // Same domain as anchor (localhost)
+                const same1 = await context.newPage();
+                await same1.goto(FIXTURE_URL, { waitUntil: 'load' });
+                await same1.waitForTimeout(200);
+
+                // Different domain: about:blank has empty hostname — will not be closed
+                const different = await context.newPage();
+                await different.goto('about:blank', { waitUntil: 'load' });
+                await different.waitForTimeout(200);
+
+                await anchor.bringToFront();
+                await anchor.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(anchor, 'unmapAllExcept', []);
+                await callSKApi(anchor, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(anchor, 'magicKeys', { 'd': 'SameDomain' });
+
+                const countBefore = context.pages().length;
+                expect(countBefore).toBe(3);
+
+                // anchor + same1 (localhost) will close; different (about:blank) will not
+                const closePromise = anchor.waitForEvent('close');
+                await anchor.keyboard.press('g');
+                await anchor.waitForTimeout(50);
+                await anchor.keyboard.press('X');
+                await anchor.waitForTimeout(50);
+                await anchor.keyboard.press('d').catch(() => {});
+                await closePromise;
+                await new Promise(r => setTimeout(r, 500));
+
+                // Only the about:blank tab should remain
+                expect(context.pages().length).toBe(1);
+                const remaining = context.pages()[0];
+                expect(remaining.url()).toBe('about:blank');
+
+                if (DEBUG) console.log(`gXd: ${countBefore} → ${context.pages().length} pages, remaining url=${remaining.url()}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gXd/command_window/background`) ?? null;
+                await covContent?.close().catch(() => {});
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+            },
+        );
+    });
 });
