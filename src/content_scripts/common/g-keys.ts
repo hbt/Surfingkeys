@@ -23,6 +23,7 @@ export const G_KEYS = {
     "g-019": "cmd_show_help",
     "g-020": "cmd_inspect_element",
     "g-021": "cmd_hints_open_incognito",
+    "g-022": "cmd_tab_print_m",
 } as const;
 
 export type GKey = keyof typeof G_KEYS;

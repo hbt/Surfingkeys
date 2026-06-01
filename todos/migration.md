@@ -23,11 +23,11 @@ These are the items whose absence makes the new extension not usable as a daily 
 Extensions currently used in the old browser that are MV2 or have no MV3 equivalent.
 Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 
-- [ ] **Inventory** — list all extensions installed in the old Chrome profile; identify which are MV2-only
-- [ ] **PushBullet** — used for cross-device clipboard/notification; check if MV3 version exists or if a native alternative covers it; `opb` key in migration list
-- [ ] **Dark Reader** — check MV3 status (it has an MV3 version as of v4.9+); verify it works in the new profile
-- [ ] **Chrome dotfiles / custom NTP / other custom extensions** — inventory what exists; decide what to port, replace, or drop
-- [ ] **For each extension with no MV3 equivalent** — decide: build a surfingkeys command, find an alternative, or accept the loss
+- [x] **Inventory** — list all extensions installed in the old Chrome profile; identify which are MV2-only
+- [ ] **PushBullet** — used for cross-device clipboard/notification; check if MV3 version exists or if a native alternative covers it; `opb` key in migration list ref. /home/hassen/workspace/surfingkeys/plans/add-pushbullet-support-browser-to-android-viceversa-plan-missing.md and need plan for android to chrome browser or investigate pushbullet alternatives or hack something with termux. Although, i do need a push store when laptop is not active. 
+- [x] **Dark Reader** — check MV3 status (it has an MV3 version as of v4.9+); verify it works in the new profile
+- [x] **Chrome dotfiles / custom NTP / other custom extensions** — inventory what exists; decide what to port, replace, or drop
+- [x] **For each extension with no MV3 equivalent** — decide: build a surfingkeys command, find an alternative, or accept the loss
 
 ---
 
@@ -82,7 +82,8 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 - [ ] `` t` `` — quick mark save tab (impl needed; archive: `tabQuickMarkSave`) ^l5w9rd
 - [ ] `` ` `` — quick mark jump tab (impl needed; archive: `tabQuickMarkJump`) ^n8q4bp
 - [ ] `WL` / `tL` — toggle pin all tabs across windows / in window (impl needed; archive: `tabTogglePinAll` / `windowsTogglePinAll`) ^o3t7mv
-- [ ] `tb` / `tB` — print / capture tab screenshot (impl needed; archive: `tabPrintM` / `tabPageCaptureM`) ^p6k2hz
+- [x] `tb` — print tab(s) via magic key (`cmd_tab_print_m`) ^p6k2hz
+- [ ] `tB` — capture tab screenshot (impl needed; archive: `tabPageCaptureM`) ^p6k2hz
 - [x] `bv` — save YouTube playback position to bookmark (impl needed; archive: `bookmarkSaveYoutube`) ^q9n5xw
 - [x] `tyl{X}` / `tYl{X}` — create YouTube playlist from bookmark folder (impl needed) ^r4c8jt
 - [ ] `b!O` — clear all output bookmark folders (impl needed) ^s7v3pm

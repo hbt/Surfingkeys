@@ -22,7 +22,7 @@ function dispatchSKEvent(type: string, args?: unknown[], target?: EventTarget): 
  * });
  */
 function RUNTIME(action: string, args?: Record<string, unknown> | null, callback?: (response: any) => void): void {
-    var actionsRepeatBackground = ['closeTab', 'nextTab', 'previousTab', 'moveTab', 'moveToWindowMagic', 'copyTabUrlsMagic', 'reloadTab', 'setZoom', 'focusTabByIndex', 'closeTabMagic', 'reloadTabMagic', 'pinTabMagic', 'tabGotoIndex'];
+    var actionsRepeatBackground = ['closeTab', 'nextTab', 'previousTab', 'moveTab', 'moveToWindowMagic', 'copyTabUrlsMagic', 'reloadTab', 'setZoom', 'focusTabByIndex', 'closeTabMagic', 'reloadTabMagic', 'pinTabMagic', 'printTabMagic', 'tabGotoIndex'];
     (args = args || {}).action = action;
     if (actionsRepeatBackground.indexOf(action) !== -1) {
         // if the action can only be repeated in background, pass repeats to background with args,

@@ -1812,6 +1812,19 @@ function start(browser: Record<string, unknown>) {
             });
         });
     };
+    self.printTabMagic = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        chrome.tabs.query({}, function(allTabs) {
+            var windowTabs = allTabs.filter(function(t) { return t.windowId === sender.tab?.windowId; });
+            var repeats = message.repeats as number;
+            var tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, windowTabs, allTabs);
+            tabIds.forEach(function(tabId: number) {
+                chrome.scripting.executeScript({
+                    target: { tabId },
+                    func: () => { window.print(); }
+                }).catch(() => {});
+            });
+        });
+    };
     self.gatherWindows = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const windowId = sender.tab!.windowId;
         chrome.tabs.query({currentWindow: false}, function(tabs) {

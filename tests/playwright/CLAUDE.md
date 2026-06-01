@@ -79,7 +79,7 @@ Reference: [`commands/cmd-scroll-down.spec.ts`](commands/cmd-scroll-down.spec.ts
 
 - Fixtures must be **self-contained** — inline styles, no external URLs (causes flakiness)
 - Name spec files after command `unique_id`: `cmd-scroll-down.spec.ts`
-- Key-triggered command variants use a `.key.spec.ts` suffix: `cmd-tab-detach-magic-right.key.spec.ts`
+- Key-triggered command variants use a `-m.spec.ts` suffix: `cmd-tab-detach-m.spec.ts`
 - One command per file
 - Fixture server runs on `http://127.0.0.1:9873` (`tests/fixtures-server.js`)
 
@@ -141,7 +141,7 @@ Use `invokeCommand` when testing command behaviour directly; use `callSKApi` + k
 
 Reference examples:
 - Page target (single key): [`commands/cmd-scroll-down.spec.ts`](commands/cmd-scroll-down.spec.ts)
-- SW target (chord + key dispatch): [`commands/cmd-tab-detach-magic-right.key.spec.ts`](commands/cmd-tab-detach-magic-right.key.spec.ts)
+- SW target (chord + key dispatch): [`commands/cmd-tab-detach-m.spec.ts`](commands/cmd-tab-detach-m.spec.ts)
 
 ## Known Flaky Tests
 

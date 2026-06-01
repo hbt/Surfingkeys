@@ -280,6 +280,16 @@ export default function registerTabs(
     }, function(magicKey: string): void {
         RUNTIME('moveToWindowMagic', { magic: resolveMagic(magicKey) });
     });
+    mapkey('g-022' satisfies GKey, {
+        short: "Print tab(s) via magic key",
+        unique_id: "cmd_tab_print_m",
+        feature_group: 3,
+        category: "tabs",
+        description: "Print tab(s): next key selects magic direction (magicKeys config). Opens system print dialog (use 'Save as PDF').",
+        tags: ["tabs", "print", "pdf", "magic"]
+    }, function(magicKey: string): void {
+        RUNTIME('printTabMagic', { magic: resolveMagic(magicKey) });
+    });
 
     mapkey('X', {
         short: "Restore closed tab",
