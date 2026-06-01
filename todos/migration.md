@@ -79,8 +79,8 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 - [ ] `th` — toggle tab highlight magic (impl needed; archive: `tabToggleHighlightM`) ^h4b8zc
 - [ ] `t!h` — clear all tab highlights (impl needed; archive: `tabHighlightClearAll`) ^i7m3ks
 - [ ] `tp` — move highlighted tabs (impl needed; archive: `tabMoveHighlighted`) ^j2x6ny
-- [ ] `` t` `` — quick mark save tab (impl needed; archive: `tabQuickMarkSave`) ^l5w9rd
-- [ ] `` ` `` — quick mark jump tab (impl needed; archive: `tabQuickMarkJump`) ^n8q4bp
+- [x] `` t` `` — quick mark save tab (impl needed; archive: `tabQuickMarkSave`) ^l5w9rd
+- [x] `` ` `` — quick mark jump tab (impl needed; archive: `tabQuickMarkJump`) ^n8q4bp
 - [ ] `WL` / `tL` — toggle pin all tabs across windows / in window (impl needed; archive: `tabTogglePinAll` / `windowsTogglePinAll`) ^o3t7mv
 - [x] `tb` — print tab(s) via magic key (`cmd_tab_print_m`) ^p6k2hz
 - [x] `tB` — capture tab screenshot (impl needed; archive: `tabPageCaptureM`) ^tB8m3kw
