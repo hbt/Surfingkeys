@@ -1586,14 +1586,14 @@ function Commands(omnibar: any, front: any) {
     };
 
     self.onEnter = function() {
-        var ret = false;
         var cmdline = omnibar.input.value;
         if (cmdline.length) {
             RUNTIME('updateInputHistory', { cmd: cmdline });
-            execute(cmdline);
+            var ret = !!execute(cmdline);
             omnibar.input.value = "";
+            return ret;
         }
-        return ret;
+        return false;
     };
 
     function parseCommand(cmdline: any) {
@@ -1622,7 +1622,7 @@ function Commands(omnibar: any, front: any) {
         var cmd = args.shift()!;
         if (items.hasOwnProperty(cmd)) {
             var meta = items[cmd];
-            meta.code.call(meta.code, args);
+            return meta.code.call(meta.code, args);
         } else {
             showBanner(`Unsupported command: ${cmdline}.`, 3000);
         }

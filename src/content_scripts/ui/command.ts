@@ -215,6 +215,7 @@ export default (normal: any, command: any, omnibar: any) => {
         tags: ["tabs", "group", "rename"]
     }, function(args: any) {
         RUNTIME('renameTabGroup', { title: (args as string[]).join(' ') });
+        return true; // close omnibar after rename
     });
     command('createTabGroup', {
         short: "Group tabs by domain",
