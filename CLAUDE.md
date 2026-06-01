@@ -1,6 +1,7 @@
 # Surfingkeys Dev Guide
 
 - User uses voice-to-text (expect typos: "Doc db" → DuckDB)
+- When user pastes a `file://…slides-*.html#tN-sM` URL, run `bun scripts/sk.ts slides-lookup '<url>'` to resolve it.
 
 
 ## Browser Profiles — CRITICAL LIMITATION

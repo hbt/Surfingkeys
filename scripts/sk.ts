@@ -9,6 +9,7 @@
 
 import path from 'path';
 import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
 import { normalizeKey, isPrefix } from './lib/mappings-report/source-validation';
 
 const ROOT = path.join(import.meta.dir, '..');
@@ -173,6 +174,98 @@ Exit codes:
     return 1;
 }
 
+interface SlideFrame {
+    path: string;
+    scenario?: string;
+    step?: string;
+}
+
+interface SlideSection {
+    label: string;
+    frames: SlideFrame[];
+    videoPath?: string;
+}
+
+function slidesLookup(args: string[]): number {
+    if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+        console.log(`Usage: bun scripts/sk.ts slides-lookup <file-url>
+
+Looks up the test and frame referenced by a slides.html file:// URL with a #tN-sM hash.
+
+Example:
+  bun scripts/sk.ts slides-lookup 'file:///home/hassen/workspace/surfingkeys/test-artifacts/playwright/slides-scratch-colon-omnibar-trigger.html#t4-s5'
+`);
+        return 0;
+    }
+
+    const rawUrl = args[0] ?? '';
+
+    // Split hash from path
+    const hashIdx = rawUrl.indexOf('#');
+    const filePart = hashIdx !== -1 ? rawUrl.slice(0, hashIdx) : rawUrl;
+    const hash = hashIdx !== -1 ? rawUrl.slice(hashIdx) : '';
+
+    // Resolve file path
+    const filePath = filePart.startsWith('file://')
+        ? decodeURIComponent(filePart.slice('file://'.length))
+        : filePart;
+
+    // Parse #tN-sM
+    const hashMatch = hash.match(/^#t(\d+)-s(\d+)$/);
+    if (!hashMatch) {
+        console.error(`Invalid or missing hash fragment '${hash}'. Expected format: #tN-sM`);
+        return 1;
+    }
+    const testNum = parseInt(hashMatch[1]!);
+    const slideNum = parseInt(hashMatch[2]!);
+    const testIdx = testNum - 1;
+    const frameIdx = slideNum - 1;
+
+    // Read HTML and extract sections JSON
+    let html: string;
+    try {
+        html = readFileSync(filePath, 'utf8');
+    } catch (e: unknown) {
+        console.error(`Cannot read file: ${filePath}`);
+        return 1;
+    }
+
+    const sectionsMatch = html.match(/^const sections = (\[[\s\S]*?\]);/m);
+    if (!sectionsMatch) {
+        console.error('Could not find sections JSON in the HTML file.');
+        return 1;
+    }
+
+    let sections: SlideSection[];
+    try {
+        sections = JSON.parse(sectionsMatch[1]!) as SlideSection[];
+    } catch {
+        console.error('Failed to parse sections JSON.');
+        return 1;
+    }
+
+    const section = sections[testIdx];
+    if (!section) {
+        console.error(`Test index ${testIdx} out of range (file has ${sections.length} test(s)).`);
+        return 1;
+    }
+
+    const frame = section.frames[frameIdx];
+    if (!frame) {
+        console.error(`Frame index ${frameIdx} out of range (test has ${section.frames.length} frame(s)).`);
+        return 1;
+    }
+
+    console.log(`\x1b[36mURL\x1b[0m      ${rawUrl}`);
+    console.log(`\x1b[36mTest\x1b[0m     #${testNum} of ${sections.length}: ${section.label}`);
+    console.log(`\x1b[36mSlide\x1b[0m    #${slideNum} of ${section.frames.length}: ${frame.path}`);
+    if (frame.scenario) console.log(`\x1b[36mScenario\x1b[0m ${frame.scenario}`);
+    if (frame.step)     console.log(`\x1b[36mStep\x1b[0m     ${frame.step}`);
+    if (section.videoPath) console.log(`\x1b[36mVideo\x1b[0m    ${section.videoPath}`);
+
+    return 0;
+}
+
 // CLI dispatcher
 const args = process.argv.slice(2);
 
@@ -181,10 +274,12 @@ if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
 
 Usage:
   bun scripts/sk.ts detect-mapping-conflict <key> [--mode <mode>]
+  bun scripts/sk.ts slides-lookup <file-url>
   bun scripts/sk.ts --help
 
 Subcommands:
   detect-mapping-conflict   Check if a candidate key has prefix conflicts
+  slides-lookup             Resolve a slides.html file:// URL with #tN-sM hash
 `);
     process.exit(0);
 }
@@ -194,6 +289,9 @@ const [subcommand, ...subArgs] = args;
 switch (subcommand) {
     case 'detect-mapping-conflict':
         process.exit(detectMappingConflict(subArgs));
+        break;
+    case 'slides-lookup':
+        process.exit(slidesLookup(subArgs));
         break;
     default:
         console.error(`Unknown subcommand: '${subcommand}'. Run with --help for usage.`);

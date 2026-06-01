@@ -8,9 +8,10 @@ import { join } from "path";
 import { spawnSync } from "child_process";
 
 const reportDir = process.env.REPORT_DIR ?? "test-artifacts/playwright";
+const slidesName = process.env.SLIDES_NAME ?? "slides";
 const dataDir = join(reportDir, "data");
-const slidesDir = join(reportDir, "slides");
-const slidesHtml = join(reportDir, "slides.html");
+const slidesDir = join(reportDir, slidesName);
+const slidesHtml = join(reportDir, slidesName + ".html");
 const indexHtml = join(reportDir, "index.html");
 
 // --- 1. Build title → zip path map from index.html embedded manifest ---
@@ -243,7 +244,7 @@ for (let i = 0; i < orderedZips.length; i++) {
   // Annotate all frames with their active scenario/step
   const annotatedFrames: FrameAnnotation[] = frameFiles.map((f) => {
     const { scenario, step } = annotateFrame(f, stepMap, frameTs);
-    return { path: `slides/${i}/${f}`, scenario, step };
+    return { path: `${slidesName}/${i}/${f}`, scenario, step };
   });
 
   // Generate video from frames using ffmpeg concat with real durations
@@ -283,7 +284,7 @@ for (let i = 0; i < orderedZips.length; i++) {
     );
 
     if (ffResult.status === 0) {
-      videoPath = `slides/${i}/video.mp4`;
+      videoPath = `${slidesName}/${i}/video.mp4`;
       console.log(`  [${i}] video → ${videoOut}`);
     } else {
       console.warn(`  [${i}] ffmpeg failed: ${ffResult.stderr.slice(0, 200)}`);
@@ -345,7 +346,7 @@ const html = `<!DOCTYPE html>
   </div>
   <img id="frame" alt="frame">
   <a id="video-link" href="#" target="_blank" class="hidden">&#9654; Watch video</a>
-  <div id="hint">← → frames &nbsp;|&nbsp; ↑ ↓ switch test &nbsp;|&nbsp; click tab to jump</div>
+  <div id="hint">← → frames &nbsp;|&nbsp; ↑ ↓ switch test &nbsp;|&nbsp; click tab to jump &nbsp;|&nbsp; URL updates on navigation</div>
 </div>
 <script>
 const sections = ${sectionsJson};
@@ -408,6 +409,11 @@ function show() {
       videoLink.classList.add('hidden');
     }
   }
+  updateHash();
+}
+
+function updateHash() {
+  location.replace('#t' + (testIdx + 1) + '-s' + (frameIdx + 1));
 }
 
 function nav(delta) {
@@ -425,6 +431,23 @@ document.addEventListener('keydown', function(e) {
 });
 
 show();
+
+(function() {
+  const m = location.hash.match(/^#t(\\d+)-s(\\d+)$/);
+  if (m) {
+    const ti = parseInt(m[1]) - 1;
+    const si = parseInt(m[2]) - 1;
+    if (ti >= 0 && ti < sections.length) {
+      testIdx = ti;
+      const s = sections[ti];
+      frameIdx = s ? Math.min(Math.max(si, 0), s.frames.length - 1) : 0;
+      document.querySelectorAll('.tab').forEach(function(t, j) {
+        t.classList.toggle('active', j === ti);
+      });
+      show();
+    }
+  }
+})();
 </script>
 </body>
 </html>
