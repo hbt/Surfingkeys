@@ -32,6 +32,7 @@ export const G_KEYS = {
     "g-028": "cmd_tab_group_new_magic",
     "g-029": "cmd_tab_group_edit_name",
     "g-030": "cmd_tab_capture_mhtml",
+    "g-031": "cmd_noop",
 } as const;
 
 export type GKey = keyof typeof G_KEYS;

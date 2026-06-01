@@ -1,6 +1,7 @@
 import { RUNTIME } from '../runtime.js';
 import { getBrowserName, showBanner } from '../utils.js';
 import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { GKey } from '../g-keys.js';
 
 export default function registerMisc(
     api: CommandAPI,
@@ -13,6 +14,17 @@ export default function registerMisc(
     _browser: unknown
 ): void {
     const { mapkey, map, cmap } = api;
+
+    mapkey('g-031' satisfies GKey, {
+        short: "No-op (do nothing)",
+        unique_id: "cmd_noop",
+        feature_group: 16,
+        category: "misc",
+        description: "Intercept a key and do nothing — prevents browser/page default actions when bound via mapcmdkey",
+        tags: ["misc", "noop"]
+    }, function() {
+        // intentionally empty
+    });
 
     map('ZQ', ':quit', null as any, {
         short: "Quit without saving",
