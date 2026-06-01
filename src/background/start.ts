@@ -1388,6 +1388,25 @@ function start(browser: Record<string, unknown>) {
     self.collapseGroup = function(message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         chrome.tabGroups.update(message.groupId as number, {collapsed: message.collapsed as boolean});
     };
+    self.collapseCurrentGroup = function(_message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const groupId = sender.tab?.groupId;
+        if (!groupId || groupId === (chrome.tabGroups?.TAB_GROUP_ID_NONE ?? -1)) return;
+        chrome.tabGroups.update(groupId, { collapsed: true });
+    };
+    self.collapseAllGroups = function(_message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const windowId = sender.tab?.windowId;
+        if (!windowId) return;
+        chrome.tabGroups.query({ windowId }, function(groups) {
+            groups.forEach((g) => chrome.tabGroups.update(g.id, { collapsed: true }));
+        });
+    };
+    self.expandAllGroups = function(_message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const windowId = sender.tab?.windowId;
+        if (!windowId) return;
+        chrome.tabGroups.query({ windowId }, function(groups) {
+            groups.forEach((g) => chrome.tabGroups.update(g.id, { collapsed: false }));
+        });
+    };
     self.getTabGroups = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
         type TabGroupExtended = chrome.tabGroups.TabGroup & { hermit?: boolean; tabs?: chrome.tabs.Tab[]; active?: boolean };
         chrome.tabGroups.query({}, function(rawGroups: chrome.tabGroups.TabGroup[]) {

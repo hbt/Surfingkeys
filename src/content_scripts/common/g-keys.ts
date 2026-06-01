@@ -24,6 +24,9 @@ export const G_KEYS = {
     "g-020": "cmd_inspect_element",
     "g-021": "cmd_hints_open_incognito",
     "g-022": "cmd_tab_print_m",
+    "g-023": "cmd_tab_group_collapse",
+    "g-024": "cmd_tab_group_collapse_all",
+    "g-025": "cmd_tab_group_expand_all",
 } as const;
 
 export type GKey = keyof typeof G_KEYS;
