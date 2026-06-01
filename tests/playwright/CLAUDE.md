@@ -55,6 +55,7 @@ Check groups:
 | **Scenario F** (multi-tab) | `tests/playwright/commands/cmd-tab-print-m.spec.ts` |
 | **Scenario G** (incognito) | `tests/playwright/features/incognito.spec.ts` |
 | **Scenario H** (config server) | `tests/playwright/features/config-server-debug.spec.ts` |
+| **Scenario I** (omnibar `:` trigger) | `tests/playwright/scratch/scratch-colon-omnibar-trigger.spec.ts` |
 
 ---
 
@@ -84,8 +85,11 @@ What are you testing?
 ├─ Testing incognito window creation?
 │  └─ → Scenario G — Incognito
 │
-└─ Testing config loading or startup pipeline?
-   └─ → Scenario H — Custom config server
+├─ Testing config loading or startup pipeline?
+│  └─ → Scenario H — Custom config server
+│
+└─ Testing commands invoked via the `:` command bar?
+   └─ → Scenario I — Omnibar `:` trigger (mapcmdkey remap)
 ```
 
 ---
@@ -459,6 +463,68 @@ const markerSeen = await page.waitForFunction(
 - [ ] Config server tests go in `tests/playwright/features/`
 - [ ] Isolate from the normal fixture config server (9602) — use a separate port if testing a custom config
 - [ ] Registration timing is flaky in Docker — mark with `test.skip` or `test.fixme` if needed
+
+---
+
+## 11.1 Scenario I — Omnibar `:` Trigger (colon command bar)
+
+**When:** Testing commands invoked via the `:` command bar (`cmd_omnibar_commands`), such as cookie commands.
+
+### Confirmed working pattern
+
+```typescript
+// 1. Remap ':' to cmd_omnibar_commands via callSKApi
+await callSKApi(page, 'unmapAllExcept', []);
+await callSKApi(page, 'mapcmdkey', ':', 'cmd_omnibar_commands');
+await page.waitForTimeout(200);
+
+// 2. Click to ensure page focus, then press ':'
+await page.mouse.click(100, 100);
+await page.keyboard.press(':');
+
+// 3. Wait for omnibar — use throwing variant (see below)
+await waitForOmnibar(page, true);
+```
+
+### Why `Shift+Semicolon` is unreliable
+
+`Shift+*` combos are known to be flaky in Playwright headless Chrome. `Shift+Semicolon` (the real
+keyboard combo for `:`) occasionally fails to register because headless Chrome handles modifier
+key state differently from a real keyboard. The remap approach bypasses this entirely.
+
+**Scratch test results** (all three cases on a single run):
+
+| # | Method | Result |
+|---|--------|--------|
+| 1 | `mapcmdkey(':')` → `press(':')` | open=true ✓ |
+| 2 | no remap → `press('Shift+Semicolon')` | open=true (passed this run — flaky in CI) |
+| 3 | no remap → `press(':')` | open=true (passed this run — no default binding without remap) |
+
+Cases 2 and 3 passed in the scratch run but are not reliable across environments. Use case 1.
+
+### Throwing `waitForOmnibar` (required)
+
+The cookie test specs use a silently-returning `waitForOmnibar` that masks failures when the omnibar
+never opens. Always use the **throwing** variant:
+
+```typescript
+async function waitForOmnibar(page: Page, open: boolean, timeoutMs = 5000): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        if (await isOmnibarOpen(page) === open) return;
+        await page.waitForTimeout(100);
+    }
+    throw new Error(`waitForOmnibar(${open}): timed out after ${timeoutMs}ms`);
+}
+```
+
+**Reference:** `tests/playwright/scratch/scratch-colon-omnibar-trigger.spec.ts`
+
+**Checklist:**
+- [ ] `mapcmdkey(':', 'cmd_omnibar_commands')` via `callSKApi` (not raw `Shift+Semicolon`)
+- [ ] `unmapAllExcept([])` called before `mapcmdkey`
+- [ ] `waitForOmnibar` **throws** on timeout (never silently returns)
+- [ ] `page.mouse.click()` before triggering to ensure page focus
 
 ---
 
