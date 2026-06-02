@@ -1,0 +1,19 @@
+services:
+  devtools:
+    build: .
+    image: hbtlabs/surfingkeys-devtools
+    container_name: sfk-devtools
+    privileged: true
+    ports:
+      - "5901:5901"   # VNC
+      - "9222:9222"   # Chrome CDP
+      - "9600:9600"   # eval relay
+    volumes:
+      - ../../dist/development/chrome:/ext:ro      # built extension (read-only)
+      - ../../scripts:/surfingkeys/scripts:ro       # relay server source
+      - chrome-data:/chrome-data                   # persistent Chrome profile
+    environment:
+      - DISPLAY=:0
+
+volumes:
+  chrome-data:

@@ -1,0 +1,10 @@
+{
+  "browser": {
+    "has_seen_welcome_page": true,
+    "check_default_browser": false
+  },
+  "first_run_tabs": [],
+  "sync_promo": { "startup_count": 10 },
+  "profile": { "default_content_setting_values": {} },
+  "signin": { "allowed": false }
+}
