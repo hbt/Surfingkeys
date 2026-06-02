@@ -138,7 +138,14 @@ function postResult(id: unknown, result: unknown, error: unknown) {
 function subscribeSSE() {
   const es = new EventSource(`${CONFIG_SERVER}/eval-subscribe`);
 
-  es.onopen = () => setStatus(true);
+  es.onopen = () => {
+    setStatus(true);
+    console.log('[sk-devtools] panel connected', {
+      pageViewport: { w: window.innerWidth, h: window.innerHeight },
+      screen: { w: screen.width, h: screen.height },
+      outerWindow: { w: window.outerWidth, h: window.outerHeight },
+    });
+  };
   es.onerror = () => setStatus(false);
 
   es.onmessage = async (event) => {
