@@ -197,6 +197,7 @@ const Front = (function() {
     const _nvim = document.getElementById('sk_nvim')!;
     const _tabs = document.getElementById('sk_tabs')!;
     const _banner = document.getElementById('sk_banner')!;
+    let _bannerTimer: ReturnType<typeof setTimeout> | null = null;
     const _bubble: any = document.getElementById('sk_bubble');
     const sk_bubble_content: any = _bubble.querySelector("div.sk_bubble_content");
     const sk_bubble_arrow: any = _bubble.querySelector('div.sk_arrow');
@@ -675,6 +676,7 @@ const Front = (function() {
     };
 
     function showBanner(content: any, linger_time: any) {
+        if (_bannerTimer !== null) { clearTimeout(_bannerTimer); _bannerTimer = null; }
         _banner.style.cssText = "";
         _banner.style.display = "";
         _banner.style.top = "0px";
@@ -682,9 +684,10 @@ const Front = (function() {
         self.flush();
 
         let timems = linger_time || 1600;
-        setTimeout(function() {
+        _bannerTimer = setTimeout(function() {
             _banner.style.cssText = "";
             _banner.style.display = "none";
+            _bannerTimer = null;
             self.flush();
         }, timems);
     }

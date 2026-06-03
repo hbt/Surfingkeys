@@ -391,7 +391,6 @@ function start(browser?: any) {
                     if (myHighlighted)  title = '* ' + title;
                     skipObserver = true;
                     document.title = title;
-                    skipObserver = false;
                 }
 
                 if (resp.index > 0) {
@@ -423,7 +422,6 @@ function start(browser?: any) {
                             // no index prefix and not highlighted — restore plain title
                             skipObserver = true;
                             document.title = originalTitle;
-                            skipObserver = false;
                         }
                     }
                 });

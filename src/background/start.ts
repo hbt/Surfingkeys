@@ -1809,9 +1809,10 @@ function start(browser: Record<string, unknown>) {
     };
 
     self.highlightToggleTabMagic = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
-        chrome.tabs.query({currentWindow: true}, function(tabs) {
-            var repeats = (message.repeats as number) || 1;
-            var tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, tabs);
+        chrome.tabs.query({}, function(allTabs) {
+            var repeats = message.repeats as number;
+            var windowTabs = allTabs.filter(t => t.windowId === sender.tab?.windowId);
+            var tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, windowTabs, allTabs);
             var added = 0, removed = 0;
             tabIds.forEach(function(id: number) {
                 if (tabsMarked.has(id)) {

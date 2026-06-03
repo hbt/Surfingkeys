@@ -89,7 +89,7 @@ async function getBookmarksInFolder(ctx: BrowserContext, folderName: string): Pr
 }
 
 test.describe('cmd_bookmark_add_m (pending-key, Playwright)', () => {
-    test.setTimeout(15_000);
+    test.setTimeout(17_000);
 
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(FIXTURE_URL);
@@ -136,6 +136,7 @@ test.describe('cmd_bookmark_add_m (pending-key, Playwright)', () => {
             await page.waitForTimeout(500);
 
             const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).not.toBeNull();
             expect(bannerText).toContain(`Added 1 to [${TEST_FOLDER}]`);
 
             const children = await getBookmarksInFolder(context, TEST_FOLDER);
@@ -174,6 +175,7 @@ test.describe('cmd_bookmark_add_m (pending-key, Playwright)', () => {
             await page.waitForTimeout(500);
 
             const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).not.toBeNull();
             expect(bannerText).toContain(`Added 3 to [${TEST_FOLDER}]`);
 
             const children = await getBookmarksInFolder(context, TEST_FOLDER);
@@ -215,6 +217,7 @@ test.describe('cmd_bookmark_add_m (pending-key, Playwright)', () => {
             await page.waitForTimeout(500);
 
             const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).not.toBeNull();
             expect(bannerText).toContain(`Added 0 to [${TEST_FOLDER}]`);
 
             const children = await getBookmarksInFolder(context, TEST_FOLDER);

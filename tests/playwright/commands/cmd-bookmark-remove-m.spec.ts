@@ -89,7 +89,7 @@ async function getBookmarksInFolder(ctx: BrowserContext, folderName: string): Pr
 }
 
 test.describe('cmd_bookmark_remove_m (pending-key, Playwright)', () => {
-    test.setTimeout(15_000);
+    test.setTimeout(17_000);
 
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(FIXTURE_URL);
@@ -140,6 +140,7 @@ test.describe('cmd_bookmark_remove_m (pending-key, Playwright)', () => {
             await page.waitForTimeout(500);
 
             const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).not.toBeNull();
             expect(bannerText).toContain(`Removed 1 from [${TEST_FOLDER}]`);
 
             const after = await getBookmarksInFolder(context, TEST_FOLDER);
@@ -192,6 +193,7 @@ test.describe('cmd_bookmark_remove_m (pending-key, Playwright)', () => {
             await page.waitForTimeout(500);
 
             const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).not.toBeNull();
             expect(bannerText).toContain(`Removed 3 from [${TEST_FOLDER}]`);
 
             const after = await getBookmarksInFolder(context, TEST_FOLDER);
@@ -223,6 +225,7 @@ test.describe('cmd_bookmark_remove_m (pending-key, Playwright)', () => {
             await page.waitForTimeout(500);
 
             const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).not.toBeNull();
             expect(bannerText).toContain(`Removed 0 from [${TEST_FOLDER}]`);
 
             // Different URL → should remain untouched

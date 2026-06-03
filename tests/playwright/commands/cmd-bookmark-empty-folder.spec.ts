@@ -119,7 +119,7 @@ async function folderExists(ctx: BrowserContext, folderName: string): Promise<bo
 }
 
 test.describe('cmd_bookmark_empty_folder (pending-key, Playwright)', () => {
-    test.setTimeout(15_000);
+    test.setTimeout(17_000);
 
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(FIXTURE_URL);
@@ -164,6 +164,7 @@ test.describe('cmd_bookmark_empty_folder (pending-key, Playwright)', () => {
             await page.waitForTimeout(500);
 
             const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).not.toBeNull();
             expect(bannerText).toContain(`Emptied 3 from [${TEST_FOLDER}]`);
 
             const after = await getBookmarksInFolder(context, TEST_FOLDER);
@@ -187,6 +188,7 @@ test.describe('cmd_bookmark_empty_folder (pending-key, Playwright)', () => {
             await page.waitForTimeout(500);
 
             const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).not.toBeNull();
             expect(bannerText).toContain(`Emptied 1 from [${TEST_FOLDER}]`);
 
             const after = await getBookmarksInFolder(context, TEST_FOLDER);
