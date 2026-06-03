@@ -822,6 +822,7 @@ function createVisual(clipboard: any, hints: any) {
 
     function _onStateChange() {
         self.mappings.add("y", _yankFunctions[state]);
+        self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-c>"), _yankFunctions[state]);
         self.statusLine = self.name + " - " + status[state];
         Mode.showStatus();
     }

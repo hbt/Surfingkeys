@@ -1,6 +1,7 @@
 import { RUNTIME, runtime } from '../runtime.js';
 import { getBrowserName, showBanner, showImagePopup } from '../utils.js';
 import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { GKey } from '../g-keys.js';
 
 function getTableColumnHeads(): Element[] {
     var tds: Element[] = [];
@@ -84,6 +85,20 @@ export default function registerClipboard(
             textToYank.push(element[1] === 0 ? element[0].data.trim() : element[2].trim());
             (clipboard as any).write(textToYank.join('\n'));
         }, { multipleHits: true });
+    });
+
+    mapkey('g-032' satisfies GKey, {
+        short: "Copy selected text",
+        unique_id: "cmd_yank_selection",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Copy currently selected text to clipboard",
+        tags: ["clipboard", "yank", "selection"]
+    }, function() {
+        const text = window.getSelection()?.toString() || '';
+        if (text) {
+            (clipboard as any).write(text);
+        }
     });
 
     mapkey(';pp', {
