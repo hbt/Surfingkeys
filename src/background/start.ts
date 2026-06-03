@@ -1946,6 +1946,23 @@ function start(browser: Record<string, unknown>) {
             })();
         });
     };
+    self.tabUnique = function(_message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        chrome.tabs.query({ windowId: sender.tab?.windowId }, function(tabs) {
+            const seen = new Set<string>();
+            const toRemove: number[] = [];
+            for (const tab of tabs) {
+                const url = tab.url ?? '';
+                if (seen.has(url)) {
+                    if (tab.id !== undefined) toRemove.push(tab.id);
+                } else {
+                    seen.add(url);
+                }
+            }
+            if (toRemove.length) {
+                chrome.tabs.remove(toRemove);
+            }
+        });
+    };
     self.gatherWindows = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const windowId = sender.tab!.windowId;
         chrome.tabs.query({currentWindow: false}, function(tabs) {

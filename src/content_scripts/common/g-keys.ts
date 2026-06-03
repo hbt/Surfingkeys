@@ -37,6 +37,7 @@ export const G_KEYS = {
     "g-033": "cmd_download_open_last",
     "g-034": "cmd_download_show_last",
     "g-035": "cmd_tab_warmup",
+    "g-036": "cmd_tab_unique",
 } as const;
 
 export type GKey = keyof typeof G_KEYS;

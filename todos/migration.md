@@ -92,8 +92,8 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 
 ## Download Keys
 
-- [ ] `xl` — open last downloaded file (impl needed; archive: `downloadOpenLastFile`) ^t2b6qr
-- [ ] `xs` — show last downloaded file in folder (impl needed; archive: `downloadShowLastFile`) ^u5n9ck
+- [x] `xl` — open last downloaded file (impl needed; archive: `downloadOpenLastFile`) ^t2b6qr
+- [x] `xs` — show last downloaded file in folder (impl needed; archive: `downloadShowLastFile`) ^u5n9ck
 
 ---
 

@@ -359,6 +359,17 @@ export default function registerTabs(
         RUNTIME('captureTabMagic', { magic: resolveMagic(magicKey) });
     });
 
+    mapkey('g-036' satisfies GKey, {
+        short: "Deduplicate tabs by URL",
+        unique_id: "cmd_tab_unique",
+        feature_group: 3,
+        category: "tabs",
+        description: "Close all duplicate tabs in the current window, keeping the first occurrence of each URL.",
+        tags: ["tabs", "dedup", "close", "unique"]
+    }, function() {
+        RUNTIME('tabUnique');
+    });
+
     mapkey('g-035' satisfies GKey, {
         short: "Pre-warm all cold tabs",
         unique_id: "cmd_tab_warmup",
