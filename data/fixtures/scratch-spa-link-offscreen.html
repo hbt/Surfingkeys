@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SPA Link Offscreen Test</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    .spacer { height: 600px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #999; }
+    .link-area { padding: 20px; }
+    #spa-link { font-size: 18px; padding: 10px 20px; display: inline-block; }
+    #status {
+      position: fixed; bottom: 10px; right: 10px;
+      background: white; border: 2px solid #333;
+      padding: 8px 12px; font-size: 13px; font-family: monospace;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="spacer">↑ spacer (150px) ↑</div>
+
+  <div class="link-area">
+    <a id="spa-link" data-spa="true" href="about:blank?opened=1">
+      SPA Intercepted Link (open in new tab)
+    </a>
+    <!-- Dummy links so surfingkeys creates multiple hints (prevents single-hint auto-click) -->
+    <a href="about:blank?d=1">Dummy 1</a>
+    <a href="about:blank?d=2">Dummy 2</a>
+    <a href="about:blank?d=3">Dummy 3</a>
+    <a href="about:blank?d=4">Dummy 4</a>
+    <a href="about:blank?d=5">Dummy 5</a>
+  </div>
+
+  <div id="status">status: waiting</div>
+  <div style="height: 1200px;"></div>
+
+  <script>
+    // Simulate a SPA router that intercepts clicks and validates coordinates.
+    // Mimics YouTube's behavior: checks elementFromPoint(clientX, clientY) to
+    // determine if the click was "genuine" (at the element's location).
+    document.addEventListener('click', function(e) {
+      const target = e.target.closest('a[data-spa]');
+      if (!target) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const elAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+      const isOnTarget = !!(elAtPoint && (elAtPoint === target || target.contains(elAtPoint)));
+
+      const status = document.getElementById('status');
+      status.textContent = `ctrlKey=${e.ctrlKey} coords=(${Math.round(e.clientX)},${Math.round(e.clientY)}) isOnTarget=${isOnTarget}`;
+
+      if (e.ctrlKey && isOnTarget) {
+        status.textContent += ' → new-tab';
+        window.open(target.href, '_blank', 'noopener');
+      } else if (e.ctrlKey && !isOnTarget) {
+        status.textContent += ' → bug: current-tab (coords mismatch)';
+        // Do NOT navigate — let the test observe the failure without page reload
+      } else {
+        status.textContent += ' → current-tab (no ctrlKey)';
+      }
+    }, true);
+  </script>
+
+</body>
+</html>
