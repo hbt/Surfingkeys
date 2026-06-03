@@ -86,7 +86,7 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 - [x] `tB` — capture tab screenshot (impl needed; archive: `tabPageCaptureM`) ^tB8m3kw
 - [x] `bv` — save YouTube playback position to bookmark (impl needed; archive: `bookmarkSaveYoutube`) ^q9n5xw
 - [x] `tyl{X}` / `tYl{X}` — create YouTube playlist from bookmark folder (impl needed) ^r4c8jt
-- [ ] `b!O` — clear all output bookmark folders (impl needed) ^s7v3pm
+- [x] `b!O` — clear all output bookmark folders (impl needed) ^s7v3pm
 
 ---
 
