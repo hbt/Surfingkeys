@@ -34,6 +34,24 @@ async function setConf(p: Page, key: string, value: unknown) {
     await p.waitForTimeout(50);
 }
 
+async function waitForBannerVisible(p: Page, timeoutMs = 5000): Promise<string | null> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        for (const frame of p.frames()) {
+            if (!frame.url().includes('frontend.html')) continue;
+            const text = await frame.evaluate(() => {
+                const banner = document.getElementById('sk_banner');
+                if (!banner) return null;
+                if (banner.style.display === 'none') return null;
+                return banner.textContent ?? null;
+            }).catch(() => null);
+            if (text !== null) return text;
+        }
+        await p.waitForTimeout(100);
+    }
+    return null;
+}
+
 async function cleanupFolder(ctx: BrowserContext, folderName: string): Promise<void> {
     const sw = ctx.serviceWorkers()[0];
     if (!sw) throw new Error('No service worker found');
@@ -121,6 +139,9 @@ test.describe('cmd_bookmark_remove_m (pending-key, Playwright)', () => {
             await page.keyboard.press(MAGIC_KEY);
             await page.waitForTimeout(500);
 
+            const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).toContain(`Removed 1 from [${TEST_FOLDER}]`);
+
             const after = await getBookmarksInFolder(context, TEST_FOLDER);
             expect(after).toHaveLength(0);
         });
@@ -170,6 +191,9 @@ test.describe('cmd_bookmark_remove_m (pending-key, Playwright)', () => {
             await page.keyboard.press('e');
             await page.waitForTimeout(500);
 
+            const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).toContain(`Removed 3 from [${TEST_FOLDER}]`);
+
             const after = await getBookmarksInFolder(context, TEST_FOLDER);
             expect(after).toHaveLength(0);
 
@@ -197,6 +221,9 @@ test.describe('cmd_bookmark_remove_m (pending-key, Playwright)', () => {
             await page.waitForTimeout(50);
             await page.keyboard.press(MAGIC_KEY);
             await page.waitForTimeout(500);
+
+            const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).toContain(`Removed 0 from [${TEST_FOLDER}]`);
 
             // Different URL → should remain untouched
             const after = await getBookmarksInFolder(context, TEST_FOLDER);

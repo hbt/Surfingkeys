@@ -359,6 +359,18 @@ export default function registerTabs(
         RUNTIME('captureTabMagic', { magic: resolveMagic(magicKey) });
     });
 
+    mapkey('g-037' satisfies GKey, {
+        short: "Toggle highlight mark on tab(s) via magic key",
+        unique_id: "cmd_tab_highlight_toggle_m",
+        feature_group: 3,
+        category: "tabs",
+        description: "Toggle the highlight mark (*) on tab(s) selected by the next magic key. Highlighted tabs show a '*' prefix in their title. Use the 'HighlightedTabs' magic directive on other commands to act on the set.",
+        tags: ["tabs", "highlight", "magic", "mark"]
+    }, function(magicKey: string): void {
+        RUNTIME('highlightToggleTabMagic', { magic: resolveMagic(magicKey) }, function(res: any) {
+            (front as any).showBanner(`Highlight +${res.added} -${res.removed} | Total: ${res.total}`, 2000);
+        });
+    });
     mapkey('g-036' satisfies GKey, {
         short: "Deduplicate tabs by URL",
         unique_id: "cmd_tab_unique",

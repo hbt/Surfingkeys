@@ -1727,10 +1727,15 @@ function start(browser: Record<string, unknown>) {
             }
             case 'CurrentTab':
                 return [currentTab.id!];
+            case 'HighlightedTabs':
+                return Array.from(tabsMarked);
             default:
                 return [];
         }
     }
+
+    // Tab highlight state — persists across commands within a session
+    const tabsMarked = new Set<number>();
 
     // NOTE: incognito windows/tabs are NOT visible to this handler in MV3 spanning mode.
     // chrome.tabs.query({}) and chrome.windows.getAll() both silently omit incognito
@@ -1800,6 +1805,30 @@ function start(browser: Record<string, unknown>) {
             tabIds.forEach(function(id: number) {
                 chrome.tabs.update(id, { pinned: !pinStateMap[id] });
             });
+        });
+    };
+
+    self.highlightToggleTabMagic = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
+        chrome.tabs.query({currentWindow: true}, function(tabs) {
+            var repeats = (message.repeats as number) || 1;
+            var tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, tabs);
+            var added = 0, removed = 0;
+            tabIds.forEach(function(id: number) {
+                if (tabsMarked.has(id)) {
+                    tabsMarked.delete(id);
+                    removed++;
+                } else {
+                    tabsMarked.add(id);
+                    added++;
+                }
+            });
+            tabIds.forEach(function(id: number) {
+                sendTabMessage(id, 0, {
+                    subject: 'tabHighlightChange',
+                    highlighted: tabsMarked.has(id)
+                });
+            });
+            sendResponse({ added, removed, total: tabsMarked.size });
         });
     };
 
@@ -2870,10 +2899,13 @@ function start(browser: Record<string, unknown>) {
         const tabId = sender.tab?.id;
         _getBookmarkFolderByName(folder, function(folderNode) {
             if (!folderNode) return;
-            const { parentId, title, index } = folderNode;
-            chrome.bookmarks.removeTree(folderNode.id, function() {
-                chrome.bookmarks.create({ parentId, title, index }, function() {
-                    sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Emptied [${folder}]` });
+            const { parentId, title, index, id } = folderNode;
+            chrome.bookmarks.getChildren(id, function(children) {
+                const count = children.length;
+                chrome.bookmarks.removeTree(id, function() {
+                    chrome.bookmarks.create({ parentId, title, index }, function() {
+                        sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Emptied ${count} from [${folder}]` });
+                    });
                 });
             });
         });
@@ -2893,19 +2925,22 @@ function start(browser: Record<string, unknown>) {
                         selectedTabs.forEach(t => {
                             chrome.bookmarks.create({ parentId: newFolder.id, title: t.title, url: t.url });
                         });
-                        sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Added to [${folder}]` });
+                        const count = selectedTabs.length;
+                        sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Added ${count} to [${folder}]` });
                     });
                     return;
                 }
                 const parentId = folderNode.id;
                 chrome.bookmarks.getChildren(parentId, function(children) {
                     const existingUrls = new Set(children.map(c => _normalizeUrl(c.url || '')));
+                    let count = 0;
                     selectedTabs.forEach(t => {
                         if (t.url && !existingUrls.has(_normalizeUrl(t.url))) {
                             chrome.bookmarks.create({ parentId, title: t.title, url: t.url });
+                            count++;
                         }
                     });
-                    sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Added to [${folder}]` });
+                    sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Added ${count} to [${folder}]` });
                 });
             });
         });
@@ -2921,11 +2956,12 @@ function start(browser: Record<string, unknown>) {
             const selectedTabs = allTabs.filter(t => tabIds.includes(t.id!));
             _getBookmarkChildrenByName(folder, function(children) {
                 const urlToId = new Map(children.map(c => [_normalizeUrl(c.url || ''), c.id]));
+                let count = 0;
                 selectedTabs.forEach(t => {
                     const bid = t.url ? urlToId.get(_normalizeUrl(t.url)) : undefined;
-                    if (bid) chrome.bookmarks.remove(bid);
+                    if (bid) { chrome.bookmarks.remove(bid); count++; }
                 });
-                sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Removed from [${folder}]` });
+                sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Removed ${count} from [${folder}]` });
             });
         });
     };

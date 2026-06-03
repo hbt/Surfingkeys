@@ -380,34 +380,53 @@ function start(browser?: any) {
                 url: window.location.href
             }, function (resp) {
 
+                var myTabIndex = resp.index > 0 ? resp.index : 0,
+                    myHighlighted = false,
+                    skipObserver = false,
+                    originalTitle = document.title;
+
+                function _rebuildTitle() {
+                    var title = originalTitle;
+                    if (myTabIndex > 0) title = '[' + myTabIndex + '] ' + title;
+                    if (myHighlighted)  title = '* ' + title;
+                    skipObserver = true;
+                    document.title = title;
+                    skipObserver = false;
+                }
+
                 if (resp.index > 0) {
-                    var showTabIndexInTitle = function () {
-                        skipObserver = true;
-                        document.title = '[' + myTabIndex + '] ' + originalTitle;
-                    };
-
-                    var myTabIndex = resp.index,
-                        skipObserver = false,
-                        originalTitle = document.title;
-
                     new MutationObserver(function (_mutationsList) {
                         if (skipObserver) {
                             skipObserver = false;
                         } else {
                             originalTitle = document.title;
-                            showTabIndexInTitle();
+                            _rebuildTitle();
                         }
-                    }).observe(document.querySelector("title")!, { childList: true });;
+                    }).observe(document.querySelector("title")!, { childList: true });
 
-                    showTabIndexInTitle();
+                    _rebuildTitle();
 
                     runtime.on('tabIndexChange', function(msg, _sender, _response) {
                         if (msg.index !== myTabIndex) {
                             myTabIndex = msg.index;
-                            showTabIndexInTitle();
+                            _rebuildTitle();
                         }
                     });
                 }
+
+                runtime.on('tabHighlightChange', function(msg, _sender, _response) {
+                    if (myHighlighted !== !!msg.highlighted) {
+                        myHighlighted = !!msg.highlighted;
+                        if (myTabIndex > 0 || myHighlighted) {
+                            _rebuildTitle();
+                        } else {
+                            // no index prefix and not highlighted — restore plain title
+                            skipObserver = true;
+                            document.title = originalTitle;
+                            skipObserver = false;
+                        }
+                    }
+                });
             });
 
         });
