@@ -359,6 +359,17 @@ export default function registerTabs(
         RUNTIME('captureTabMagic', { magic: resolveMagic(magicKey) });
     });
 
+    mapkey('g-035' satisfies GKey, {
+        short: "Pre-warm all cold tabs",
+        unique_id: "cmd_tab_warmup",
+        feature_group: 3,
+        category: "tabs",
+        description: "Briefly activates each tab that has never been focused since the extension loaded, then restores focus. Forces Chrome to unfreeze frozen background tabs, eliminating lag on manual tab switch.",
+        tags: ["tabs", "warmup", "performance"]
+    }, function() {
+        RUNTIME('tabWarmup');
+    });
+
     mapkey('g-026' satisfies GKey, {
         short: "Save tab quick mark",
         unique_id: "cmd_tab_quick_mark_save",

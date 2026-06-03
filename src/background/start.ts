@@ -1922,6 +1922,30 @@ function start(browser: Record<string, unknown>) {
             });
         });
     };
+    self.tabWarmup = function(_message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const callerTabId = sender.tab!.id!;
+        const callerWindowId = sender.tab!.windowId;
+        chrome.windows.getAll({ populate: true }, function(windows) {
+            (async () => {
+                for (const win of windows) {
+                    const tabs = win.tabs || [];
+                    const activeTab = tabs.find(t => t.active);
+                    let anyWarmed = false;
+                    for (const tab of tabs) {
+                        if (tab.id != null && !tabActivated[tab.id]) {
+                            await chrome.tabs.update(tab.id, { active: true });
+                            anyWarmed = true;
+                        }
+                    }
+                    if (anyWarmed && activeTab?.id != null) {
+                        await chrome.tabs.update(activeTab.id, { active: true });
+                    }
+                }
+                await chrome.tabs.update(callerTabId, { active: true });
+                chrome.windows.update(callerWindowId, { focused: true });
+            })();
+        });
+    };
     self.gatherWindows = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         const windowId = sender.tab!.windowId;
         chrome.tabs.query({currentWindow: false}, function(tabs) {
