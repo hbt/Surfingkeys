@@ -1,6 +1,7 @@
 import { RUNTIME } from '../runtime.js';
 import { getBrowserName, tabOpenLink } from '../utils.js';
 import type { CommandAPI } from '../../../../@types/surfingkeys';
+import type { GKey } from '../g-keys.js';
 
 export default function registerChrome(
     api: CommandAPI,
@@ -127,6 +128,26 @@ export default function registerChrome(
         tags: ["chrome", "downloads", "ui"]
     }, function() {
         RUNTIME("closeDownloadsShelf", {clearHistory: true});
+    });
+    mapkey('g-033' satisfies GKey, {
+        short: "Open last downloaded file",
+        unique_id: "cmd_download_open_last",
+        feature_group: 12,
+        category: "chrome",
+        description: "Open the last completed download with its default application",
+        tags: ["chrome", "downloads", "file"]
+    }, function() {
+        RUNTIME('downloadOpenLastFile');
+    });
+    mapkey('g-034' satisfies GKey, {
+        short: "Show last downloaded file in folder",
+        unique_id: "cmd_download_show_last",
+        feature_group: 12,
+        category: "chrome",
+        description: "Reveal the last completed download in the OS file manager",
+        tags: ["chrome", "downloads", "file"]
+    }, function() {
+        RUNTIME('downloadShowLastFile');
     });
     } // end !Safari guard
 }

@@ -2418,6 +2418,20 @@ function start(browser: Record<string, unknown>) {
             chrome.downloads.setShelfEnabled(true);
         }
     };
+    self.downloadOpenLastFile = function(_message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        chrome.downloads.search({ exists: true, state: "complete" }, function(dlds) {
+            if (!dlds || dlds.length === 0) return;
+            const last = dlds.slice().sort((a, b) => (a.endTime ?? '') < (b.endTime ?? '') ? -1 : 1).pop()!;
+            chrome.downloads.open(last.id);
+        });
+    };
+    self.downloadShowLastFile = function(_message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        chrome.downloads.search({ exists: true, state: "complete" }, function(dlds) {
+            if (!dlds || dlds.length === 0) return;
+            const last = dlds.slice().sort((a, b) => (a.endTime ?? '') < (b.endTime ?? '') ? -1 : 1).pop()!;
+            chrome.downloads.show(last.id);
+        });
+    };
     self.getDownloads = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
         chrome.downloads.search(message.query as chrome.downloads.DownloadQuery, function(items) {
             _response(message, sendResponse, {

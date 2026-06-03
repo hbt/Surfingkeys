@@ -53,6 +53,7 @@
         "sessions",
         "cookies",
         "downloads",
+        "downloads.open",
         "topSites",
         "clipboardRead",
         "clipboardWrite",

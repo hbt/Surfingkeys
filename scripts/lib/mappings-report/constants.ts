@@ -116,6 +116,9 @@ export const EXCLUDED_COMMANDS: Array<{ unique_id: string; reason: string }> = [
     { unique_id: 'cmd_visual_llm_chat',           reason: 'Deferred — LLM chat visual integration not yet stable for testing' },
     // pageCapture — chrome.pageCapture.saveAsMHTML not available in Playwright test environment
     { unique_id: 'cmd_tab_capture_mhtml',         reason: 'pageCapture — chrome.pageCapture.saveAsMHTML not available in Playwright test environment' },
+    // downloads — native OS interactions, no observable Playwright state
+    { unique_id: 'cmd_download_open_last',        reason: 'chrome.downloads.open() launches native app — no observable Playwright state' },
+    { unique_id: 'cmd_download_show_last',        reason: 'chrome.downloads.show() opens OS file manager — no observable Playwright state' },
 ];
 
 // ============================================================================
