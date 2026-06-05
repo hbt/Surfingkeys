@@ -2698,6 +2698,27 @@ function start(browser: Record<string, unknown>) {
             });
         }
     };
+    self.captureAndDownloadScreenshot = function(message: Msg, _sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
+        chrome.tabs.captureVisibleTab(undefined, { format: "png" }, function(dataUrl: string) {
+            if (chrome.runtime.lastError || !dataUrl) {
+                console.error("[capture] captureAndDownloadScreenshot failed:", chrome.runtime.lastError?.message);
+                _response(message, sendResponse, { filepath: null });
+                return;
+            }
+            const filename = `screenshot-${Date.now()}.png`;
+            chrome.downloads.download({ url: dataUrl, filename, saveAs: false }, function(downloadId) {
+                if (chrome.runtime.lastError || downloadId === undefined) {
+                    console.error("[capture] download failed:", chrome.runtime.lastError?.message);
+                    _response(message, sendResponse, { filepath: null });
+                    return;
+                }
+                chrome.downloads.search({ id: downloadId }, function(items) {
+                    const filepath = items[0]?.filename ?? filename;
+                    _response(message, sendResponse, { filepath });
+                });
+            });
+        });
+    };
     self.captureVisibleTab = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
         chrome.tabs.captureVisibleTab(undefined, {format: "png"}, function(dataUrl: string) {
             if (chrome.runtime.lastError || !dataUrl) {

@@ -412,6 +412,25 @@ export default function registerClipboard(
         }, 500);
     });
 
+    mapkey('g-038' satisfies GKey, {
+        short: "Screenshot → download & copy path",
+        unique_id: "cmd_capture_screenshot_download",
+        feature_group: 7,
+        category: "clipboard",
+        description: "Capture screenshot of current page, download to ~/web_dld, copy filepath to clipboard",
+        tags: ["clipboard", "screenshot", "capture", "download"]
+    }, function() {
+        (front as any).toggleStatus(false);
+        setTimeout(function() {
+            RUNTIME('captureAndDownloadScreenshot', null, function(response: any) {
+                (front as any).toggleStatus(true);
+                if (response.filepath) {
+                    (clipboard as any).write(response.filepath);
+                }
+            });
+        }, 500);
+    });
+
     if (!getBrowserName().startsWith("Safari")) {
     mapkey('yd', {
         short: "Copy downloading URL",
