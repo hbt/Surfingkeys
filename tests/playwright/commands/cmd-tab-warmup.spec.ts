@@ -86,6 +86,12 @@ test.describe('cmd_tab_warmup (Playwright)', () => {
                 const tabsBefore = await getAllTabsViaSW(context);
                 expect(tabsBefore.length).toBe(3);
 
+                // Log lastAccessed to verify cold tabs haven't been focused before the command
+                console.log('[warmup-test] tabs before command:');
+                for (const t of tabsBefore) {
+                    console.log(`  tab ${t.id} active=${t.active} lastAccessed=${t.lastAccessed ?? 'none'}`);
+                }
+
                 // Invoke the warmup command from the anchor tab
                 const ok = await invokeCommand(anchor, UNIQUE_ID);
                 expect(ok).toBe(true);

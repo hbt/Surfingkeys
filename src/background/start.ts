@@ -1969,6 +1969,7 @@ function start(browser: Record<string, unknown>) {
         const callerWindowId = sender.tab!.windowId;
         chrome.windows.getAll({ populate: true }, function(windows) {
             (async () => {
+                let count = 0;
                 for (const win of windows) {
                     const tabs = win.tabs || [];
                     const activeTab = tabs.find(t => t.active);
@@ -1976,6 +1977,7 @@ function start(browser: Record<string, unknown>) {
                     for (const tab of tabs) {
                         if (tab.id != null && !tabActivated[tab.id]) {
                             await chrome.tabs.update(tab.id, { active: true });
+                            count++;
                             anyWarmed = true;
                         }
                     }
@@ -1985,6 +1987,10 @@ function start(browser: Record<string, unknown>) {
                 }
                 await chrome.tabs.update(callerTabId, { active: true });
                 chrome.windows.update(callerWindowId, { focused: true });
+                sendTabMessage(callerTabId, 0, {
+                    subject: 'showBanner',
+                    message: `Tab warmup: ${count} tab${count === 1 ? '' : 's'} warmed`,
+                });
             })();
         });
     };
