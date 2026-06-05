@@ -2843,13 +2843,22 @@ function start(browser: Record<string, unknown>) {
         const bookmarkUrl = target.toString();
         const title = (tab.title || bookmarkUrl).replace(/^\[\d+\] /, '');
 
+        const fmtTimestamp = (s: number) => {
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+            return h > 0
+                ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+                : `${m}:${String(sec).padStart(2, '0')}`;
+        };
+
         function saveInFolder(parentId: string) {
             chrome.bookmarks.getChildren(parentId, function(children) {
                 const stale = children.filter(c => c.url && _normalizeUrl(c.url).startsWith(_normalizeUrl(baseStr)));
                 let pending = stale.length;
                 function afterRemove() {
                     chrome.bookmarks.create({ parentId, title, url: bookmarkUrl }, function() {
-                        sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Saved playback position` });
+                        sendTabMessage(tabId, 0, { subject: 'showBanner', message: `Saved playback position (${fmtTimestamp(Math.floor(seconds))})` });
                     });
                 }
                 if (pending === 0) { afterRemove(); return; }

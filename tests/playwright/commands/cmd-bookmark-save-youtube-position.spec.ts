@@ -49,6 +49,24 @@ async function getBookmarksInFolder(ctx: BrowserContext, folderName: string): Pr
     }), folderName);
 }
 
+async function waitForBannerVisible(p: Page, timeoutMs = 5000): Promise<string | null> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        for (const frame of p.frames()) {
+            if (!frame.url().includes('frontend.html')) continue;
+            const text = await frame.evaluate(() => {
+                const banner = document.getElementById('sk_banner');
+                if (!banner) return null;
+                if (banner.style.display === 'none') return null;
+                return banner.textContent ?? null;
+            }).catch(() => null);
+            if (text !== null && text !== '') return text;
+        }
+        await p.waitForTimeout(100);
+    }
+    return null;
+}
+
 async function injectTimeElement(p: Page, timeText: string) {
     await p.evaluate((text: string) => {
         const existing = document.querySelector('.ytp-time-current');
@@ -79,7 +97,6 @@ test.describe('cmd_bookmark_save_youtube_position (Playwright)', () => {
     });
 
     test.beforeEach(async () => {
-        test.skip(!process.env.DOCKER_CI, 'requires real YouTube navigation — only runs in Docker CI');
         await callSKApi(page, 'unmapAllExcept', []);
         await callSKApi(page, 'mapcmdkey', 'bv', 'cmd_bookmark_save_youtube_position');
     });
@@ -99,6 +116,10 @@ test.describe('cmd_bookmark_save_youtube_position (Playwright)', () => {
             const bookmarks = await getBookmarksInFolder(context, FOLDER);
             expect(bookmarks).toHaveLength(1);
             expect(bookmarks[0].url).toContain('?t=90');
+
+            const bannerText = await waitForBannerVisible(page);
+            expect(bannerText).not.toBeNull();
+            expect(bannerText).toContain('Saved playback position (1:30)');
         });
     });
 
@@ -116,6 +137,10 @@ test.describe('cmd_bookmark_save_youtube_position (Playwright)', () => {
             expect(bookmarks).toHaveLength(1);
             expect(bookmarks[0].url).toContain('?t=150');
             expect(bookmarks[0].url).not.toContain('t=90');
+
+            const bannerText2 = await waitForBannerVisible(page);
+            expect(bannerText2).not.toBeNull();
+            expect(bannerText2).toContain('Saved playback position (2:30)');
         });
     });
 
@@ -129,6 +154,10 @@ test.describe('cmd_bookmark_save_youtube_position (Playwright)', () => {
             const bookmarks = await getBookmarksInFolder(context, FOLDER);
             expect(bookmarks).toHaveLength(1);
             expect(bookmarks[0].url).toContain('?t=5445');
+
+            const bannerText3 = await waitForBannerVisible(page);
+            expect(bannerText3).not.toBeNull();
+            expect(bannerText3).toContain('Saved playback position (1:30:45)');
         });
     });
 });
