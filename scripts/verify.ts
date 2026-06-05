@@ -92,7 +92,7 @@ const CHECKS: Check[] = [
         id: 'config-lint',
         label: 'Config file lint',
         cmd: ['bun', 'scripts/lint-config.ts'],
-        group: 'personal',
+        group: 'fast',
     },
     {
         id: 'issues-detail',

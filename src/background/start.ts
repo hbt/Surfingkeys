@@ -415,6 +415,18 @@ function start(browser: Record<string, unknown>) {
             debugLog('sync-snippets', 'registered ok'); console.log('[sync-snippets] registered ok');
         } catch (err) {
             debugLog('sync-snippets', `register error: ${err && (err as Error).message}`); console.log(`[sync-snippets] register error: ${err && (err as Error).message}`);
+            fetch(`http://localhost:${__CONFIG_SERVER_PORT__}/errors`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ts: new Date().toISOString(),
+                    context: 'background',
+                    type: 'syncSettingsSnippets',
+                    message: (err as Error)?.message ?? String(err),
+                    stack: (err as Error)?.stack ?? 'no stack',
+                    extensionId: chrome.runtime.id
+                })
+            }).catch(() => {});
             throw err;
         }
     }
