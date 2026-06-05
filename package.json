@@ -50,7 +50,8 @@
     "worktree:merge": "bun scripts/worktree-merge.ts",
     "ci:push": "bun scripts/ci-queue-push.ts",
     "ci:push:quick": "bun scripts/ci-queue-push.ts --quick",
-    "ci:restart": "bun scripts/ci.ts restart"
+    "ci:restart": "bun scripts/ci.ts restart",
+    "dashboard": "bun scripts/ccs.ts"
   },
   "repository": {
     "type": "git",
