@@ -43,20 +43,64 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 
 ---
 
-## Yank / Clipboard Keys
+## Yank / Clipboard Keys (Built-in + Custom)
 
+### Already Mapped ✓
+- [x] `yy` → `cmd_yank_url` — copy current page URL
+- [x] `yg` → `cmd_yank_screenshot` — capture screenshot
+- [x] `ya` → `cmd_yank_link_url` — copy selected link URL
+- [x] `<Ctrl-c>` → `cmd_yank_selection` — copy selected text
+
+### Unmapped Built-in Yank Commands
+**Query to update:** `bun scripts/mappings-json-report.ts | jq '.mappings.list[] | select(.annotation.unique_id | startswith("cmd_yank"))'`
+
+- [ ] `cmd_yank_table_column` — `yc` — Copy all cells from selected table column
+- [ ] `cmd_yank_download_url` — `yd` — Copy URLs of files being downloaded (conflicts with old `yd`)
+- [ ] `cmd_yank_form_json` — `yf` — Copy form data as JSON
+- [ ] `cmd_yank_host` — `yh` — Copy hostname of current page
+- [ ] `cmd_yank_input_value` — `yi` — Copy value from selected input field
+- [ ] `cmd_yank_settings` — `yj` — Copy current SurfingKeys settings as JSON
+- [ ] `cmd_yank_title` — `yl` — Copy title of current page
+- [ ] `cmd_yank_multiple_links` — `yma` — Copy URLs of multiple links (separate lines)
+- [ ] `cmd_yank_table_columns` — `ymc` — Copy multiple table columns (tab-separated)
+- [ ] `cmd_yank_multiple_elements` — `ymv` — Copy text from multiple elements (separate lines)
+- [ ] `cmd_yank_form_post` — `yp` — Copy form data formatted for POST (conflicts with old `yp`)
+- [ ] `cmd_yank_pre_text` — `yq` — Copy text from selected pre element
+- [ ] `cmd_yank_query_history` — `yQ` — Copy all OmniQuery search history
+- [ ] `cmd_yank_page_source` — `ys` — Copy HTML source code of current page
+- [ ] `cmd_yank_element_text` — `yv` — Copy text content of selected element
+- [ ] `cmd_yank_all_urls` — `yY` — Copy URLs of all open tabs (separate lines)
+
+### Custom Yank Commands (from Archive)
 - [ ] `ymd` — copy URL as markdown (config mapping, inline JS) ^4kp2mx
 - [ ] `ymt` — copy title as markdown (config mapping, inline JS) ^9b3wr7
 - [ ] `yw` — copy all URLs in current window (impl needed; `yY` does all tabs, not window-scoped) ^t5q8vn
 - [ ] `yr` — readability via txtify.it (config mapping, inline redirect) ^m7x3np
 - [ ] `yD` — enable disabled elements on page (impl needed) ^q8wr2k
 - [x] `yI` — open Chrome inspector / debugger (impl needed) ^v5t9bz
-- [ ] `yp` (old: copy page body inner text) — key conflict with `cmd_yank_form_post`; pick new key ^k2m4cs
 
 ---
 
-## Paste / Link-Open Keys
+## Paste / Link-Open Keys (Built-in + Custom)
 
+### Already Mapped ✓
+- [x] `cc` → `cmd_nav_open_clipboard` — open clipboard content as URL
+- [x] `gv` → `cmd_nav_clipboard_navigate` — navigate to clipboard URL
+
+### Unmapped Built-in Paste Commands
+**Query to update:** `bun scripts/mappings-json-report.ts | jq '.mappings.list[] | select(.annotation.description | test("clipboard|paste"; "i"))'`
+
+- [ ] `cmd_paste_proxy` — `;ap` — Apply proxy config from JSON in clipboard
+- [ ] `cmd_proxy_copy_info` — `;cp` — Copy current proxy config to clipboard as JSON
+- [ ] `cmd_paste_form` — `;pf` — Fill form fields with data from clipboard
+- [ ] `cmd_paste_history` — `;ph` — Import browser history URLs from clipboard
+- [ ] `cmd_paste_settings` — `;pj` — Restore SurfingKeys settings from JSON in clipboard
+- [ ] `cmd_paste_html` — `;pp` — Replace current page content with HTML from clipboard (conflicts with URL convert `;pp`)
+- [ ] `cmd_tools_yank_history` — `;yh` — Copy all browser history URLs to clipboard
+- [ ] `cmd_markdown_copy_html` — `cc` — Copy generated HTML code from markdown preview (conflicts with `cc`)
+- [ ] `cmd_tools_read_text` — `gr` — Read selected text or clipboard content aloud (TTS)
+
+### Custom Paste/Link Commands (from Archive)
 - [x] `pp` / `gv` — paste clipboard URL into current tab (impl needed) ^j6n8ht
 - [x] `of` / `nf` / `tnf` — open hinted link incognito (impl needed; `of` conflict with `cmd_markdown_open_file`) ^r3p7dw
 - [ ] `nw` — open hinted link in new window (impl needed) ^x4b6fy
@@ -139,6 +183,38 @@ Need to decide: use MV3 version, replace with a surfingkeys command, or drop.
 - [ ] **PMR/hbtlabs** — `disabledDomainKeys: ["s"]`, `stealFocusOnLoad: false` ^e8m4vz
 - [ ] **Recoll (localhost:8801)** — fix `file://` links to route through open-file proxy ^f3b7tw
 - [ ] **CyberChef** — `<F8>` → Step key ^g6p2kn
+
+---
+
+## Unmigrated Built-in Commands (Investigation Backlog)
+
+These are built-in SurfingKeys commands from the mappings report that haven't been migrated to `.surfingkeysrc.js`. They may be useful to enable or can be left as defaults.
+
+**Update this list:** `bun scripts/mappings-json-report.ts | jq '.mappings.list[] | select(.annotation.unique_id as $id | ["cmd_yank", "cmd_paste", "cmd_nav_open_clipboard", "cmd_markdown_copy_html", "cmd_tools_read_text", "cmd_tab_copy_urls_m", "cmd_yank_link_url", "cmd_yank_screenshot", "cmd_yank_selection"] | map(. as $prefix | $id | startswith($prefix)) | any | not)' | jq -r '[.annotation.unique_id, .key] | @csv'`
+
+### Tab Commands (from `cmd_tab_*`, `cmd_close_tabs_*`)
+- [ ] Audit which tab commands should be explicitly mapped vs. using defaults
+
+### Hints Commands (from `cmd_hints_*`)
+- [ ] Audit which hints commands should be explicitly mapped vs. using defaults
+
+### Navigation Commands (from `cmd_nav_*`)
+- [ ] `cmd_nav_reload` — `r` — Reload current tab (already mapped ✓)
+- [ ] Audit other nav commands for coverage
+
+### Omnibar Commands (from `cmd_omnibar_*`)
+- [ ] Most are trigger commands with `o` prefix; audit coverage
+
+### Visual Mode Commands (from `cmd_visual_*`)
+- [ ] Audit which visual mode commands need explicit mapping
+
+### Bookmark Commands (from `cmd_bookmark_*`)
+- [ ] Several `cmd_bookmark_*` already mapped with `b`/`by`/`bY` etc.; audit coverage
+
+### Tools/Utilities (from `cmd_tools_*`)
+- [ ] `cmd_tools_increment_number_in_url` — `<Ctrl-a>` — increment URL number
+- [ ] `cmd_tools_decrement_number_in_url` — `<Ctrl-x>` — decrement URL number
+- [ ] Other tools commands to investigate
 
 ---
 
