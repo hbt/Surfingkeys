@@ -1,5 +1,5 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -20,8 +20,7 @@ const FIXTURE_URL_2 = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let covBg: ServiceWorkerCoverage | undefined;
-let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function addVIMark(ctx: BrowserContext, mark: string, url: string): Promise<void> {
     const sw = ctx.serviceWorkers()[0];
@@ -49,17 +48,16 @@ async function clearMarks(ctx: BrowserContext): Promise<void> {
 
 test.describe('cmd_marks_jump_new_tab (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithDualCoverage(FIXTURE_URL);
+        const result = await launchWithCoverage();
         context = result.context;
-        covBg = result.covBg;
-        initContentCoverageForUrl = result.covForPageUrl;
+        cov = result.cov;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        await covBg?.close();
+        await cov?.close();
         await context?.close();
     });
 
@@ -86,7 +84,7 @@ test.describe('cmd_marks_jump_new_tab (Playwright)', () => {
     });
 
     test('marks can be stored and retrieved via service worker', async () => {
-        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg: cov, initContentCoverageForUrl: undefined }, test.info().title, async () => {
             await addVIMark(context, 'a', FIXTURE_URL_2);
 
             const sw = context.serviceWorkers()[0];
@@ -102,7 +100,7 @@ test.describe('cmd_marks_jump_new_tab (Playwright)', () => {
     });
 
     test('multiple marks can be stored independently', async () => {
-        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg: cov, initContentCoverageForUrl: undefined }, test.info().title, async () => {
             await addVIMark(context, 'a', FIXTURE_URL);
             await addVIMark(context, 'b', FIXTURE_URL_2);
 
@@ -121,7 +119,7 @@ test.describe('cmd_marks_jump_new_tab (Playwright)', () => {
     });
 
     test('pressing Ctrl+\' followed by a character triggers mark jump if mark exists', async () => {
-        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg: cov, initContentCoverageForUrl: undefined }, test.info().title, async () => {
             await addVIMark(context, 'a', FIXTURE_URL_2);
             await page.waitForTimeout(200);
 

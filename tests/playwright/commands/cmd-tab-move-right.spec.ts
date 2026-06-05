@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -20,8 +20,7 @@ const CONTENT_COVERAGE_URL = `${FIXTURE_URL}#cov_content_anchor`;
 
 let context: BrowserContext;
 let page: Page;
-let covBg: ServiceWorkerCoverage | undefined;
-let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function getTabById(tabId: number): Promise<{ id: number; index: number } | null> {
     const sw = context.serviceWorkers()[0];
@@ -67,10 +66,9 @@ test.describe('cmd_tab_move_right (Playwright)', () => {
     let pages: Page[] = [];
 
     test.beforeAll(async () => {
-        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
+        const result = await launchWithCoverage();
         context = result.context;
-        covBg = result.covBg;
-        initContentCoverageForUrl = result.covForPageUrl;
+        cov = result.cov;
 
         // Anchor page for content coverage
         const anchorPage = await context.newPage();
@@ -91,7 +89,7 @@ test.describe('cmd_tab_move_right (Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        await covBg?.close();
+        await cov?.close();
         await context?.close();
     });
 
@@ -101,7 +99,7 @@ test.describe('cmd_tab_move_right (Playwright)', () => {
     });
 
     test('pressing >> moves tab one position to the right', async () => {
-        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined }, test.info().title, async () => {
             await page.bringToFront();
             await page.waitForTimeout(300);
 
@@ -135,7 +133,7 @@ test.describe('cmd_tab_move_right (Playwright)', () => {
     });
 
     test('pressing >> twice moves tab two positions to the right', async () => {
-        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined }, test.info().title, async () => {
             await page.bringToFront();
             await page.waitForTimeout(300);
 

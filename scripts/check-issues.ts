@@ -11,7 +11,7 @@ import path from 'path';
 
 const ROOT = path.join(import.meta.dir, '..');
 
-const result = spawnSync('bun', ['scripts/mappings-json-report.ts'], {
+const result = spawnSync('bun', ['scripts/report.ts'], {
     cwd: ROOT,
     encoding: 'utf-8',
     timeout: 30_000,

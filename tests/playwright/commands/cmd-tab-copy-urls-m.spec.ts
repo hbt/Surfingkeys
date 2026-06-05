@@ -1,5 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import { launchWithDualCoverage, FIXTURE_BASE, openSiblingTabViaSW } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE, openSiblingTabViaSW } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -13,8 +13,7 @@ const UNIQUE_ID = 'cmd_tab_copy_urls_m';
 
 let context: BrowserContext;
 let page: Page;
-let covBg: ServiceWorkerCoverage | undefined;
-let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function callSKApi(p: Page, fn: string, ...args: unknown[]) {
     await p.evaluate(([f, a]: [string, unknown[]]) => {
@@ -113,10 +112,9 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
     test.setTimeout(30_000);
 
     test.beforeAll(async () => {
-        const result = await launchWithDualCoverage(CONTENT_COVERAGE_URL);
+        const result = await launchWithCoverage();
         context = result.context;
-        covBg = result.covBg;
-        initContentCoverageForUrl = result.covForPageUrl;
+        cov = result.cov;
         await context.grantPermissions(['clipboard-read', 'clipboard-write']);
         page = await context.newPage();
         await page.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
@@ -124,7 +122,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
     });
 
     test.afterAll(async () => {
-        await covBg?.close();
+        await cov?.close();
         await context?.close();
     });
 
@@ -138,27 +136,17 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYt copies current tab URL to clipboard', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await page.bringToFront();
                 await page.waitForTimeout(200);
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
 
                 await pressChord(page, 't');
 
                 const clip = await getClipboardText(page).catch(() => '');
                 expect(clip).toContain('scroll-test.html');
                 if (DEBUG) console.log(`gYt: clipboard=${clip}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYt/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYt/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
             },
         );
     });
@@ -167,7 +155,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYC copies all tab URLs in window to clipboard (AllInWindow)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await closeAllExcept(page);
@@ -179,9 +167,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await page.bringToFront();
                 await page.waitForTimeout(300);
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
 
                 await callSKApi(page, 'unmapAllExcept', []);
                 await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
@@ -195,12 +180,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip.split('\n').length).toBeGreaterThanOrEqual(2);
                 if (DEBUG) console.log(`gYC: clipboard lines=${clip.split('\n').length}`);
 
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYC/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYC/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
                 await extra.close().catch(() => {});
             },
         );
@@ -210,7 +189,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYa copies all tab URLs in window to clipboard (AllInWindow legacy key)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await closeAllExcept(page);
@@ -222,10 +201,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await page.bringToFront();
                 await page.waitForTimeout(300);
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
-
                 await callSKApi(page, 'unmapAllExcept', []);
                 await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
                 await setConf(page, 'magicKeys', { 'a': 'AllInWindow' });
@@ -236,15 +211,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip).toContain('scroll-test.html');
                 // AllInWindow should include both tabs
                 expect(clip.split('\n').length).toBeGreaterThanOrEqual(2);
-                if (DEBUG) console.log(`gYa: clipboard lines=${clip.split('\n').length}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYa/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYa/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
-                await extra.close().catch(() => {});
+                if (DEBUG) console.log(`gYa: clipboard lines=${clip.split('\n').length}`);                await extra.close().catch(() => {});
             },
         );
     });
@@ -253,7 +220,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYe copies URLs of tabs to the right (DirectionRight)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await closeAllExcept(page);
@@ -268,10 +235,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await page.bringToFront();
                 await page.waitForTimeout(300);
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
-
                 await callSKApi(page, 'unmapAllExcept', []);
                 await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
                 await setConf(page, 'magicKeys', { 'e': 'DirectionRight' });
@@ -285,15 +248,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip).not.toContain('cov_content_anchor');
                 const lines = clip.split('\n').filter(Boolean);
                 expect(lines.length).toBe(2);
-                if (DEBUG) console.log(`gYe: clipboard=${clip}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYe/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYe/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
-                await right1.close().catch(() => {});
+                if (DEBUG) console.log(`gYe: clipboard=${clip}`);                await right1.close().catch(() => {});
                 await right2.close().catch(() => {});
             },
         );
@@ -303,7 +258,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYq copies URLs of tabs to the left (DirectionLeft)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 // Setup: [left1, left2, anchor] — need anchor to be rightmost tab.
@@ -328,10 +283,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await anchor.bringToFront();
                 await anchor.waitForTimeout(300);
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
-
                 await callSKApi(anchor, 'unmapAllExcept', []);
                 await callSKApi(anchor, 'mapcmdkey', KEY, UNIQUE_ID);
                 await setConf(anchor, 'magicKeys', { 'q': 'DirectionLeft' });
@@ -345,15 +296,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip).not.toContain('cov_content_anchor');
                 const lines = clip.split('\n').filter(Boolean);
                 expect(lines.length).toBe(2);
-                if (DEBUG) console.log(`gYq: clipboard=${clip}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYq/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYq/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
-                await left1.close().catch(() => {});
+                if (DEBUG) console.log(`gYq: clipboard=${clip}`);                await left1.close().catch(() => {});
                 await left2.close().catch(() => {});
             },
         );
@@ -363,7 +306,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYE copies current tab + tabs to the right (DirectionRightInclusive)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await closeAllExcept(page);
@@ -378,10 +321,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await page.bringToFront();
                 await page.waitForTimeout(300);
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
-
                 await callSKApi(page, 'unmapAllExcept', []);
                 await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
                 await setConf(page, 'magicKeys', { 'E': 'DirectionRightInclusive' });
@@ -395,15 +334,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip).toContain('right2_E');
                 const lines = clip.split('\n').filter(Boolean);
                 expect(lines.length).toBe(3);
-                if (DEBUG) console.log(`gYE: clipboard lines=${lines.length}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYE/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYE/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
-                await right1.close().catch(() => {});
+                if (DEBUG) console.log(`gYE: clipboard lines=${lines.length}`);                await right1.close().catch(() => {});
                 await right2.close().catch(() => {});
             },
         );
@@ -413,7 +344,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYQ copies current tab + tabs to the left (DirectionLeftInclusive)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 // Setup: [left1, left2, anchor] — anchor must be rightmost.
@@ -436,10 +367,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await anchor.bringToFront();
                 await anchor.waitForTimeout(300);
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
-
                 await callSKApi(anchor, 'unmapAllExcept', []);
                 await callSKApi(anchor, 'mapcmdkey', KEY, UNIQUE_ID);
                 await setConf(anchor, 'magicKeys', { 'Q': 'DirectionLeftInclusive' });
@@ -453,15 +380,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip).toContain('scroll-test.html');
                 const lines = clip.split('\n').filter(Boolean);
                 expect(lines.length).toBe(3);
-                if (DEBUG) console.log(`gYQ: clipboard lines=${lines.length}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYQ/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYQ/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
-                await left1.close().catch(() => {});
+                if (DEBUG) console.log(`gYQ: clipboard lines=${lines.length}`);                await left1.close().catch(() => {});
                 await left2.close().catch(() => {});
             },
         );
@@ -471,7 +390,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYc copies all tab URLs except active (AllExceptActive)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await closeAllExcept(page);
@@ -486,10 +405,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await page.bringToFront();
                 await page.waitForTimeout(300);
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
-
                 await callSKApi(page, 'unmapAllExcept', []);
                 await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
                 await setConf(page, 'magicKeys', { 'c': 'AllExceptActive' });
@@ -503,15 +418,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip).not.toContain('cov_content_anchor');
                 const lines = clip.split('\n').filter(Boolean);
                 expect(lines.length).toBe(2);
-                if (DEBUG) console.log(`gYc: clipboard=${clip}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYc/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYc/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
-                await extra1.close().catch(() => {});
+                if (DEBUG) console.log(`gYc: clipboard=${clip}`);                await extra1.close().catch(() => {});
                 await extra2.close().catch(() => {});
             },
         );
@@ -521,7 +428,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYg copies all tab URLs except active across all windows (AllExceptActiveAllWindows)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await closeAllExcept(page);
@@ -538,10 +445,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await page.bringToFront();
                 await page.waitForTimeout(300);
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
-
                 await callSKApi(page, 'unmapAllExcept', []);
                 await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
                 await setConf(page, 'magicKeys', { 'g': 'AllExceptActiveAllWindows' });
@@ -555,15 +458,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip).not.toContain('cov_content_anchor');
                 const lines = clip.split('\n').filter(Boolean);
                 expect(lines.length).toBeGreaterThanOrEqual(2);
-                if (DEBUG) console.log(`gYg: clipboard lines=${lines.length}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYg/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYg/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
-                await extra.close().catch(() => {});
+                if (DEBUG) console.log(`gYg: clipboard lines=${lines.length}`);                await extra.close().catch(() => {});
                 await closeWindowViaSW(win2Id).catch(() => {});
             },
         );
@@ -573,7 +468,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYk copies only direct child tab URLs (ChildrenTabs)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await closeAllExcept(page);
@@ -600,11 +495,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await page.bringToFront();
                 await page.waitForTimeout(300);
-
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
-
                 await pressChord(page, 'k');
 
                 const clip = await getClipboardText(page).catch(() => '');
@@ -616,15 +506,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip).not.toContain('cov_content_anchor');
                 const lines = clip.split('\n').filter(Boolean);
                 expect(lines.length).toBe(2);
-                if (DEBUG) console.log(`gYk: clipboard=${clip}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYk/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYk/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
-                await sibling.close().catch(() => {});
+                if (DEBUG) console.log(`gYk: clipboard=${clip}`);                await sibling.close().catch(() => {});
             },
         );
     });
@@ -633,7 +515,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYK copies child and grandchild tab URLs recursively (ChildrenTabsRecursively)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await closeAllExcept(page);
@@ -659,11 +541,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await page.bringToFront();
                 await page.waitForTimeout(300);
-
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
-
                 await pressChord(page, 'K');
 
                 const clip = await getClipboardText(page).catch(() => '');
@@ -674,15 +551,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip).not.toContain('cov_content_anchor');
                 const lines = clip.split('\n').filter(Boolean);
                 expect(lines.length).toBe(2);
-                if (DEBUG) console.log(`gYK: clipboard=${clip}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYK/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYK/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
-                await sibling.close().catch(() => {});
+                if (DEBUG) console.log(`gYK: clipboard=${clip}`);                await sibling.close().catch(() => {});
             },
         );
     });
@@ -691,7 +560,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYw copies non-pinned tab URLs from other windows (OtherWindowsNoPinned)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await closeAllExcept(page);
@@ -719,10 +588,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await page.bringToFront();
                 await page.waitForTimeout(300);
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
-
                 await callSKApi(page, 'unmapAllExcept', []);
                 await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
                 await setConf(page, 'magicKeys', { 'w': 'OtherWindowsNoPinned' });
@@ -736,15 +601,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip).not.toContain('win3_w');
                 // Current window active tab should NOT be included
                 expect(clip).not.toContain('cov_content_anchor');
-                if (DEBUG) console.log(`gYw: clipboard=${clip}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYw/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYw/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
-                await closeWindowViaSW(win2Id).catch(() => {});
+                if (DEBUG) console.log(`gYw: clipboard=${clip}`);                await closeWindowViaSW(win2Id).catch(() => {});
                 await closeWindowViaSW(win3Id).catch(() => {});
             },
         );
@@ -754,7 +611,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
     test('gYW copies all tab URLs from other windows (AllOtherWindowsTabs)', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await closeAllExcept(page);
@@ -774,10 +631,6 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
 
                 await page.bringToFront();
                 await page.waitForTimeout(300);
-                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
-                await covBg?.snapshot();
-                await covContent?.snapshot();
-
                 await callSKApi(page, 'unmapAllExcept', []);
                 await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
                 await setConf(page, 'magicKeys', { 'W': 'AllOtherWindowsTabs' });
@@ -791,15 +644,7 @@ test.describe('cmd_tab_copy_urls_m (pending-key, Playwright)', () => {
                 expect(clip).not.toContain('cov_content_anchor');
                 const lines = clip.split('\n').filter(Boolean);
                 expect(lines.length).toBeGreaterThanOrEqual(2);
-                if (DEBUG) console.log(`gYW: clipboard lines=${lines.length}`);
-
-                const bgPath = await covBg?.flush(`${SUITE_LABEL}/gYW/command_window/background`) ?? null;
-                await covContent?.flush(`${SUITE_LABEL}/gYW/content`).catch(() => null);
-                if (process.env.COVERAGE === 'true') {
-                    expect(bgPath).toBeTruthy();
-                }
-                await covContent?.close().catch(() => {});
-                await closeWindowViaSW(win2Id).catch(() => {});
+                if (DEBUG) console.log(`gYW: clipboard lines=${lines.length}`);                await closeWindowViaSW(win2Id).catch(() => {});
             },
         );
     });

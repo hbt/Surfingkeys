@@ -237,6 +237,7 @@ export interface Report {
     };
     issues: Issues;
     custom_configuration?: CustomConfiguration;
+    last_test_run: LastTestRun;
 }
 
 export interface TargetStats {
@@ -259,6 +260,60 @@ export interface RelevantCoverageTarget {
         count: number;
     }>;
 }
+
+// ============================================================================
+// LAST TEST RUN TYPES
+// ============================================================================
+
+export type TestRunSummary = {
+    runId: string;           // e.g. "2026-06-05T03-15-21-770Z-local"
+    date: string;            // ISO 8601
+    sha: string | null;      // 7-char git hash from filename
+    host: string | null;     // os.hostname() injected by test-parallel
+    stats: {
+        passed: number;
+        failed: number;
+        flaky: number;
+        skipped: number;
+    };
+    skipped_tests: Array<{ file: string; title: string }>;
+    reportPath: string;
+};
+
+export type CoverageRunSummary = {
+    runId: string;
+    date: string;
+    success: boolean;
+    execution: 'local' | 'docker';
+    stats: {
+        passed: number;
+        failed: number;
+        flaky: number;
+        skipped: number;
+    } | null;           // null if linked report not found
+    artifactCount: number;
+    groupCount: number;
+    manifestPath: string;
+};
+
+export type LastTestRun = {
+    local: TestRunSummary | null;
+    docker: TestRunSummary | null;
+    coverage: {
+        local: CoverageRunSummary | null;
+        docker: CoverageRunSummary | null;
+    };
+    excluded_from_testing: {
+        count: number;
+        commands: Array<{ unique_id: string; reason: string }>;
+    };
+    skipped_tests: {
+        // present when BOTH local + docker reports are available
+        docker_only: { count: number; tests: Array<{ file: string; title: string }> };
+        local_only:  { count: number; tests: Array<{ file: string; title: string }> };
+        always:      { count: number; tests: Array<{ file: string; title: string }> };
+    } | null;
+};
 
 export interface RelevantCoverage {
     commandId: string;

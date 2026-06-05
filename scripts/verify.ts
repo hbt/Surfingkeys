@@ -38,7 +38,7 @@ const CHECKS: Check[] = [
     {
         id: 'integrity',
         label: 'Mappings report schema',
-        cmd: ['bun', 'scripts/mappings-json-report.ts', '--integrity'],
+        cmd: ['bun', 'scripts/report.ts', '--integrity'],
         group: 'fast',
     },
     {

@@ -1,5 +1,5 @@
 import { test, expect, BrowserContext } from '@playwright/test';
-import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -9,8 +9,7 @@ const FIXTURE_URL_2 = `${FIXTURE_BASE}/input-test.html`;
 
 let context: BrowserContext;
 let sharedPage: import('@playwright/test').Page;
-let covBg: ServiceWorkerCoverage | undefined;
-let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function callSKApi(page: import('@playwright/test').Page, fn: string, ...args: unknown[]) {
     await page.evaluate(([f, a]: [string, unknown[]]) => {
@@ -83,17 +82,16 @@ async function openSession(ctx: BrowserContext, name: string): Promise<void> {
 
 test.describe('cmd_open_session (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithDualCoverage(FIXTURE_URL_1);
+        const result = await launchWithCoverage();
         context = result.context;
-        covBg = result.covBg;
-        initContentCoverageForUrl = result.covForPageUrl;
+        cov = result.cov;
         sharedPage = await context.newPage();
         await sharedPage.goto(FIXTURE_URL_1, { waitUntil: 'load' });
         await sharedPage.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        await covBg?.close();
+        await cov?.close();
         await context?.close();
     });
 
@@ -110,7 +108,7 @@ test.describe('cmd_open_session (Playwright)', () => {
 
     test('openSession saves and retrieves session data correctly', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL_1, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL_1, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 const sessionName = 'test-session-1';
@@ -127,7 +125,7 @@ test.describe('cmd_open_session (Playwright)', () => {
 
     test('openSession restores tabs from saved session', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL_1, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL_1, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 const sessionName = 'restore-session';
@@ -153,7 +151,7 @@ test.describe('cmd_open_session (Playwright)', () => {
 
     test('openSession with non-existent session does nothing', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL_1, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL_1, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 const initialCount = context.pages().length;

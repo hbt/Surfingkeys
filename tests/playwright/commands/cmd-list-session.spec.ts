@@ -1,5 +1,5 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
-import { launchWithDualCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
+import { launchWithCoverage, FIXTURE_BASE } from '../utils/pw-helpers';
 import type { ServiceWorkerCoverage } from '../utils/cdp-coverage';
 import { withPersistedDualCoverage } from '../utils/coverage-utils';
 
@@ -19,8 +19,7 @@ const FIXTURE_URL = `${FIXTURE_BASE}/scroll-test.html`;
 
 let context: BrowserContext;
 let page: Page;
-let covBg: ServiceWorkerCoverage | undefined;
-let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
+let cov: ServiceWorkerCoverage | undefined;
 
 async function getSessions(ctx: BrowserContext): Promise<Record<string, any>> {
     const sw = ctx.serviceWorkers()[0];
@@ -63,17 +62,16 @@ async function listSessions(ctx: BrowserContext): Promise<string[]> {
 
 test.describe('cmd_list_session (Playwright)', () => {
     test.beforeAll(async () => {
-        const result = await launchWithDualCoverage(FIXTURE_URL);
+        const result = await launchWithCoverage();
         context = result.context;
-        covBg = result.covBg;
-        initContentCoverageForUrl = result.covForPageUrl;
+        cov = result.cov;
         page = await context.newPage();
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(500);
     });
 
     test.afterAll(async () => {
-        await covBg?.close();
+        await cov?.close();
         await context?.close();
     });
 
@@ -85,7 +83,7 @@ test.describe('cmd_list_session (Playwright)', () => {
 
     test('listSession retrieves empty list when no sessions exist', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 const names = await listSessions(context);
@@ -96,7 +94,7 @@ test.describe('cmd_list_session (Playwright)', () => {
 
     test('listSession retrieves multiple sessions from storage', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await createTestSessions(context, {
@@ -116,7 +114,7 @@ test.describe('cmd_list_session (Playwright)', () => {
 
     test('listSession retrieves sessions after modification', async () => {
         await withPersistedDualCoverage(
-            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
+            { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg: cov, initContentCoverageForUrl: undefined },
             test.info().title,
             async () => {
                 await createTestSessions(context, {

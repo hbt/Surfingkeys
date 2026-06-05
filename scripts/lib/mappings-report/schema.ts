@@ -5,9 +5,9 @@
 export const REPORT_JSON_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "MappingsReport",
-    "description": "Output schema for scripts/mappings-json-report.ts",
+    "description": "Output schema for scripts/report.ts",
     "type": "object",
-    "required": ["mappings", "settings", "issues"],
+    "required": ["mappings", "settings", "issues", "last_test_run"],
     "properties": {
         "mappings": {
             "type": "object",
@@ -62,6 +62,10 @@ export const REPORT_JSON_SCHEMA = {
         "issues": {
             "$ref": "#/$defs/Issues",
             "description": "Actionable problem lists surfacing items that need attention; design principle: list=full data, summary=aggregate counts, issues=actionable problem lists"
+        },
+        "last_test_run": {
+            "$ref": "#/$defs/LastTestRun",
+            "description": "Summary of the most recent local and docker Playwright test runs and coverage manifests"
         }
     },
     "$defs": {
@@ -659,6 +663,130 @@ export const REPORT_JSON_SCHEMA = {
                             }
                         }
                     }
+                }
+            }
+        },
+        "TestRunStats": {
+            "type": "object",
+            "description": "Aggregate pass/fail/flaky/skip counts from a Playwright test run",
+            "required": ["passed", "failed", "flaky", "skipped"],
+            "properties": {
+                "passed":  { "type": "integer", "description": "Tests that passed (expected)" },
+                "failed":  { "type": "integer", "description": "Tests that failed unexpectedly" },
+                "flaky":   { "type": "integer", "description": "Tests that were flaky (passed on retry)" },
+                "skipped": { "type": "integer", "description": "Tests that were skipped" }
+            }
+        },
+        "SkippedTest": {
+            "type": "object",
+            "description": "A single skipped test spec identified by file path and title",
+            "required": ["file", "title"],
+            "properties": {
+                "file":  { "type": "string", "description": "Spec file path relative to project root" },
+                "title": { "type": "string", "description": "Test title as declared in the spec" }
+            }
+        },
+        "TestRunSummary": {
+            "type": "object",
+            "description": "Summary of a single Playwright test run (local or docker)",
+            "required": ["runId", "date", "sha", "host", "stats", "skipped_tests", "reportPath"],
+            "properties": {
+                "runId":         { "type": "string", "description": "Identifier derived from the report filename, e.g. 2026-06-05T03-15-21-770Z-local" },
+                "date":          { "type": "string", "description": "ISO 8601 timestamp when the run started" },
+                "sha":           { "type": ["string", "null"], "description": "7-character git hash extracted from the filename, or null if absent" },
+                "host":          { "type": ["string", "null"], "description": "Hostname where the run was executed; null if not embedded in the report" },
+                "stats":         { "$ref": "#/$defs/TestRunStats", "description": "Aggregate pass/fail/flaky/skip counts" },
+                "skipped_tests": { "type": "array", "description": "Tests that were skipped in this run", "items": { "$ref": "#/$defs/SkippedTest" } },
+                "reportPath":    { "type": "string", "description": "Path to the Playwright JSON report file, relative to project root" }
+            }
+        },
+        "CoverageRunSummary": {
+            "type": "object",
+            "description": "Summary of a single V8 coverage run as recorded in a coverage manifest",
+            "required": ["runId", "date", "success", "execution", "stats", "artifactCount", "groupCount", "manifestPath"],
+            "properties": {
+                "runId":         { "type": "string", "description": "Run identifier from the manifest, e.g. 2026-06-05T03-15-21-770Z-local" },
+                "date":          { "type": "string", "description": "ISO 8601 timestamp when the coverage run started" },
+                "success":       { "type": "boolean", "description": "Whether the coverage run exited cleanly" },
+                "execution":     { "type": "string", "enum": ["local", "docker"], "description": "Where the coverage run was executed" },
+                "stats": {
+                    "description": "Pass/fail/flaky/skip counts from the linked Playwright report; null if the report could not be found",
+                    "oneOf": [
+                        { "$ref": "#/$defs/TestRunStats" },
+                        { "type": "null" }
+                    ]
+                },
+                "artifactCount": { "type": "integer", "description": "Total number of V8 coverage artifact files written" },
+                "groupCount":    { "type": "integer", "description": "Number of distinct test groups (command/test-case combos) that produced coverage" },
+                "manifestPath":  { "type": "string", "description": "Path to the coverage manifest JSON file, relative to project root" }
+            }
+        },
+        "SkippedTestSet": {
+            "type": "object",
+            "description": "A named set of skipped tests with a count and list",
+            "required": ["count", "tests"],
+            "properties": {
+                "count": { "type": "integer", "description": "Number of tests in this set" },
+                "tests": { "type": "array", "description": "The tests in this set", "items": { "$ref": "#/$defs/SkippedTest" } }
+            }
+        },
+        "LastTestRun": {
+            "type": "object",
+            "description": "Summary of the most recent local and docker Playwright test runs and V8 coverage manifests",
+            "required": ["local", "docker", "coverage", "excluded_from_testing", "skipped_tests"],
+            "properties": {
+                "local": {
+                    "description": "Most recent local test run summary; null if no local run found",
+                    "oneOf": [{ "$ref": "#/$defs/TestRunSummary" }, { "type": "null" }]
+                },
+                "docker": {
+                    "description": "Most recent docker test run summary; null if no docker run found",
+                    "oneOf": [{ "$ref": "#/$defs/TestRunSummary" }, { "type": "null" }]
+                },
+                "coverage": {
+                    "type": "object",
+                    "description": "Most recent local and docker V8 coverage run summaries",
+                    "required": ["local", "docker"],
+                    "properties": {
+                        "local":  { "description": "Most recent local coverage run; null if not found",  "oneOf": [{ "$ref": "#/$defs/CoverageRunSummary" }, { "type": "null" }] },
+                        "docker": { "description": "Most recent docker coverage run; null if not found", "oneOf": [{ "$ref": "#/$defs/CoverageRunSummary" }, { "type": "null" }] }
+                    }
+                },
+                "excluded_from_testing": {
+                    "type": "object",
+                    "description": "Commands excluded from test coverage requirements",
+                    "required": ["count", "commands"],
+                    "properties": {
+                        "count": { "type": "integer", "description": "Total number of excluded commands" },
+                        "commands": {
+                            "type": "array",
+                            "description": "List of excluded commands with reasons",
+                            "items": {
+                                "type": "object",
+                                "required": ["unique_id", "reason"],
+                                "properties": {
+                                    "unique_id": { "type": "string", "description": "The command unique_id" },
+                                    "reason":    { "type": "string", "description": "Why this command is excluded from testing" }
+                                }
+                            }
+                        }
+                    }
+                },
+                "skipped_tests": {
+                    "description": "Set-difference of skipped tests between local and docker runs; null when both runs are not available",
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "description": "Set-difference of skipped tests between local and docker runs",
+                            "required": ["docker_only", "local_only", "always"],
+                            "properties": {
+                                "docker_only": { "$ref": "#/$defs/SkippedTestSet", "description": "Tests skipped in docker but not in local" },
+                                "local_only":  { "$ref": "#/$defs/SkippedTestSet", "description": "Tests skipped in local but not in docker" },
+                                "always":      { "$ref": "#/$defs/SkippedTestSet", "description": "Tests skipped in both local and docker" }
+                            }
+                        },
+                        { "type": "null" }
+                    ]
                 }
             }
         }

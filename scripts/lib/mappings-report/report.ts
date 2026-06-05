@@ -1,5 +1,6 @@
 import * as path from 'path';
 import type { Report } from './types';
+import { buildLastTestRun } from './last-test-run';
 import { scanDirectory } from './scanner';
 import { scanDirectoryForSettings, loadSettingsAnnotations, generateSettingsStatistics } from './settings';
 import { scanTestFiles } from './test-coverage';
@@ -79,6 +80,8 @@ export function buildReport(): Report {
     // Generate actionable issues (must run after all per-mapping fields are populated)
     const issues = generateIssues(mappings, customConfig, summary.tests?.invalid_test_names);
 
+    const lastTestRun = buildLastTestRun(projectRoot);
+
     return {
         mappings: {
             summary,
@@ -86,7 +89,8 @@ export function buildReport(): Report {
         },
         settings: settingsStats,
         issues,
-        ...(customConfig.mappings.length > 0 && { custom_configuration: customConfig })
+        ...(customConfig.mappings.length > 0 && { custom_configuration: customConfig }),
+        last_test_run: lastTestRun,
     };
 }
 
