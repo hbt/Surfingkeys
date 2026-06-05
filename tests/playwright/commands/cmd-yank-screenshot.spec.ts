@@ -68,6 +68,10 @@ test.describe('cmd_yank_screenshot (Playwright)', () => {
         await page.goto(FIXTURE_URL, { waitUntil: 'load' });
         await page.waitForTimeout(800);
 
+        // Warmup: set up yg binding (cmd_yank_screenshot now uses a g-key placeholder)
+        await callSKApi(page, 'unmapAllExcept', []);
+        await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
+
         // Warmup: trigger yg once to ensure frontend.html is created, capture its URL
         await triggerYg(page);
         await waitForScreenshotPopup(page, 8000);

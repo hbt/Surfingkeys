@@ -395,7 +395,7 @@ export default function registerClipboard(
         (clipboard as any).write(JSON.stringify(aa, null, 4));
     });
 
-    mapkey('yg', {
+    mapkey('g-039' satisfies GKey, {
         short: "Capture current page",
         unique_id: "cmd_yank_screenshot",
         feature_group: 7,
