@@ -186,6 +186,137 @@ interface SlideSection {
     videoPath?: string;
 }
 
+function lookup(args: string[]): number {
+    if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+        console.log(`Usage: bun scripts/sk.ts lookup <query> [--by-mapping-key] [--by-unique-id]
+
+Looks up a command in the mappings report by custom config key (default), mapping key, or unique_id.
+
+Options:
+  --by-mapping-key   Search by default/source key (e.g., '$')
+  --by-unique-id     Search by unique identifier (e.g., 'cmd_scroll_rightmost')
+  --help, -h         Show this help
+
+Default (no flags): Search by custom config key (e.g., 'gd')
+
+Examples:
+  bun scripts/sk.ts lookup gd
+  bun scripts/sk.ts lookup '$' --by-mapping-key
+  bun scripts/sk.ts lookup cmd_scroll_rightmost --by-unique-id
+`);
+        return 0;
+    }
+
+    const query = args[0];
+    const hasByMappingKey = args.includes('--by-mapping-key');
+    const hasByUniqueId = args.includes('--by-unique-id');
+
+    console.log(`Loading mappings report...`);
+    let report: Report;
+    try {
+        report = loadJsonReport();
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error('Error loading report:', msg);
+        return 1;
+    }
+
+    let matches: MappingEntry[] = [];
+
+    if (hasByUniqueId) {
+        // Search by unique_id
+        matches = report.mappings.list.filter(e => e.annotation?.unique_id === query);
+    } else if (hasByMappingKey) {
+        // Search by mapping key with normalization
+        const normalizedQuery = normalizeKey(query);
+        matches = report.mappings.list.filter(e => {
+            if (!e.key) return false;
+            // Handle raw keys and CallExpression strings
+            let keyStr = e.key;
+            if (keyStr.startsWith('<CallExpression:')) {
+                // Extract the key from CallExpression format
+                const match = keyStr.match(/KeyboardUtils\.encodeKeystroke\("([^"]+)"\)/);
+                if (match) keyStr = match[1];
+            }
+            return normalizeKey(keyStr) === normalizedQuery;
+        });
+    } else {
+        // Default: search by custom config key
+        if (!report.custom_configuration?.mappings) {
+            console.error(
+                `\x1b[31m❌ No custom config found\x1b[0m — custom-config-key lookup requires a config file.`
+            );
+            console.log(`\nTry --by-mapping-key or --by-unique-id instead.`);
+            return 1;
+        }
+        const customEntry = report.custom_configuration.mappings.find(m => m.key === query);
+        if (customEntry && customEntry.unique_id) {
+            matches = report.mappings.list.filter(e => e.annotation?.unique_id === customEntry.unique_id);
+        }
+    }
+
+    if (matches.length === 0) {
+        const searchType = hasByUniqueId ? 'unique_id' : hasByMappingKey ? 'mapping key' : 'custom config key';
+        console.log(`\x1b[33m⚠️  Not found\x1b[0m — no command with ${searchType} '${query}'`);
+        return 1;
+    }
+
+    // Display results
+    console.log();
+    for (let i = 0; i < matches.length; i++) {
+        const entry = matches[i];
+        const uid = entry.annotation?.unique_id || '(no unique_id)';
+        const short = entry.annotation?.short || entry.key;
+        const description = entry.annotation?.description || '(no description)';
+        const category = entry.annotation?.category || '(uncategorized)';
+        const tags = entry.annotation?.tags?.join(', ') || '(no tags)';
+
+        // Get custom mapping info
+        const customKeysStr = entry.custom_mapping?.mappings
+            ? entry.custom_mapping.mappings.map(m => m.key).join(', ')
+            : '(none)';
+        const customMapped = entry.custom_mapping?.hasMapping ? 'yes' : 'no';
+
+        // Get source info
+        const sourceFile = entry.source?.file || '(unknown)';
+        const sourceLine = entry.source?.line || '?';
+
+        // Get test coverage
+        const testCoverage = entry.test_coverage?.hasTest ? 'yes' : 'no';
+
+        // Validation status
+        const validationStatus = entry.validationStatus || '(unknown)';
+
+        // Format key - handle CallExpression format
+        let keyStr = entry.key || '(no key)';
+        if (keyStr.startsWith('<CallExpression:')) {
+            const match = keyStr.match(/KeyboardUtils\.encodeKeystroke\("([^"]+)"\)/);
+            if (match) keyStr = match[1];
+        }
+
+        console.log(`\x1b[36m🔍 Lookup Result${matches.length > 1 ? ` (${i + 1}/${matches.length})` : ''}\x1b[0m`);
+        console.log();
+        console.log(`  Unique ID      \x1b[33m${uid}\x1b[0m`);
+        console.log(`  Short label    ${short}`);
+        console.log(`  Description    ${description}`);
+        console.log(`  Category       ${category}`);
+        console.log(`  Tags           ${tags}`);
+        console.log();
+        console.log(`  Default Key    \x1b[33m${keyStr}\x1b[0m`);
+        console.log(`  Mode           ${entry.mode}`);
+        console.log();
+        console.log(`  Custom Mapped  ${customMapped}`);
+        console.log(`  Custom Keys    ${customKeysStr}`);
+        console.log();
+        console.log(`  Source         ${sourceFile}:${sourceLine}`);
+        console.log(`  Validation     ${validationStatus}`);
+        console.log(`  Test Coverage  ${testCoverage}`);
+        console.log();
+    }
+
+    return 0;
+}
+
 function slidesLookup(args: string[]): number {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
         console.log(`Usage: bun scripts/sk.ts slides-lookup <file-url>
@@ -274,11 +405,13 @@ if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
 
 Usage:
   bun scripts/sk.ts detect-mapping-conflict <key> [--mode <mode>]
+  bun scripts/sk.ts lookup <query> [--by-mapping-key] [--by-unique-id]
   bun scripts/sk.ts slides-lookup <file-url>
   bun scripts/sk.ts --help
 
 Subcommands:
   detect-mapping-conflict   Check if a candidate key has prefix conflicts
+  lookup                    Look up a command by custom config key, mapping key, or unique_id
   slides-lookup             Resolve a slides.html file:// URL with #tN-sM hash
 `);
     process.exit(0);
@@ -289,6 +422,9 @@ const [subcommand, ...subArgs] = args;
 switch (subcommand) {
     case 'detect-mapping-conflict':
         process.exit(detectMappingConflict(subArgs));
+        break;
+    case 'lookup':
+        process.exit(lookup(subArgs));
         break;
     case 'slides-lookup':
         process.exit(slidesLookup(subArgs));
