@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# .gwt — surfingkeys repo hooks
+# Symlinks node_modules from main worktree and triggers a dev build.
+
+gwt_on_enter() {
+  # Symlink node_modules to avoid duplicating a large install
+  if [ ! -e "$GWT_WORKTREE_DIR/node_modules" ]; then
+    ln -sf "$GWT_MAIN_DIR/node_modules" "$GWT_WORKTREE_DIR/node_modules"
+    echo "[gwt] Linked node_modules"
+  fi
+
+  # Only run build on freshly created worktrees
+  if [ "$GWT_IS_NEW" = "1" ]; then
+    echo "[gwt] Running build:dev..."
+    bun run build:dev
+  fi
+}
