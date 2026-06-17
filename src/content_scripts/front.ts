@@ -299,6 +299,12 @@ function createFront(insert: any, normal: any, hints: any, visual: any, browser:
             }
         }
         onEditorSaved = onWrite || updateElementBehindEditor;
+        if (!useNeovim && runtime.conf.defaultExternalEditor === 'gvim') {
+            RUNTIME('editWithGvim', { content, type: type || 'textarea' }, (resp: any) => {
+                if (resp?.text) onEditorSaved(resp.text);
+            });
+            return;
+        }
         const cmd: {
             action: string;
             type: any;

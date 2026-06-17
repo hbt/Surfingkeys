@@ -87,15 +87,9 @@ export default function registerSettings(
         description: "Edit current URL in vim editor and reload to result",
         tags: ["settings", "vim", "url"]
     }, function() {
-        if (runtime.conf.defaultExternalEditor === 'gvim') {
-            RUNTIME('editWithGvim', { content: window.location.href, type: 'url' }, (resp: any) => {
-                if (resp?.text) window.location.href = resp.text.trim();
-            });
-        } else {
-            (front as any).showEditor(window.location.href, function(data: string) {
-                window.location.href = data;
-            }, 'url');
-        }
+        (front as any).showEditor(window.location.href, function(data: string) {
+            window.location.href = data;
+        }, 'url');
     });
 
     if (getBrowserName() === "Chrome") {
