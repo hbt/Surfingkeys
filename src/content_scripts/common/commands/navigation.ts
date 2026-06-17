@@ -220,6 +220,44 @@ export default function registerNavigation(
     }, function() {
         window.location.href = window.location.href.replace(/\#[^\#]*$/, '');
     });
+    function urlStepNumber(delta: number): void {
+        const url = window.location.href;
+        const matches = url.match(/\d+/g);
+        if (!matches || matches.length === 0) return;
+        const repeats = (RUNTIME as any).repeats as number;
+        (RUNTIME as any).repeats = 1;
+        const reversed = [...matches].reverse();
+        const idx = Math.min(repeats - 1, reversed.length - 1);
+        let pos = url.length;
+        for (let i = 0; i <= idx; i++) {
+            pos = url.lastIndexOf(reversed[i], pos);
+        }
+        const numStr = reversed[idx];
+        const newNum = parseInt(numStr, 10) + delta;
+        window.location.href = url.slice(0, pos) + newNum + url.slice(pos + numStr.length);
+    }
+
+    mapkey('g-040' satisfies GKey, {
+        short: "Increment URL number",
+        unique_id: "cmd_nav_url_increment",
+        feature_group: 4,
+        category: "navigation",
+        description: "Increment the last number in the URL; use count prefix to target Nth-from-last number",
+        tags: ["navigation", "url", "number"]
+    }, function() {
+        urlStepNumber(1);
+    });
+    mapkey('g-041' satisfies GKey, {
+        short: "Decrement URL number",
+        unique_id: "cmd_nav_url_decrement",
+        feature_group: 4,
+        category: "navigation",
+        description: "Decrement the last number in the URL; use count prefix to target Nth-from-last number",
+        tags: ["navigation", "url", "number"]
+    }, function() {
+        urlStepNumber(-1);
+    });
+
     mapkey('gU', {
         short: "Go to URL root",
         unique_id: "cmd_nav_url_root",

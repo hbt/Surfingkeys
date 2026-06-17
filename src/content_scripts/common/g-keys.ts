@@ -41,6 +41,8 @@ export const G_KEYS = {
     "g-037": "cmd_tab_highlight_toggle_m",
     "g-038": "cmd_capture_screenshot_download",
     "g-039": "cmd_yank_screenshot",
+    "g-040": "cmd_nav_url_increment",
+    "g-041": "cmd_nav_url_decrement",
 } as const;
 
 export type GKey = keyof typeof G_KEYS;
