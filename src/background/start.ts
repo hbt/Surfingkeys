@@ -3304,7 +3304,7 @@ function start(browser: Record<string, unknown>) {
     };
 
     self.editWithGvim = function(message: Msg, _sender: chrome.runtime.MessageSender, sendResponse: (r: unknown) => void) {
-        fetch('http://127.0.0.1:8001', {
+        fetch('http://127.0.0.1:9600/edit-gvim', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ data: message.content, line: 0, column: 0 }),

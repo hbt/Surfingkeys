@@ -9,8 +9,9 @@
  * PID file: /tmp/sk-config-server.pid
  */
 
-import { existsSync, appendFileSync, mkdirSync } from 'fs';
-import { resolve } from 'path';
+import { existsSync, appendFileSync, mkdirSync, writeFileSync, readFileSync, unlinkSync } from 'fs';
+import { resolve, join } from 'path';
+import { tmpdir } from 'os';
 
 const DEBUG_LOG_FILE = '/tmp/sk-debug.log';
 const ERROR_LOG_FILE = resolve(import.meta.dir, '../log/errors.jsonl');
@@ -372,6 +373,48 @@ function evalScriptResponse(req: Request): Response {
   });
 }
 
+async function editGvimResponse(req: Request): Promise<Response> {
+  const origin = req.headers.get('Origin');
+  if (origin !== null && !origin.startsWith('chrome-extension://')) {
+    log('POST', '/edit-gvim', 403, 9);
+    return new Response('Forbidden', { status: 403 });
+  }
+
+  const corsHeaders: Record<string, string> = {
+    'Content-Type': 'text/plain',
+    ...(origin ? { 'Access-Control-Allow-Origin': origin } : {}),
+  };
+
+  let body: { data?: string; line?: number; column?: number };
+  try {
+    body = await req.json();
+  } catch {
+    return new Response('bad request', { status: 400, headers: corsHeaders });
+  }
+
+  const content = body.data ?? '';
+  const line = body.line ?? 0;
+  const column = body.column ?? 0;
+
+  // Write content to temp file (mirrors cvim_server.py mkstemp)
+  const tmpPath = join(tmpdir(), `cvim-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`);
+  writeFileSync(tmpPath, content, 'utf8');
+
+  try {
+    const proc = Bun.spawn(['gvim', '-f', tmpPath, '-c', `call cursor(${line}, ${column})`], {
+      stdout: 'ignore',
+      stderr: 'ignore',
+    });
+    await proc.exited;
+
+    const edited = readFileSync(tmpPath, 'utf8');
+    log('POST', '/edit-gvim', 200, edited.length);
+    return new Response(edited, { status: 200, headers: corsHeaders });
+  } finally {
+    try { unlinkSync(tmpPath); } catch { /* ignore */ }
+  }
+}
+
 // Write PID file
 Bun.write(PID_FILE, String(process.pid));
 console.log(`[${new Date().toISOString()}] Config server starting on port ${PORT}`);
@@ -411,6 +454,7 @@ Bun.serve({
     if (url.pathname === '/eval-result' && req.method === 'POST') return evalResultResponse(req);
     if (url.pathname === '/eval-module') return evalModuleResponse(req);
     if (url.pathname === '/eval-script') return evalScriptResponse(req);
+    if (url.pathname === '/edit-gvim' && req.method === 'POST') return editGvimResponse(req);
     if (url.pathname === '/domain-asset') return domainAssetResponse(url);
     if (url.pathname === '/trigger/inspector') return triggerInspectorResponse(url);
     return notFound(url.pathname);
