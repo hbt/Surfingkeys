@@ -88,27 +88,23 @@ test.describe('cmd_nav_url_increment (Playwright)', () => {
         );
     });
 
-    test('targets 2nd-from-last number with repeats=2', async () => {
+    test('2= increments the last number by 2', async () => {
         await withPersistedDualCoverage(
             { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
             test.info().title,
             async () => {
-                // URL has two numbers: page=3 and id=100 — repeats=2 targets page=3
-                await page.goto(`${FIXTURE_URL}?page=3&id=100`, { waitUntil: 'load' });
+                await page.goto(`${FIXTURE_URL}?id=100`, { waitUntil: 'load' });
                 await page.waitForTimeout(500);
                 await callSKApi(page, 'unmapAllExcept', []);
                 await callSKApi(page, 'mapcmdkey', '=', INC_ID);
 
-                // Set repeats to 2 via digitForRepeat
-                const nav = page.waitForURL(/page=4/, { timeout: 5000 });
+                const nav = page.waitForURL(/id=102/, { timeout: 5000 });
                 await page.keyboard.press('2');
                 await page.keyboard.press('=');
                 await nav;
 
-                const url = page.url();
-                expect(url).toContain('page=4');
-                expect(url).toContain('id=100');
-                if (DEBUG) console.log(`Repeats=2 increment: ${url}`);
+                expect(page.url()).toContain('id=102');
+                if (DEBUG) console.log(`2= increment: ${page.url()}`);
             }
         );
     });

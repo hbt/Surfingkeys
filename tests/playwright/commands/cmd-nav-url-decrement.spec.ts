@@ -65,24 +65,23 @@ test.describe('cmd_nav_url_decrement (Playwright)', () => {
         );
     });
 
-    test('targets 2nd-from-last number with repeats=2', async () => {
+    test('2- decrements the last number by 2', async () => {
         await withPersistedDualCoverage(
             { suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl },
             test.info().title,
             async () => {
-                await page.goto(`${FIXTURE_URL}?page=3&id=100`, { waitUntil: 'load' });
+                await page.goto(`${FIXTURE_URL}?id=100`, { waitUntil: 'load' });
                 await page.waitForTimeout(500);
                 await callSKApi(page, 'unmapAllExcept', []);
                 await callSKApi(page, 'mapcmdkey', KEY, UNIQUE_ID);
 
-                const nav = page.waitForURL(/page=2/, { timeout: 5000 });
+                const nav = page.waitForURL(/id=98/, { timeout: 5000 });
                 await page.keyboard.press('2');
                 await page.keyboard.press(KEY);
                 await nav;
 
-                expect(page.url()).toContain('page=2');
-                expect(page.url()).toContain('id=100');
-                if (DEBUG) console.log(`Repeats=2 decrement: ${page.url()}`);
+                expect(page.url()).toContain('id=98');
+                if (DEBUG) console.log(`2- decrement: ${page.url()}`);
             }
         );
     });

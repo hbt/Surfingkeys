@@ -226,14 +226,9 @@ export default function registerNavigation(
         if (!matches || matches.length === 0) return;
         const repeats = (RUNTIME as any).repeats as number;
         (RUNTIME as any).repeats = 1;
-        const reversed = [...matches].reverse();
-        const idx = Math.min(repeats - 1, reversed.length - 1);
-        let pos = url.length;
-        for (let i = 0; i <= idx; i++) {
-            pos = url.lastIndexOf(reversed[i], pos);
-        }
-        const numStr = reversed[idx];
-        const newNum = parseInt(numStr, 10) + delta;
+        const numStr = matches[matches.length - 1];
+        const pos = url.lastIndexOf(numStr);
+        const newNum = parseInt(numStr, 10) + delta * repeats;
         window.location.href = url.slice(0, pos) + newNum + url.slice(pos + numStr.length);
     }
 
