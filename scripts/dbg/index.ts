@@ -54,6 +54,7 @@ const ACTIONS = {
     'proxy-status': 'Check if CDP proxy is running',
     'server-start': 'Start local config server (port 9600)',
     'server-stop': 'Stop local config server',
+    'server-restart': 'Restart local config server',
     'server-status': 'Check local config server status',
     'devtools-status': 'Check sk-devtools eval relay (server + panel + SW debugger + page eval)',
     'devtools-start': 'Open gchrb window on workspace 6, open DevTools + connect Surfingkeys panel',
