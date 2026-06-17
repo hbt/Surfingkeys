@@ -119,6 +119,7 @@ const runtime = (function() {
             caretViewport: [] as number[],
             mouseSelectToQuery: [],
             useNeovim: false,
+            defaultExternalEditor: '' as string,
             useLocalMarkdownAPI: true,
             bookmarkFolders: undefined,
             magicKeys: {

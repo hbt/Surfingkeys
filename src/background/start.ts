@@ -3302,6 +3302,17 @@ function start(browser: Record<string, unknown>) {
             });
         }
     };
+
+    self.editWithGvim = function(message: Msg, _sender: chrome.runtime.MessageSender, sendResponse: (r: unknown) => void) {
+        fetch('http://127.0.0.1:8001', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: message.content, line: 0, column: 0 }),
+        })
+        .then(r => r.text())
+        .then(text => _response(message, sendResponse, { text }))
+        .catch(err => _response(message, sendResponse, { error: String(err) }));
+    };
 }
 
 // sk-devtools: keep port open for the DevTools panel.

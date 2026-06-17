@@ -134,6 +134,7 @@ export interface SurfingKeysConf {
     caretViewport: number[];
     mouseSelectToQuery: unknown[];
     useNeovim: boolean;
+    defaultExternalEditor: string;
     useLocalMarkdownAPI: boolean;
     bookmarkFolders?: Record<string, string>;
     magicKeys?: Record<string, MagicDirection>;
