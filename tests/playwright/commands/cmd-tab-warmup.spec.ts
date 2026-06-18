@@ -92,12 +92,28 @@ test.describe('cmd_tab_warmup (Playwright)', () => {
                     console.log(`  tab ${t.id} active=${t.active} lastAccessed=${t.lastAccessed ?? 'none'}`);
                 }
 
+                const beforeMs = Date.now();
+
                 // Invoke the warmup command from the anchor tab
                 const ok = await invokeCommand(anchor, UNIQUE_ID);
                 expect(ok).toBe(true);
 
                 // Wait for async warmup to complete (activates cold tabs + restores)
                 await anchor.waitForTimeout(2000);
+
+                const sw = context.serviceWorkers()[0];
+                const warmupLog = await sw?.evaluate(() => (globalThis as any)._warmupLog ?? []);
+                console.log('[warmup-test] SW warmup log:', JSON.stringify(warmupLog, null, 2));
+
+                // Verify otel span was written to the server
+                const otelSpan = await fetch('http://localhost:9602/otel-last').then(r => r.json()).catch(() => null);
+                console.log('[warmup-test] otel span:', JSON.stringify(otelSpan, null, 2));
+                expect(otelSpan).toBeTruthy();
+                expect(otelSpan.name).toBe('cmd_tab_warmup');
+                expect(otelSpan.startTimeUnixMs).toBeGreaterThanOrEqual(beforeMs);
+                expect(otelSpan.status).toBe('OK');
+                expect(otelSpan.attributes['tabs.warmed']).toBeGreaterThan(0);
+                expect(otelSpan.events.some((e: any) => e.name === 'tab.warmed')).toBe(true);
 
                 // Assert active tab is restored to the invoking (anchor) tab
                 const activeAfter = await getActiveTabViaSW(context);

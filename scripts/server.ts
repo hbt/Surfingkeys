@@ -14,6 +14,7 @@ import { resolve, join } from 'path';
 import { tmpdir } from 'os';
 
 const DEBUG_LOG_FILE = '/tmp/sk-debug.log';
+const OTEL_LOG_FILE = '/tmp/sk-otel.jsonl';
 const ERROR_LOG_FILE = resolve(import.meta.dir, '../log/errors.jsonl');
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 9600;
@@ -138,6 +139,40 @@ function errorEntryResponse(req: Request): Promise<Response> {
     log('POST', '/errors', 200, body.length);
     return new Response(body, { status: 200, headers: corsHeaders });
   }).catch(() => new Response(JSON.stringify({ ok: true }), { status: 200, headers: corsHeaders }));
+}
+
+function otelResponse(req: Request): Promise<Response> {
+  const origin = req.headers.get('Origin');
+  if (origin !== null && !origin.startsWith('chrome-extension://')) {
+    log('POST', '/otel', 403, 9);
+    return Promise.resolve(new Response('Forbidden', { status: 403 }));
+  }
+  const corsHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(origin ? { 'Access-Control-Allow-Origin': origin } : {})
+  };
+  return req.json().then((data: unknown) => {
+    const line = JSON.stringify(data) + '\n';
+    try {
+      appendFileSync(OTEL_LOG_FILE, line);
+    } catch (_) {}
+    const body = JSON.stringify({ ok: true });
+    log('POST', '/otel', 200, body.length);
+    return new Response(body, { status: 200, headers: corsHeaders });
+  }).catch(() => new Response(JSON.stringify({ ok: true }), { status: 200, headers: corsHeaders }));
+}
+
+function otelLastResponse(): Response {
+  try {
+    if (!existsSync(OTEL_LOG_FILE)) return new Response(JSON.stringify(null), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    const lines = readFileSync(OTEL_LOG_FILE, 'utf8').trim().split('\n').filter(Boolean);
+    const last = lines.length ? JSON.parse(lines[lines.length - 1]) : null;
+    const body = JSON.stringify(last);
+    log('GET', '/otel-last', 200, body.length);
+    return new Response(body, { status: 200, headers: { 'Content-Type': 'application/json' } });
+  } catch (_) {
+    return new Response(JSON.stringify(null), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
 }
 
 function notFound(path: string): Response {
@@ -448,6 +483,8 @@ Bun.serve({
     if (url.pathname === '/loaded' && req.method === 'POST') return loadedResponse(req);
     if (url.pathname === '/log' && req.method === 'POST') return logEntryResponse(req);
     if (url.pathname === '/errors' && req.method === 'POST') return errorEntryResponse(req);
+    if (url.pathname === '/otel' && req.method === 'POST') return otelResponse(req);
+    if (url.pathname === '/otel-last' && req.method === 'GET') return otelLastResponse();
     if (url.pathname === '/eval-status') return evalStatusResponse();
     if (url.pathname === '/eval-subscribe') return evalSubscribeResponse(req);
     if (url.pathname === '/eval' && req.method === 'POST') return evalResponse(req);

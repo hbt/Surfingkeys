@@ -511,6 +511,32 @@ function start(browser: Record<string, unknown>) {
         }).catch(() => {});
     }
 
+    function startOtelSpan(name: string, attributes: Record<string, unknown> = {}) {
+        const traceId = Math.random().toString(16).slice(2).padStart(32, '0');
+        const spanId = Math.random().toString(16).slice(2).padStart(16, '0');
+        const startTimeUnixMs = Date.now();
+        const events: Array<{ name: string; timeUnixMs: number; attributes?: Record<string, unknown> }> = [];
+        return {
+            addEvent(evtName: string, attrs?: Record<string, unknown>) {
+                events.push({ name: evtName, timeUnixMs: Date.now(), attributes: attrs });
+            },
+            end(extraAttrs: Record<string, unknown> = {}) {
+                fetch(`http://localhost:${__CONFIG_SERVER_PORT__}/otel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        traceId, spanId, name,
+                        startTimeUnixMs,
+                        endTimeUnixMs: Date.now(),
+                        attributes: { ...attributes, ...extraAttrs },
+                        events,
+                        status: 'OK',
+                    })
+                }).catch(() => {});
+            },
+        };
+    }
+
     // Cache for full loadSettings(null, ...) results — avoids redundant storage+network fetches
     // on rapid page loads. Only caches null-key (full) loads; partial-key calls bypass it.
     let _settingsCache: Record<string, unknown> | null = null;
@@ -1969,14 +1995,19 @@ function start(browser: Record<string, unknown>) {
         const callerWindowId = sender.tab!.windowId;
         chrome.windows.getAll({ populate: true }, function(windows) {
             (async () => {
+                const span = startOtelSpan('cmd_tab_warmup', { callerTabId, callerWindowId, tabActivated: { ...tabActivated } });
                 let count = 0;
                 for (const win of windows) {
                     const tabs = win.tabs || [];
                     const activeTab = tabs.find(t => t.active);
                     let anyWarmed = false;
                     for (const tab of tabs) {
-                        if (tab.id != null && !tabActivated[tab.id]) {
-                            await chrome.tabs.update(tab.id, { active: true });
+                        if (tab.id != null /* && !tabActivated[tab.id] */) {
+                            const updated = await chrome.tabs.update(tab.id, { active: true });
+                            const entry = { id: updated?.id, title: updated?.title, status: updated?.status };
+                            console.log('[tabWarmup] warmed tab', entry.id, entry.title, entry.status);
+                            ((globalThis as any)._warmupLog ??= []).push(entry);
+                            span.addEvent('tab.warmed', { tabId: entry.id, title: entry.title, status: entry.status });
                             count++;
                             anyWarmed = true;
                         }
@@ -1987,6 +2018,7 @@ function start(browser: Record<string, unknown>) {
                 }
                 await chrome.tabs.update(callerTabId, { active: true });
                 chrome.windows.update(callerWindowId, { focused: true });
+                span.end({ 'tabs.warmed': count });
                 sendTabMessage(callerTabId, 0, {
                     subject: 'showBanner',
                     message: `Tab warmup: ${count} tab${count === 1 ? '' : 's'} warmed`,
