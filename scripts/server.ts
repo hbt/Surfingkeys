@@ -9,7 +9,7 @@
  * PID file: /tmp/sk-config-server.pid
  */
 
-import { existsSync, appendFileSync, mkdirSync, writeFileSync, readFileSync, unlinkSync } from 'fs';
+import { existsSync, appendFileSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { resolve, join } from 'path';
 import { tmpdir } from 'os';
 
@@ -435,19 +435,15 @@ async function editGvimResponse(req: Request): Promise<Response> {
   const tmpPath = join(tmpdir(), `cvim-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`);
   writeFileSync(tmpPath, content, 'utf8');
 
-  try {
-    const proc = Bun.spawn(['gvim', '-f', tmpPath, '-c', `call cursor(${line}, ${column})`], {
-      stdout: 'ignore',
-      stderr: 'ignore',
-    });
-    await proc.exited;
+  const proc = Bun.spawn(['gvim', '-f', tmpPath, '-c', `call cursor(${line}, ${column})`], {
+    stdout: 'ignore',
+    stderr: 'ignore',
+  });
+  await proc.exited;
 
-    const edited = readFileSync(tmpPath, 'utf8');
-    log('POST', '/edit-gvim', 200, edited.length);
-    return new Response(edited, { status: 200, headers: corsHeaders });
-  } finally {
-    try { unlinkSync(tmpPath); } catch { /* ignore */ }
-  }
+  const edited = readFileSync(tmpPath, 'utf8');
+  log('POST', '/edit-gvim', 200, edited.length);
+  return new Response(edited, { status: 200, headers: corsHeaders });
 }
 
 // Write PID file
