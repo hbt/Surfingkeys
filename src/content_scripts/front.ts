@@ -619,6 +619,43 @@ function createFront(insert: any, normal: any, hints: any, visual: any, browser:
                 });
             }
 
+            // If a single candidate exactly matches accumulated and is a magic command,
+            // expand it into one entry per magic key so the popup shows e.g. tce, tcq, tcw.
+            const candidateKeys = Object.keys(_keyHints.candidates);
+            if (candidateKeys.length === 1 && candidateKeys[0] === _keyHints.accumulated) {
+                const singleEntry = _keyHints.candidates[candidateKeys[0]];
+                const tags: string[] = singleEntry.annotation?.tags || [];
+                if (tags.includes('magic')) {
+                    const magicDirectionLabels: Record<string, string> = {
+                        DirectionLeft: 'tabs left',
+                        DirectionRight: 'tabs right',
+                        DirectionLeftInclusive: 'tabs left (incl.)',
+                        DirectionRightInclusive: 'tabs right (incl.)',
+                        CurrentTab: 'current tab',
+                        AllInWindow: 'all in window',
+                        AllExceptActiveAllWindows: 'all except active (all windows)',
+                        AllExceptActive: 'all except active',
+                        ChildrenTabs: 'child tabs',
+                        ChildrenTabsRecursively: 'child tabs (recursive)',
+                        OtherWindowsNoPinned: 'other windows (no pinned)',
+                        AllOtherWindowsTabs: 'all other windows',
+                        AllIncognitoTabs: 'incognito tabs',
+                        SameDomain: 'same domain',
+                        HighlightedTabs: 'highlighted tabs',
+                    };
+                    const magicKeys = (runtime.conf.magicKeys || {}) as Record<string, string>;
+                    delete _keyHints.candidates[candidateKeys[0]];
+                    Object.entries(magicKeys).forEach(([mk, direction]) => {
+                        _keyHints.candidates[_keyHints.accumulated + mk] = {
+                            annotation: {
+                                ...singleEntry.annotation,
+                                short: magicDirectionLabels[direction] || direction,
+                            }
+                        };
+                    });
+                }
+            }
+
             self.command({
                 action: 'showKeystroke',
                 keyHints: _keyHints
