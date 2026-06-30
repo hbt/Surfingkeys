@@ -443,6 +443,46 @@ function start(browser: Record<string, unknown>) {
         tabMessages: TabMessageMap = {},
         tabURLs: TabURLMap = {};
 
+    const incognitoWindowIds = new Set<number>();
+
+    // Fix A: persist registry across extension reloads via chrome.storage.local.
+    // local storage survives both SW restarts and chrome.runtime.reload().
+    // On startup, saved window IDs are validated (chrome.windows.get) to discard stale entries.
+    const INCOGNITO_REGISTRY_KEY = 'incognitoWindowIds';
+    function syncIncognitoRegistry() {
+        const snapshot = Array.from(incognitoWindowIds);
+        chrome.storage.local.set({ [INCOGNITO_REGISTRY_KEY]: snapshot }, function() {
+            if (chrome.runtime.lastError) {
+                debugLog('incognito-registry', `Fix A: local storage write failed: ${chrome.runtime.lastError.message}`, {});
+            } else {
+                debugLog('incognito-registry', `Fix A: persisted registry to local storage`, { registry: snapshot });
+            }
+        });
+    }
+    chrome.storage.local.get(INCOGNITO_REGISTRY_KEY, function(result) {
+        const saved: number[] = result[INCOGNITO_REGISTRY_KEY] || [];
+        debugLog('incognito-registry', `Fix A: local storage on SW start — ${saved.length} saved windowId(s)`, { saved });
+        if (saved.length === 0) return;
+        // Validate each saved window ID is still alive to discard stale entries from previous sessions.
+        let pending = saved.length;
+        saved.forEach(function(wid) {
+            chrome.windows.get(wid, {}, function(win) {
+                if (chrome.runtime.lastError || !win) {
+                    debugLog('incognito-registry', `Fix A: windowId=${wid} no longer exists, dropping`, { wid });
+                } else {
+                    incognitoWindowIds.add(wid);
+                    debugLog('incognito-registry', `Fix A: windowId=${wid} validated and restored`, {
+                        wid, incognito: win.incognito,
+                    });
+                }
+                if (--pending === 0) {
+                    debugLog('incognito-registry', `Fix A: restore complete`, { registry: Array.from(incognitoWindowIds) });
+                    syncIncognitoRegistry();
+                }
+            });
+        });
+    });
+
     var conf: Record<string, unknown> = {
         llm: { },
         ...CONF_DEFAULTS,
@@ -664,6 +704,15 @@ function start(browser: Record<string, unknown>) {
         _updateTabIndices();
     }
     chrome.tabs.onRemoved.addListener(removeTab);
+    chrome.windows.onRemoved.addListener(function(windowId) {
+        if (incognitoWindowIds.has(windowId)) {
+            incognitoWindowIds.delete(windowId);
+            syncIncognitoRegistry();
+            debugLog('incognito-registry', `removed windowId=${windowId} on close`, {
+                windowId, registry: Array.from(incognitoWindowIds),
+            });
+        }
+    });
     function _setScrollPos_bg(tabId: number) {
         if (Object.prototype.hasOwnProperty.call(tabMessages, tabId)) {
             const message = tabMessages[tabId];
@@ -940,6 +989,18 @@ function start(browser: Record<string, unknown>) {
         sendResponse(result);
     }
     function handleMessage(_message: Msg, _sender: chrome.runtime.MessageSender, _sendResponse: (response?: unknown) => void) {
+        if (_sender.tab?.incognito && _sender.tab.windowId != null) {
+            const wid = _sender.tab.windowId;
+            const isNew = !incognitoWindowIds.has(wid);
+            incognitoWindowIds.add(wid);
+            if (isNew) {
+                syncIncognitoRegistry();
+                debugLog('incognito-registry', `registered incognito windowId=${wid} tabId=${_sender.tab.id} action=${_message.action}`, {
+                    windowId: wid, tabId: _sender.tab.id, action: _message.action,
+                    registry: Array.from(incognitoWindowIds),
+                });
+            }
+        }
         if (Object.prototype.hasOwnProperty.call(self, _message.action)) {
             var result = (self[_message.action] as MessageHandler)(_message, _sender, _sendResponse);
             if (_message.needResponse) {
@@ -1781,22 +1842,117 @@ function start(browser: Record<string, unknown>) {
     // Fixing AllExceptActiveAllWindows (tcg) and AllIncognitoTabs (tco) for incognito
     // requires switching to "split" incognito mode + cross-SW messaging. See todo #61.
     self.closeTabMagic = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const senderTabId = sender.tab?.id;
+        const senderWinId = sender.tab?.windowId;
+        const senderIncognito = sender.tab?.incognito ?? false;
+        const magic = message.magic as string;
+        debugLog('closeTabMagic', `invoked magic=${magic} senderTabId=${senderTabId} senderWinId=${senderWinId} senderIncognito=${senderIncognito}`, {
+            magic, senderTabId, senderWinId, senderIncognito,
+            incognitoRegistry: Array.from(incognitoWindowIds),
+        });
+
+        // AllIncognitoTabs: dual-path close.
+        // Path A — SSE relay: POST to server; each connected incognito CS receives the event and
+        //   closes itself via chrome.runtime.sendMessage({action:'closeSelf'}) + window.close().
+        //   Works in gchrb where chrome.windows.remove fails (extension not pre-allowlisted).
+        // Path B — direct remove: chrome.windows.remove for each known windowId in the registry.
+        //   Works in Playwright test env (extension pre-allowlisted for incognito) and in gchrb
+        //   if the extension was toggled on in Chrome settings.
+        if (magic === 'AllIncognitoTabs') {
+            // Path A: SSE relay (async, non-blocking)
+            fetch(`http://localhost:${__CONFIG_SERVER_PORT__}/close-incognito`, { method: 'POST' })
+                .then(r => r.json())
+                .then((data: { sent: number }) => debugLog('closeTabMagic', `AllIncognitoTabs: SSE relay sent to ${data.sent} subscriber(s)`, data))
+                .catch(err => debugLog('closeTabMagic', 'AllIncognitoTabs: SSE relay server unreachable', { error: String(err) }));
+            // Path B: direct window removal for each known windowId
+            removeIncognitoWindows(Array.from(incognitoWindowIds));
+            return;
+        }
+
         chrome.tabs.query({}, function(allTabs) {
-            var windowTabs = allTabs.filter(function(t) { return t.windowId === sender.tab?.windowId; });
+            // query({}) may return incognito tabs if extension has Preferences-level allowlist.
+            const incognitoTabsFromQuery = allTabs.filter(t => t.incognito);
+            debugLog('closeTabMagic', `query({}) returned ${allTabs.length} tabs, ${incognitoTabsFromQuery.length} incognito`, {
+                normalTabCount: allTabs.length,
+                incognitoTabsInNormalQuery: incognitoTabsFromQuery.map(t => ({ id: t.id, windowId: t.windowId, url: t.url })),
+            });
+            finish(allTabs);
+        });
+
+        function removeIncognitoWindows(windowList: number[]) {
+            debugLog('closeTabMagic', `AllIncognitoTabs: removing ${windowList.length} window(s) from registry`, { windowList });
+            if (windowList.length > 0) {
+                windowList.forEach(function(wid) {
+                    chrome.windows.remove(wid, function() {
+                        if (chrome.runtime.lastError) {
+                            debugLog('closeTabMagic', `windows.remove(${wid}) error — dropping stale ID`, { error: chrome.runtime.lastError.message });
+                            incognitoWindowIds.delete(wid);
+                            syncIncognitoRegistry();
+                        } else {
+                            debugLog('closeTabMagic', `windows.remove(${wid}) ok`);
+                        }
+                    });
+                });
+            } else {
+                // Registry empty — try fresh storage read (another SW instance may have registered windows)
+                chrome.storage.local.get(INCOGNITO_REGISTRY_KEY, function(result) {
+                    const storedIds: number[] = result[INCOGNITO_REGISTRY_KEY] ?? [];
+                    debugLog('closeTabMagic', `AllIncognitoTabs: registry empty, storage has ${storedIds.length} windowId(s)`, { storedIds });
+                    storedIds.forEach(id => incognitoWindowIds.add(id));
+                    if (storedIds.length > 0) {
+                        removeIncognitoWindows(storedIds);
+                    } else {
+                        debugLog('closeTabMagic', `AllIncognitoTabs: nothing to close — no incognito windows registered (open an incognito tab first)`);
+                    }
+                });
+            }
+        }
+
+        function finish(allTabs: chrome.tabs.Tab[]) {
+            var windowTabs = allTabs.filter(function(t: chrome.tabs.Tab) { return t.windowId === sender.tab?.windowId; });
             var repeats = message.repeats as number;
-            var tabIds = tabHandleMagic(message.magic as string, sender.tab!, repeats, windowTabs, allTabs);
-            var pinnedIds = new Set(allTabs.filter(function(t) { return t.pinned; }).map(function(t) { return t.id; }));
+            var tabIds = tabHandleMagic(magic, sender.tab!, repeats, windowTabs, allTabs);
+            var pinnedIds = new Set(allTabs.filter(function(t: chrome.tabs.Tab) { return t.pinned; }).map(function(t: chrome.tabs.Tab) { return t.id; }));
             tabIds = tabIds.filter(function(id: number) { return !pinnedIds.has(id); });
+            debugLog('closeTabMagic', `finish: closing ${tabIds.length} tab(s)`, {
+                magic, tabIds,
+                allTabCount: allTabs.length,
+                incognitoTabCount: allTabs.filter(t => t.incognito).length,
+                pinnedSkipped: allTabs.filter(t => t.pinned).map(t => t.id),
+            });
             if (tabIds.length) {
                 chrome.tabs.remove(tabIds);
+            } else {
+                debugLog('closeTabMagic', `finish: nothing to close — check registry and incognito allowlist`, {
+                    magic, incognitoRegistry: Array.from(incognitoWindowIds),
+                });
             }
-        });
+        }
     };
 
     self.goToParentTab = function(message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
         chrome.tabs.get(sender.tab!.id!, function(tab) {
             if (tab && tab.openerTabId) {
                 chrome.tabs.update(tab.openerTabId, { active: true });
+            }
+        });
+    };
+
+    // closeSelf: called by incognito CS after receiving the SSE close event.
+    // The CS can't call chrome.tabs.remove directly, so it asks the SW to do it.
+    // Using sender.tab.id (provided by Chrome) rather than querying incognito tabs,
+    // so this works even when the extension lacks incognito query access.
+    self.closeSelf = function(_message: Msg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
+        const tabId = sender.tab?.id;
+        if (tabId == null) {
+            debugLog('closeSelf', 'no sender.tab.id — cannot close');
+            return;
+        }
+        chrome.tabs.remove(tabId, function() {
+            if (chrome.runtime.lastError) {
+                debugLog('closeSelf', `tabs.remove(${tabId}) error`, { error: chrome.runtime.lastError.message });
+            } else {
+                debugLog('closeSelf', `tabs.remove(${tabId}) ok`);
             }
         });
     };

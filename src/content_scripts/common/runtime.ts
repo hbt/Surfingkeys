@@ -173,6 +173,33 @@ const runtime = (function() {
         return undefined;
     });
 
+    // Incognito SSE relay: connect to local server so tco (AllIncognitoTabs) can signal
+    // this tab to close, even though the SW cannot discover or manipulate incognito
+    // windows via chrome.tabs.query / chrome.windows.remove in spanning mode.
+    try {
+        if (chrome.extension.inIncognitoContext) {
+            const es = new EventSource(`http://localhost:${__CONFIG_SERVER_PORT__}/incognito-sse`);
+            es.onopen = function() {
+                try { console.log('[incognito-sse] connected to server'); } catch (_) {}
+            };
+            es.onmessage = function() {
+                try { console.log('[incognito-sse] received close event, closing tab'); } catch (_) {}
+                // Close the EventSource first to prevent auto-reconnect
+                es.close();
+                // Ask the SW to close this specific tab via sender.tab.id.
+                // This works even in spanning mode because the SW has a known tabId from the sender.
+                // window.close() is also attempted as a fallback for http pages.
+                try { chrome.runtime.sendMessage({ action: 'closeSelf' }); } catch (_) {}
+                try { window.close(); } catch (_) {}
+            };
+            es.onerror = function() {
+                // Server not running — fail silently; tco will fall back to registry path
+            };
+        }
+    } catch (_) {
+        // Fail silently if EventSource or chrome.extension is unavailable
+    }
+
     self.getTopURL = function(cb) {
         getTopURLPromise.then(function(url) {
             cb(url as string);

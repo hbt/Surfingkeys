@@ -225,6 +225,77 @@ async function domainAssetResponse(url: URL): Promise<Response> {
   });
 }
 
+// ── Incognito SSE relay ─────────────────────────────────────────────────────
+
+const incognitoSseClients = new Set<ReadableStreamDefaultController>();
+
+function incognitoSseSubscribeResponse(req: Request): Response {
+  const origin = req.headers.get('Origin');
+  // Allow chrome-extension:// origins and direct calls (no origin)
+  const corsH: Record<string, string> = origin ? { 'Access-Control-Allow-Origin': origin } : {};
+
+  let controller!: ReadableStreamDefaultController;
+  const stream = new ReadableStream({
+    start(c) {
+      controller = c;
+      incognitoSseClients.add(controller);
+      log('GET', '/incognito-sse', 200, 0);
+    },
+    cancel() {
+      incognitoSseClients.delete(controller);
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      ...corsH,
+    },
+  });
+}
+
+function closeIncognitoResponse(req: Request): Response {
+  const origin = req.headers.get('Origin');
+  const corsH: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(origin ? { 'Access-Control-Allow-Origin': origin } : {}),
+  };
+
+  const payload = new TextEncoder().encode('data: close\n\n');
+  // Snapshot clients before iterating (set will be modified by cancel() callbacks)
+  const clients = Array.from(incognitoSseClients);
+  let sent = 0;
+  for (const ctrl of clients) {
+    try {
+      ctrl.enqueue(payload);
+      sent++;
+    } catch (_) {
+      // already disconnected
+    }
+    // Close the stream from the server side so the client receives EOF and disconnects.
+    // This also triggers cancel() which removes the controller from the set.
+    try {
+      ctrl.close();
+    } catch (_) {}
+    incognitoSseClients.delete(ctrl);
+  }
+
+  const body = JSON.stringify({ sent });
+  log('POST', '/close-incognito', 200, body.length);
+  return new Response(body, { status: 200, headers: corsH });
+}
+
+function incognitoSseStatusResponse(): Response {
+  const body = JSON.stringify({ subscribers: incognitoSseClients.size });
+  log('GET', '/incognito-sse-status', 200, body.length);
+  return new Response(body, {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 // ── Eval relay ──────────────────────────────────────────────────────────────
 
 interface PendingEval {
@@ -490,6 +561,9 @@ Bun.serve({
     if (url.pathname === '/edit-gvim' && req.method === 'POST') return editGvimResponse(req);
     if (url.pathname === '/domain-asset') return domainAssetResponse(url);
     if (url.pathname === '/trigger/inspector') return triggerInspectorResponse(url);
+    if (url.pathname === '/incognito-sse' && req.method === 'GET') return incognitoSseSubscribeResponse(req);
+    if (url.pathname === '/close-incognito' && req.method === 'POST') return closeIncognitoResponse(req);
+    if (url.pathname === '/incognito-sse-status' && req.method === 'GET') return incognitoSseStatusResponse();
     return notFound(url.pathname);
   }
 });
