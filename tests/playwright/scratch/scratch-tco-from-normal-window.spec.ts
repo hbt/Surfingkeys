@@ -1,14 +1,9 @@
 /**
- * Scratch: tco (AllIncognitoTabs) from a normal window closes incognito tabs.
+ * Scratch: tco (AllIncognitoTabs) from a normal window closes incognito tabs via SSE relay.
  *
- * Test 1 — basic flow
- *   Incognito tab registers with SW on load → tco from normal tab closes it.
- *   Exercises the incognitoWindowIds registry + query({windowId}) path.
- *
- * Test 2 — Fix A: local storage persistence across SW restart
- *   Incognito tab registers → SW is restarted via chrome.runtime.reload() →
- *   new SW restores registry from chrome.storage.session →
- *   tco from normal tab still closes incognito tabs.
+ * Test 3 — SSE relay
+ *   tco posts to /close-incognito on the config server; each connected incognito CS
+ *   receives the SSE event and calls window.close() to close itself.
  *
  * Run:
  *   bunx playwright test tests/playwright/scratch/scratch-tco-from-normal-window.spec.ts \
@@ -127,130 +122,6 @@ test.afterAll(async () => {
         incognitoWinId = -1;
     }
     await context?.close();
-});
-
-// ---------------------------------------------------------------------------
-// Test 1 — basic flow (registry populated by incognito CS on load)
-// ---------------------------------------------------------------------------
-
-test('Test 1: tco from normal window closes incognito tabs (registry path)', async () => {
-    test.setTimeout(30_000);
-
-    const sw = await getSW(context);
-    expect(sw.url()).toContain('background.js');
-
-    const anchor = await context.newPage();
-    await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
-    await anchor.waitForTimeout(500);
-
-    incognitoWinId = await createIncognitoWindow(context, 2);
-    if (incognitoWinId === -1) return;
-
-    // Wait for incognito content scripts to register with SW
-    await anchor.waitForTimeout(2000);
-
-    // Confirm SW can see both incognito tabs via windowId query
-    const before = await waitForIncognitoTabCount(context, incognitoWinId, 999);
-    console.log(`[Test 1] incognito tabs before tco: ${before}`);
-    expect(before).toBeGreaterThanOrEqual(1);
-
-    // Confirm trigger tab is non-incognito
-    const anchorInfo = await sw.evaluate((url: string) =>
-        new Promise<{ incognito: boolean } | null>(r =>
-            chrome.tabs.query({ url: `${url}*` }, tabs => r(tabs[0] ? { incognito: tabs[0].incognito } : null))
-        )
-    , FIXTURE_URL);
-    expect(anchorInfo).not.toBeNull();
-    expect(anchorInfo!.incognito, 'tco must be triggered from a non-incognito tab').toBe(false);
-    console.log(`[Test 1] anchor tab incognito=${anchorInfo!.incognito} — confirmed normal window`);
-
-    // Confirm registry is populated (Fix A or CS registration)
-    const registryBefore = await sw.evaluate(() =>
-        new Promise<number[]>(r =>
-            chrome.storage.local.get('incognitoWindowIds', result =>
-                r((result['incognitoWindowIds'] as number[]) || [])
-            )
-        )
-    );
-    console.log(`[Test 1] local storage registry before tco: [${registryBefore}]`);
-    expect(registryBefore.length, 'registry must contain the incognito windowId').toBeGreaterThan(0);
-
-    await dispatchTco(anchor);
-
-    const after = await waitForIncognitoTabCount(context, incognitoWinId, 0);
-    console.log(`[Test 1] incognito tabs after tco: ${after}`);
-    expect(after, 'all incognito tabs must be closed').toBe(0);
-
-    const normalPages = context.pages().filter(p => p.url().startsWith('http'));
-    expect(normalPages.length, 'normal page must still be open').toBeGreaterThan(0);
-    console.log('[Test 1] PASS — tco closed all incognito tabs from a normal window');
-
-    incognitoWinId = -1; // already closed by tco
-});
-
-// ---------------------------------------------------------------------------
-// Test 2 — Fix A: registry survives SW restart via chrome.storage.session
-// ---------------------------------------------------------------------------
-
-test('Test 2: Fix A — registry survives SW restart, tco still works', async () => {
-    test.setTimeout(45_000);
-
-    const anchor = await context.newPage();
-    await anchor.goto(FIXTURE_URL, { waitUntil: 'load' });
-    await anchor.waitForTimeout(500);
-
-    incognitoWinId = await createIncognitoWindow(context, 2);
-    if (incognitoWinId === -1) return;
-
-    // Wait for incognito CS to register and local storage to be written
-    await anchor.waitForTimeout(2500);
-
-    const sw1 = await getSW(context);
-    const registryBeforeRestart = await sw1.evaluate(() =>
-        new Promise<number[]>(r =>
-            chrome.storage.local.get('incognitoWindowIds', result =>
-                r((result['incognitoWindowIds'] as number[]) || [])
-            )
-        )
-    );
-    console.log(`[Test 2] registry in local storage before restart: [${registryBeforeRestart}]`);
-    expect(registryBeforeRestart.length, 'registry must be persisted before restart').toBeGreaterThan(0);
-
-    // Restart the SW via chrome.runtime.reload() — simulates extension reload
-    console.log('[Test 2] restarting SW via chrome.runtime.reload()...');
-    const swRestartedPromise = context.waitForEvent('serviceworker', { timeout: 15_000 });
-    await sw1.evaluate(() => chrome.runtime.reload()).catch(() => {});
-    const sw2 = await swRestartedPromise;
-    await anchor.waitForTimeout(3000); // let Fix A load + validate windows from local storage
-
-    console.log(`[Test 2] new SW URL: ${sw2.url()}`);
-    expect(sw2.url()).toContain('background.js');
-
-    // Confirm Fix A restored the registry after restart
-    const registryAfterRestart = await sw2.evaluate(() =>
-        new Promise<number[]>(r =>
-            chrome.storage.local.get('incognitoWindowIds', result =>
-                r((result['incognitoWindowIds'] as number[]) || [])
-            )
-        )
-    );
-    console.log(`[Test 2] registry after restart (Fix A restore): [${registryAfterRestart}]`);
-    expect(registryAfterRestart.length, 'Fix A must restore registry after SW restart').toBeGreaterThan(0);
-    expect(registryAfterRestart).toContain(incognitoWinId);
-
-    // Now trigger tco from normal window — must still work without re-registration
-    const anchor2 = await context.newPage();
-    await anchor2.goto(FIXTURE_URL, { waitUntil: 'load' });
-    await anchor2.waitForTimeout(500);
-
-    await dispatchTco(anchor2);
-
-    const after = await waitForIncognitoTabCount(context, incognitoWinId, 0);
-    console.log(`[Test 2] incognito tabs after tco post-restart: ${after}`);
-    expect(after, 'tco must close incognito tabs even after SW restart').toBe(0);
-
-    console.log('[Test 2] PASS — Fix A: registry survived SW restart, tco worked without re-registration');
-    incognitoWinId = -1;
 });
 
 // ---------------------------------------------------------------------------

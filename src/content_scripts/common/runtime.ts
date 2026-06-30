@@ -186,14 +186,10 @@ const runtime = (function() {
                 try { console.log('[incognito-sse] received close event, closing tab'); } catch (_) {}
                 // Close the EventSource first to prevent auto-reconnect
                 es.close();
-                // Ask the SW to close this specific tab via sender.tab.id.
-                // This works even in spanning mode because the SW has a known tabId from the sender.
-                // window.close() is also attempted as a fallback for http pages.
-                try { chrome.runtime.sendMessage({ action: 'closeSelf' }); } catch (_) {}
                 try { window.close(); } catch (_) {}
             };
             es.onerror = function() {
-                // Server not running — fail silently; tco will fall back to registry path
+                // Server not running — fail silently
             };
         }
     } catch (_) {
