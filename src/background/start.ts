@@ -2874,7 +2874,20 @@ function start(browser: Record<string, unknown>) {
     }
 
     function _normalizeUrl(url: string): string {
-        return url.endsWith('/') ? url.slice(0, -1) : url;
+        let result = url;
+        try {
+            const u = new URL(url);
+            if (/(^|\.)youtube\.com$/.test(u.hostname) && u.pathname === '/watch') {
+                // ignore playlist context (list/index) so a video matches its bookmark
+                // whether or not it's currently playing as part of a playlist
+                u.searchParams.delete('list');
+                u.searchParams.delete('index');
+                result = u.toString();
+            }
+        } catch {
+            // not a valid absolute URL — fall through to plain normalization
+        }
+        return result.endsWith('/') ? result.slice(0, -1) : result;
     }
 
     self.bookmarkToggleFolder = function(message: BMsg, sender: chrome.runtime.MessageSender, _sendResponse: (response: unknown) => void) {
@@ -3106,8 +3119,18 @@ function start(browser: Record<string, unknown>) {
 
     self.bookmarkLookupCurrentURL = function(message: Msg, sender: chrome.runtime.MessageSender, sendResponse: (response: unknown) => void) {
         const url = _normalizeUrl(sender.tab!.url!);
-        chrome.bookmarks.search({ url }, function(results) {
-            const folderIds = [...new Set(results.map(r => r.parentId!))];
+        // Walk the full tree instead of chrome.bookmarks.search({url}), which does an
+        // exact-string match and would miss e.g. a youtube video bookmarked without
+        // its current &list=/&index= playlist params.
+        chrome.bookmarks.getTree(function(tree) {
+            const matches: chrome.bookmarks.BookmarkTreeNode[] = [];
+            (function walk(nodes: chrome.bookmarks.BookmarkTreeNode[]) {
+                nodes.forEach(n => {
+                    if (n.url && _normalizeUrl(n.url) === url) matches.push(n);
+                    if (n.children) walk(n.children);
+                });
+            })(tree);
+            const folderIds = [...new Set(matches.map(r => r.parentId!))];
             if (!folderIds.length) { _response(message, sendResponse, { msg: 'Not bookmarked' }); return; }
             let pending = folderIds.length;
             const folderNames: string[] = [];
