@@ -275,6 +275,18 @@ Top-level keys: `mappings.list[]`, `settings`, `issues`, `custom_configuration`.
 Each entry's metadata lives under `.annotation` (not top-level).
 
 
+## sk.ts CLI
+
+`scripts/sk.ts` — general SurfingKeys CLI (separate from `mappings-json-report.ts`).
+
+```bash
+bun scripts/sk.ts lookup <query> [--by-mapping-key] [--by-unique-id]   # look up a command by config key, mapping key, or unique_id
+bun scripts/sk.ts detect-mapping-conflict <key> [--mode <mode>]        # check if a candidate key has prefix conflicts
+bun scripts/sk.ts slides-lookup '<file-url>'                           # resolve a slides.html file:// URL with #tN-sM hash
+bun scripts/sk.ts --help
+```
+
+
 ## Documentation
 
 | File | Purpose |
