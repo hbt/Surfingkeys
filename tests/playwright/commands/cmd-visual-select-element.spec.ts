@@ -59,4 +59,26 @@ test.describe('cmd_visual_select_element (Playwright)', () => {
             expect(ok).toBe(true);
         });
     });
+
+    test('cmd_visual_select_element works with FF_OPTIMIZE_ZZ disabled (revert path)', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            const setConf = async (value: boolean) => {
+                await page.evaluate(([k, v]) => {
+                    document.dispatchEvent(new CustomEvent('__sk_conf_override', {
+                        detail: { key: k, value: v }
+                    }));
+                }, ['FF_OPTIMIZE_ZZ', value] as [string, unknown]);
+                await page.waitForTimeout(50);
+            };
+            try {
+                await setConf(false);
+                await page.mouse.click(100, 100);
+                const ok = await invokeCommand(page, 'cmd_visual_select_element');
+                if (DEBUG) console.log(`invokeCommand (FF_OPTIMIZE_ZZ=false) result: ${ok}`);
+                expect(ok).toBe(true);
+            } finally {
+                await setConf(true);
+            }
+        });
+    });
 });

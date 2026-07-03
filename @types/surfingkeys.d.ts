@@ -94,6 +94,7 @@ export interface SurfingKeysConf {
     editableBodyCare: boolean;
     enableAutoFocus: boolean;
     experiment: boolean;
+    FF_OPTIMIZE_ZZ: boolean;
     focusFirstCandidate: boolean;
     focusOnSaved: boolean;
     hintAlign: string;

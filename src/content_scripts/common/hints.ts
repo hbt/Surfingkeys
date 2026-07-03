@@ -836,31 +836,79 @@ div.hint-scrollable {
         return elements.length;
     }
 
+    // TreeWalker-based candidate gathering for createHintsForTextNode.
+    // Only forces layout (getBoundingClientRect/getComputedStyle) on text-bearing
+    // nodes instead of every element in the document, matching the exact filter
+    // semantics of the getVisibleElements-based path (parent in viewport, height > 0,
+    // visibility !== 'hidden', text node trim().length > 1). Element nodes are visited
+    // only for a cheap shadowRoot property read so shadow DOM is traversed the same way
+    // getVisibleElements does (no layout is forced on non-text nodes).
+    function getVisibleTextNodes(): any[] {
+        var nodes: any[] = [];
+        var acceptText = function(node: any) {
+            if ((node as Text).data.trim().length <= 1) {
+                return false;
+            }
+            var e = node.parentElement;
+            if (!e) {
+                return false;
+            }
+            var rect = e.getBoundingClientRect();
+            return (rect.top <= window.innerHeight) && (rect.bottom >= 0)
+                && (rect.left <= window.innerWidth) && (rect.right >= 0)
+                && rect.height > 0
+                && getComputedStyle(e).visibility !== 'hidden';
+        };
+        var walkRoot = function(root: any) {
+            var treeWalker = document.createTreeWalker(
+                root,
+                NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT
+            );
+            while (treeWalker.nextNode()) {
+                var current: any = treeWalker.currentNode;
+                if (current.nodeType === Node.TEXT_NODE) {
+                    if (acceptText(current)) {
+                        nodes.push(current);
+                    }
+                } else if (current.shadowRoot) {
+                    walkRoot(current.shadowRoot);
+                }
+            }
+        };
+        walkRoot(document.documentElement);
+        return nodes;
+    }
+
     function createHintsForTextNode(rxp: any, attrs: any) {
         for (var attr in attrs) {
             behaviours[attr] = attrs[attr];
         }
         self.statusLine = (attrs && attrs.statusLine) || "Hints to select text";
 
-        var elements = getVisibleElements(function(e: any, v: any) {
-            var aa = e.childNodes;
-            for (var i = 0, len = aa.length; i < len; i++) {
-                if (aa[i].nodeType == Node.TEXT_NODE && (aa[i] as Text).data.length > 0) {
-                    v.push(e);
-                    break;
+        var elements: any[];
+        if (runtime.conf.FF_OPTIMIZE_ZZ) {
+            elements = getVisibleTextNodes();
+        } else {
+            elements = getVisibleElements(function(e: any, v: any) {
+                var aa = e.childNodes;
+                for (var i = 0, len = aa.length; i < len; i++) {
+                    if (aa[i].nodeType == Node.TEXT_NODE && (aa[i] as Text).data.length > 0) {
+                        v.push(e);
+                        break;
+                    }
                 }
-            }
-        });
-        elements = elements.flatMap(function (e) {
-            var aa = e.childNodes;
-            var bb: any[] = [];
-            for (var i = 0, len = aa.length; i < len; i++) {
-                if (aa[i].nodeType == Node.TEXT_NODE && (aa[i] as Text).data.trim().length > 1) {
-                    bb.push(aa[i]);
+            });
+            elements = elements.flatMap(function (e) {
+                var aa = e.childNodes;
+                var bb: any[] = [];
+                for (var i = 0, len = aa.length; i < len; i++) {
+                    if (aa[i].nodeType == Node.TEXT_NODE && (aa[i] as Text).data.trim().length > 1) {
+                        bb.push(aa[i]);
+                    }
                 }
-            }
-            return bb;
-        });
+                return bb;
+            });
+        }
 
         var positions: any[];
         if (rxp.flags.indexOf('g') === -1) {
