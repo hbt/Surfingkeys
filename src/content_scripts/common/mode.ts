@@ -118,6 +118,35 @@ Mode.suppressKeyUp = function(keyCode: any) {
     }
 };
 
+// FF_CUSTOM_CONFIG_APPLY_SPEED: on the top frame, normal.enter() pushes default
+// mappings onto mode_stack synchronously, well before RUNTIME('getSettings')
+// resolves and the user's snippets (custom mappings) run. Without this guard,
+// keys pressed in that window are handled with default bindings instead of the
+// user's. userSettingsLoaded fires once per frame after settings/snippets apply.
+//
+// In MV3, snippets aren't applied inline — they run in a separately-registered
+// chrome.userScripts script (see src/user_scripts/index.ts), which is a second
+// race independent of the getSettings round trip above. That script signals
+// completion via surfingkeys:snippetUserScriptApplied. expectingSnippetUserScript
+// (derived from the settings payload) tells us whether to wait for it at all —
+// pages without advanced/snippets never get that event, and the timeout below
+// is a safety net in case userScripts registration didn't happen for some reason.
+var settingsApplied = false;
+var expectingSnippetUserScript = false;
+var snippetUserScriptApplied = false;
+document.addEventListener("surfingkeys:userSettingsLoaded", (evt: any) => {
+    settingsApplied = true;
+    var rs = evt.detail && evt.detail[0] && evt.detail[0].settings;
+    expectingSnippetUserScript = !!(rs && rs.isMV3 && rs.showAdvanced && rs.snippets && rs.snippets.trim().length > 0);
+}, {once: true});
+document.addEventListener("surfingkeys:snippetUserScriptApplied", () => {
+    snippetUserScriptApplied = true;
+}, {once: true});
+
+function isCustomConfigFullyApplied() {
+    return settingsApplied && (!expectingSnippetUserScript || snippetUserScriptApplied);
+}
+
 function onAfterHandler(mode: any, event: any) {
     if (event.sk_stopPropagation) {
         event.stopImmediatePropagation();
@@ -156,6 +185,34 @@ var suppressScrollEvent = 0, _listenedEvents = {
                 // proceed to handle the key event after userSettingsLoaded.
                 handleStack("keydown", event);
             }, {once: true});
+            return;
+        }
+        if (runtime.conf.FF_CUSTOM_CONFIG_APPLY_SPEED && !isCustomConfigFullyApplied()) {
+            // top frame: default mappings are live but the user's custom
+            // mappings (getSettings round trip, and — in MV3 — the separately
+            // registered snippet userScript) haven't applied yet. Wait so this
+            // key isn't handled with stale (default) bindings.
+            var handled = false;
+            var replayIfReady = () => {
+                if (handled || !isCustomConfigFullyApplied()) return;
+                handled = true;
+                clearTimeout(timeoutId);
+                handleStack("keydown", event);
+            };
+            document.addEventListener("surfingkeys:userSettingsLoaded", replayIfReady, {once: true});
+            document.addEventListener("surfingkeys:snippetUserScriptApplied", replayIfReady, {once: true});
+            // Safety net: expectingSnippetUserScript can be true on a page where
+            // the snippet userScript never actually runs (e.g. its registration
+            // itself is still in flight on this very navigation — MV3
+            // chrome.userScripts.register only takes effect on the NEXT
+            // navigation). Rather than dropping the key forever waiting for an
+            // event that may never come, give up and handle it with whatever
+            // mappings exist once the timeout elapses.
+            var timeoutId = setTimeout(() => {
+                if (handled) return;
+                handled = true;
+                handleStack("keydown", event);
+            }, 1500);
             return;
         }
         handleStack("keydown", event);

@@ -1,4 +1,4 @@
-import { RUNTIME, dispatchSKEvent } from '../content_scripts/common/runtime.js';
+import { RUNTIME, dispatchSKEvent, runtime } from '../content_scripts/common/runtime.js';
 import {
     aceVimMap,
     addVimMapKey,
@@ -345,8 +345,37 @@ export default (extensionRootUrl: any, uf: any) => {
         }
 
         applyUserSettings({ settings, error: errors.join('\n') });
+        // Lets mode.ts's keydown gate (FF_CUSTOM_CONFIG_APPLY_SPEED) know the
+        // snippet's map/mapkey calls above have been dispatched.
+        dispatchSKEvent('snippetUserScriptApplied');
     };
     if (window === top) {
-        userScriptTask();
+        // This script runs in its own chrome.userScripts world, injected
+        // independently of (and in no guaranteed order relative to) the main
+        // content script. uf() above dispatches api calls (map/mapkey/...) as
+        // "surfingkeys:api" DOM events — if the main content script's listener
+        // for that event (registered in createAPI, see content.ts _initModules)
+        // isn't attached yet, those events are silently dropped and the
+        // snippet's mappings never take effect for this page load. skInvokeReady
+        // is set by content.ts right after that listener is attached, so wait
+        // for it here rather than dispatching blind.
+        if (runtime.conf.FF_CUSTOM_CONFIG_APPLY_SPEED && document.documentElement.dataset.skInvokeReady !== 'true') {
+            const observer = new MutationObserver(() => {
+                if (document.documentElement.dataset.skInvokeReady === 'true') {
+                    observer.disconnect();
+                    clearTimeout(fallbackTimer);
+                    userScriptTask();
+                }
+            });
+            observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-sk-invoke-ready'] });
+            // Safety net: don't silently lose the snippet forever if skInvokeReady
+            // never arrives (e.g. main content script failed to load).
+            var fallbackTimer = setTimeout(() => {
+                observer.disconnect();
+                userScriptTask();
+            }, 3000);
+        } else {
+            userScriptTask();
+        }
     }
 };

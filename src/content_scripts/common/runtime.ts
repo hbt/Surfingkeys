@@ -79,6 +79,7 @@ const runtime = (function() {
             editableBodyCare: true,
             enableAutoFocus: true,
             experiment: false,
+            FF_CUSTOM_CONFIG_APPLY_SPEED: true,
             FF_OPTIMIZE_ZZ: true,
             focusFirstCandidate: false,
             focusOnSaved: true,

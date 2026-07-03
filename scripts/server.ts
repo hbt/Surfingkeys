@@ -25,6 +25,11 @@ const CONFIG_FILE = process.env.CONFIG_FILE
 const DOMAIN_FILES_DIR = process.env.DOMAIN_FILES_DIR
     ? resolve(process.cwd(), process.env.DOMAIN_FILES_DIR)
     : '/home/hassen/config/js';
+// Test-only knob: artificially delay /config responses to widen the
+// getSettings-race window for deterministic reproduction in tests. 0 = no-op (default).
+const CONFIG_RESPONSE_DELAY_MS = process.env.CONFIG_RESPONSE_DELAY_MS
+    ? parseInt(process.env.CONFIG_RESPONSE_DELAY_MS, 10)
+    : 0;
 
 function log(method: string, path: string, status: number, bytes: number): void {
   const ts = new Date().toISOString();
@@ -60,7 +65,10 @@ function configResponse(origin: string | null): Response | Promise<Response> {
   }
 
   const content = Bun.file(CONFIG_FILE);
-  return content.text().then((text: string) => {
+  return content.text().then(async (text: string) => {
+    if (CONFIG_RESPONSE_DELAY_MS > 0) {
+      await new Promise((r) => setTimeout(r, CONFIG_RESPONSE_DELAY_MS));
+    }
     log('GET', '/config', 200, text.length);
     return new Response(text, { status: 200, headers: corsHeaders });
   });

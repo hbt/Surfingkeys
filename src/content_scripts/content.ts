@@ -19,6 +19,7 @@ import {
     reportIssue,
     setSanitizedContent,
     showBanner,
+    startOtelSpan,
 } from './common/utils.js';
 import createFront from './front.js';
 import createAPI from './common/api.js';
@@ -262,13 +263,17 @@ function _initModules() {
     }
 
     dispatchSKEvent('defaultSettingsLoaded', [{normal, api}] as any);
+    const configSpan = startOtelSpan('config.applyOnPageLoad', { host: window.location.hostname });
     RUNTIME('getSettings', null, function(response) {
+        configSpan.addEvent('settings.received');
         var rs = response.settings;
         applySettings(api, normal, rs);
+        configSpan.addEvent('settings.applied', { snippetsLength: (rs.snippets || '').length });
         const disabledSearchAliases = rs.disabledSearchAliases;
         const getUsage = front.getUsage;
         const frontCommand = front.command;
         dispatchSKEvent('userSettingsLoaded', [{settings: rs, disabledSearchAliases, getUsage, frontCommand}] as any);
+        configSpan.end();
     });
     return {
         normal,
