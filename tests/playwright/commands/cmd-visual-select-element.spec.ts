@@ -25,6 +25,20 @@ let covBg: ServiceWorkerCoverage | undefined;
 let initContentCoverageForUrl: ((url: string) => Promise<ServiceWorkerCoverage | undefined>) | undefined;
 
 test.describe('cmd_visual_select_element (Playwright)', () => {
+    async function setConf(value: boolean): Promise<void> {
+        await page.evaluate(([k, v]) => {
+            document.dispatchEvent(new CustomEvent('__sk_conf_override', {
+                detail: { key: k, value: v }
+            }));
+        }, ['FF_OPTIMIZE_ZZ', value] as [string, unknown]);
+        await page.waitForTimeout(50);
+    }
+
+    async function fetchOtelLast(): Promise<any> {
+        const resp = await page.request.get('http://localhost:9602/otel-last');
+        return resp.json();
+    }
+
     test.beforeAll(async () => {
         const result = await launchWithDualCoverage(FIXTURE_URL);
         context = result.context;
@@ -62,14 +76,6 @@ test.describe('cmd_visual_select_element (Playwright)', () => {
 
     test('cmd_visual_select_element works with FF_OPTIMIZE_ZZ disabled (revert path)', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
-            const setConf = async (value: boolean) => {
-                await page.evaluate(([k, v]) => {
-                    document.dispatchEvent(new CustomEvent('__sk_conf_override', {
-                        detail: { key: k, value: v }
-                    }));
-                }, ['FF_OPTIMIZE_ZZ', value] as [string, unknown]);
-                await page.waitForTimeout(50);
-            };
             try {
                 await setConf(false);
                 await page.mouse.click(100, 100);
@@ -81,4 +87,32 @@ test.describe('cmd_visual_select_element (Playwright)', () => {
             }
         });
     });
+
+    for (const flag of [true, false]) {
+        test(`cmd_visual_select_element ships an otel span to the config server (FF_OPTIMIZE_ZZ=${flag})`, async () => {
+            await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+                try {
+                    await setConf(flag);
+                    await page.mouse.click(100, 100);
+                    const ok = await invokeCommand(page, 'cmd_visual_select_element');
+                    expect(ok).toBe(true);
+                    await page.waitForTimeout(300); // allow the fire-and-forget /otel fetch to land
+
+                    const span = await fetchOtelLast();
+                    if (DEBUG) console.log(`otel span (FF_OPTIMIZE_ZZ=${flag}):`, JSON.stringify(span));
+
+                    expect(span).not.toBeNull();
+                    expect(span.name).toBe('zz.createHintsForTextNode');
+                    expect(span.attributes.ffOptimizeZz).toBe(flag);
+                    expect(typeof span.attributes.host).toBe('string');
+                    expect(typeof span.attributes.hintCount).toBe('number');
+                    expect(span.attributes.hintCount).toBeGreaterThan(0);
+                    expect(span.events.some((e: any) => e.name === 'nodes.gathered')).toBe(true);
+                    expect(span.endTimeUnixMs).toBeGreaterThanOrEqual(span.startTimeUnixMs);
+                } finally {
+                    await setConf(true);
+                }
+            });
+        });
+    }
 });

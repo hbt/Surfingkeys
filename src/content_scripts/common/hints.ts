@@ -25,6 +25,7 @@ import {
     openOmnibar,
     refreshHints,
     setSanitizedContent,
+    startOtelSpan,
 } from './utils.js';
 
 function placeHintsHost(host: any) {
@@ -885,6 +886,13 @@ div.hint-scrollable {
         }
         self.statusLine = (attrs && attrs.statusLine) || "Hints to select text";
 
+        const span = startOtelSpan('zz.createHintsForTextNode', {
+            ffOptimizeZz: runtime.conf.FF_OPTIMIZE_ZZ,
+            host: window.location.hostname,
+            docElementCount: document.getElementsByTagName('*').length,
+        });
+
+        var gatherStart = performance.now();
         var elements: any[];
         if (runtime.conf.FF_OPTIMIZE_ZZ) {
             elements = getVisibleTextNodes();
@@ -909,7 +917,9 @@ div.hint-scrollable {
                 return bb;
             });
         }
+        span.addEvent('nodes.gathered', { count: elements.length, elapsedMs: Math.round(performance.now() - gatherStart) });
 
+        var positionsStart = performance.now();
         var positions: any[];
         if (rxp.flags.indexOf('g') === -1) {
             positions = elements.map(function(e) {
@@ -924,9 +934,13 @@ div.hint-scrollable {
                 }
             }
         }
+        span.addEvent('positions.built', { count: positions.length, elapsedMs: Math.round(performance.now() - positionsStart) });
 
+        var textNodePosMs = 0, getZIndexMs = 0;
         elements = positions.map(function(e) {
+            var t0 = performance.now();
             var pos = getTextNodePos(e[0], e[1]);
+            textNodePosMs += performance.now() - t0;
             var caretViewport = [0, 0, window.innerHeight, window.innerWidth];
             if (runtime.conf.caretViewport && runtime.conf.caretViewport.length === 4) {
                 caretViewport = runtime.conf.caretViewport;
@@ -938,7 +952,9 @@ div.hint-scrollable {
                 || pos.left > caretViewport[3]) {
                 return null;
             } else {
+                var t1 = performance.now();
                 var z = getZIndex(e[0].parentNode);
+                getZIndexMs += performance.now() - t1;
                 var link: any = document.createElement('div');
                 if (e[1] === 0) {
                     link.className = "begin";
@@ -954,6 +970,8 @@ div.hint-scrollable {
         }).filter(function(e) {
             return e !== null;
         });
+        span.addEvent('links.built', { count: elements.length, textNodePosMs: Math.round(textNodePosMs), getZIndexMs: Math.round(getZIndexMs) });
+
         if (document.getSelection()!.anchorNode) {
             document.getSelection()!.collapseToStart();
         }
@@ -966,12 +984,14 @@ div.hint-scrollable {
                 setSanitizedContent(e, hintLabels[i]);
                 holder.append(e);
             });
+            span.addEvent('dom.appended', { count: elements.length });
 
             var style = createElementWithContent('style', _styleForText);
             holder.prepend(style);
             hintsHost!.shadowRoot!.appendChild(holder);
         }
 
+        span.end({ hintCount: elements.length });
         return elements.length;
     }
 

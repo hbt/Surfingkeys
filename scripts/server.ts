@@ -142,11 +142,11 @@ function errorEntryResponse(req: Request): Promise<Response> {
 }
 
 function otelResponse(req: Request): Promise<Response> {
+  // Unlike /log and /errors (background/SW-only), /otel is also called from content
+  // scripts — their fetch/sendBeacon Origin is the visited page's origin (any website),
+  // not chrome-extension://, so it can't be restricted the same way. This is a
+  // localhost-only dev sink (appends to a local debug file), so any origin is accepted.
   const origin = req.headers.get('Origin');
-  if (origin !== null && !origin.startsWith('chrome-extension://')) {
-    log('POST', '/otel', 403, 9);
-    return Promise.resolve(new Response('Forbidden', { status: 403 }));
-  }
   const corsHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(origin ? { 'Access-Control-Allow-Origin': origin } : {})

@@ -2,6 +2,44 @@ import DOMPurify from "dompurify";
 import KeyboardUtils from './keyboardUtils';
 import { RUNTIME, dispatchSKEvent, runtime } from './runtime.js';
 
+// Ships spans to the local dev config server (scripts/server.ts /otel endpoint,
+// logged to /tmp/sk-otel.jsonl). No-ops silently when no dev server is listening,
+// so it's safe to call unconditionally from a user's regular browser profile.
+// Mirrors the shape of startOtelSpan in src/background/start.ts.
+function startOtelSpan(name: string, attributes: Record<string, unknown> = {}) {
+    const traceId = Math.random().toString(16).slice(2).padStart(32, '0');
+    const spanId = Math.random().toString(16).slice(2).padStart(16, '0');
+    const startTimeUnixMs = Date.now();
+    const events: Array<{ name: string; timeUnixMs: number; attributes?: Record<string, unknown> }> = [];
+    return {
+        addEvent(evtName: string, attrs?: Record<string, unknown>) {
+            events.push({ name: evtName, timeUnixMs: Date.now(), attributes: attrs });
+        },
+        end(extraAttrs: Record<string, unknown> = {}) {
+            const url = `http://localhost:${__CONFIG_SERVER_PORT__}/otel`;
+            const payload = JSON.stringify({
+                traceId, spanId, name,
+                startTimeUnixMs,
+                endTimeUnixMs: Date.now(),
+                attributes: { ...attributes, ...extraAttrs },
+                events,
+                status: 'OK',
+            });
+            // navigator.sendBeacon avoids the CORS preflight a cross-origin request
+            // with a JSON content-type would trigger from a content script (whose
+            // request Origin is the visited page's origin, not chrome-extension://).
+            // A CORS-safelisted content-type (text/plain) is required to actually
+            // skip the preflight — Blob type 'application/json' still preflights.
+            try {
+                const sent = navigator.sendBeacon(url, new Blob([payload], { type: 'text/plain' }));
+                if (!sent) {
+                    fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: payload, keepalive: true }).catch(() => {});
+                }
+            } catch (_) {}
+        },
+    };
+}
+
 const colors = [
     '#4169E1', // Royal Blue
     '#E74C3C', // Bright Red
@@ -650,10 +688,23 @@ function getTextNodes(root: any, pattern: any, flag?: any): any {
     return nodes;
 }
 
+var _textNodePosRange: Range | null = null;
 function getTextNodePos(node: any, offset: any, length?: any) {
-    var selection = document.getSelection();
-    selection!.setBaseAndExtent(node, offset, node, length ? (offset + length) : (node as any).data.length);
-    var br = selection!.rangeCount > 0 ? selection!.getRangeAt(0).getClientRects()[0] : null;
+    var end = length ? (offset + length) : (node as any).data.length;
+    var br: any;
+    if (runtime.conf.FF_OPTIMIZE_ZZ) {
+        // A scratch Range avoids mutating document.getSelection(), which fires
+        // 'selectionchange' on the host page (and any listener it has registered)
+        // on every call — expensive when called once per regex match.
+        if (!_textNodePosRange) _textNodePosRange = document.createRange();
+        _textNodePosRange.setStart(node, offset);
+        _textNodePosRange.setEnd(node, end);
+        br = _textNodePosRange.getClientRects()[0];
+    } else {
+        var selection = document.getSelection();
+        selection!.setBaseAndExtent(node, offset, node, end);
+        br = selection!.rangeCount > 0 ? selection!.getRangeAt(0).getClientRects()[0] : null;
+    }
     var pos: any = {
         left: -1,
         top: -1
@@ -1214,6 +1265,7 @@ export {
     showBanner,
     showPopup,
     showImagePopup,
+    startOtelSpan,
     tabOpenLink,
     timeStampString,
     toggleQuote,
