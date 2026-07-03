@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ZZ selectionchange stall repro</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+    </style>
+</head>
+<body>
+    <h1>ZZ selectionchange stall repro</h1>
+    <div id="padding"></div>
+    <div id="bigtext"></div>
+    <script>
+        // Pad the DOM to a similar element count as the real page where the 70s stall
+        // was observed (~3000 elements), to test whether per-call cost of getTextNodePos
+        // scales with total document complexity rather than with a selectionchange listener.
+        var padding = [];
+        for (var p = 0; p < 3000; p++) { padding.push('<span style="display:inline-block;padding:1px;">.</span>'); }
+        document.getElementById('padding').innerHTML = padding.join('');
+
+        // Many 4+ char "words" in a single text node produce thousands of matches
+        // for textAnchorPat, so createHintsForTextNode calls getTextNodePos thousands
+        // of times before viewport-filtering any of them.
+        var words = [];
+        for (var i = 0; i < 2500; i++) { words.push('wordxxxx' + (i % 37)); }
+        document.getElementById('bigtext').textContent = words.join(' ');
+
+        // Simulates a page with a non-trivial selectionchange handler (rich text editor,
+        // selection-based annotation UI, syntax highlighter, analytics, etc.) — this is
+        // what makes getTextNodePos's document.getSelection().setBaseAndExtent() calls
+        // expensive in the wild: each call fires selectionchange synchronously.
+        window.__selectionChangeCount = 0;
+        document.addEventListener('selectionchange', function() {
+            window.__selectionChangeCount++;
+            var start = performance.now();
+            while (performance.now() - start < 2) { /* busy wait ~2ms */ }
+        });
+    </script>
+</body>
+</html>
