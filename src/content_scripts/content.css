@@ -58,8 +58,8 @@ div.surfingkeys_cursor:empty {
     border: 4px solid #434343;
     box-sizing: border-box;
     z-index: 2147483000;
-    background: rgba(202, 202, 202, 0.62);
-    color: blue;
+    background: rgba(30, 30, 30, 0.72);
+    color: #fdd835;
     font-size: 16pt;
     font-weight: bold;
     display: table-cell;
