@@ -1,5 +1,49 @@
-import { getWordUnderCursor, getBrowserName } from '../utils.js';
+import { getWordUnderCursor, getBrowserName, getTextNodes } from '../utils.js';
 import type { CommandAPI } from '../../../../@types/surfingkeys';
+
+const ENTITY_URL_RE = /\b(?:https?:\/\/|ftp:\/\/|file:\/\/\/|git@|git:\/\/|ssh:\/\/)[^\s<>"')\]]+/gi;
+const ENTITY_EMAIL_RE = /\b[a-zA-Z0-9][a-zA-Z0-9._%+-]*@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+\b/g;
+const ENTITY_IP_RE = /\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b/g;
+const ENTITY_PATH_ABS_RE = /(?:~|\.{1,2})?\/[\w.-]+(?:\/[\w.-]+)*\/?/g;
+const ENTITY_PATH_REL_RE = /\b[\w-]+(?:\/[\w-]+)+\.[A-Za-z0-9]{1,8}\b/g;
+const ENTITY_WORD_RE = /\b[A-Za-z][A-Za-z0-9_'-]{3,}\b/g;
+const ENTITY_WORD_CAP = 200;
+const ENTITY_TOTAL_CAP = 700;
+
+function trimTrailingPunct(s: string): string {
+    return s.replace(/[.,;:!?)\]}'"]+$/, '');
+}
+
+function extractPageEntities(): {text: string; category: string}[] {
+    const nodes = getTextNodes(document.body, /\S/);
+    let working = nodes.map((n: any) => n.data).join(' ');
+    const results: {text: string; category: string}[] = [];
+
+    function extractAndMask(regex: RegExp, category: string, trim = false) {
+        const seen = new Set<string>();
+        for (const m of Array.from(working.matchAll(regex)) as RegExpMatchArray[]) {
+            const text = trim ? trimTrailingPunct(m[0]) : m[0];
+            if (!seen.has(text)) { seen.add(text); results.push({ text, category }); }
+            working = working.slice(0, m.index!) + ' '.repeat(m[0].length) + working.slice(m.index! + m[0].length);
+        }
+    }
+
+    extractAndMask(ENTITY_URL_RE, 'url', true);
+    extractAndMask(ENTITY_EMAIL_RE, 'email');
+    extractAndMask(ENTITY_IP_RE, 'ip');
+    extractAndMask(ENTITY_PATH_ABS_RE, 'path', true);
+    extractAndMask(ENTITY_PATH_REL_RE, 'path');
+
+    const wordSeen = new Map<string, string>();
+    for (const m of Array.from(working.matchAll(ENTITY_WORD_RE)) as RegExpMatchArray[]) {
+        if (wordSeen.size >= ENTITY_WORD_CAP) break;
+        const key = m[0].toLowerCase();
+        if (!wordSeen.has(key)) wordSeen.set(key, m[0]);
+    }
+    for (const text of wordSeen.values()) results.push({ text, category: 'word' });
+
+    return results.slice(0, ENTITY_TOTAL_CAP);
+}
 
 export default function registerOmnibar(
     api: CommandAPI,
@@ -63,6 +107,16 @@ export default function registerOmnibar(
         tags: ["omnibar", "llm", "ai"]
     }, function() {
         (front as any).openOmnibar({type: "LLMChat"});
+    });
+    mapkey('oE', {
+        short: "Open extracted page entities",
+        unique_id: "cmd_omnibar_extract_entities",
+        feature_group: 8,
+        category: "omnibar",
+        description: "Scan visible page text for emails, IPs, URLs, filepaths and words; fuzzy-search and copy selection to clipboard",
+        tags: ["omnibar", "extract", "fuzzy", "clipboard", "extrakto"]
+    }, function() {
+        (front as any).openOmnibar({ type: "PageEntities", extra: extractPageEntities() });
     });
 
     if (!getBrowserName().startsWith("Safari")) {

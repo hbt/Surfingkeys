@@ -883,6 +883,7 @@ function createOmnibar(front: any, clipboard: any) {
     self.addHandler('VIMarks', OpenVIMarks(self));
     self.addHandler('SearchEngine', searchEngine);
     self.addHandler('Commands', Commands(self, front));
+    self.addHandler('PageEntities', PageEntities(self, clipboard));
     self.addHandler('OmniQuery', OmniQuery(self, front));
     self.addHandler('UserURLs', OpenUserURLs(self, front));
     self.addHandler('LLMChat', LLMChat(self, front));
@@ -1678,6 +1679,62 @@ function Commands(omnibar: any, front: any) {
             name: k,
             description: getAnnotationString(items[k].annotation),
         }));
+    };
+
+    return self;
+}
+
+function PageEntities(omnibar: any, clipboard: any) {
+    const ALIASES: Record<string, string> = { u: 'url', em: 'email', ip: 'ip', p: 'path', w: 'word' };
+    const CATEGORY_WEIGHT: Record<string, number> = { url: 40, email: 30, ip: 20, path: 10, word: 0 };
+    var self: any = {
+        focusFirstCandidate: true,
+        prompt: `extract${separatorHtml}`,
+    };
+    var _candidates: {text: string; category: string}[] = [];
+
+    function parseQuery(raw: string): { text: string; category: string | null } {
+        const m = raw.match(/(?:^|\s)([a-zA-Z]+)$/);
+        if (m && ALIASES[m[1].toLowerCase()]) {
+            return { text: raw.slice(0, m.index).trim(), category: ALIASES[m[1].toLowerCase()] };
+        }
+        return { text: raw, category: null };
+    }
+
+    function renderList(list: any[]) {
+        omnibar.listResults(list, function(c: any) {
+            var li = createElementWithContent('li',
+                `<span class="sk_extract_cat">[${c.category}]</span> <span class="sk_extract_text">${htmlEncode(c.text)}</span>`);
+            li.matchText = c.text;
+            li.query = c.text;
+            return li;
+        });
+    }
+
+    self.onOpen = function(extra: any) {
+        _candidates = extra || [];
+        renderList(_candidates);
+    };
+
+    self.onInput = function() {
+        const { text: query, category } = parseQuery(omnibar.input.value);
+        var pool = category ? _candidates.filter(c => c.category === category) : _candidates;
+        if (query === "") { renderList(pool); return; }
+        const scored = pool.map(c => {
+            const r = fuzzyMatch(c.text, query);
+            return r.match ? { text: c.text, category: c.category, score: r.score + CATEGORY_WEIGHT[c.category] } : null;
+        }).filter(Boolean) as any[];
+        scored.sort((a, b) => b.score - a.score);
+        renderList(scored);
+    };
+
+    self.onEnter = function() {
+        var fi = omnibar.resultsDiv.querySelector('li.focused');
+        if (fi && fi.matchText) {
+            clipboard.write(fi.matchText);
+            return true;
+        }
+        return false;
     };
 
     return self;
