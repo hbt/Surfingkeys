@@ -182,4 +182,48 @@ test.describe('cmd_omnibar_extract_entities (Playwright)', () => {
             expect(clipText).toBe('/home/user/reports/summary.txt');
         });
     });
+
+    test('"p summary" (leading alias) narrows to path-only and copies it on Enter', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await invokeCommand(page, UNIQUE_ID);
+            await waitForOmnibar(page, true);
+
+            await page.keyboard.type('p summary');
+            await page.waitForTimeout(200);
+
+            const rows = await getResultRowTexts(page);
+            if (DEBUG) console.log('rows:', rows);
+            expect(rows.length).toBeGreaterThan(0);
+            expect(rows.every(r => r.includes('[path]'))).toBe(true);
+
+            await page.keyboard.press('Enter');
+            await page.waitForTimeout(200);
+
+            const clipText = await readClipboard(page);
+            expect(clipText).toBe('/home/user/reports/summary.txt');
+        });
+    });
+
+    test('"u report" (leading alias) narrows to URL-only and copies it on Enter', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await invokeCommand(page, UNIQUE_ID);
+            await waitForOmnibar(page, true);
+
+            await page.keyboard.type('u report');
+            await page.waitForTimeout(200);
+
+            const rows = await getResultRowTexts(page);
+            if (DEBUG) console.log('rows:', rows);
+            expect(rows.length).toBeGreaterThan(0);
+            expect(rows.every(r => r.includes('[url]'))).toBe(true);
+
+            await page.keyboard.press('Enter');
+            await page.waitForTimeout(200);
+
+            const clipText = await readClipboard(page);
+            expect(clipText).toBe('https://reportsite.net/summary?id=42');
+        });
+    });
 });

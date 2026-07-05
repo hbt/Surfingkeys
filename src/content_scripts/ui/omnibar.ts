@@ -375,6 +375,7 @@ function createOmnibar(front: any, clipboard: any) {
     };
 
     function rotateResult(backward: any) {
+        const t0 = performance.now();
         var items = Array.from(self.resultsDiv.querySelectorAll('#sk_omnibarSearchResult>ul>li'));
         var total = items.length;
         if (total > 0) {
@@ -385,6 +386,7 @@ function createOmnibar(front: any, clipboard: any) {
             var lastFocused = items.indexOf(fi);
             lastFocused = (lastFocused === -1) ? total : lastFocused;
             var toFocus = (backward ? (lastFocused + total) : (lastFocused + total + 2)) % (total + 1);
+            const tQuery = performance.now();
             if (toFocus < total) {
                 self.focusItem(items[toFocus]);
                 if (handler.onTabKey) {
@@ -392,6 +394,11 @@ function createOmnibar(front: any, clipboard: any) {
                 }
             } else {
                 self.input.value = lastInput;
+            }
+            if (total > 50) {
+                startOtelSpan('omnibar.rotateResult', { total, handlerType: _savedAargs?.type }).end({
+                    queryMs: tQuery - t0, totalMs: performance.now() - t0,
+                });
             }
         }
     }
@@ -1703,14 +1710,19 @@ function PageEntities(omnibar: any, clipboard: any) {
     var _candidates: {text: string; category: string}[] = [];
 
     function parseQuery(raw: string): { text: string; category: string | null } {
-        const m = raw.match(/(?:^|\s)([a-zA-Z]+)$/);
-        if (m && ALIASES[m[1].toLowerCase()]) {
-            return { text: raw.slice(0, m.index).trim(), category: ALIASES[m[1].toLowerCase()] };
+        const trailing = raw.match(/(?:^|\s)([a-zA-Z]+)$/);
+        if (trailing && ALIASES[trailing[1].toLowerCase()]) {
+            return { text: raw.slice(0, trailing.index).trim(), category: ALIASES[trailing[1].toLowerCase()] };
+        }
+        const leading = raw.match(/^\s*([a-zA-Z]+)(?=\s|$)/);
+        if (leading && ALIASES[leading[1].toLowerCase()]) {
+            return { text: raw.slice(leading[0].length).trim(), category: ALIASES[leading[1].toLowerCase()] };
         }
         return { text: raw, category: null };
     }
 
     function renderList(list: any[]) {
+        const t0 = performance.now();
         omnibar.listResults(list, function(c: any) {
             var li = createElementWithContent('li',
                 `<span class="sk_extract_cat">[${c.category}]</span> <span class="sk_extract_text">${htmlEncode(c.text)}</span>`);
@@ -1718,25 +1730,57 @@ function PageEntities(omnibar: any, clipboard: any) {
             li.query = c.text;
             return li;
         });
+        return performance.now() - t0;
     }
 
     self.onOpen = function(extra: any) {
         const span = startOtelSpan('oE.PageEntities.onOpen', { candidateCount: (extra || []).length });
         _candidates = extra || [];
-        renderList(_candidates);
-        span.end();
+        const renderMs = renderList(_candidates);
+        span.end({ renderMs });
     };
 
     self.onInput = function() {
+        const t0 = performance.now();
         const { text: query, category } = parseQuery(omnibar.input.value);
+        const tParse = performance.now();
+
         var pool = category ? _candidates.filter(c => c.category === category) : _candidates;
-        if (query === "") { renderList(pool); return; }
+        const tFilter = performance.now();
+
+        if (query === "") {
+            const renderMs = renderList(pool);
+            startOtelSpan('oE.onInput', {
+                query, category, candidateCount: _candidates.length, poolSize: pool.length, scoredCount: pool.length,
+            }).end({
+                parseMs: tParse - t0, filterMs: tFilter - tParse, fuzzyMatchMs: 0, sortMs: 0, renderMs,
+                totalMs: performance.now() - t0,
+            });
+            return;
+        }
+
         const scored = pool.map(c => {
             const r = fuzzyMatch(c.text, query);
             return r.match ? { text: c.text, category: c.category, score: r.score + CATEGORY_WEIGHT[c.category] } : null;
         }).filter(Boolean) as any[];
+        const tFuzzy = performance.now();
+
         scored.sort((a, b) => b.score - a.score);
-        renderList(scored);
+        const tSort = performance.now();
+
+        const renderMs = renderList(scored);
+        const tRender = performance.now();
+
+        startOtelSpan('oE.onInput', {
+            query, category, candidateCount: _candidates.length, poolSize: pool.length, scoredCount: scored.length,
+        }).end({
+            parseMs: tParse - t0,
+            filterMs: tFilter - tParse,
+            fuzzyMatchMs: tFuzzy - tFilter,
+            sortMs: tSort - tFuzzy,
+            renderMs,
+            totalMs: tRender - t0,
+        });
     };
 
     self.onEnter = function() {

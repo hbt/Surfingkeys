@@ -20,18 +20,30 @@ function extractPageEntities(): {text: string; category: string}[] {
         docElementCount: document.getElementsByTagName('*').length,
     });
 
+    const tNodesStart = performance.now();
     const nodes = getTextNodes(document.body, /\S/);
-    span.addEvent('textNodes.gathered', { count: nodes.length });
+    const tNodesEnd = performance.now();
+    span.addEvent('textNodes.gathered', { count: nodes.length, ms: tNodesEnd - tNodesStart });
+
     let working = nodes.map((n: any) => n.data).join(' ');
+    const tJoinEnd = performance.now();
+    span.addEvent('text.joined', { length: working.length, ms: tJoinEnd - tNodesEnd });
+
     const results: {text: string; category: string}[] = [];
 
     function extractAndMask(regex: RegExp, category: string, trim = false) {
+        const t0 = performance.now();
         const seen = new Set<string>();
-        for (const m of Array.from(working.matchAll(regex)) as RegExpMatchArray[]) {
+        const matches = Array.from(working.matchAll(regex)) as RegExpMatchArray[];
+        const tMatch = performance.now();
+        for (const m of matches) {
             const text = trim ? trimTrailingPunct(m[0]) : m[0];
             if (!seen.has(text)) { seen.add(text); results.push({ text, category }); }
             working = working.slice(0, m.index!) + ' '.repeat(m[0].length) + working.slice(m.index! + m[0].length);
         }
+        span.addEvent(`extract.${category}`, {
+            matchCount: matches.length, matchAllMs: tMatch - t0, maskMs: performance.now() - tMatch,
+        });
     }
 
     extractAndMask(ENTITY_URL_RE, 'url', true);
@@ -40,13 +52,20 @@ function extractPageEntities(): {text: string; category: string}[] {
     extractAndMask(ENTITY_PATH_ABS_RE, 'path', true);
     extractAndMask(ENTITY_PATH_REL_RE, 'path');
 
+    const tWordStart = performance.now();
+    const wordMatches = Array.from(working.matchAll(ENTITY_WORD_RE)) as RegExpMatchArray[];
+    const tWordMatchAll = performance.now();
     const wordSeen = new Map<string, string>();
-    for (const m of Array.from(working.matchAll(ENTITY_WORD_RE)) as RegExpMatchArray[]) {
+    for (const m of wordMatches) {
         if (wordSeen.size >= ENTITY_WORD_CAP) break;
         const key = m[0].toLowerCase();
         if (!wordSeen.has(key)) wordSeen.set(key, m[0]);
     }
     for (const text of wordSeen.values()) results.push({ text, category: 'word' });
+    span.addEvent('extract.word', {
+        rawMatchCount: wordMatches.length, keptCount: wordSeen.size,
+        matchAllMs: tWordMatchAll - tWordStart, dedupeMs: performance.now() - tWordMatchAll,
+    });
 
     const capped = results.slice(0, ENTITY_TOTAL_CAP);
     const counts: Record<string, number> = {};
