@@ -1,4 +1,4 @@
-import { getWordUnderCursor, getBrowserName, getTextNodes } from '../utils.js';
+import { getWordUnderCursor, getBrowserName, getTextNodes, startOtelSpan } from '../utils.js';
 import type { CommandAPI } from '../../../../@types/surfingkeys';
 
 const ENTITY_URL_RE = /\b(?:https?:\/\/|ftp:\/\/|file:\/\/\/|git@|git:\/\/|ssh:\/\/)[^\s<>"')\]]+/gi;
@@ -15,7 +15,13 @@ function trimTrailingPunct(s: string): string {
 }
 
 function extractPageEntities(): {text: string; category: string}[] {
+    const span = startOtelSpan('oE.extractPageEntities', {
+        host: window.location.hostname,
+        docElementCount: document.getElementsByTagName('*').length,
+    });
+
     const nodes = getTextNodes(document.body, /\S/);
+    span.addEvent('textNodes.gathered', { count: nodes.length });
     let working = nodes.map((n: any) => n.data).join(' ');
     const results: {text: string; category: string}[] = [];
 
@@ -42,7 +48,11 @@ function extractPageEntities(): {text: string; category: string}[] {
     }
     for (const text of wordSeen.values()) results.push({ text, category: 'word' });
 
-    return results.slice(0, ENTITY_TOTAL_CAP);
+    const capped = results.slice(0, ENTITY_TOTAL_CAP);
+    const counts: Record<string, number> = {};
+    for (const r of capped) counts[r.category] = (counts[r.category] || 0) + 1;
+    span.end({ totalCount: capped.length, ...counts });
+    return capped;
 }
 
 export default function registerOmnibar(
@@ -116,7 +126,11 @@ export default function registerOmnibar(
         description: "Scan visible page text for emails, IPs, URLs, filepaths and words; fuzzy-search and copy selection to clipboard",
         tags: ["omnibar", "extract", "fuzzy", "clipboard", "extrakto"]
     }, function() {
-        (front as any).openOmnibar({ type: "PageEntities", extra: extractPageEntities() });
+        const span = startOtelSpan('oE.keyTriggered', { host: window.location.hostname });
+        const extra = extractPageEntities();
+        span.addEvent('openOmnibar.call', { candidateCount: extra.length });
+        span.end();
+        (front as any).openOmnibar({ type: "PageEntities", extra });
     });
 
     if (!getBrowserName().startsWith("Safari")) {

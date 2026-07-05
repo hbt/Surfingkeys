@@ -20,6 +20,7 @@ import {
     scrollIntoViewIfNeeded,
     setSanitizedContent,
     showBanner,
+    startOtelSpan,
     tabOpenLink,
     timeStampString,
     toggleQuote,
@@ -652,6 +653,14 @@ function createOmnibar(front: any, clipboard: any) {
     var _savedAargs: any;
     ui.onShow = function(args: any) {
         handler = handlers[args.type];
+        if (!handler) {
+            const span = startOtelSpan('omnibar.unknownHandlerType', {
+                requestedType: args.type,
+                availableTypes: Object.keys(handlers).join(','),
+            });
+            span.end({ status: 'ERROR' });
+            return;
+        }
         if (!self.input) {
             self.input = _createInput();
             document.querySelector("#sk_omnibarSearchArea")!.insertBefore(self.input, resultPageSpan);
@@ -1712,8 +1721,10 @@ function PageEntities(omnibar: any, clipboard: any) {
     }
 
     self.onOpen = function(extra: any) {
+        const span = startOtelSpan('oE.PageEntities.onOpen', { candidateCount: (extra || []).length });
         _candidates = extra || [];
         renderList(_candidates);
+        span.end();
     };
 
     self.onInput = function() {
