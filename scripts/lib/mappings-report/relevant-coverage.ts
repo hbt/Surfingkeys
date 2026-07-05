@@ -256,6 +256,35 @@ export function computeDerivedContentBaseline(
     return result;
 }
 
+/** Shared per-report context, expensive to build — compute once and reuse across all commands. */
+export interface RelevantCoverageContext {
+    bgResolver: ((offset: number) => string | null) | null;
+    contentResolver: ((offset: number) => string | null) | null;
+    bgBaseline: Map<string, number> | null;
+}
+
+/**
+ * Build the shared resolver/baseline context used by {@link computeRelevantCoverage}.
+ * Reads and parses the background/content sourcemaps and the probe baseline once;
+ * callers should build this a single time per report and pass it to every command.
+ */
+export function buildRelevantCoverageContext(coverageRawDir: string, projectRoot: string): RelevantCoverageContext {
+    const distDir = path.join(projectRoot, 'dist', 'development', 'chrome-test');
+    const bgResolver = buildSourceResolver(
+        path.join(distDir, 'background.js'),
+        path.join(distDir, 'background.js.map'),
+    );
+    const contentResolver = buildSourceResolver(
+        path.join(distDir, 'content.js'),
+        path.join(distDir, 'content.js.map'),
+    );
+
+    const baselineBgDir = path.join(coverageRawDir, 'probe', 'background');
+    const bgBaseline = buildBaselineMap(baselineBgDir);
+
+    return { bgResolver, contentResolver, bgBaseline };
+}
+
 /**
  * Compute baseline-diffed relevant coverage for a single command.
  *
@@ -263,30 +292,36 @@ export function computeDerivedContentBaseline(
  * @param coverageRawDir         - path to test-artifacts/coverage-raw/
  * @param projectRoot            - path to project root (for dist/ source maps)
  * @param derivedContentBaseline - pre-computed derived content baseline (optional, computed lazily if absent)
+ * @param context                - pre-computed resolver/baseline context (optional, computed lazily if absent)
  */
 export function computeRelevantCoverage(
     uniqueId: string,
     coverageRawDir: string,
     projectRoot: string,
     derivedContentBaseline?: Map<string, number>,
+    context?: RelevantCoverageContext,
 ): RelevantCoverage | null {
     // Resolve command coverage directory (same logic as code-coverage.ts)
     const candidateDirs: string[] = [];
     const directDir = path.join(coverageRawDir, uniqueId);
     if (fs.existsSync(directDir)) candidateDirs.push(directDir);
 
-    const runsDir = path.join(coverageRawDir, 'runs');
-    if (fs.existsSync(runsDir)) {
-        const sortedRuns = fs.readdirSync(runsDir, { withFileTypes: true })
-            .filter(e => e.isDirectory())
-            .map(e => e.name)
-            .sort()
-            .reverse();
-        for (const runName of sortedRuns) {
-            const runIdDir = path.join(runsDir, runName, uniqueId);
-            if (fs.existsSync(runIdDir)) {
-                candidateDirs.push(runIdDir);
-                break;
+    // Historical runs/ are only a fallback for commands with no current data —
+    // don't merge them in when direct current data already exists.
+    if (candidateDirs.length === 0) {
+        const runsDir = path.join(coverageRawDir, 'runs');
+        if (fs.existsSync(runsDir)) {
+            const sortedRuns = fs.readdirSync(runsDir, { withFileTypes: true })
+                .filter(e => e.isDirectory())
+                .map(e => e.name)
+                .sort()
+                .reverse();
+            for (const runName of sortedRuns) {
+                const runIdDir = path.join(runsDir, runName, uniqueId);
+                if (fs.existsSync(runIdDir)) {
+                    candidateDirs.push(runIdDir);
+                    break;
+                }
             }
         }
     }
@@ -314,20 +349,27 @@ export function computeRelevantCoverage(
 
     if (contentLatest.length === 0 && backgroundLatest.length === 0) return null;
 
-    // Build source resolvers
-    const distDir = path.join(projectRoot, 'dist', 'development', 'chrome-test');
-    const bgResolver = buildSourceResolver(
-        path.join(distDir, 'background.js'),
-        path.join(distDir, 'background.js.map'),
-    );
-    const contentResolver = buildSourceResolver(
-        path.join(distDir, 'content.js'),
-        path.join(distDir, 'content.js.map'),
-    );
+    // Build source resolvers (reuse pre-computed context when provided — these are
+    // expensive to build and identical across every command in a report run).
+    let bgResolver: ((offset: number) => string | null) | null;
+    let contentResolver: ((offset: number) => string | null) | null;
+    let bgBaseline: Map<string, number> | null;
+    if (context) {
+        ({ bgResolver, contentResolver, bgBaseline } = context);
+    } else {
+        const distDir = path.join(projectRoot, 'dist', 'development', 'chrome-test');
+        bgResolver = buildSourceResolver(
+            path.join(distDir, 'background.js'),
+            path.join(distDir, 'background.js.map'),
+        );
+        contentResolver = buildSourceResolver(
+            path.join(distDir, 'content.js'),
+            path.join(distDir, 'content.js.map'),
+        );
 
-    // Load background baseline (probe/background/*.v8.json)
-    const baselineBgDir = path.join(coverageRawDir, 'probe', 'background');
-    const bgBaseline = buildBaselineMap(baselineBgDir);
+        const baselineBgDir = path.join(coverageRawDir, 'probe', 'background');
+        bgBaseline = buildBaselineMap(baselineBgDir);
+    }
     const hasBgBaseline = bgBaseline !== null;
 
     // Resolve content baseline: use pre-computed derived baseline if provided,

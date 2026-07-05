@@ -7,7 +7,7 @@ import { scanTestFiles } from './test-coverage';
 import { generateSummary } from './summary';
 import { parseCustomConfigAST, generateCustomMappingStats } from './custom-config';
 import { generateCoverageStats } from './code-coverage';
-import { computeRelevantCoverage, computeDerivedContentBaseline } from './relevant-coverage';
+import { computeRelevantCoverage, computeDerivedContentBaseline, buildRelevantCoverageContext } from './relevant-coverage';
 import { generateIssues } from './issues';
 import { REPORT_JSON_SCHEMA } from './schema';
 import { EXCLUDED_MAPPING_KEY_PATTERNS } from './constants';
@@ -68,12 +68,16 @@ export function buildReport(): Report {
     // Compute derived content baseline once (scans all cmd_* dirs) for reuse
     const derivedContentBaseline = computeDerivedContentBaseline(coverageRawDir);
 
+    // Compute the sourcemap resolvers + background baseline once — these are expensive
+    // to build (parsing multi-hundred-KB sourcemaps) and identical for every command.
+    const relevantCoverageContext = buildRelevantCoverageContext(coverageRawDir, projectRoot);
+
     // Add relevant_coverage field to each mapping that has code coverage data
     for (const mapping of mappings) {
         const uniqueId = (mapping.annotation as any)?.unique_id;
         if (!uniqueId) continue;
         if (!mapping.code_coverage?.hasData) continue;
-        const rc = computeRelevantCoverage(uniqueId, coverageRawDir, projectRoot, derivedContentBaseline);
+        const rc = computeRelevantCoverage(uniqueId, coverageRawDir, projectRoot, derivedContentBaseline, relevantCoverageContext);
         if (rc) mapping.relevant_coverage = rc;
     }
 
