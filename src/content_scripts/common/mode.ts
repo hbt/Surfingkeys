@@ -357,6 +357,7 @@ Mode.handleMapKey = function(this: any, event: any, onNoMatched?: any) {
         event.sk_stopPropagation = (!this.map_node.meta.stopPropagation
             || this.map_node.meta.stopPropagation(key));
         this.pendingMap = null;
+        (RUNTIME as any).repeats = parseInt(this.repeats) || 1;
         pf(key);
         if (this.pendingMap !== null) {
             if (this.isTrustedEvent) {

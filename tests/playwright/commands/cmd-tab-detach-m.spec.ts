@@ -282,6 +282,78 @@ test.describe('cmd_tab_detach_m (pending-key, Playwright)', () => {
         );
     });
 
+    test('2gDe detaches only 2 tabs to the right (digit prefix respected)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                // Layout: [anchor, right1, right2, right3]
+                // 2gDe should move only right1 + right2 (closest 2) to a new window, right3 stays
+                const anchor = await context.newPage();
+                await anchor.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await closeAllExcept(anchor);
+
+                const right1 = await context.newPage();
+                await right1.goto(FIXTURE_URL, { waitUntil: 'load' });
+                await right1.waitForTimeout(200);
+
+                const right2 = await context.newPage();
+                await right2.goto(FIXTURE_URL, { waitUntil: 'load' });
+                await right2.waitForTimeout(200);
+
+                const right3 = await context.newPage();
+                await right3.goto(FIXTURE_URL, { waitUntil: 'load' });
+                await right3.waitForTimeout(200);
+
+                await anchor.bringToFront();
+                await anchor.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(anchor, 'unmapAllExcept', []);
+                await callSKApi(anchor, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(anchor, 'magicKeys', { 'e': 'DirectionRight' });
+
+                const beforeWindows = await getAllWindowsViaSW(context);
+                const beforeCount = beforeWindows.length;
+                const originalWindowId = beforeWindows[0].id;
+
+                await anchor.keyboard.press('2');
+                await anchor.waitForTimeout(50);
+                await anchor.keyboard.press('g');
+                await anchor.waitForTimeout(50);
+                await anchor.keyboard.press('D');
+                await anchor.waitForTimeout(50);
+                await anchor.keyboard.press('e');
+
+                await waitForWindowCount(context, beforeCount + 1);
+
+                const afterWindows = await getAllWindowsViaSW(context);
+                expect(afterWindows.length).toBe(beforeCount + 1);
+
+                const originalWindow = afterWindows.find((w: any) => w.id === originalWindowId);
+                const newWindow = afterWindows.find((w: any) => w.id !== originalWindowId);
+
+                expect(originalWindow).toBeDefined();
+                expect(newWindow).toBeDefined();
+                // anchor + right3 stay in original, only right1+right2 move to new window
+                expect(originalWindow!.tabs.length).toBe(2);
+                expect(newWindow!.tabs.length).toBe(2);
+
+                if (DEBUG) console.log(`2gDe: windows ${beforeCount} → ${afterWindows.length}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/2gDe/command_window/background`) ?? null;
+                const contentPath = await covContent?.flush(`${SUITE_LABEL}/2gDe/content`).catch(() => null) ?? null;
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+                await cleanupExtraWindows(originalWindowId);
+            },
+        );
+    });
+
     test('gDq detaches tabs to the left (DirectionLeft)', async () => {
         await withPersistedDualCoverage(
             { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },

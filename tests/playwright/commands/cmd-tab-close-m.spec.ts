@@ -211,6 +211,58 @@ test.describe('cmd_tab_close_m (pending-key, Playwright)', () => {
         );
     });
 
+    test('2gXl closes only 2 tabs to the right (digit prefix respected)', async () => {
+        await withPersistedDualCoverage(
+            { suiteLabel: SUITE_LABEL, coverageUrl: CONTENT_COVERAGE_URL, covBg, initContentCoverageForUrl },
+            test.info().title,
+            async () => {
+                const anchor = await context.newPage();
+                await anchor.goto(CONTENT_COVERAGE_URL, { waitUntil: 'load' });
+                await closeAllExcept(anchor);
+
+                const right1 = await context.newPage();
+                await right1.goto(FIXTURE_URL, { waitUntil: 'load' });
+                const right2 = await context.newPage();
+                await right2.goto(FIXTURE_URL, { waitUntil: 'load' });
+                const right3 = await context.newPage();
+                await right3.goto(FIXTURE_URL, { waitUntil: 'load' });
+
+                await anchor.bringToFront();
+                await anchor.waitForTimeout(300);
+                const covContent = await initContentCoverageForUrl?.(CONTENT_COVERAGE_URL);
+                await covBg?.snapshot();
+                await covContent?.snapshot();
+
+                await callSKApi(anchor, 'unmapAllExcept', []);
+                await callSKApi(anchor, 'mapcmdkey', KEY, UNIQUE_ID);
+                await setConf(anchor, 'magicKeys', { 'l': 'DirectionRight' });
+
+                const countBefore = context.pages().length;
+                expect(countBefore).toBe(4);
+
+                await anchor.keyboard.press('2');
+                await anchor.waitForTimeout(50);
+                await anchor.keyboard.press('g');
+                await anchor.waitForTimeout(50);
+                await anchor.keyboard.press('X');
+                await anchor.waitForTimeout(50);
+                await anchor.keyboard.press('l');
+
+                // Expect only 2 of the 3 right tabs closed: anchor + right3 survive
+                await waitForTabCount(anchor, countBefore - 2);
+                expect(context.pages().length).toBe(countBefore - 2);
+                if (DEBUG) console.log(`2gXl: ${countBefore} → ${context.pages().length}`);
+
+                const bgPath = await covBg?.flush(`${SUITE_LABEL}/2gXl/command_window/background`) ?? null;
+                const contentPath = await covContent?.flush(`${SUITE_LABEL}/2gXl/content`).catch(() => null) ?? null;
+                if (process.env.COVERAGE === 'true') {
+                    expect(bgPath).toBeTruthy();
+                }
+                await covContent?.close().catch(() => {});
+            },
+        );
+    });
+
     // ---- helper functions used by new tests ----
 
     async function getTabsViaSW(): Promise<any[]> {
