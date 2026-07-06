@@ -283,6 +283,7 @@ Examples:
 
         // Get test coverage
         const testCoverage = entry.test_coverage?.hasTest ? 'yes' : 'no';
+        const testPaths = entry.test_coverage?.testFiles?.map(f => `tests/playwright/commands/${f}`).join(', ');
 
         // Validation status
         const validationStatus = entry.validationStatus || '(unknown)';
@@ -310,7 +311,7 @@ Examples:
         console.log();
         console.log(`  Source         ${sourceFile}:${sourceLine}`);
         console.log(`  Validation     ${validationStatus}`);
-        console.log(`  Test Coverage  ${testCoverage}`);
+        console.log(`  Test Coverage  ${testCoverage}${testPaths ? `  (${testPaths})` : ''}`);
         console.log();
     }
 
