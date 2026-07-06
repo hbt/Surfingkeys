@@ -117,6 +117,27 @@ test.describe('cmd_omnibar_extract_entities (Playwright)', () => {
         });
     });
 
+    test('hyphenated word is extracted as a single whole token, not split', async () => {
+        await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
+            await page.mouse.click(100, 100);
+            await invokeCommand(page, UNIQUE_ID);
+            await waitForOmnibar(page, true);
+
+            await page.keyboard.type('mirror-boot-investigator');
+            await page.waitForTimeout(200);
+
+            const rows = await getResultRowTexts(page);
+            if (DEBUG) console.log('rows:', rows);
+            expect(rows.some(r => r.includes('mirror-boot-investigator') && r.includes('[word]'))).toBe(true);
+
+            await page.keyboard.press('Enter');
+            await page.waitForTimeout(200);
+
+            const clipText = await readClipboard(page);
+            expect(clipText).toBe('mirror-boot-investigator');
+        });
+    });
+
     test('" u" alias narrows to URL-only and copies the URL on Enter', async () => {
         await withPersistedDualCoverage({ suiteLabel: SUITE_LABEL, coverageUrl: FIXTURE_URL, covBg, initContentCoverageForUrl }, test.info().title, async () => {
             await page.mouse.click(100, 100);
