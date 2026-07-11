@@ -749,15 +749,41 @@ function createNormal(insert: any) {
         }
     };
 
+    var LOCAL_MARKS_KEY = 'surfingkeys.localMarks';
+
+    function isLocalMark(mark: string) {
+        return /^[a-z]$/.test(mark);
+    }
+
+    function loadLocalMarks(): Record<string, any> {
+        try {
+            return JSON.parse(localStorage.getItem(LOCAL_MARKS_KEY) || "{}");
+        } catch (_e) {
+            return {};
+        }
+    }
+
+    function saveLocalMark(mark: string, markInfo: any) {
+        var marks = loadLocalMarks();
+        marks[mark] = markInfo;
+        localStorage.setItem(LOCAL_MARKS_KEY, JSON.stringify(marks));
+    }
+
     self.addVIMark = function(mark: any, url: any) {
         url = url || window.location.href;
-        var mo: Record<string, any> = {};
-        mo[mark] = {
+        var markInfo = {
             url: url,
             scrollLeft: document.scrollingElement!.scrollLeft,
             scrollTop: document.scrollingElement!.scrollTop
         };
-        RUNTIME('addVIMark', {mark: mo});
+        if (isLocalMark(mark)) {
+            // a-z: vim-like buffer-local marks, kept in this page's own localStorage only.
+            saveLocalMark(mark, markInfo);
+        } else {
+            var mo: Record<string, any> = {};
+            mo[mark] = markInfo;
+            RUNTIME('addVIMark', {mark: mo});
+        }
         showBanner("Mark '{0}' added for: {1}.".format(mark, url));
     };
 
@@ -782,6 +808,14 @@ function createNormal(insert: any) {
                     scrollNode.lastScrollTop = lt;
                     scrollNode.lastScrollLeft = ll;
                 }
+            }
+        } else if (isLocalMark(mark)) {
+            var markInfo = loadLocalMarks()[mark];
+            if (markInfo && markInfo.url === window.location.href) {
+                document.scrollingElement!.scrollLeft = markInfo.scrollLeft;
+                document.scrollingElement!.scrollTop = markInfo.scrollTop;
+            } else {
+                showBanner("Mark '{0}' is not set on this page.".format(mark));
             }
         } else {
             RUNTIME('jumpVIMark', {
