@@ -166,9 +166,38 @@ See [project-contributions.md](project-contributions.md) for full breakdown.
 
 | | |
 |-|-|
-| Commits | 820+ |
+| Commits | 931+ |
 | Author | hbt |
-| Burst 1 | 2026-01: 382 commits — infrastructure, esbuild, ESLint, CDP/Playwright, docs |
-| Burst 2 | 2026-05: 396 commits — TypeScript, tab magic, bookmarks, CI, settings |
+| Burst 1 | 2026-01: 375 commits — infrastructure, esbuild, ESLint, CDP/Playwright, docs |
+| Burst 2 | 2026-05: 430 commits — TypeScript, tab magic, bookmarks, CI, settings |
+| Trailing | 2026-03: 17, 2026-04: 30, 2026-06: 64, 2026-07: 15 |
 
-hbt's commit volume in ~4 months exceeds any single upstream year, including brook hong's peak of 232 commits in 2017.
+hbt's commit volume in ~6 months exceeds any single upstream year, including brook hong's peak of 232 commits in 2017.
+
+#### Commits per month
+
+| Month | Commits | Dominant tags | Work done |
+|-------|--------:|----------------|-----------|
+| 2026-01 | 375 | `[test]` 62, `[docs]` 37, `[refactor]` 27, `[fix]` 26, `[feat]` 25, `[migration]` 16 | Fork bring-up: esbuild build pipeline, ESLint/lint tooling, initial CDP + Playwright test scaffolding, first docs pass, atomic scroll-wait test pattern, JSON reporter console-log capture |
+| 2026-03 | 17 | `[tests]` 11, `[perf]` 2, `[report]` 2 | Stood up the Playwright MV3 POC suite and began the CDP→Playwright migration; -36%/-250s perf pass on the 10 slowest CDP tests |
+| 2026-04 | 30 | `[tests]` 16, `[test]` 13, `[coverage]` 7, `[docs]` 6 | Finished bulk CDP→Playwright conversion (551/552 passing), added V8 coverage instrumentation across spec batches, split/trimmed CLAUDE.md docs, `invokeCommand` bridge pattern |
+| 2026-05 | 430 | `[fix]` 40, `[feat]` 40, `[test]` 34, `[ci]` 22, `[docs]` 20, `[bookmarks]` 19, `[ts]` 15 | Largest burst: TypeScript migration, tab-magic dispatch system, bookmarks feature work, CI restructuring (verify moved pre→post-commit), mapping-conflict validation rewrite, settings-reference docs regenerated from live data |
+| 2026-06 | 64 | `[feat]` 19, `[fix]` 7, `[refactor]` 2 | Archive-to-fork command migrations (`cmd_nav_url_increment/decrement`, `cmd_tab_warmup`), `sk.ts` CLI lookup subcommand, mappings report renamed/refactored, migration.md docs expanded |
+| 2026-07 | 15 | `[feat]` 4, `[fix]` 4, `[perf]` 3 | Hint-scan perf work (TreeWalker-based `zz`, 70s freeze fix + otel tracing), vim-mark page scoping fix, digit-prefix repeat fix on tab magic commands |
+
+```bash
+# per-month tag breakdown used for the "Dominant tags" column above (repeat per month)
+git log --no-merges --author="hbt" --since="2026-05-01" --until="2026-05-31" \
+  --pretty=format:'%s' | grep -oE '\[[a-zA-Z0-9_-]+\]' | sort | uniq -c | sort -rn
+```
+
+```bash
+# Total commits by hbt (matches "931+" author-count claim)
+git log --no-merges --author="hbt" --oneline | wc -l
+
+# hbt commits broken down by month (derives the Burst 1 / Burst 2 numbers)
+git log --no-merges --author="hbt" --date=format:'%Y-%m' --pretty=format:'%ad' | sort | uniq -c
+
+# brookhong's commits per year, sorted descending (confirms the 232-commit 2017 peak)
+git log --no-merges --author="brookhong\|brook hong" --date=format:'%Y' --pretty=format:'%ad' | sort | uniq -c | sort -rn
+```
