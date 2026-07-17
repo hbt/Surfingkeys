@@ -17,7 +17,13 @@ const ROOT = path.join(import.meta.dir, '..');
 interface MappingEntry {
     key?: string;
     mode?: string;
-    annotation?: { unique_id?: string; short?: string };
+    annotation?: {
+        unique_id?: string;
+        short?: string;
+        description?: string;
+        category?: string;
+        tags?: string[];
+    };
 }
 
 interface Report {
@@ -186,6 +192,153 @@ interface SlideSection {
     videoPath?: string;
 }
 
+// --- Magic-key prefix support ---------------------------------------------
+//
+// Some commands (e.g. cmd_tab_close_m mapped to 'tc') don't act on their own:
+// after the prefix key they wait for ONE more keystroke, a "magic key", which
+// selects a direction/variant. Source of truth:
+//
+//   - Which commands consume a magic key: source annotation `tags` includes
+//     'magic' (mirrors src/content_scripts/front.ts:628 `tags.includes('magic')`).
+//     Two-level folder commands (description contains "next key = folder", e.g.
+//     cmd_bookmark_add_m in src/content_scripts/common/commands/settings.ts:273)
+//     are excluded — their immediate next key is a bookmark folder, not a magic key.
+//   - key -> MagicDirection: runtime default at
+//     src/content_scripts/common/runtime.ts:127-142, overridable by the user's
+//     `settings.magicKeys` in ~/.surfingkeys-2026.js (loadMagicKeys reads that).
+//   - MagicDirection -> human label: src/content_scripts/front.ts:629-645.
+
+const MAGIC_DIRECTION_LABELS: Record<string, string> = {
+    DirectionLeft: 'tabs left',
+    DirectionRight: 'tabs right',
+    DirectionLeftInclusive: 'tabs left (incl.)',
+    DirectionRightInclusive: 'tabs right (incl.)',
+    CurrentTab: 'current tab',
+    AllInWindow: 'all in window',
+    AllExceptActiveAllWindows: 'all except active (all windows)',
+    AllExceptActive: 'all except active',
+    ChildrenTabs: 'child tabs',
+    ChildrenTabsRecursively: 'child tabs (recursive)',
+    OtherWindowsNoPinned: 'other windows (no pinned)',
+    AllOtherWindowsTabs: 'all other windows',
+    AllIncognitoTabs: 'incognito tabs',
+    SameDomain: 'same domain',
+    HighlightedTabs: 'highlighted tabs',
+};
+
+// Fallback used only when settings.magicKeys can't be read from the user config.
+const DEFAULT_MAGIC_KEYS: Record<string, string> = {
+    q: 'DirectionLeft', e: 'DirectionRight',
+    Q: 'DirectionLeftInclusive', E: 'DirectionRightInclusive',
+    t: 'CurrentTab', C: 'AllInWindow',
+    g: 'AllExceptActiveAllWindows', c: 'AllExceptActive',
+    k: 'ChildrenTabs', K: 'ChildrenTabsRecursively',
+    w: 'OtherWindowsNoPinned', W: 'AllOtherWindowsTabs',
+    o: 'AllIncognitoTabs', d: 'SameDomain',
+};
+
+function loadMagicKeys(): Record<string, string> {
+    const configPath = path.join(process.env.HOME || '', '.surfingkeys-2026.js');
+    try {
+        const code = readFileSync(configPath, 'utf8');
+        const block = code.match(/settings\.magicKeys\s*=\s*\{([\s\S]*?)\}/);
+        if (block) {
+            const table: Record<string, string> = {};
+            const re = /(['"])((?:\\.|[^\\])*?)\1\s*:\s*(['"])([A-Za-z]+)\3/g;
+            let m: RegExpExecArray | null;
+            while ((m = re.exec(block[1]!)) !== null) {
+                table[m[2]!] = m[4]!;
+            }
+            if (Object.keys(table).length > 0) return table;
+        }
+    } catch {
+        // fall through to source default
+    }
+    return { ...DEFAULT_MAGIC_KEYS };
+}
+
+function isMagicCommand(entry: MappingEntry | undefined): boolean {
+    const tags = entry?.annotation?.tags;
+    if (!tags?.includes('magic')) return false;
+    // Two-level folder commands take a folder key first, not a magic key.
+    if (/next key = folder/i.test(entry?.annotation?.description || '')) return false;
+    return true;
+}
+
+function formatMagicKeyOptions(magicKeys: Record<string, string>): string {
+    return Object.entries(magicKeys)
+        .map(([k, dir]) => `${k}=${MAGIC_DIRECTION_LABELS[dir] || dir}`)
+        .join('  ');
+}
+
+// Fallback for the default (custom-config-key) lookup: when `query` isn't a
+// literal custom key, see if it's <magic-prefix><magic-key>. Returns an exit
+// code if it resolved (valid or invalid magic key), or null if not a magic
+// composition at all (so the caller falls back to normal "not found").
+function tryMagicLookup(
+    query: string,
+    report: Report,
+    magicKeys: Record<string, string>
+): number | null {
+    const cc = report.custom_configuration?.mappings;
+    if (!cc) return null;
+
+    const magicIds = new Set<string>();
+    for (const e of report.mappings.list) {
+        if (isMagicCommand(e) && e.annotation?.unique_id) {
+            magicIds.add(e.annotation.unique_id);
+        }
+    }
+
+    const candidates = cc.filter(
+        m =>
+            m.unique_id &&
+            magicIds.has(m.unique_id) &&
+            query.length > m.key.length &&
+            query.startsWith(m.key)
+    );
+    if (candidates.length === 0) return null;
+
+    candidates.sort((a, b) => b.key.length - a.key.length);
+    const chosen = candidates[0]!;
+    const prefix = chosen.key;
+    const suffix = query.slice(prefix.length);
+
+    const src = report.mappings.list.find(e => e.annotation?.unique_id === chosen.unique_id);
+    const uid = chosen.unique_id!;
+    const short = src?.annotation?.short || uid;
+    const description = src?.annotation?.description || '(no description)';
+    const mode = src?.mode || '(unknown)';
+
+    const direction = magicKeys[suffix];
+
+    console.log();
+    console.log(`\x1b[36m🔍 Magic-key Lookup\x1b[0m`);
+    console.log();
+    console.log(`  Base command   \x1b[33m${uid}\x1b[0m`);
+    console.log(`  Short label    ${short}`);
+    console.log(`  Description    ${description}`);
+    console.log(`  Mode           ${mode}`);
+    console.log();
+    console.log(`  Custom Mapped  yes`);
+    console.log(`  Prefix key     \x1b[33m${prefix}\x1b[0m`);
+
+    if (direction) {
+        const label = MAGIC_DIRECTION_LABELS[direction] || direction;
+        console.log(`  Magic key      \x1b[33m${suffix}\x1b[0m → ${direction} (${label})`);
+        console.log();
+        console.log(`  \x1b[32m✅ Resolved\x1b[0m — '${prefix}' + '${suffix}' → ${short.replace(/ via magic key$/, '')}: ${label}`);
+        console.log();
+        return 0;
+    }
+
+    console.log(`  Magic key      \x1b[31m'${suffix}' is not a valid magic key for this command\x1b[0m`);
+    console.log();
+    console.log(`  Valid keys     ${formatMagicKeyOptions(magicKeys)}`);
+    console.log();
+    return 1;
+}
+
 function lookup(args: string[]): number {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
         console.log(`Usage: bun scripts/sk.ts lookup <query> [--by-mapping-key] [--by-unique-id]
@@ -256,12 +409,18 @@ Examples:
     }
 
     if (matches.length === 0) {
+        // Fallback (default lookup only): maybe query is <magic-prefix><magic-key>.
+        if (!hasByUniqueId && !hasByMappingKey) {
+            const rc = tryMagicLookup(query, report, loadMagicKeys());
+            if (rc !== null) return rc;
+        }
         const searchType = hasByUniqueId ? 'unique_id' : hasByMappingKey ? 'mapping key' : 'custom config key';
         console.log(`\x1b[33m⚠️  Not found\x1b[0m — no command with ${searchType} '${query}'`);
         return 1;
     }
 
     // Display results
+    const magicKeys = loadMagicKeys();
     console.log();
     for (let i = 0; i < matches.length; i++) {
         const entry = matches[i];
@@ -313,6 +472,12 @@ Examples:
         console.log(`  Validation     ${validationStatus}`);
         console.log(`  Test Coverage  ${testCoverage}${testPaths ? `  (${testPaths})` : ''}`);
         console.log();
+
+        if (isMagicCommand(entry)) {
+            console.log(`  \x1b[35m⏳ Pending-key prefix\x1b[0m — this key waits for one magic key next:`);
+            console.log(`     ${formatMagicKeyOptions(magicKeys)}`);
+            console.log();
+        }
     }
 
     return 0;
